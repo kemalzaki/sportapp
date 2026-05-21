@@ -10,11 +10,12 @@ $u = current_user();
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='delete') {
     csrf_check();
     $id = (int)($_POST['id'] ?? 0);
-    $row = db_one("SELECT file_path FROM upload_harian WHERE id=$1 AND user_id=$2", [$id, $u['id']]);
+    $row = db_one("SELECT file_path, gdrive_url FROM upload_harian WHERE id=$1 AND user_id=$2", [$id, $u['id']]);
     if ($row) {
-        if (!empty($row['file_path'])) {
-            $abs = __DIR__ . '/' . ltrim(str_replace('\\', '/', $row['file_path']), '/');
-            if (is_file($abs)) @unlink($abs);
+        if (!empty($row['gdrive_url'])) {
+            require_once __DIR__.'/config/imagekit.php';
+            global $imageKit;
+            $imageKit->deleteFile($row['gdrive_url']);
         }
         db_exec("DELETE FROM upload_harian WHERE id=$1 AND user_id=$2", [$id, $u['id']]);
         $msg = 'Aktivitas dihapus.';
@@ -35,24 +36,36 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='edit') {
     if (!$old) { $err='Data tidak ditemukan.'; }
     else {
         $filePath = $old['file_path'];
+        $gdriveUrl = $old['gdrive_url'];
         if (!empty($_FILES['bukti']['name'])) {
             $ext  = strtolower(pathinfo($_FILES['bukti']['name'], PATHINFO_EXTENSION));
             $safe = preg_replace('/[^a-z0-9]/i','_',$u['nama']) . "-{$tanggal}-Jogging-" . time() . "." . $ext;
-            $bulanFolder = __DIR__.'/uploads/'.date('F_Y', strtotime($tanggal));
-            if (!is_dir($bulanFolder)) mkdir($bulanFolder, 0775, true);
-            $dest = $bulanFolder.'/'.$safe;
-            if (move_uploaded_file($_FILES['bukti']['tmp_name'], $dest)) {
-                if (!empty($old['file_path'])) {
-                    $oa = __DIR__ . '/' . ltrim(str_replace('\\', '/', $old['file_path']), '/');
-                    if (is_file($oa)) @unlink($oa);
+            
+            require_once __DIR__.'/config/imagekit.php';
+            global $imageKit;
+            
+            $uploadFile = $imageKit->uploadFile([
+                'file' => base64_encode(file_get_contents($_FILES['bukti']['tmp_name'])),
+                'fileName' => $safe,
+                'folder' => '/sportapp/' . date('F_Y', strtotime($tanggal))
+            ]);
+            
+            if (!$uploadFile->error) {
+                if (!empty($old['gdrive_url'])) {
+                    $imageKit->deleteFile($old['gdrive_url']);
                 }
-                $filePath = '/' . ltrim(str_replace(DIRECTORY_SEPARATOR, '/', str_replace(__DIR__, '', $dest)), '/');
+                $filePath = $uploadFile->result->url;
+                $gdriveUrl = $uploadFile->result->fileId;
+            } else {
+                $err = 'Gagal upload file ke ImageKit.';
             }
         }
-        db_exec("UPDATE upload_harian SET tanggal=$1, jenis='Jogging', durasi_menit=$2, jarak_km=$3, kalori=$4, deskripsi=$5, file_path=$6
-                 WHERE id=$7 AND user_id=$8",
-                [$tanggal, $durasi, $jarak, $kalori, $desk, $filePath, $id, $u['id']]);
-        $msg='Aktivitas diperbarui.';
+        if (!$err) {
+            db_exec("UPDATE upload_harian SET tanggal=$1, jenis='Jogging', durasi_menit=$2, jarak_km=$3, kalori=$4, deskripsi=$5, file_path=$6, gdrive_url=$7
+                     WHERE id=$8 AND user_id=$9",
+                    [$tanggal, $durasi, $jarak, $kalori, $desk, $filePath, $gdriveUrl, $id, $u['id']]);
+            $msg='Aktivitas diperbarui.';
+        }
     }
 }
 
@@ -70,26 +83,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !isset($_POST['_action'])) {
     if (!empty($_FILES['bukti']['name'])) {
         $ext  = strtolower(pathinfo($_FILES['bukti']['name'], PATHINFO_EXTENSION));
         $safe = preg_replace('/[^a-z0-9]/i','_',$u['nama']) . "-{$tanggal}-{$jenis}." . $ext;
-        $bulanFolder = __DIR__.'/uploads/'.date('F_Y', strtotime($tanggal));
-        if (!is_dir($bulanFolder)) mkdir($bulanFolder, 0775, true);
-        $dest = $bulanFolder.'/'.$safe;
-        if (move_uploaded_file($_FILES['bukti']['tmp_name'], $dest)) {
-            $filePath = '/' . ltrim(str_replace(DIRECTORY_SEPARATOR, '/', str_replace(__DIR__, '', $dest)), '/');
-            /*
-             * --- Google Drive integration (sesuai README.md) ---
-             * 1. composer require google/apiclient:^2.15
-             * 2. simpan service-account JSON di config/gdrive-credentials.json
-             * 3. share folder "Aktivitas_Olahraga" ke email service account
-             *
-             *   $client = new Google\Client();
-             *   $client->setAuthConfig(__DIR__.'/config/gdrive-credentials.json');
-             *   $client->addScope(Google\Service\Drive::DRIVE_FILE);
-             *   $drive = new Google\Service\Drive($client);
-             *   $meta  = new Google\Service\Drive\DriveFile(['name'=>basename($dest), 'parents'=>[FOLDER_ID]]);
-             *   $file  = $drive->files->create($meta, ['data'=>file_get_contents($dest),'mimeType'=>mime_content_type($dest),'uploadType'=>'multipart','fields'=>'webViewLink']);
-             *   $gdriveUrl = $file->webViewLink;
-             */
-        } else { $err='Gagal upload file.'; }
+        
+        require_once __DIR__.'/config/imagekit.php';
+        global $imageKit;
+        
+        $uploadFile = $imageKit->uploadFile([
+            'file' => base64_encode(file_get_contents($_FILES['bukti']['tmp_name'])),
+            'fileName' => $safe,
+            'folder' => '/sportapp/' . date('F_Y', strtotime($tanggal))
+        ]);
+        
+        if (!$uploadFile->error) {
+            $filePath = $uploadFile->result->url;
+            $gdriveUrl = $uploadFile->result->fileId;
+        } else {
+            $err = 'Gagal upload file ke ImageKit.';
+        }
     }
 
     if (!$err) {
