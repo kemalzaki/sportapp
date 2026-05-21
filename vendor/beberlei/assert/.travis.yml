@@ -1,0 +1,64 @@
+language: php
+sudo: false
+
+git:
+  depth: 2
+
+matrix:
+  include:
+    - php: 5.3
+      dist: precise
+    - php: 5.4
+    - php: 5.5
+    - php: 5.6
+    - php: 7.0
+      env:
+      - LINT=true COVERAGE=true
+    - php: 7.1
+    - php: 7.2
+    - php: 7.3
+    - php: 7.3.0
+    - php: 7.3.1
+    - php: 7.3.2
+    - php: nightly
+    - php: hhvm-3.9
+      sudo: required
+      dist: trusty
+      group: edge
+
+  fast_finish: true
+  allow_failures:
+    - php: nightly
+
+cache:
+  directories:
+    - $HOME/.composer/cache
+    - $HOME/.php-cs-fixer
+
+before_install:
+  - source .travis/xdebug.sh
+  - xdebug-disable
+
+before_script:
+  - travis_retry composer update --no-interaction --prefer-source --prefer-stable
+
+script:
+  - if [[ "$LINT" == "true" ]]; then
+      composer assert:cs-lint;
+      ./bin/travis/lint-docs;
+      composer require --dev phpstan/phpstan;
+      vendor/bin/phpstan analyse --no-progress --ansi -l 7 lib;
+    fi
+  - if [[ "$COVERAGE" == "true" ]]; then
+      xdebug-enable;
+      vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover;
+      xdebug-disable;
+    else
+      vendor/bin/phpunit;
+    fi
+
+after_script:
+  - if [[ "$COVERAGE" == "true" ]]; then
+      wget https://scrutinizer-ci.com/ocular.phar;
+      php ocular.phar code-coverage:upload --format=php-clover coverage.clover;
+    fi
