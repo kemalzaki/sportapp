@@ -1,6 +1,7 @@
 <?php
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
+require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle='Input Absensi';
 
@@ -26,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 $jadwal=null; $members=[]; $current=[]; $tamu=[];
 if ($jadwalId) {
-    $jadwal  = db_one("SELECT j.*, u.nama AS koord FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id WHERE j.id=$1", [$jadwalId]);
-    $members = db_all("SELECT id,nama,role FROM users WHERE role IN ('member','admin') ORDER BY nama");
+    $jadwal  = db_one("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id WHERE j.id=$1", [$jadwalId]);
+    $members = db_all("SELECT id,nama,role,foto_url,last_seen FROM users WHERE role IN ('member','admin') ORDER BY nama");
     foreach (db_all("SELECT user_id,hadir FROM absensi WHERE jadwal_id=$1", [$jadwalId]) as $a) {
         $current[$a['user_id']] = $a['hadir'];
     }
@@ -48,6 +49,7 @@ include __DIR__.'/../includes/header.php'; ?>
 <?php if(isset($_GET['saved'])): ?><div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> Absensi tersimpan.</div><?php endif; ?>
 
 <?php if($jadwal): ?>
+<div class="mb-3 small text-muted">Koordinator: <?= user_name_with_avatar($jadwal['koord_foto'] ?? null, $jadwal['koord'] ?? '-', false, 24) ?></div>
 <form method="post">
   <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
   <input type="hidden" name="jadwal_id" value="<?= $jadwal['id'] ?>">
@@ -57,7 +59,7 @@ include __DIR__.'/../includes/header.php'; ?>
       <ul class="list-group list-group-flush">
         <?php foreach($members as $m): $h=$current[$m['id']]??0; ?>
         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span><?= htmlspecialchars($m['nama']) ?> <span class="role role-<?= $m['role'] ?>"><?= $m['role'] ?></span></span>
+          <span><?= user_name_with_avatar($m['foto_url'] ?? null, $m['nama'], is_online($m['last_seen'] ?? null), 28) ?> <span class="role role-<?= $m['role'] ?>"><?= $m['role'] ?></span></span>
           <div class="btn-group btn-group-sm">
             <input type="radio" class="btn-check" name="hadir[<?= $m['id'] ?>]" value="1" id="h<?= $m['id'] ?>" <?= $h==1?'checked':'' ?>>
             <label class="btn btn-outline-success" for="h<?= $m['id'] ?>"><i class="bi bi-check"></i> Hadir</label>

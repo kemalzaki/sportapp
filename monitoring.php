@@ -1,30 +1,31 @@
 <?php
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
+require __DIR__.'/includes/helpers.php';
 require_login();
 $pageTitle='Monitoring Performa';
 
 $totalSesi = (int) db_val("SELECT COUNT(*) FROM jadwal");
 
-$rank = db_all("
-  SELECT u.id, u.nama,
-         COUNT(a.id) FILTER (WHERE a.hadir=1) AS hadir,
-         CASE WHEN $totalSesi>0
-              THEN ROUND(COUNT(a.id) FILTER (WHERE a.hadir=1)::numeric * 100 / $totalSesi, 1)
-              ELSE 0 END AS persen
-  FROM users u
-  LEFT JOIN absensi a ON a.user_id=u.id
-  WHERE u.role IN ('member','admin')
-  GROUP BY u.id, u.nama
-  ORDER BY hadir DESC
+$trend = db_all("
+  SELECT j.bulan, j.minggu_ke, MIN(j.tanggal) AS tgl,
+         COALESCE(SUM(CASE WHEN a.hadir=1 THEN 1 ELSE 0 END),0) AS total
+  FROM jadwal j
+  LEFT JOIN absensi a ON a.jadwal_id=j.id
+  GROUP BY j.bulan, j.minggu_ke
+  ORDER BY tgl
 ");
 
-$trend = db_all("
-  SELECT bulan, minggu_ke,
-         SUM((SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1)) AS total
-  FROM jadwal j
-  GROUP BY bulan, minggu_ke
-  ORDER BY MIN(tanggal)
+// Tren performa jogging harian (akumulasi semua user)
+$trendJog = db_all("
+  SELECT tanggal,
+         COALESCE(SUM(durasi_menit),0) AS durasi,
+         COALESCE(SUM(jarak_km),0) AS jarak,
+         COALESCE(SUM(kalori),0) AS kalori
+  FROM upload_harian
+  WHERE jenis='Jogging'
+  GROUP BY tanggal
+  ORDER BY tanggal
 ");
 
 $me = current_user();
@@ -38,8 +39,8 @@ include __DIR__.'/includes/header.php'; ?>
 <div class="alert alert-info py-2 small d-flex align-items-center gap-2">
   <i class="bi bi-info-circle fs-5"></i>
   <div>
-    <strong>Keterangan Jogging:</strong> data durasi, jarak, dan kalori berikut bersumber dari upload aktivitas
-    <u>jogging</u> harian masing-masing member. Pastikan rutin upload minimal 1× seminggu agar tren akurat.
+    <strong>Keterangan Jogging:</strong> data durasi, jarak, dan kalori bersumber dari upload aktivitas
+    <u>jogging</u> harian masing-masing member.
   </div>
 </div>
 
@@ -49,7 +50,6 @@ include __DIR__.'/includes/header.php'; ?>
       <div class="stat-icon"><i class="bi bi-stopwatch"></i></div>
       <div class="stat-label">Total Durasi Saya</div>
       <div class="stat-value"><?= (int)$s['dm'] ?><small class="fs-6 fw-normal text-muted"> mnt</small></div>
-      <div class="stat-foot">Akumulasi semua sesi jogging</div>
     </div></div>
   </div>
   <div class="col-6 col-lg-4">
@@ -57,7 +57,6 @@ include __DIR__.'/includes/header.php'; ?>
       <div class="stat-icon"><i class="bi bi-signpost-split"></i></div>
       <div class="stat-label">Total Jarak Saya</div>
       <div class="stat-value"><?= $s['jk'] ?><small class="fs-6 fw-normal text-muted"> km</small></div>
-      <div class="stat-foot">Jarak tempuh kumulatif</div>
     </div></div>
   </div>
   <div class="col-12 col-lg-4">
@@ -65,35 +64,47 @@ include __DIR__.'/includes/header.php'; ?>
       <div class="stat-icon"><i class="bi bi-fire"></i></div>
       <div class="stat-label">Total Kalori Saya</div>
       <div class="stat-value"><?= (int)$s['kl'] ?></div>
-      <div class="stat-foot">Estimasi kalori terbakar</div>
     </div></div>
   </div>
 </div>
 
 <div class="row g-3">
-  <div class="col-lg-7">
+  <div class="col-lg-6">
     <div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-primary me-1"></i> Tren Total Kehadiran Mingguan</div>
-      <div class="card-body"><canvas id="trendChart" height="140"></canvas></div></div>
+      <div class="card-body"><canvas id="trendChart" height="160"></canvas></div></div>
   </div>
-  <div class="col-lg-5">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-trophy text-primary me-1"></i> Leaderboard Kehadiran</div>
-      <div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>#</th><th>Nama</th><th class="text-center">Hadir</th><th class="text-end">%</th></tr></thead><tbody>
-      <?php foreach($rank as $i=>$r): $medal = $i===0?'🥇':($i===1?'🥈':($i===2?'🥉':'')); ?>
-        <tr><td><?= $medal ?: ($i+1) ?></td><td><?= htmlspecialchars($r['nama']) ?></td>
-          <td class="text-center"><span class="badge bg-success rounded-pill"><?= (int)$r['hadir'] ?></span></td>
-          <td class="text-end fw-semibold"><?= $r['persen'] ?>%</td></tr>
-      <?php endforeach; ?></tbody></table></div>
-    </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-graph-up text-primary me-1"></i> Tren Performa Jogging Harian</div>
+      <div class="card-body"><canvas id="jogChart" height="160"></canvas></div></div>
   </div>
 </div>
 
 <script>
-const labels = <?= json_encode(array_map(fn($t)=>$t['bulan'].' '.$t['minggu_ke'], $trend)) ?>;
-const data   = <?= json_encode(array_map(fn($t)=>(int)$t['total'], $trend)) ?>;
+const trendLabels = <?= json_encode(array_map(fn($t)=>$t['bulan'].' '.$t['minggu_ke'], $trend)) ?>;
+const trendData   = <?= json_encode(array_map(fn($t)=>(int)$t['total'], $trend)) ?>;
 const ctx = document.getElementById('trendChart');
-const grad = ctx.getContext('2d').createLinearGradient(0,0,0,200);
-grad.addColorStop(0,'rgba(14,165,233,.45)'); grad.addColorStop(1,'rgba(14,165,233,0)');
-new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Total Hadir',data,borderColor:'#0ea5e9',backgroundColor:grad,fill:true,tension:.35,pointBackgroundColor:'#0ea5e9'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+if (trendLabels.length === 0) {
+  ctx.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada data jadwal.</p>';
+} else {
+  const grad = ctx.getContext('2d').createLinearGradient(0,0,0,200);
+  grad.addColorStop(0,'rgba(14,165,233,.45)'); grad.addColorStop(1,'rgba(14,165,233,0)');
+  new Chart(ctx,{type:'line',data:{labels:trendLabels,datasets:[{label:'Total Hadir',data:trendData,borderColor:'#0ea5e9',backgroundColor:grad,fill:true,tension:.35,pointBackgroundColor:'#0ea5e9'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+
+const jogLabels = <?= json_encode(array_map(fn($t)=>$t['tanggal'], $trendJog)) ?>;
+const jogDur    = <?= json_encode(array_map(fn($t)=>(int)$t['durasi'], $trendJog)) ?>;
+const jogJrk    = <?= json_encode(array_map(fn($t)=>(float)$t['jarak'], $trendJog)) ?>;
+const jogKal    = <?= json_encode(array_map(fn($t)=>(int)$t['kalori'], $trendJog)) ?>;
+const jc = document.getElementById('jogChart');
+if (jogLabels.length === 0) {
+  jc.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada upload jogging.</p>';
+} else {
+  new Chart(jc,{type:'line',data:{labels:jogLabels,datasets:[
+    {label:'Durasi (mnt)',data:jogDur,borderColor:'#0ea5e9',tension:.3,fill:false},
+    {label:'Jarak (km)',data:jogJrk,borderColor:'#22c55e',tension:.3,fill:false},
+    {label:'Kalori',data:jogKal,borderColor:'#f59e0b',tension:.3,fill:false}
+  ]},options:{plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}});
+}
 </script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

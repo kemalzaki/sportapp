@@ -1,23 +1,29 @@
 <?php
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
+require __DIR__.'/includes/helpers.php';
 $pageTitle='Daftar'; $err='';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $nama=trim($_POST['nama']??''); $email=trim($_POST['email']??''); $pass=$_POST['password']??'';
-    if(!$nama || !$email || strlen($pass)<6){
+    $captcha = trim($_POST['captcha'] ?? '');
+    if (!captcha_check($captcha)) {
+        $err='Jawaban captcha salah.';
+    } elseif(!$nama || !$email || strlen($pass)<6){
         $err='Lengkapi data, password minimal 6 karakter.';
     } else {
         try{
             db_exec("INSERT INTO users(nama,email,password_hash,role) VALUES($1,$2,$3,'member')",
                     [$nama, $email, password_hash($pass, PASSWORD_BCRYPT)]);
+            unset($_SESSION['captcha_answer']);
             header('Location: /login.php?registered=1'); exit;
         } catch (Throwable $e) {
             $err='Email sudah terdaftar.';
         }
     }
 }
+[$ca,$cb] = captcha_new();
 include __DIR__.'/includes/header.php'; ?>
 
 <div class="auth-wrap">
@@ -40,6 +46,13 @@ include __DIR__.'/includes/header.php'; ?>
         <div class="mb-3"><label class="form-label small fw-semibold">Password (min 6)</label>
           <div class="input-group"><span class="input-group-text"><i class="bi bi-lock"></i></span>
           <input class="form-control" name="password" type="password" required></div></div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Verifikasi (captcha)</label>
+          <div class="d-flex gap-2 align-items-center">
+            <div class="captcha-box"><i class="bi bi-shield-check text-primary"></i> <?= $ca ?> + <?= $cb ?> =</div>
+            <input class="form-control" name="captcha" type="number" inputmode="numeric" required placeholder="?">
+          </div>
+        </div>
         <button class="btn btn-primary w-100"><i class="bi bi-person-check me-1"></i> Daftar</button>
         <p class="text-center mt-3 mb-0 small">Sudah punya akun? <a href="login.php" class="fw-semibold">Masuk</a></p>
       </form>

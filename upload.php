@@ -1,8 +1,9 @@
 <?php
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
-require_login();
+require __DIR__.'/includes/helpers.php';
 $pageTitle='Upload Aktivitas Harian';
+require_login();
 $msg=''; $err='';
 $u = current_user();
 
@@ -15,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='delete') {
         if (!empty($row['gdrive_url'])) {
             require_once __DIR__.'/config/imagekit.php';
             global $imageKit;
-            $imageKit->deleteFile($row['gdrive_url']);
+            try { $imageKit->deleteFile($row['gdrive_url']); } catch (Throwable $e) {}
         }
         db_exec("DELETE FROM upload_harian WHERE id=$1 AND user_id=$2", [$id, $u['id']]);
         $msg = 'Aktivitas dihapus.';
     }
 }
 
-// ---- Handle Edit (update fields, optional new file) ----
+// ---- Handle Edit ----
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='edit') {
     csrf_check();
     $id      = (int)($_POST['id'] ?? 0);
@@ -30,40 +31,33 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='edit') {
     $durasi  = (int)($_POST['durasi'] ?? 0);
     $jarak   = (float)($_POST['jarak'] ?? 0);
     $kalori  = (int)($_POST['kalori'] ?? 0);
+    $pace    = trim($_POST['pace'] ?? '');
     $desk    = trim($_POST['deskripsi'] ?? '');
 
     $old = db_one("SELECT * FROM upload_harian WHERE id=$1 AND user_id=$2", [$id, $u['id']]);
     if (!$old) { $err='Data tidak ditemukan.'; }
     else {
-        $filePath = $old['file_path'];
-        $gdriveUrl = $old['gdrive_url'];
+        $filePath = $old['file_path']; $gdriveUrl = $old['gdrive_url'];
         if (!empty($_FILES['bukti']['name'])) {
             $ext  = strtolower(pathinfo($_FILES['bukti']['name'], PATHINFO_EXTENSION));
             $safe = preg_replace('/[^a-z0-9]/i','_',$u['nama']) . "-{$tanggal}-Jogging-" . time() . "." . $ext;
-            
             require_once __DIR__.'/config/imagekit.php';
             global $imageKit;
-            
             $uploadFile = $imageKit->uploadFile([
                 'file' => base64_encode(file_get_contents($_FILES['bukti']['tmp_name'])),
                 'fileName' => $safe,
                 'folder' => '/sportapp/' . date('F_Y', strtotime($tanggal))
             ]);
-            
             if (!$uploadFile->error) {
-                if (!empty($old['gdrive_url'])) {
-                    $imageKit->deleteFile($old['gdrive_url']);
-                }
+                if (!empty($old['gdrive_url'])) { try { $imageKit->deleteFile($old['gdrive_url']); } catch(Throwable $e){} }
                 $filePath = $uploadFile->result->url;
                 $gdriveUrl = $uploadFile->result->fileId;
-            } else {
-                $err = 'Gagal upload file ke ImageKit.';
-            }
+            } else { $err = 'Gagal upload file ke ImageKit.'; }
         }
         if (!$err) {
-            db_exec("UPDATE upload_harian SET tanggal=$1, jenis='Jogging', durasi_menit=$2, jarak_km=$3, kalori=$4, deskripsi=$5, file_path=$6, gdrive_url=$7
-                     WHERE id=$8 AND user_id=$9",
-                    [$tanggal, $durasi, $jarak, $kalori, $desk, $filePath, $gdriveUrl, $id, $u['id']]);
+            db_exec("UPDATE upload_harian SET tanggal=$1, jenis='Jogging', durasi_menit=$2, jarak_km=$3, kalori=$4, pace=$5, deskripsi=$6, file_path=$7, gdrive_url=$8
+                     WHERE id=$9 AND user_id=$10",
+                    [$tanggal, $durasi, $jarak, $kalori, $pace, $desk, $filePath, $gdriveUrl, $id, $u['id']]);
             $msg='Aktivitas diperbarui.';
         }
     }
@@ -73,39 +67,35 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='edit') {
 if ($_SERVER['REQUEST_METHOD']==='POST' && !isset($_POST['_action'])) {
     csrf_check();
     $tanggal   = $_POST['tanggal'] ?? date('Y-m-d');
-    $jenis     = 'Jogging'; // dikunci sesuai revisi #15
+    $jenis     = 'Jogging';
     $durasi    = (int)($_POST['durasi'] ?? 0);
     $jarak     = (float)($_POST['jarak'] ?? 0);
     $kalori    = (int)($_POST['kalori'] ?? 0);
+    $pace      = trim($_POST['pace'] ?? '');
     $deskripsi = trim($_POST['deskripsi'] ?? '');
 
     $filePath = null; $gdriveUrl = null;
     if (!empty($_FILES['bukti']['name'])) {
         $ext  = strtolower(pathinfo($_FILES['bukti']['name'], PATHINFO_EXTENSION));
         $safe = preg_replace('/[^a-z0-9]/i','_',$u['nama']) . "-{$tanggal}-{$jenis}." . $ext;
-        
         require_once __DIR__.'/config/imagekit.php';
         global $imageKit;
-        
         $uploadFile = $imageKit->uploadFile([
             'file' => base64_encode(file_get_contents($_FILES['bukti']['tmp_name'])),
             'fileName' => $safe,
             'folder' => '/sportapp/' . date('F_Y', strtotime($tanggal))
         ]);
-        
         if (!$uploadFile->error) {
             $filePath = $uploadFile->result->url;
             $gdriveUrl = $uploadFile->result->fileId;
-        } else {
-            $err = 'Gagal upload file ke ImageKit.';
-        }
+        } else { $err = 'Gagal upload file ke ImageKit.'; }
     }
 
     if (!$err) {
         db_exec(
-          "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,deskripsi,file_path,gdrive_url)
-           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-           [$u['id'], $tanggal, $jenis, $durasi, $jarak, $kalori, $deskripsi, $filePath, $gdriveUrl]
+          "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,pace,deskripsi,file_path,gdrive_url)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+           [$u['id'], $tanggal, $jenis, $durasi, $jarak, $kalori, $pace, $deskripsi, $filePath, $gdriveUrl]
         );
         $msg='Aktivitas berhasil dicatat.';
     }
@@ -138,9 +128,14 @@ include __DIR__.'/includes/header.php'; ?>
           <small class="text-muted">Saat ini upload harian hanya untuk Jogging.</small>
         </div>
         <div class="row g-2">
-          <div class="col-4"><label class="form-label small fw-semibold">Durasi (menit)</label><input type="number" class="form-control" name="durasi" min="0" required></div>
-          <div class="col-4"><label class="form-label small fw-semibold">Jarak (km)</label><input type="number" step="0.01" class="form-control" name="jarak" min="0" required></div>
-          <div class="col-4"><label class="form-label small fw-semibold">Kalori</label><input type="number" class="form-control" name="kalori" min="0"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Durasi</label>
+            <input type="number" class="form-control" name="durasi" min="0" required placeholder="cth: 30 (menit)"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Jarak</label>
+            <input type="number" step="0.01" class="form-control" name="jarak" min="0" required placeholder="cth: 5.20 (km)"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Pace</label>
+            <input type="text" class="form-control" name="pace" placeholder="cth: 6'00&quot;/km"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Kalori</label>
+            <input type="number" class="form-control" name="kalori" min="0" placeholder="cth: 250"></div>
         </div>
         <div class="my-2"><label class="form-label small fw-semibold">Deskripsi</label><textarea class="form-control" name="deskripsi" rows="2" placeholder="Rute, perasaan, dll."></textarea></div>
         <div class="mb-3"><label class="form-label small fw-semibold">Bukti (screenshot smartwatch/Strava/foto)</label>
@@ -156,15 +151,16 @@ include __DIR__.'/includes/header.php'; ?>
       <span class="badge bg-primary rounded-pill"><?= count($mine) ?></span>
     </div>
       <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Kalori</th><th>Bukti</th><th class="text-end">Aksi</th></tr></thead>
+        <thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Pace</th><th>Kalori</th><th>Bukti</th><th class="text-end">Aksi</th></tr></thead>
         <tbody>
         <?php foreach($mine as $i=>$m): ?>
           <tr>
             <td class="text-muted"><?= $i+1 ?></td>
-            <td><?= htmlspecialchars($m['tanggal']) ?></td>
+            <td><?= htmlspecialchars($m['tanggal']) ?><br><small class="text-muted"><?= hari_id($m['tanggal']) ?></small></td>
             <td><span class="pill"><?= htmlspecialchars($m['jenis']) ?></span></td>
             <td><?= (int)$m['durasi_menit'] ?> mnt</td>
             <td><?= htmlspecialchars($m['jarak_km']) ?> km</td>
+            <td><?= htmlspecialchars($m['pace'] ?? '') ?: '-' ?></td>
             <td><?= (int)$m['kalori'] ?></td>
             <td>
               <?php if($m['file_path']): ?>
@@ -185,7 +181,7 @@ include __DIR__.'/includes/header.php'; ?>
             </td>
           </tr>
         <?php endforeach; if(!$mine): ?>
-          <tr><td colspan="8" class="text-center text-muted py-3">Belum ada aktivitas. Ayo mulai jogging!</td></tr>
+          <tr><td colspan="9" class="text-center text-muted py-3">Belum ada aktivitas. Ayo mulai jogging!</td></tr>
         <?php endif; ?>
         </tbody>
       </table></div>
@@ -200,9 +196,8 @@ include __DIR__.'/includes/header.php'; ?>
       <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Bukti Aktivitas <small id="buktiDate" class="text-muted ms-2"></small></h5>
         <button class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body text-center">
-        <img id="buktiImg" src="" alt="Bukti aktivitas">
+        <img id="buktiImg" src="" alt="Bukti" style="max-width:100%;">
         <div id="buktiFallback" class="d-none mt-3">
-          <p class="text-muted small mb-2">Pratinjau gagal? Buka file langsung:</p>
           <a id="buktiOpen" href="#" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i> Buka file</a>
         </div>
       </div>
@@ -210,7 +205,6 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </div>
 
-<!-- Modal Edit per item -->
 <?php foreach($mine as $m): ?>
 <div class="modal fade" id="editModal<?= $m['id'] ?>" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -224,14 +218,18 @@ include __DIR__.'/includes/header.php'; ?>
         <div class="mb-2"><label class="form-label small fw-semibold">Tanggal</label>
           <input type="date" class="form-control" name="tanggal" value="<?= htmlspecialchars($m['tanggal']) ?>" required></div>
         <div class="row g-2">
-          <div class="col-4"><label class="form-label small fw-semibold">Durasi</label><input type="number" name="durasi" class="form-control" value="<?= (int)$m['durasi_menit'] ?>"></div>
-          <div class="col-4"><label class="form-label small fw-semibold">Jarak (km)</label><input type="number" step="0.01" name="jarak" class="form-control" value="<?= htmlspecialchars($m['jarak_km']) ?>"></div>
-          <div class="col-4"><label class="form-label small fw-semibold">Kalori</label><input type="number" name="kalori" class="form-control" value="<?= (int)$m['kalori'] ?>"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Durasi</label>
+            <input type="number" name="durasi" class="form-control" value="<?= (int)$m['durasi_menit'] ?>" placeholder="menit"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Jarak (km)</label>
+            <input type="number" step="0.01" name="jarak" class="form-control" value="<?= htmlspecialchars($m['jarak_km']) ?>" placeholder="5.20"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Pace</label>
+            <input type="text" name="pace" class="form-control" value="<?= htmlspecialchars($m['pace'] ?? '') ?>" placeholder="6'00&quot;/km"></div>
+          <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Kalori</label>
+            <input type="number" name="kalori" class="form-control" value="<?= (int)$m['kalori'] ?>" placeholder="kkal"></div>
         </div>
         <div class="my-2"><label class="form-label small fw-semibold">Deskripsi</label><textarea name="deskripsi" class="form-control" rows="2"><?= htmlspecialchars($m['deskripsi'] ?? '') ?></textarea></div>
         <div class="mb-1"><label class="form-label small fw-semibold">Ganti Bukti (opsional)</label>
           <input type="file" class="form-control" name="bukti" accept="image/*"></div>
-        <?php if($m['file_path']): ?><small class="text-muted">File saat ini: <?= htmlspecialchars(basename($m['file_path'])) ?></small><?php endif; ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
@@ -245,12 +243,8 @@ include __DIR__.'/includes/header.php'; ?>
 <script>
 let buktiModal = null;
 function showBukti(src, date){
-  if (!buktiModal) {
-    buktiModal = new bootstrap.Modal(document.getElementById('buktiModal'));
-  }
-  const img = document.getElementById('buktiImg');
-  const fb  = document.getElementById('buktiFallback');
-  const op  = document.getElementById('buktiOpen');
+  if (!buktiModal) buktiModal = new bootstrap.Modal(document.getElementById('buktiModal'));
+  const img = document.getElementById('buktiImg'); const fb = document.getElementById('buktiFallback'); const op = document.getElementById('buktiOpen');
   document.getElementById('buktiDate').textContent = date || '';
   img.classList.remove('d-none'); fb.classList.add('d-none');
   img.onerror = () => { img.classList.add('d-none'); fb.classList.remove('d-none'); op.href = src; };

@@ -1,9 +1,9 @@
 <?php
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
+require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle='Manajemen Member';
-$msg='';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -22,12 +22,38 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db_exec("UPDATE users SET password_hash=$1 WHERE id=$2",
                     [password_hash($new, PASSWORD_BCRYPT), (int)$_POST['id']]);
             $_SESSION['flash'] = 'Password member berhasil diubah.';
-        } else {
-            $_SESSION['flash_err'] = 'Password minimal 6 karakter.';
-        }
+        } else { $_SESSION['flash_err'] = 'Password minimal 6 karakter.'; }
     } elseif ($a==='edit') {
         db_exec("UPDATE users SET nama=$1, email=$2 WHERE id=$3",
                 [$_POST['nama'], $_POST['email'], (int)$_POST['id']]);
+    } elseif ($a==='upload_foto') {
+        $id = (int)$_POST['id'];
+        $target = db_one("SELECT * FROM users WHERE id=$1", [$id]);
+        if ($target && !empty($_FILES['foto']['name'])) {
+            require_once __DIR__.'/../config/imagekit.php';
+            global $imageKit;
+            $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
+            $safe = preg_replace('/[^a-z0-9]/i','_',$target['nama'])."-avatar-".time().".".$ext;
+            $up = $imageKit->uploadFile([
+                'file' => base64_encode(file_get_contents($_FILES['foto']['tmp_name'])),
+                'fileName' => $safe,
+                'folder' => '/sportapp/avatar'
+            ]);
+            if (!$up->error) {
+                if (!empty($target['foto_file_id'])) { try { $imageKit->deleteFile($target['foto_file_id']); } catch(Throwable $e){} }
+                db_exec("UPDATE users SET foto_url=$1, foto_file_id=$2 WHERE id=$3",
+                        [$up->result->url, $up->result->fileId, $id]);
+            }
+        }
+    } elseif ($a==='delete_foto') {
+        $id = (int)$_POST['id'];
+        $target = db_one("SELECT foto_file_id FROM users WHERE id=$1", [$id]);
+        if ($target && !empty($target['foto_file_id'])) {
+            require_once __DIR__.'/../config/imagekit.php';
+            global $imageKit;
+            try { $imageKit->deleteFile($target['foto_file_id']); } catch(Throwable $e){}
+        }
+        db_exec("UPDATE users SET foto_url=NULL, foto_file_id=NULL WHERE id=$1", [$id]);
     }
     header('Location: members.php'); exit;
 }
@@ -56,11 +82,11 @@ include __DIR__.'/../includes/header.php'; ?>
 </div></div>
 
 <div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
-  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th class="text-end">Aksi</th></tr></thead><tbody>
-  <?php foreach($users as $i=>$u): ?>
+  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
+  <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null); ?>
     <tr>
       <td class="text-muted"><?= $i+1 ?></td>
-      <td class="fw-semibold"><i class="bi bi-person-circle text-muted me-1"></i> <?= htmlspecialchars($u['nama']) ?></td>
+      <td class="fw-semibold"><?= user_name_with_avatar($u['foto_url'] ?? null, $u['nama'], $on, 32) ?></td>
       <td class="text-muted"><?= htmlspecialchars($u['email']) ?></td>
       <td>
         <form method="post" class="d-flex gap-1">
@@ -72,12 +98,15 @@ include __DIR__.'/../includes/header.php'; ?>
           </select>
         </form>
       </td>
+      <td><?= $on ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-secondary">Offline</span>' ?></td>
       <td class="text-end">
+        <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#foto<?= $u['id'] ?>" title="Foto"><i class="bi bi-image"></i></button>
         <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#pwd<?= $u['id'] ?>" title="Reset Password"><i class="bi bi-key"></i></button>
         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#edt<?= $u['id'] ?>" title="Edit"><i class="bi bi-pencil"></i></button>
         <form method="post" class="d-inline" onsubmit="return confirm('Hapus user <?= htmlspecialchars($u['nama']) ?>?')">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-          <input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<?= $u['id'] ?>">
+          <input type="hidden" name="_action" value="delete">
+          <input type="hidden" name="id" value="<?= $u['id'] ?>">
           <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
         </form>
       </td>
@@ -85,51 +114,42 @@ include __DIR__.'/../includes/header.php'; ?>
   <?php endforeach; ?>
   </tbody></table></div></div>
 
-<!-- Modal Reset Password & Edit (per user) -->
 <?php foreach($users as $u): ?>
-<div class="modal fade" id="pwd<?= $u['id'] ?>" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <form method="post" class="modal-content">
-      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-      <input type="hidden" name="_action" value="reset_pwd">
-      <input type="hidden" name="id" value="<?= $u['id'] ?>">
-      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-key"></i> Reset Password</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <p class="text-muted small">Atur password baru untuk <strong><?= htmlspecialchars($u['nama']) ?></strong> (<?= htmlspecialchars($u['email']) ?>).</p>
-        <label class="form-label small fw-semibold">Password Baru (min 6)</label>
-        <input type="text" name="new_password" class="form-control" minlength="6" required autocomplete="off">
-        <small class="text-muted">Sampaikan password ini ke member secara aman.</small>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-        <button class="btn btn-warning"><i class="bi bi-shield-check"></i> Reset Password</button>
-      </div>
-    </form>
+<div class="modal fade" id="foto<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" enctype="multipart/form-data" class="modal-content">
+  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= $u['id'] ?>">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Foto: <?= htmlspecialchars($u['nama']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body text-center">
+    <div class="mb-3"><?= user_avatar($u['foto_url'] ?? null, $u['nama'], 96) ?></div>
+    <input type="file" name="foto" class="form-control" accept="image/*" required>
+    <small class="text-muted">Foto akan diunggah ke ImageKit.</small>
   </div>
-</div>
+  <div class="modal-footer">
+    <?php if(!empty($u['foto_url'])): ?>
+    <button type="submit" name="_action" value="delete_foto" class="btn btn-outline-danger" onclick="return confirm('Hapus foto?')"><i class="bi bi-trash"></i> Hapus Foto</button>
+    <?php endif; ?>
+    <button type="submit" name="_action" value="upload_foto" class="btn btn-primary"><i class="bi bi-upload"></i> Upload</button>
+  </div>
+</form></div></div>
 
-<div class="modal fade" id="edt<?= $u['id'] ?>" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <form method="post" class="modal-content">
-      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-      <input type="hidden" name="_action" value="edit">
-      <input type="hidden" name="id" value="<?= $u['id'] ?>">
-      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Member</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <div class="mb-2"><label class="form-label small fw-semibold">Nama</label>
-          <input name="nama" class="form-control" value="<?= htmlspecialchars($u['nama']) ?>" required></div>
-        <div class="mb-2"><label class="form-label small fw-semibold">Email</label>
-          <input name="email" type="email" class="form-control" value="<?= htmlspecialchars($u['email']) ?>" required></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-        <button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
-      </div>
-    </form>
+<div class="modal fade" id="pwd<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" class="modal-content">
+  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="reset_pwd"><input type="hidden" name="id" value="<?= $u['id'] ?>">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-key"></i> Reset Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <label class="form-label small fw-semibold">Password Baru (min 6)</label>
+    <input type="text" name="new_password" class="form-control" minlength="6" required>
   </div>
-</div>
+  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-warning"><i class="bi bi-shield-check"></i> Reset</button></div>
+</form></div></div>
+
+<div class="modal fade" id="edt<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" class="modal-content">
+  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="edit"><input type="hidden" name="id" value="<?= $u['id'] ?>">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Member</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="mb-2"><label class="form-label small fw-semibold">Nama</label><input name="nama" class="form-control" value="<?= htmlspecialchars($u['nama']) ?>" required></div>
+    <div class="mb-2"><label class="form-label small fw-semibold">Email</label><input name="email" type="email" class="form-control" value="<?= htmlspecialchars($u['email']) ?>" required></div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
+</form></div></div>
 <?php endforeach; ?>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

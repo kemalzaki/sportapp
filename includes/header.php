@@ -1,6 +1,14 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/helpers.php';
 $u = current_user();
+if ($u) touch_online();
+// ambil foto user untuk navbar
+$navFoto = null;
+if ($u) {
+  $_uf = db_one("SELECT foto_url FROM users WHERE id=$1", [(int)$u['id']]);
+  $navFoto = $_uf['foto_url'] ?? null;
+}
 ?>
 <!doctype html>
 <html lang="id">
@@ -11,10 +19,20 @@ $u = current_user();
 <title><?= htmlspecialchars(($pageTitle ?? 'HapFam SportApp') . ' · HapFam SportApp') ?></title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/app.css">
+<style>
+.user-with-avatar{display:inline-flex;align-items:center;gap:.4rem;position:relative;}
+.user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
+.online-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px #fff;display:inline-block;}
+.captcha-box{padding:.45rem .75rem;background:#f1f5f9;border-radius:8px;font-weight:700;letter-spacing:.05em;}
+.news-slider .carousel-item img{height:280px;object-fit:cover;width:100%;border-radius:12px;}
+.chat-bubble{background:#f1f5f9;border-radius:12px;padding:.5rem .75rem;margin-bottom:.4rem;}
+.chat-meta{font-size:.7rem;color:#64748b;}
+</style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg app-nav sticky-top">
@@ -42,6 +60,7 @@ $u = current_user();
               <li><a class="dropdown-item" href="/admin/absensi.php"><i class="bi bi-check2-square me-2"></i>Input Absensi</a></li>
               <li><a class="dropdown-item" href="/admin/members.php"><i class="bi bi-people me-2"></i>Member</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php"><i class="bi bi-tags me-2"></i>Jenis Olahraga</a></li>
+              <li><a class="dropdown-item" href="/admin/berita.php"><i class="bi bi-newspaper me-2"></i>Berita</a></li>
             </ul>
           </li>
         <?php endif; ?>
@@ -49,11 +68,12 @@ $u = current_user();
       <ul class="navbar-nav align-items-lg-center">
         <?php if ($u): ?>
           <li class="nav-item me-lg-2">
+            <a href="/profile.php" class="text-decoration-none">
             <span class="user-chip">
-              <i class="bi bi-person-circle"></i>
+              <?= user_avatar($navFoto, $u['nama'], 22) ?>
               <?= htmlspecialchars($u['nama']) ?>
               <span class="role role-<?= $u['role'] ?>"><?= $u['role'] ?></span>
-            </span>
+            </span></a>
           </li>
           <li class="nav-item"><a class="btn btn-sm btn-light" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
         <?php else: ?>

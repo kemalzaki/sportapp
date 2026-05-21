@@ -1,6 +1,7 @@
 <?php
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
+require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle='Manajemen Jadwal';
 
@@ -21,19 +22,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 [$tgl, $bulan, $w, $_POST['jenis'], $_POST['tempat'],
                  (int)($_POST['koordinator_id'] ?? 0) ?: null,
                  $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $id]);
-    } else { // create
+    } else {
         $tgl   = $_POST['tanggal'];
         $bulan = date('F', strtotime($tgl));
         $w     = 'W' . (int)ceil(date('j', strtotime($tgl))/7);
         db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,koordinator_id,konten_obrolan,catatan)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
                 [$tgl, $bulan, $w, $_POST['jenis'], $_POST['tempat'],
-                 current_user()['id'], $_POST['konten'] ?? '', $_POST['catatan'] ?? '']);
+                 (int)($_POST['koordinator_id'] ?? 0) ?: current_user()['id'],
+                 $_POST['konten'] ?? '', $_POST['catatan'] ?? '']);
     }
     header('Location: jadwal.php'); exit;
 }
 
-$rows  = db_all("SELECT j.*, u.nama AS koord FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id ORDER BY tanggal DESC");
+$rows  = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id ORDER BY tanggal DESC");
 $admins = db_all("SELECT id,nama FROM users WHERE role IN ('admin','member') ORDER BY nama");
 $jenisList = array_column(db_all("SELECT nama FROM jenis_olahraga ORDER BY nama"), 'nama');
 if (!$jenisList) $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya'];
@@ -50,24 +52,28 @@ include __DIR__.'/../includes/header.php'; ?>
       <?php foreach($jenisList as $j): ?><option><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
     </select></div>
     <div class="col-md-3"><input name="tempat" class="form-control" placeholder="Tempat / GOR" required></div>
+    <div class="col-md-2"><select name="koordinator_id" class="form-select"><option value="">Koordinator…</option>
+      <?php foreach($admins as $a): ?><option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['nama']) ?></option><?php endforeach; ?>
+    </select></div>
     <div class="col-md-2"><input name="konten" class="form-control" placeholder="Konten Obrolan"></div>
-    <div class="col-md-2"><input name="catatan" class="form-control" placeholder="Catatan"></div>
     <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i></button></div>
   </form>
+  <small class="text-muted">Catatan Kondisi (WYSIWYG) bisa diisi saat mengedit jadwal.</small>
 </div></div>
 
 <div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
-  <thead><tr><th>#</th><th>Tanggal</th><th>Bulan</th><th>W</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-end">Aksi</th></tr></thead>
+  <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Bulan</th><th>W</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-end">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $i=>$r): ?>
     <tr>
       <td class="text-muted"><?= $i+1 ?></td>
       <td><?= htmlspecialchars($r['tanggal']) ?></td>
+      <td><span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
       <td><?= htmlspecialchars($r['bulan']) ?></td>
       <td><span class="pill"><?= htmlspecialchars($r['minggu_ke']) ?></span></td>
       <td><?= htmlspecialchars($r['jenis']) ?></td>
       <td><?= htmlspecialchars($r['tempat']) ?></td>
-      <td><?= htmlspecialchars($r['koord'] ?? '-') ?></td>
+      <td><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 26) ?></td>
       <td class="text-end">
         <a class="btn btn-sm btn-outline-primary" href="absensi.php?id=<?= $r['id'] ?>"><i class="bi bi-check2-square"></i></a>
         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editJ<?= $r['id'] ?>"><i class="bi bi-pencil"></i></button>
@@ -83,7 +89,6 @@ include __DIR__.'/../includes/header.php'; ?>
   </tbody>
 </table></div></div>
 
-<!-- Modal Edit -->
 <?php foreach($rows as $r): ?>
 <div class="modal fade" id="editJ<?= $r['id'] ?>" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -110,8 +115,8 @@ include __DIR__.'/../includes/header.php'; ?>
             <input name="tempat" class="form-control" value="<?= htmlspecialchars($r['tempat']) ?>" required></div>
           <div class="col-md-6"><label class="form-label small fw-semibold">Konten Obrolan</label>
             <textarea name="konten" class="form-control" rows="3"><?= htmlspecialchars($r['konten_obrolan'] ?? '') ?></textarea></div>
-          <div class="col-md-6"><label class="form-label small fw-semibold">Catatan</label>
-            <textarea name="catatan" class="form-control" rows="3"><?= htmlspecialchars($r['catatan'] ?? '') ?></textarea></div>
+          <div class="col-md-6"><label class="form-label small fw-semibold">Catatan Kondisi (WYSIWYG)</label>
+            <textarea name="catatan" data-wysiwyg="1" class="form-control"><?= htmlspecialchars($r['catatan'] ?? '') ?></textarea></div>
         </div>
       </div>
       <div class="modal-footer">
