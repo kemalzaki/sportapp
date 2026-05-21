@@ -1,6 +1,5 @@
 # PHP
 composer.phar
-/vendor/
 
 # Uploads directory (allow only tracking .gitkeep files)
 /uploads/*
