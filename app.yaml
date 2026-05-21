@@ -1,0 +1,24 @@
+runtime: php82
+
+instance_class: F1
+
+env_variables:
+  # Masukkan DATABASE_URL PostgreSQL Anda di sini
+  DATABASE_URL: "postgres://avnadmin:AVNS_y5gOzXZcbIzr4ENiNug@pg-c8c7f-adamsasmita534-4b4d.e.aivencloud.com:18028/defaultdb?sslmode=require"
+  DB_SSLMODE: "require"
+
+handlers:
+  # Route static assets directly
+  - url: /assets
+    static_dir: assets
+
+  - url: /uploads
+    static_dir: uploads
+
+  # Route all PHP entrypoints
+  - url: /(.*\.php)
+    script: \1
+
+  # Default home route
+  - url: /
+    script: index.php

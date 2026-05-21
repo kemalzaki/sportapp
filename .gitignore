@@ -1,0 +1,21 @@
+# PHP
+composer.phar
+/vendor/
+
+# Uploads directory (allow only tracking .gitkeep files)
+/uploads/*
+!/uploads/.gitkeep
+
+# System & OS
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# Environment files
+.env
+.env.local
+
+# IDEs and editors
+.vscode/
+.idea/
