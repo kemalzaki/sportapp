@@ -81,7 +81,7 @@ include __DIR__.'/includes/header.php'; ?>
 </div></div>
 
 <div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
-  <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-center">Hadir</th><th>Tamu</th></tr></thead><tbody>
+  <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-center">Durasi</th><th class="text-center">Hadir</th><th>Tamu</th></tr></thead><tbody>
   <?php foreach($rows as $i=>$r): $tamus = $tamuMap[$r['id']] ?? []; ?>
     <tr>
       <td class="text-muted"><?= $i+1 ?></td>
@@ -90,6 +90,7 @@ include __DIR__.'/includes/header.php'; ?>
       <td><span class="pill"><?= htmlspecialchars($r['jenis']) ?></span></td>
       <td><?= htmlspecialchars($r['tempat']) ?></td>
       <td><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koordinator'] ?? '-', false, 26) ?></td>
+      <td class="text-center"><?= !empty($r['durasi_menit']) ? ((int)$r['durasi_menit'].' mnt') : '<span class="text-muted small">—</span>' ?></td>
       <td class="text-center"><span class="badge bg-success rounded-pill"><?= (int)$r['hadir_internal'] ?>/<?= $totalMember ?></span></td>
       <td>
         <?php if ($tamus): ?>
@@ -100,7 +101,7 @@ include __DIR__.'/includes/header.php'; ?>
       </td>
     </tr>
   <?php endforeach; if(!$rows): ?>
-    <tr><td colspan="8" class="text-center text-muted py-4">Belum ada data sesuai filter.</td></tr>
+    <tr><td colspan="9" class="text-center text-muted py-4">Belum ada data sesuai filter.</td></tr>
   <?php endif; ?>
   </tbody>
 </table></div></div>
@@ -119,7 +120,7 @@ include __DIR__.'/includes/header.php'; ?>
           <td><?= (int)$a['durasi_menit'] ?> mnt</td>
           <td><?= htmlspecialchars($a['jarak_km']) ?> km</td>
           <td><?= htmlspecialchars($a['pace'] ?? '') ?: '-' ?></td>
-          <td><?php if($a['file_path']): ?><a href="<?= htmlspecialchars($a['file_path']) ?>" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-image"></i></a><?php else: ?>-<?php endif; ?></td>
+          <td><?php if($a['file_path']): ?><button type="button" class="btn btn-sm btn-outline-primary" onclick="showBukti('<?= htmlspecialchars($a['file_path'], ENT_QUOTES) ?>','<?= htmlspecialchars($a['tanggal']) ?> · <?= htmlspecialchars($a['nama']) ?>')"><i class="bi bi-image"></i></button><?php else: ?>-<?php endif; ?></td>
         </tr>
         <?php endforeach; if(!$aktivitas): ?><tr><td colspan="8" class="text-center text-muted py-3">Belum ada aktivitas member.</td></tr><?php endif; ?>
         </tbody></table></div></div>
@@ -152,5 +153,36 @@ include __DIR__.'/includes/header.php'; ?>
   </ul></div></div>
 </div>
 <?php endif; ?>
+
+
+<!-- Modal Bukti Aktivitas -->
+<div class="modal fade" id="buktiModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Bukti Aktivitas <small id="buktiDate" class="text-muted ms-2"></small></h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body text-center">
+        <img id="buktiImg" src="" alt="Bukti" style="max-width:100%;">
+        <div id="buktiFallback" class="d-none mt-3">
+          <a id="buktiOpen" href="#" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i> Buka file</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let buktiModal = null;
+function showBukti(src, date){
+  if (!buktiModal) buktiModal = new bootstrap.Modal(document.getElementById('buktiModal'));
+  const img = document.getElementById('buktiImg');
+  const fb  = document.getElementById('buktiFallback');
+  const op  = document.getElementById('buktiOpen');
+  document.getElementById('buktiDate').textContent = date || '';
+  img.classList.remove('d-none'); fb.classList.add('d-none');
+  img.onerror = () => { img.classList.add('d-none'); fb.classList.remove('d-none'); op.href = src; };
+  img.src = src; op.href = src;
+  buktiModal.show();
+}
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

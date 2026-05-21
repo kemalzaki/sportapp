@@ -80,31 +80,38 @@ include __DIR__.'/includes/header.php'; ?>
 </div>
 
 <script>
-const trendLabels = <?= json_encode(array_map(fn($t)=>$t['bulan'].' '.$t['minggu_ke'], $trend)) ?>;
-const trendData   = <?= json_encode(array_map(fn($t)=>(int)$t['total'], $trend)) ?>;
-const ctx = document.getElementById('trendChart');
-if (trendLabels.length === 0) {
-  ctx.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada data jadwal.</p>';
-} else {
-  const grad = ctx.getContext('2d').createLinearGradient(0,0,0,200);
-  grad.addColorStop(0,'rgba(14,165,233,.45)'); grad.addColorStop(1,'rgba(14,165,233,0)');
-  new Chart(ctx,{type:'line',data:{labels:trendLabels,datasets:[{label:'Total Hadir',data:trendData,borderColor:'#0ea5e9',backgroundColor:grad,fill:true,tension:.35,pointBackgroundColor:'#0ea5e9'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-}
+window.addEventListener('load', function(){
+  if (typeof Chart === 'undefined') { console.warn('Chart.js belum termuat'); return; }
+  const trendLabels = <?= json_encode(array_map(fn($t)=>$t['bulan'].' '.$t['minggu_ke'], $trend)) ?>;
+  const trendData   = <?= json_encode(array_map(fn($t)=>(int)$t['total'], $trend)) ?>;
+  const ctx = document.getElementById('trendChart');
+  if (ctx) {
+    if (trendLabels.length === 0) {
+      ctx.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada data jadwal.</p>';
+    } else {
+      const grad = ctx.getContext('2d').createLinearGradient(0,0,0,200);
+      grad.addColorStop(0,'rgba(14,165,233,.45)'); grad.addColorStop(1,'rgba(14,165,233,0)');
+      new Chart(ctx,{type:'line',data:{labels:trendLabels,datasets:[{label:'Total Hadir',data:trendData,borderColor:'#0ea5e9',backgroundColor:grad,fill:true,tension:.35,pointBackgroundColor:'#0ea5e9'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+    }
+  }
 
-const jogLabels = <?= json_encode(array_map(fn($t)=>$t['tanggal'], $trendJog)) ?>;
-const jogDur    = <?= json_encode(array_map(fn($t)=>(int)$t['durasi'], $trendJog)) ?>;
-const jogJrk    = <?= json_encode(array_map(fn($t)=>(float)$t['jarak'], $trendJog)) ?>;
-const jogKal    = <?= json_encode(array_map(fn($t)=>(int)$t['kalori'], $trendJog)) ?>;
-const jc = document.getElementById('jogChart');
-if (jogLabels.length === 0) {
-  jc.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada upload jogging.</p>';
-} else {
-  new Chart(jc,{type:'line',data:{labels:jogLabels,datasets:[
-    {label:'Durasi (mnt)',data:jogDur,borderColor:'#0ea5e9',tension:.3,fill:false},
-    {label:'Jarak (km)',data:jogJrk,borderColor:'#22c55e',tension:.3,fill:false},
-    {label:'Kalori',data:jogKal,borderColor:'#f59e0b',tension:.3,fill:false}
-  ]},options:{plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}});
-}
+  const jogLabels = <?= json_encode(array_map(fn($t)=>$t['tanggal'], $trendJog)) ?>;
+  const jogDur    = <?= json_encode(array_map(fn($t)=>(int)$t['durasi'], $trendJog)) ?>;
+  const jogJrk    = <?= json_encode(array_map(fn($t)=>(float)$t['jarak'], $trendJog)) ?>;
+  const jogKal    = <?= json_encode(array_map(fn($t)=>(int)$t['kalori'], $trendJog)) ?>;
+  const jc = document.getElementById('jogChart');
+  if (jc) {
+    if (jogLabels.length === 0) {
+      jc.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada upload jogging.</p>';
+    } else {
+      new Chart(jc,{type:'line',data:{labels:jogLabels,datasets:[
+        {label:'Durasi (mnt)',data:jogDur,borderColor:'#0ea5e9',tension:.3,fill:false},
+        {label:'Jarak (km)',data:jogJrk,borderColor:'#22c55e',tension:.3,fill:false},
+        {label:'Kalori',data:jogKal,borderColor:'#f59e0b',tension:.3,fill:false}
+      ]},options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}});
+    }
+  }
+});
 </script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

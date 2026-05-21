@@ -14,8 +14,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("DELETE FROM users WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='create') {
         $pwd = $_POST['password'] ?: 'changeme';
-        db_exec("INSERT INTO users(nama,email,password_hash,role) VALUES($1,$2,$3,$4)",
-                [$_POST['nama'], $_POST['email'], password_hash($pwd, PASSWORD_BCRYPT), $_POST['role']]);
+        $jk = in_array(($_POST['jenis_kelamin'] ?? ''), ['L','P'], true) ? $_POST['jenis_kelamin'] : null;
+        db_exec("INSERT INTO users(nama,email,password_hash,role,jenis_kelamin) VALUES($1,$2,$3,$4,$5)",
+                [$_POST['nama'], $_POST['email'], password_hash($pwd, PASSWORD_BCRYPT), $_POST['role'], $jk]);
     } elseif ($a==='reset_pwd') {
         $new = $_POST['new_password'] ?? '';
         if (strlen($new) >= 6) {
@@ -24,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $_SESSION['flash'] = 'Password member berhasil diubah.';
         } else { $_SESSION['flash_err'] = 'Password minimal 6 karakter.'; }
     } elseif ($a==='edit') {
-        db_exec("UPDATE users SET nama=$1, email=$2 WHERE id=$3",
-                [$_POST['nama'], $_POST['email'], (int)$_POST['id']]);
+        $jk = in_array(($_POST['jenis_kelamin'] ?? ''), ['L','P'], true) ? $_POST['jenis_kelamin'] : null;
+        db_exec("UPDATE users SET nama=$1, email=$2, jenis_kelamin=$3 WHERE id=$4",
+                [$_POST['nama'], $_POST['email'], $jk, (int)$_POST['id']]);
     } elseif ($a==='upload_foto') {
         $id = (int)$_POST['id'];
         $target = db_one("SELECT * FROM users WHERE id=$1", [$id]);
@@ -75,19 +77,21 @@ include __DIR__.'/../includes/header.php'; ?>
     <input type="hidden" name="_action" value="create">
     <div class="col-md-3"><input class="form-control" name="nama" placeholder="Nama lengkap" required></div>
     <div class="col-md-3"><input class="form-control" type="email" name="email" placeholder="Email" required></div>
-    <div class="col-md-3"><input class="form-control" name="password" placeholder="Password (default: changeme)"></div>
+    <div class="col-md-2"><input class="form-control" name="password" placeholder="Password (default: changeme)"></div>
+    <div class="col-md-1"><select class="form-select" name="jenis_kelamin"><option value="">JK</option><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
     <div class="col-md-2"><select class="form-select" name="role"><option value="member">member</option><option value="admin">admin</option></select></div>
     <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i></button></div>
   </form>
 </div></div>
 
 <div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
-  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
+  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>JK</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null); ?>
     <tr>
       <td class="text-muted"><?= $i+1 ?></td>
       <td class="fw-semibold"><?= user_name_with_avatar($u['foto_url'] ?? null, $u['nama'], $on, 32) ?></td>
       <td class="text-muted"><?= htmlspecialchars($u['email']) ?></td>
+      <td><?php $jk=$u['jenis_kelamin']??null; echo $jk==='L'?'<span class="pill"><i class="bi bi-gender-male"></i> L</span>':($jk==='P'?'<span class="pill"><i class="bi bi-gender-female"></i> P</span>':'<span class="text-muted small">—</span>'); ?></td>
       <td>
         <form method="post" class="d-flex gap-1">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
@@ -147,6 +151,12 @@ include __DIR__.'/../includes/header.php'; ?>
   <div class="modal-body">
     <div class="mb-2"><label class="form-label small fw-semibold">Nama</label><input name="nama" class="form-control" value="<?= htmlspecialchars($u['nama']) ?>" required></div>
     <div class="mb-2"><label class="form-label small fw-semibold">Email</label><input name="email" type="email" class="form-control" value="<?= htmlspecialchars($u['email']) ?>" required></div>
+    <div class="mb-2"><label class="form-label small fw-semibold">Jenis Kelamin</label>
+      <select class="form-select" name="jenis_kelamin">
+        <option value="" <?= empty($u['jenis_kelamin'])?'selected':'' ?>>— Tidak diisi —</option>
+        <option value="L" <?= ($u['jenis_kelamin']??'')==='L'?'selected':'' ?>>Laki-laki</option>
+        <option value="P" <?= ($u['jenis_kelamin']??'')==='P'?'selected':'' ?>>Perempuan</option>
+      </select></div>
   </div>
   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
 </form></div></div>

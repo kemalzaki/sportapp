@@ -29,7 +29,14 @@ if ($u) {
 .user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
 .online-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px #fff;display:inline-block;}
 .captcha-box{padding:.45rem .75rem;background:#f1f5f9;border-radius:8px;font-weight:700;letter-spacing:.05em;}
-.news-slider .carousel-item img{height:280px;object-fit:cover;width:100%;border-radius:12px;}
+.news-slider{border-radius:12px;overflow:hidden;}
+.news-slider .carousel-item img{width:100%;height:300px;object-fit:cover;display:block;}
+.news-slider .news-caption{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(15,23,42,0) 0%,rgba(15,23,42,.85) 100%);color:#fff;padding:1rem 1.25rem;}
+.news-slider .news-caption h5{margin:0 0 .25rem;font-size:1rem;}
+.news-slider .news-caption .small{font-size:.78rem;opacity:.9;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+@media (max-width: 576px){.news-slider .carousel-item img{height:200px;} .news-slider .news-caption{padding:.6rem .8rem;}}
+.modal-body.wysiwyg-body{max-height:65vh;overflow-y:auto;}
+.ql-editor{min-height:140px;}
 .chat-bubble{background:#f1f5f9;border-radius:12px;padding:.5rem .75rem;margin-bottom:.4rem;}
 .chat-meta{font-size:.7rem;color:#64748b;}
 </style>
@@ -59,6 +66,8 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/jadwal.php"><i class="bi bi-calendar-event me-2"></i>Manajemen Jadwal</a></li>
               <li><a class="dropdown-item" href="/admin/absensi.php"><i class="bi bi-check2-square me-2"></i>Input Absensi</a></li>
               <li><a class="dropdown-item" href="/admin/members.php"><i class="bi bi-people me-2"></i>Member</a></li>
+              <li><a class="dropdown-item" href="/admin/tim.php"><i class="bi bi-people-fill me-2"></i>Tim</a></li>
+              <li><a class="dropdown-item" href="/admin/tempat.php"><i class="bi bi-geo-alt me-2"></i>Tempat</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php"><i class="bi bi-tags me-2"></i>Jenis Olahraga</a></li>
               <li><a class="dropdown-item" href="/admin/berita.php"><i class="bi bi-newspaper me-2"></i>Berita</a></li>
             </ul>

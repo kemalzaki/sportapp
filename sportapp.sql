@@ -194,3 +194,50 @@ SELECT setval(pg_get_serial_sequence('jadwal',           'id'), COALESCE((SELECT
 SELECT setval(pg_get_serial_sequence('absensi',          'id'), COALESCE((SELECT MAX(id) FROM absensi),          1), true);
 SELECT setval(pg_get_serial_sequence('member_eksternal', 'id'), COALESCE((SELECT MAX(id) FROM member_eksternal), 1), true);
 SELECT setval(pg_get_serial_sequence('upload_harian',    'id'), COALESCE((SELECT MAX(id) FROM upload_harian),    1), true);
+
+-- ============================================================
+-- v2.1 MIGRATIONS (idempotent)
+-- ============================================================
+
+-- jenis kelamin member
+ALTER TABLE users  ADD COLUMN IF NOT EXISTS jenis_kelamin VARCHAR(10);
+
+-- tempat (lapangan / GOR)
+CREATE TABLE IF NOT EXISTS tempat (
+    id              SERIAL PRIMARY KEY,
+    nama            VARCHAR(180) NOT NULL,
+    alamat          TEXT,
+    harga_lapang    NUMERIC(12,2) DEFAULT 0,
+    harga_per_jam   NUMERIC(12,2) DEFAULT 0,
+    status_booking  VARCHAR(30) DEFAULT 'tersedia',
+    catatan         TEXT,
+    created_at      TIMESTAMP DEFAULT now()
+);
+
+-- tim (pembagian tim olahraga)
+CREATE TABLE IF NOT EXISTS tim (
+    id              SERIAL PRIMARY KEY,
+    nama            VARCHAR(120) NOT NULL,
+    jenis           VARCHAR(60)  NOT NULL,
+    koordinator_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    kuota           INTEGER NOT NULL DEFAULT 2,
+    catatan         TEXT,
+    created_at      TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS tim_member (
+    tim_id   INTEGER NOT NULL REFERENCES tim(id) ON DELETE CASCADE,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (tim_id, user_id)
+);
+
+-- jadwal: tempat_id (opsional, link ke tabel tempat) + durasi main (menit)
+ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS tempat_id    INTEGER REFERENCES tempat(id) ON DELETE SET NULL;
+ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS durasi_menit INTEGER;
+
+-- Seed tempat awal dari nama-nama yg sudah dipakai (idempotent via NOT EXISTS)
+INSERT INTO tempat (nama, alamat, harga_lapang, harga_per_jam, status_booking)
+SELECT DISTINCT t.tempat, '-', 0, 0, 'tersedia'
+FROM jadwal t
+WHERE t.tempat IS NOT NULL AND t.tempat <> ''
+  AND NOT EXISTS (SELECT 1 FROM tempat tp WHERE tp.nama = t.tempat);

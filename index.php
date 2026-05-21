@@ -52,10 +52,14 @@ include __DIR__.'/includes/header.php'; ?>
   <div class="carousel-inner rounded-3 shadow-sm">
     <?php foreach($berita as $i=>$b): ?>
       <div class="carousel-item <?= $i===0?'active':'' ?>">
-        <?php if($b['gambar_url']): ?><img src="<?= htmlspecialchars($b['gambar_url']) ?>" class="d-block"><?php endif; ?>
-        <div class="carousel-caption d-none d-md-block" style="background:rgba(15,23,42,.55);border-radius:10px;padding:.6rem 1rem;">
-          <h5 class="mb-1"><?= htmlspecialchars($b['judul']) ?></h5>
-          <div class="small"><?= $b['isi'] ?></div>
+        <?php if($b['gambar_url']): ?>
+          <img src="<?= htmlspecialchars($b['gambar_url']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
+        <?php else: ?>
+          <div style="height:300px;background:linear-gradient(135deg,#0ea5e9,#6366f1);"></div>
+        <?php endif; ?>
+        <div class="news-caption">
+          <h5><?= htmlspecialchars($b['judul']) ?></h5>
+          <div class="small"><?= strip_tags($b['isi']) ?></div>
         </div>
       </div>
     <?php endforeach; ?>
