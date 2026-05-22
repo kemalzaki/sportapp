@@ -24,6 +24,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         }
     } elseif ($a === 'chat_delete' && $u['role']==='admin') {
         db_exec("DELETE FROM chat_forum WHERE id=$1", [(int)$_POST['id']]);
+    } elseif ($a === 'chat_edit') {
+        // Pemilik pesan bisa mengedit pesannya sendiri; admin juga bisa
+        $cid = (int)$_POST['id'];
+        $newPesan = trim($_POST['pesan'] ?? '');
+        if ($cid && $newPesan !== '') {
+            $own = db_one("SELECT user_id FROM chat_forum WHERE id=$1", [$cid]);
+            if ($own && ((int)$own['user_id']===(int)$u['id'] || $u['role']==='admin')) {
+                db_exec("UPDATE chat_forum SET pesan=$1, updated_at=now() WHERE id=$2",
+                    [sanitize_html($newPesan), $cid]);
+            }
+        }
+    } elseif ($a === 'story_delete' && $u['role']==='admin') {
+        $pid = (int)$_POST['post_id'];
+        db_exec("DELETE FROM post_comments WHERE post_id=$1", [$pid]);
+        db_exec("DELETE FROM post_likes WHERE post_id=$1", [$pid]);
+        db_exec("DELETE FROM posts WHERE id=$1 AND jenis='story'", [$pid]);
     } elseif ($a === 'post_delete' && $u['role']==='admin') {
         $pid = (int)$_POST['post_id'];
         db_exec("DELETE FROM post_comments WHERE post_id=$1", [$pid]);
@@ -207,21 +223,28 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php foreach($stories as $s):
       $sFotoDisp = $s['foto_url'] ? ltrim($s['foto_url'],'/') : '';
     ?>
-      <div class="story-item" style="cursor:pointer" onclick='showStory(<?= json_encode([
-        "nama"=>$s["nama"],
-        "foto"=>$sFotoDisp,
-        "user_foto"=>$s["user_foto"] ?? "",
-        "caption"=>$s["caption"] ?? "",
-        "created_at"=>$s["created_at"] ?? "",
-      ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
-        <div class="story-ring">
-          <?php if ($sFotoDisp): ?>
-            <img src="<?= htmlspecialchars($sFotoDisp) ?>" alt="story" onerror="this.style.display='none'">
-          <?php elseif ($s['caption']): ?>
-            <div title="<?= htmlspecialchars($s['caption']) ?>"><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div>
-          <?php else: ?><div><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div><?php endif; ?>
+      <div class="story-item position-relative" style="cursor:pointer">
+        <div onclick='showStory(<?= json_encode([
+          "nama"=>$s["nama"],"foto"=>$sFotoDisp,"user_foto"=>$s["user_foto"] ?? "",
+          "caption"=>$s["caption"] ?? "","created_at"=>$s["created_at"] ?? "",
+        ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
+          <div class="story-ring">
+            <?php if ($sFotoDisp): ?>
+              <img src="<?= htmlspecialchars($sFotoDisp) ?>" alt="story" onerror="this.style.display='none'">
+            <?php elseif ($s['caption']): ?>
+              <div title="<?= htmlspecialchars($s['caption']) ?>"><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div>
+            <?php else: ?><div><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div><?php endif; ?>
+          </div>
+          <small><?= htmlspecialchars($s['nama']) ?></small>
         </div>
-        <small><?= htmlspecialchars($s['nama']) ?></small>
+        <?php if($u && $u['role']==='admin'): ?>
+          <form method="post" class="position-absolute" style="top:-4px;right:-4px;z-index:5;" onsubmit="event.stopPropagation();return confirm('Hapus story ini?')">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="story_delete">
+            <input type="hidden" name="post_id" value="<?= (int)$s['id'] ?>">
+            <button class="btn btn-sm btn-danger rounded-circle p-1" style="width:24px;height:24px;line-height:1;" title="Hapus story (admin)"><i class="bi bi-x" style="font-size:.8rem"></i></button>
+          </form>
+        <?php endif; ?>
       </div>
     <?php endforeach; if(!$stories): ?><div class="text-muted small">Belum ada story.</div><?php endif; ?>
   </div>
@@ -340,6 +363,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $c['id'] ?>"><input type="hidden" name="val" value="-1">
               <button class="btn btn-sm btn-link text-danger p-0 me-2"><i class="bi bi-hand-thumbs-down"></i> <?= (int)$c['dislikes'] ?></button></form>
             <button type="button" class="btn btn-sm btn-link p-0" onclick="document.getElementById('reply<?= $c['id'] ?>').classList.toggle('d-none')"><i class="bi bi-reply"></i> Reply</button>
+            <?php if((int)$c['user_id']===(int)$u['id'] || $u['role']==='admin'): ?>
+              <button type="button" class="btn btn-sm btn-link p-0 ms-2 text-primary" onclick="document.getElementById('editChat<?= $c['id'] ?>').classList.toggle('d-none')" title="Edit pesan"><i class="bi bi-pencil"></i> Edit</button>
+            <?php endif; ?>
             <?php if($u['role']==='admin'): ?>
             <form method="post" class="d-inline" onsubmit="return confirm('Hapus pesan ini?')">
               <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_delete"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
@@ -356,6 +382,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <input class="form-control form-control-sm" name="pesan" placeholder="Balas pesan..." maxlength="500" required>
             <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
           </form>
+          <?php if((int)$c['user_id']===(int)$u['id'] || $u['role']==='admin'): ?>
+          <form method="post" id="editChat<?= $c['id'] ?>" class="d-flex gap-2 mt-2 d-none">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_edit"><input type="hidden" name="id" value="<?= $c['id'] ?>">
+            <input class="form-control form-control-sm" name="pesan" value="<?= htmlspecialchars(strip_tags($c['pesan'])) ?>" maxlength="500" required>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i></button>
+          </form>
+          <?php endif; ?>
           <?php endif; ?>
           <?php foreach($rs as $rep): ?>
             <div class="chat-bubble chat-reply mt-2">

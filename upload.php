@@ -119,7 +119,7 @@ include __DIR__.'/includes/header.php'; ?>
       <div class="alert alert-info py-2 small mb-3">
         <i class="bi bi-megaphone"></i> <strong>Wajib:</strong> upload aktivitas <u>minimal 1 minggu 1 kali</u>.
       </div>
-      <form method="post" enctype="multipart/form-data">
+      <form method="post" enctype="multipart/form-data" data-skip-preloader>
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <div class="mb-2"><label class="form-label small fw-semibold">Tanggal</label>
           <input type="date" class="form-control" name="tanggal" value="<?= date('Y-m-d') ?>" required></div>

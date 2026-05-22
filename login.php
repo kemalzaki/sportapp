@@ -51,7 +51,7 @@ include __DIR__.'/includes/header.php';
 <div class="card shadow-sm"><div class="card-body p-4">
   <h4 class="mb-3 text-center">Masuk</h4>
   <?php if($err): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-  <form method="post">
+  <form method="post" data-skip-preloader>
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
     <div class="mb-2">
       <label class="small fw-semibold">Nama</label>

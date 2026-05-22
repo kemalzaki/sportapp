@@ -81,4 +81,12 @@ try {
     @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS jam_mulai TIME");
     @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS jam_selesai TIME");
     @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS durasi_menit INTEGER");
+    // === Tambah kolom WhatsApp & jenis kelamin user ===
+    @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS nomor_wa VARCHAR(25)");
+    @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS jenis_kelamin VARCHAR(10)");
+    // === Lat / Lng untuk tempat (idempotent) ===
+    @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION");
+    @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION");
+    // === Forum chat: kolom updated_at untuk fitur edit pesan ===
+    @pg_query(db(), "ALTER TABLE chat_forum ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP");
 } catch (Throwable $e) { /* ignore */ }

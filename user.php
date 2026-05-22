@@ -14,6 +14,17 @@ $badges = user_badges($id);
 $hadir = (int) db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1 AND hadir=1", [$id]);
 $sesi  = (int) db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1", [$id]);
 $lastPosts = db_all("SELECT * FROM posts WHERE user_id=$1 AND jenis='post' ORDER BY created_at DESC LIMIT 6", [$id]);
+// Performa Lari Mingguan (7 hari terakhir) — bersifat publik
+$weeklyRuns = db_all("SELECT tanggal, durasi_menit, jarak_km, kalori, pace
+                      FROM upload_harian
+                      WHERE user_id=$1 AND tanggal >= CURRENT_DATE - INTERVAL '7 days'
+                      ORDER BY tanggal ASC", [$id]);
+$wkTotalKm    = 0; $wkTotalMin = 0; $wkTotalKcal = 0;
+foreach ($weeklyRuns as $r) {
+    $wkTotalKm   += (float)$r['jarak_km'];
+    $wkTotalMin  += (int)$r['durasi_menit'];
+    $wkTotalKcal += (int)$r['kalori'];
+}
 include __DIR__.'/includes/header.php';
 ?>
 <div class="card shadow-sm mb-3"><div class="card-body d-flex gap-3 align-items-center">
@@ -26,6 +37,30 @@ include __DIR__.'/includes/header.php';
   <div class="text-end">
     <div class="small text-muted">Hadir</div><div class="h5 mb-0"><?= $hadir ?>/<?= $sesi ?></div>
   </div>
+</div></div>
+
+<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-speedometer2 text-success"></i> Performa Lari Mingguan (7 hari terakhir)</div>
+<div class="card-body">
+  <div class="row g-2 mb-2">
+    <div class="col-4"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">Total Jarak</div><div class="stat-value"><?= number_format($wkTotalKm,2) ?> km</div></div></div></div>
+    <div class="col-4"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">Total Durasi</div><div class="stat-value"><?= (int)$wkTotalMin ?> mnt</div></div></div></div>
+    <div class="col-4"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">Total Kalori</div><div class="stat-value"><?= number_format($wkTotalKcal) ?></div></div></div></div>
+  </div>
+  <?php if($weeklyRuns): ?>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Tanggal</th><th>Jarak (km)</th><th>Durasi</th><th>Pace</th><th>Kalori</th></tr></thead>
+    <tbody>
+    <?php foreach($weeklyRuns as $r): ?>
+      <tr>
+        <td><?= htmlspecialchars($r['tanggal']) ?></td>
+        <td><?= htmlspecialchars($r['jarak_km'] ?? '0') ?></td>
+        <td><?= (int)$r['durasi_menit'] ?> mnt</td>
+        <td><?= htmlspecialchars($r['pace'] ?? '-') ?: '-' ?></td>
+        <td><?= (int)$r['kalori'] ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody></table></div>
+  <?php else: ?><p class="text-muted small text-center mb-0">Belum ada lari minggu ini.</p><?php endif; ?>
 </div></div>
 
 <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-award text-warning"></i> Badge (<?= count($badges) ?>)</div>

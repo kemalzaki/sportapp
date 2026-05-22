@@ -26,6 +26,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     if ($a==='update_bio') {
         $bio = substr(trim($_POST['bio'] ?? ''), 0, 300);
         db_exec("UPDATE users SET bio=$1 WHERE id=$2", [$bio, (int)$u['id']]);
+    } elseif ($a==='update_wa') {
+        $wa = preg_replace('/[^0-9+]/','', trim($_POST['nomor_wa'] ?? ''));
+        $jk = $_POST['jenis_kelamin'] ?? '';
+        if (!in_array($jk, ['L','P',''], true)) $jk = '';
+        if ($wa === '' || (strlen($wa) >= 8 && strlen($wa) <= 20)) {
+            db_exec("UPDATE users SET nomor_wa=$1, jenis_kelamin=NULLIF($2,'') WHERE id=$3",
+                [$wa ?: null, $jk, (int)$u['id']]);
+        }
+    } elseif ($a==='delete_wa') {
+        db_exec("UPDATE users SET nomor_wa=NULL WHERE id=$1", [(int)$u['id']]);
     } elseif ($a==='mark_notif') {
         db_exec("UPDATE notifications SET dibaca=1 WHERE user_id=$1", [(int)$u['id']]);
     } elseif ($a==='fav_add') {
@@ -129,6 +139,28 @@ include __DIR__.'/includes/header.php';
         <label class="form-label small fw-semibold">Bio singkat</label>
         <textarea name="bio" class="form-control" rows="2" maxlength="300"><?= htmlspecialchars($me['bio'] ?? '') ?></textarea>
         <button class="btn btn-sm btn-primary mt-2">Simpan Bio</button>
+      </form>
+
+      <form method="post" class="mt-3 text-start border-top pt-3">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="update_wa">
+        <label class="form-label small fw-semibold"><i class="bi bi-whatsapp text-success"></i> Nomor WhatsApp</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control" name="nomor_wa" maxlength="20" placeholder="cth: 081234567890" value="<?= htmlspecialchars($me['nomor_wa'] ?? '') ?>">
+          <button class="btn btn-outline-primary" title="Simpan"><i class="bi bi-save"></i></button>
+        </div>
+        <label class="form-label small fw-semibold mt-2">Jenis Kelamin</label>
+        <select name="jenis_kelamin" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">— belum diisi —</option>
+          <option value="L" <?= (($me['jenis_kelamin']??'')==='L'?'selected':'') ?>>Laki-laki</option>
+          <option value="P" <?= (($me['jenis_kelamin']??'')==='P'?'selected':'') ?>>Perempuan</option>
+        </select>
+        <?php if(!empty($me['nomor_wa'])): ?>
+          <div class="mt-2 d-flex gap-2 align-items-center">
+            <a class="btn btn-sm btn-success" target="_blank" href="https://wa.me/<?= preg_replace('/^0/','62',preg_replace('/\D+/','',$me['nomor_wa'])) ?>"><i class="bi bi-whatsapp"></i> Chat saya</a>
+            <button class="btn btn-sm btn-outline-danger" formaction="" type="submit" name="_action" value="delete_wa" onclick="return confirm('Hapus nomor WhatsApp?')"><i class="bi bi-trash"></i></button>
+          </div>
+        <?php endif; ?>
       </form>
     </div></div>
 

@@ -11,10 +11,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     if ($a==='delete') {
         db_exec("DELETE FROM tempat WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='edit') {
+        $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
+        $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
         db_exec("UPDATE tempat SET nama=$1, alamat=$2, harga_lapang=$3, harga_per_jam=$4,
                    harga_tiket=$5, harga_parkir=$6, status_booking=$7, catatan=$8,
-                   pic_user_id=$9, kontak_wa=$10, jenis_id=$11
-                 WHERE id=$12",
+                   pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13
+                 WHERE id=$14",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -22,17 +24,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null,
+             $lat, $lng,
              (int)$_POST['id']]);
     } else {
-        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
+        $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
+        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
              $_POST['status_booking'] ?? 'tersedia', trim($_POST['catatan'] ?? ''),
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
-             ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null]);
+             ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null,
+             $lat, $lng]);
     }
     header('Location: tempat.php'); exit;
 }
@@ -108,9 +114,79 @@ include __DIR__.'/../includes/header.php'; ?>
         <?php foreach($statuses as $s): ?><option><?= $s ?></option><?php endforeach; ?>
       </select></div>
     <div class="col-md-9"><label class="form-label small fw-semibold">Catatan</label><input class="form-control" name="catatan" placeholder="cth: butuh DP, jam buka, dll"></div>
+
+    <!-- Lat/Lng + Map Picker -->
+    <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Latitude</label>
+      <input class="form-control" name="lat" id="newLat" placeholder="cth: -6.9214" inputmode="decimal"></div>
+    <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Longitude</label>
+      <input class="form-control" name="lng" id="newLng" placeholder="cth: 107.6072" inputmode="decimal"></div>
+    <div class="col-md-6"><label class="form-label small fw-semibold">Cari lokasi (Nominatim)</label>
+      <div class="input-group"><input class="form-control" id="newPlaceQuery" placeholder="cth: GBK Senayan"><button type="button" id="newSearchBtn" class="btn btn-outline-primary"><i class="bi bi-search"></i></button></div>
+      <div id="newSearchResults" class="list-group mt-1" style="max-height:140px;overflow:auto;"></div>
+    </div>
+    <div class="col-12"><label class="form-label small fw-semibold">Pin lokasi (klik / drag marker)</label>
+      <div id="newMap" style="height:260px;border-radius:8px;border:1px solid #ddd;"></div>
+      <small class="text-muted">Klik peta untuk memindahkan pin. Lat/Lng akan auto-terisi.</small>
+    </div>
+
     <div class="col-12"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</button></div>
   </form>
 </div></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+function setupMapPicker(mapId, latId, lngId, queryId, btnId, resultsId, initialLat, initialLng){
+  if(typeof L==='undefined') return;
+  var el=document.getElementById(mapId); if(!el || el.dataset.ready) return;
+  el.dataset.ready='1';
+  var lat=parseFloat(initialLat)|| -6.2, lng=parseFloat(initialLng)||106.816666;
+  var map=L.map(mapId).setView([lat,lng], initialLat?15:11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  setTimeout(function(){ map.invalidateSize(); }, 250);
+  var marker=L.marker([lat,lng],{draggable:true}).addTo(map);
+  function setLL(ll){
+    document.getElementById(latId).value=ll.lat.toFixed(6);
+    document.getElementById(lngId).value=ll.lng.toFixed(6);
+  }
+  if(initialLat && initialLng) setLL({lat:lat,lng:lng});
+  marker.on('dragend',function(e){ setLL(e.target.getLatLng()); });
+  map.on('click',function(e){ marker.setLatLng(e.latlng); setLL(e.latlng); });
+  var qEl=document.getElementById(queryId), rEl=document.getElementById(resultsId);
+  function doSearch(){
+    var q=qEl.value.trim(); if(!q) return;
+    rEl.innerHTML='<div class="list-group-item small text-muted">Mencari...</div>';
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}})
+      .then(function(r){return r.json();})
+      .then(function(items){
+        if(!items.length){ rEl.innerHTML='<div class="list-group-item small text-muted">Tidak ditemukan.</div>'; return; }
+        rEl.innerHTML='';
+        items.forEach(function(it){
+          var a=document.createElement('a'); a.href='#'; a.className='list-group-item list-group-item-action small';
+          a.textContent=it.display_name;
+          a.onclick=function(ev){ ev.preventDefault();
+            var ll={lat:parseFloat(it.lat),lng:parseFloat(it.lon)};
+            map.setView([ll.lat,ll.lng],16); marker.setLatLng(ll); setLL(ll); rEl.innerHTML='';
+          };
+          rEl.appendChild(a);
+        });
+      }).catch(function(){ rEl.innerHTML='<div class="list-group-item small text-danger">Gagal mencari.</div>'; });
+  }
+  document.getElementById(btnId).addEventListener('click', doSearch);
+  qEl.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); doSearch(); } });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  setupMapPicker('newMap','newLat','newLng','newPlaceQuery','newSearchBtn','newSearchResults','','');
+  // setup edit map picker ketika modal dibuka
+  document.querySelectorAll('.modal[id^="tpE"]').forEach(function(m){
+    m.addEventListener('shown.bs.modal', function(){
+      var id=m.id.replace('tpE','');
+      setupMapPicker('editMap'+id,'editLat'+id,'editLng'+id,'editPlaceQuery'+id,'editSearchBtn'+id,'editSearchResults'+id,
+        document.getElementById('editLat'+id).value, document.getElementById('editLng'+id).value);
+    });
+  });
+});
+</script>
 
 <!-- ===== Filter & Sort ===== -->
 <div class="card shadow-sm mb-3"><div class="card-body">
@@ -217,6 +293,18 @@ include __DIR__.'/../includes/header.php'; ?>
       <div class="col-md-3"><label class="form-label small fw-semibold">Harga Tiket</label><input type="number" step="0.01" min="0" class="form-control" name="harga_tiket" value="<?= htmlspecialchars($r['harga_tiket'] ?? 0) ?>"></div>
       <div class="col-md-3"><label class="form-label small fw-semibold">Harga Parkir</label><input type="number" step="0.01" min="0" class="form-control" name="harga_parkir" value="<?= htmlspecialchars($r['harga_parkir'] ?? 0) ?>"></div>
       <div class="col-12"><label class="form-label small fw-semibold">Catatan</label><textarea class="form-control" name="catatan" rows="2"><?= htmlspecialchars($r['catatan'] ?? '') ?></textarea></div>
+
+      <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Latitude</label>
+        <input class="form-control" name="lat" id="editLat<?= (int)$r['id'] ?>" value="<?= htmlspecialchars($r['lat'] ?? '') ?>" inputmode="decimal"></div>
+      <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Longitude</label>
+        <input class="form-control" name="lng" id="editLng<?= (int)$r['id'] ?>" value="<?= htmlspecialchars($r['lng'] ?? '') ?>" inputmode="decimal"></div>
+      <div class="col-md-6"><label class="form-label small fw-semibold">Cari lokasi</label>
+        <div class="input-group"><input class="form-control" id="editPlaceQuery<?= (int)$r['id'] ?>" placeholder="cth: GBK Senayan"><button type="button" class="btn btn-outline-primary" id="editSearchBtn<?= (int)$r['id'] ?>"><i class="bi bi-search"></i></button></div>
+        <div id="editSearchResults<?= (int)$r['id'] ?>" class="list-group mt-1" style="max-height:120px;overflow:auto;"></div>
+      </div>
+      <div class="col-12"><label class="form-label small fw-semibold">Pin lokasi</label>
+        <div id="editMap<?= (int)$r['id'] ?>" style="height:260px;border-radius:8px;border:1px solid #ddd;"></div>
+      </div>
     </div>
   </div>
   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
