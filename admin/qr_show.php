@@ -13,6 +13,12 @@ $j = $jadwalId ? db_one("SELECT j.*, t.lat AS t_lat, t.lng AS t_lng FROM jadwal 
 $flashErr = null;
 if ($_SERVER['REQUEST_METHOD']==='POST' && $j) {
     csrf_check();
+    $act = $_POST['_action'] ?? 'create';
+    if ($act === 'delete') {
+        $tid = (int)($_POST['token_id'] ?? 0);
+        if ($tid > 0) db_exec("DELETE FROM qr_tokens WHERE id=$1 AND jadwal_id=$2", [$tid, $jadwalId]);
+        header("Location: qr_show.php?jadwal_id=$jadwalId"); exit;
+    }
     // Cegah generate QR untuk sesi yang tanggalnya sudah lewat
     if (!empty($j['tanggal']) && strtotime($j['tanggal']) < strtotime(date('Y-m-d'))) {
         $flashErr = 'Tidak bisa generate QR: tanggal sesi sudah lewat ('.htmlspecialchars($j['tanggal']).').';
@@ -75,9 +81,17 @@ include __DIR__.'/../includes/header.php';
           </div>
         </div>
         <div class="col-12">
+          <label class="small fw-semibold">Cari nama lokasi (otomatis isi lat/lng)</label>
+          <div class="input-group">
+            <input id="placeQuery" class="form-control" placeholder="Contoh: GBK Senayan Jakarta">
+            <button type="button" id="searchBtn" class="btn btn-outline-primary"><i class="bi bi-search"></i> Cari</button>
+          </div>
+          <div id="searchResults" class="list-group mt-1" style="max-height:160px;overflow:auto;"></div>
+        </div>
+        <div class="col-12">
           <label class="small fw-semibold">Pin lokasi di peta (klik / drag marker)</label>
-          <div id="map" style="height:320px;border-radius:8px;border:1px solid #ddd;"></div>
-          <small class="text-muted">Tip: klik peta untuk memindahkan pin.</small>
+          <div id="map" style="height:340px;border-radius:8px;border:1px solid #ddd;"></div>
+          <small class="text-muted">Tip: klik peta untuk memindahkan pin, atau cari nama lokasi di atas.</small>
         </div>
         <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Generate QR Baru</button></div>
       </form>
@@ -85,10 +99,15 @@ include __DIR__.'/../includes/header.php';
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <script>
         document.addEventListener('DOMContentLoaded', function(){
+          if (typeof L === 'undefined') {
+            document.getElementById('map').innerHTML = '<div class="alert alert-warning m-2">Gagal memuat peta. Cek koneksi internet.</div>';
+            return;
+          }
           var lat = parseFloat(document.getElementById('lat').value) || -6.2;
           var lng = parseFloat(document.getElementById('lng').value) || 106.816666;
           var map = L.map('map').setView([lat,lng], 14);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+          setTimeout(function(){ map.invalidateSize(); }, 250);
           var marker = L.marker([lat,lng], {draggable:true}).addTo(map);
           function setLL(ll){
             document.getElementById('lat').value = ll.lat.toFixed(6);
@@ -97,6 +116,37 @@ include __DIR__.'/../includes/header.php';
           setLL({lat:lat,lng:lng});
           marker.on('dragend', function(e){ setLL(e.target.getLatLng()); });
           map.on('click', function(e){ marker.setLatLng(e.latlng); setLL(e.latlng); });
+
+          // ---- Pencarian lokasi via Nominatim ----
+          var qEl = document.getElementById('placeQuery');
+          var rEl = document.getElementById('searchResults');
+          function doSearch(){
+            var q = qEl.value.trim();
+            if (!q) return;
+            rEl.innerHTML = '<div class="list-group-item small text-muted">Mencari...</div>';
+            fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&q='+encodeURIComponent(q), {headers:{'Accept':'application/json'}})
+              .then(function(r){return r.json();})
+              .then(function(items){
+                if(!items.length){ rEl.innerHTML='<div class="list-group-item small text-muted">Tidak ditemukan.</div>'; return; }
+                rEl.innerHTML='';
+                items.forEach(function(it){
+                  var a=document.createElement('a');
+                  a.href='#'; a.className='list-group-item list-group-item-action small';
+                  a.textContent=it.display_name;
+                  a.onclick=function(ev){
+                    ev.preventDefault();
+                    var ll={lat:parseFloat(it.lat),lng:parseFloat(it.lon)};
+                    map.setView([ll.lat,ll.lng],16);
+                    marker.setLatLng(ll); setLL(ll);
+                    rEl.innerHTML='';
+                  };
+                  rEl.appendChild(a);
+                });
+              })
+              .catch(function(){ rEl.innerHTML='<div class="list-group-item small text-danger">Gagal mencari lokasi.</div>'; });
+          }
+          document.getElementById('searchBtn').addEventListener('click', doSearch);
+          qEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); doSearch(); } });
         });
       </script>
       <?php endif; ?>
@@ -105,13 +155,24 @@ include __DIR__.'/../includes/header.php';
     <?php if($latest):
       $qrUrl = $baseUrl.'/checkin.php?prefill='.urlencode($latest['token']);
       $apiQr = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&data='.urlencode($latest['token']);
+      $isActive = strtotime($latest['valid_until']) > time();
     ?>
     <div class="card shadow-sm"><div class="card-body text-center">
       <h6 class="mb-2">QR Aktif</h6>
       <img src="<?= $apiQr ?>" class="img-fluid" alt="QR" style="max-width:320px">
       <div class="mt-2"><code><?= htmlspecialchars($latest['token']) ?></code></div>
       <div class="small text-muted">Berlaku sampai: <?= $latest['valid_until'] ?> · Radius <?= (int)$latest['radius_meter'] ?> m</div>
-      <a class="btn btn-outline-primary mt-3" href="<?= htmlspecialchars($qrUrl) ?>" target="_blank">Buka link check-in</a>
+      <div class="mt-3 d-flex gap-2 justify-content-center flex-wrap">
+        <a class="btn btn-outline-primary" href="<?= htmlspecialchars($qrUrl) ?>" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Buka link check-in</a>
+        <?php if($isActive): ?>
+        <form method="post" onsubmit="return confirm('Hapus QR aktif ini? Token tidak bisa dipakai lagi setelah dihapus.');" class="d-inline">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="delete">
+          <input type="hidden" name="token_id" value="<?= (int)$latest['id'] ?>">
+          <button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Hapus QR Aktif</button>
+        </form>
+        <?php endif; ?>
+      </div>
     </div></div>
     <?php endif; ?>
     <?php endif; ?>

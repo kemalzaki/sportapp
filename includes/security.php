@@ -11,11 +11,11 @@ function send_security_headers(): void {
     header("Permissions-Policy: geolocation=(self), camera=(self)");
     // CSP: izinkan CDN yang sudah dipakai (bootstrap/quill/chartjs/fcm)
     $csp = "default-src 'self'; "
-         . "img-src 'self' data: blob: https:; "
-         . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://fonts.googleapis.com; "
+         . "img-src 'self' data: blob: https: http:; "
+         . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://fonts.googleapis.com https://unpkg.com; "
          . "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
-         . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://www.gstatic.com https://www.googleapis.com; "
-         . "connect-src 'self' https://fcmregistrations.googleapis.com https://fcm.googleapis.com wss: https:; "
+         . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://www.gstatic.com https://www.googleapis.com https://unpkg.com; "
+         . "connect-src 'self' https://fcmregistrations.googleapis.com https://fcm.googleapis.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org wss: https:; "
          . "frame-ancestors 'self'; "
          . "base-uri 'self'; form-action 'self';";
     header("Content-Security-Policy: $csp");

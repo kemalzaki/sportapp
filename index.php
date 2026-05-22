@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 $name = 'post_'.bin2hex(random_bytes(8)).'.'.$extOrErr;
                 @mkdir(__DIR__.'/uploads', 0775, true);
                 move_uploaded_file($_FILES['foto']['tmp_name'], __DIR__.'/uploads/'.$name);
-                $fotoUrl = '/uploads/'.$name;
+                $fotoUrl = 'uploads/'.$name;
             }
         }
         if ($jenis === 'story') {
@@ -194,18 +194,22 @@ document.addEventListener('DOMContentLoaded', () => {
   <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#postModal"><i class="bi bi-plus-lg"></i> Posting</button>
 </div>
 <div class="card-body">
-  <div class="story-strip">
-    <?php foreach($stories as $s): ?>
+  <div class="story-strip" data-live="stories">
+    <?php foreach($stories as $s):
+      $sFotoDisp = $s['foto_url'] ? ltrim($s['foto_url'],'/') : '';
+    ?>
       <div class="story-item" style="cursor:pointer" onclick='showStory(<?= json_encode([
         "nama"=>$s["nama"],
-        "foto"=>$s["foto_url"] ?? "",
+        "foto"=>$sFotoDisp,
         "user_foto"=>$s["user_foto"] ?? "",
         "caption"=>$s["caption"] ?? "",
         "created_at"=>$s["created_at"] ?? "",
       ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
         <div class="story-ring">
-          <?php if ($s['foto_url'] || $s['caption']): ?>
-            <img src="<?= htmlspecialchars($s['foto_url'] ?: '/assets/icon-192.png') ?>">
+          <?php if ($sFotoDisp): ?>
+            <img src="<?= htmlspecialchars($sFotoDisp) ?>" alt="story" onerror="this.style.display='none'">
+          <?php elseif ($s['caption']): ?>
+            <div title="<?= htmlspecialchars($s['caption']) ?>"><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div>
           <?php else: ?><div><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div><?php endif; ?>
         </div>
         <small><?= htmlspecialchars($s['nama']) ?></small>
@@ -248,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </form>
             <?php endif; ?>
           </div>
-          <?php if(!empty($p['post_foto'])): ?><img src="<?= htmlspecialchars($p['post_foto']) ?>" class="img-fluid rounded mb-2" style="max-height:400px;"><?php endif; ?>
+          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" class="img-fluid rounded mb-2" style="max-height:400px;" onerror="this.style.display='none'"><?php endif; ?>
           <div class="mb-2"><?= nl2br(htmlspecialchars($p['caption'] ?? '')) ?></div>
           <div class="d-flex gap-2 small">
             <?php if($u): ?>
@@ -291,14 +295,14 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 
   <div class="col-lg-5">
-    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-broadcast text-success me-1"></i> Online (<?= count($onlineMembers) ?>)</div>
-      <ul class="list-group list-group-flush">
+    <div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-broadcast text-success me-1"></i> Online (<?= count($onlineMembers) ?>)</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+      <ul class="list-group list-group-flush" data-live="online">
         <?php foreach($onlineMembers as $om): ?>
           <li class="list-group-item d-flex align-items-center justify-content-between">
             <a href="/user.php?id=<?= (int)$om['id'] ?>" class="text-decoration-none"><?= user_name_with_avatar($om['foto_url'] ?? null, $om['nama'], true, 28) ?></a>
             <small class="text-muted"><?= date('H:i', strtotime($om['last_seen'])) ?></small>
           </li>
-        <?php endforeach; ?>
+        <?php endforeach; if(!$onlineMembers): ?><li class="list-group-item text-muted small">Belum ada yang online.</li><?php endif; ?>
       </ul></div>
 
     <div class="card shadow-sm" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
@@ -371,20 +375,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <?php if($u): ?>
 <div class="modal fade" id="postModal" tabindex="-1"><div class="modal-dialog">
-  <form class="modal-content" method="post" enctype="multipart/form-data">
+  <form class="modal-content" method="post" enctype="multipart/form-data" id="postNewForm">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="post_new">
     <div class="modal-header"><h5 class="modal-title">Posting baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
       <label class="form-label small">Tipe</label>
       <select name="jenis" class="form-select mb-2"><option value="post">Post (feed)</option><option value="story">Story (24 jam)</option></select>
-      <label class="form-label small">Foto (opsional)</label>
-      <input type="file" name="foto" accept="image/*" class="form-control mb-2">
+      <label class="form-label small">Foto (opsional, maks 5MB)</label>
+      <input type="file" name="foto" accept="image/*" class="form-control mb-2" id="postFotoInput">
+      <img id="postFotoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px">
       <label class="form-label small">Caption</label>
       <textarea name="caption" class="form-control" rows="3" maxlength="500" placeholder="Tulis caption..."></textarea>
     </div>
-    <div class="modal-footer"><button class="btn btn-primary">Posting</button></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="postSubmitBtn"><i class="bi bi-send"></i> Posting</button>
+    </div>
   </form>
 </div></div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var fi=document.getElementById('postFotoInput');
+  var pv=document.getElementById('postFotoPreview');
+  if(fi){ fi.addEventListener('change', function(){
+    var f=this.files && this.files[0]; if(!f){ pv.style.display='none'; return; }
+    pv.src=URL.createObjectURL(f); pv.style.display='block';
+  });}
+  var fm=document.getElementById('postNewForm');
+  if(fm){ fm.addEventListener('submit', function(){
+    var btn=document.getElementById('postSubmitBtn');
+    if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> Mengunggah...'; }
+    var pre=document.getElementById('appPreloader');
+    if(pre){ pre.classList.remove('hidden'); pre.querySelector('.lbl').textContent='Mengunggah foto...'; }
+    else {
+      var p=document.createElement('div'); p.id='appPreloader';
+      p.innerHTML='<div class="spinner"></div><div class="lbl">Mengunggah foto...</div>';
+      document.body.appendChild(p);
+    }
+  });}
+});
+</script>
 <?php endif; ?>
 
 <!-- QR Modal -->
