@@ -44,18 +44,35 @@ if ($u) {
 .card-stat .stat-value{font-size:1.4rem;font-weight:700;}
 .hero{padding:.5rem 0;}
 .badge-soft{display:inline-block;padding:.25rem .75rem;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.8rem;font-weight:500;}
-/* WYSIWYG: pisahkan editor satu sama lain agar tidak tumpang tindih */
 .ql-container{min-height:140px;}
 .ql-editor{min-height:140px;}
 .wysiwyg-wrap{margin-bottom:1.25rem;}
-/* Heatmap GitHub-style */
 .heatmap{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);gap:3px;overflow-x:auto;padding:4px 0;}
 .heatmap .cell{width:12px;height:12px;border-radius:2px;background:#ebedf0;}
 .heatmap .l1{background:#9be9a8;} .heatmap .l2{background:#40c463;} .heatmap .l3{background:#30a14e;} .heatmap .l4{background:#216e39;}
 [data-bs-theme=dark] .heatmap .cell{background:#1f2937;}
+/* === Navigasi rapi (item tidak tabrakan) === */
+.navbar .navbar-nav .nav-link{padding-left:.7rem;padding-right:.7rem;white-space:nowrap;}
+.navbar .navbar-nav .nav-link i{margin-right:.25rem;}
+@media (min-width:992px){
+  .navbar .navbar-nav.me-auto{column-gap:.15rem;}
+  .navbar form[role=search]{margin-right:.5rem;}
+  .navbar .navbar-nav.align-items-lg-center .nav-item + .nav-item{margin-left:.25rem;}
+}
+.navbar .dropdown-menu{min-width:240px;}
+/* === Preloader === */
+#appPreloader{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;transition:opacity .25s ease;}
+#appPreloader .spinner{width:54px;height:54px;border:5px solid #e2e8f0;border-top-color:#0ea5e9;border-radius:50%;animation:hfspin 1s linear infinite;}
+#appPreloader .lbl{font-weight:600;color:#0f172a;letter-spacing:.02em;}
+#appPreloader.hidden{opacity:0;pointer-events:none;}
+@keyframes hfspin{to{transform:rotate(360deg);}}
+#liveRefreshBadge{position:fixed;right:14px;bottom:78px;z-index:1080;display:none;}
 </style>
 </head>
 <body>
+<!-- Global preloader -->
+<div id="appPreloader"><div class="spinner"></div><div class="lbl">Memuat HapFam SportApp…</div></div>
+<div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
     <a class="navbar-brand fw-bold" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> HapFam <span class="opacity-75">SportApp</span></a>

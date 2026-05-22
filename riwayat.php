@@ -62,7 +62,7 @@ if ($jids) {
                        FROM absensi a JOIN users u ON u.id=a.user_id
                        WHERE a.jadwal_id IN ($inList) ORDER BY a.hadir DESC, u.nama");
     foreach ($absRows as $ar) $sesiDetail[(int)$ar['jadwal_id']]['anggota'][] = $ar;
-    $tamuRows = db_all("SELECT jadwal_id, nama FROM member_eksternal WHERE jadwal_id IN ($inList)");
+    $tamuRows = db_all("SELECT jadwal_id, nama_tamu AS nama FROM member_eksternal WHERE jadwal_id IN ($inList)");
     foreach ($tamuRows as $tr) $sesiDetail[(int)$tr['jadwal_id']]['tamu'][] = $tr;
 }
 
@@ -122,14 +122,14 @@ include __DIR__.'/includes/header.php';
       <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
       <tbody>
       <?php foreach($riwayat as $r): ?>
-        <tr style="cursor:pointer" onclick="showSesi(<?= (int)$r['id'] ?>)" title="Klik untuk detail peserta">
+        <tr>
           <td data-label="Tanggal"><?= htmlspecialchars($r['tanggal']) ?> <span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
           <td data-label="Jenis"><?= htmlspecialchars($r['jenis']) ?></td>
           <td data-label="Tempat"><?= htmlspecialchars($r['tempat']) ?></td>
           <td data-label="Koordinator"><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 22) ?></td>
           <td data-label="Durasi"><?= !empty($r['durasi_menit']) ? (int)$r['durasi_menit'].' mnt' : '<span class="text-muted small">—</span>' ?></td>
-          <td data-label="Tamu"><span class="badge bg-info-subtle text-info-emphasis"><?= (int)$r['tamu'] ?></span></td>
-          <td data-label="Hadir"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?> <i class="bi bi-zoom-in text-muted small"></i></td>
+          <td data-label="Tamu"><a href="#" onclick="event.preventDefault();showSesi(<?= (int)$r['id'] ?>,'tamu')" class="badge bg-info-subtle text-info-emphasis text-decoration-none" title="Klik untuk lihat nama tamu"><?= (int)$r['tamu'] ?> <i class="bi bi-zoom-in"></i></a></td>
+          <td data-label="Hadir"><a href="#" onclick="event.preventDefault();showSesi(<?= (int)$r['id'] ?>,'anggota')" class="text-decoration-none" title="Klik untuk lihat siapa yang hadir"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?> <i class="bi bi-zoom-in text-muted small"></i></a></td>
         </tr>
       <?php endforeach; ?>
       </tbody></table></div>
@@ -138,7 +138,7 @@ include __DIR__.'/includes/header.php';
     <!-- Riwayat aktivitas publik (semua member) -->
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-globe text-primary"></i> Riwayat Aktivitas Publik</div>
     <div class="table-responsive"><table class="table table-hover mb-0">
-      <thead><tr><th>Tanggal</th><th>Member</th><th>Jenis</th><th>Durasi</th><th>Jarak</th></tr></thead>
+      <thead><tr><th>Tanggal</th><th>Member</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Bukti</th></tr></thead>
       <tbody>
         <?php foreach($publicActs as $a): ?>
         <tr>
@@ -147,8 +147,15 @@ include __DIR__.'/includes/header.php';
           <td><span class="pill"><?= htmlspecialchars($a['jenis']) ?></span></td>
           <td><?= (int)$a['durasi_menit'] ?> mnt</td>
           <td><?= htmlspecialchars($a['jarak_km'] ?? '0') ?> km</td>
+          <td>
+            <?php if(!empty($a['file_path'])): ?>
+              <a href="#" onclick="showBukti(event,'<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>','<?= htmlspecialchars($a['tanggal']) ?>')">
+                <img src="<?= htmlspecialchars($a['file_path']) ?>" alt="bukti" style="height:38px;width:38px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:1px solid #ddd;">
+              </a>
+            <?php else: ?><span class="text-muted small">—</span><?php endif; ?>
+          </td>
         </tr>
-        <?php endforeach; if(!$publicActs): ?><tr><td colspan="5" class="text-center text-muted small py-3">Belum ada aktivitas.</td></tr><?php endif; ?>
+        <?php endforeach; if(!$publicActs): ?><tr><td colspan="6" class="text-center text-muted small py-3">Belum ada aktivitas.</td></tr><?php endif; ?>
       </tbody></table></div>
     </div>
 
@@ -227,13 +234,14 @@ foreach($riwayat as $r){
 <script>
 const SESI_DATA = <?= json_encode($_sesiJs, JSON_UNESCAPED_UNICODE) ?>;
 let _sModal=null;
-function showSesi(id){
+function showSesi(id, focus){
   const d=SESI_DATA[id]; if(!d) return;
   if(!_sModal) _sModal=new bootstrap.Modal(document.getElementById('sesiModal'));
   let html=`<div class="mb-2"><span class="pill">${d.tanggal}</span> <span class="pill">${d.jenis}</span> <span class="pill">${d.tempat}</span></div>`;
   html+=`<div class="small text-muted mb-3">Koordinator: <b>${d.koord}</b> · Durasi: ${d.durasi||'-'} mnt · Hadir: <b>${d.hadir}/${d.total}</b></div>`;
-  html+=`<h6 class="mb-2"><i class="bi bi-people"></i> Daftar Anggota</h6>`;
-  if(d.anggota.length){
+  html+=`<h6 class="mb-2"><i class="bi bi-people"></i> Daftar Anggota Hadir</h6>`;
+  const hadir = (d.anggota||[]).filter(a=>a.hadir==1);
+  if(hadir.length){
     html+=`<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Nama</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>`;
     d.anggota.forEach(a=>{
       const ava=a.foto_url?`<img src="${a.foto_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover" class="me-1">`:'';
@@ -242,11 +250,12 @@ function showSesi(id){
     });
     html+=`</tbody></table></div>`;
   } else html+=`<div class="text-muted small">Belum ada data absensi.</div>`;
-  if(d.tamu.length){
-    html+=`<h6 class="mt-3 mb-2"><i class="bi bi-person-plus"></i> Tamu Eksternal (${d.tamu.length})</h6><ul class="mb-0">`;
-    d.tamu.forEach(t=>{html+=`<li>${t.nama}</li>`;});
+  html+=`<h6 class="mt-3 mb-2"><i class="bi bi-person-plus"></i> Tamu Eksternal (${(d.tamu||[]).length})</h6>`;
+  if((d.tamu||[]).length){
+    html+=`<ul class="mb-0">`;
+    d.tamu.forEach(t=>{html+=`<li>${t.nama||'-'}</li>`;});
     html+=`</ul>`;
-  }
+  } else { html+=`<div class="text-muted small">Tidak ada tamu eksternal.</div>`; }
   document.getElementById('sesiBody').innerHTML=html;
   _sModal.show();
 }

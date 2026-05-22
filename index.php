@@ -24,6 +24,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         }
     } elseif ($a === 'chat_delete' && $u['role']==='admin') {
         db_exec("DELETE FROM chat_forum WHERE id=$1", [(int)$_POST['id']]);
+    } elseif ($a === 'post_delete' && $u['role']==='admin') {
+        $pid = (int)$_POST['post_id'];
+        db_exec("DELETE FROM post_comments WHERE post_id=$1", [$pid]);
+        db_exec("DELETE FROM post_likes WHERE post_id=$1", [$pid]);
+        db_exec("DELETE FROM posts WHERE id=$1", [$pid]);
+    } elseif ($a === 'comment_delete' && $u['role']==='admin') {
+        db_exec("DELETE FROM post_comments WHERE id=$1", [(int)$_POST['comment_id']]);
     } elseif ($a === 'chat_react') {
         $cid = (int)$_POST['chat_id']; $val = (int)$_POST['val'];
         if (!in_array($val, [-1,1], true)) $val = 1;
@@ -101,7 +108,7 @@ $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.je
 $feedIds = array_map(fn($x)=>(int)$x['id'], $feed);
 $commentsByPost = [];
 if ($feedIds) {
-    $rows = db_all("SELECT pc.post_id, pc.isi, pc.created_at, u.nama, u.foto_url
+    $rows = db_all("SELECT pc.id, pc.post_id, pc.isi, pc.created_at, u.nama, u.foto_url
                     FROM post_comments pc JOIN users u ON u.id=pc.user_id
                     WHERE pc.post_id = ANY($1::int[]) ORDER BY pc.created_at ASC", ['{'.implode(',', $feedIds).'}']);
     foreach ($rows as $r) $commentsByPost[(int)$r['post_id']][] = $r;
@@ -114,26 +121,23 @@ $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
 
 include __DIR__.'/includes/header.php'; ?>
 
-<section class="hero mb-3 p-3 p-md-4 rounded-3" style="background:linear-gradient(135deg,#0ea5e91a,#6366f11a);">
+<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
   <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-    <span class="badge-soft"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
+    <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
   </div>
-  <h1 class="h3 mb-1" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
-  <p class="mb-2 text-muted" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
-  <button id="installBtn" class="btn btn-sm btn-primary d-none"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
+  <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
+  <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
+  <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
 </section>
 <script>
 let _deferredInstall = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); _deferredInstall = e;
-  const b = document.getElementById('installBtn'); if (b) b.classList.remove('d-none');
-});
+const _installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); _deferredInstall = e; });
 document.addEventListener('DOMContentLoaded', () => {
-  const b = document.getElementById('installBtn');
-  if (!b) return;
-  b.addEventListener('click', async () => {
-    if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; b.classList.add('d-none'); }
-    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app".'); }
+  if (!_installBtn) return;
+  _installBtn.addEventListener('click', async () => {
+    if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; }
+    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon HapFam akan muncul di home screen HP kamu.'); }
   });
 });
 </script>
@@ -151,13 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
   <?php if($activeQr): ?>
   <div class="card-body pt-0">
     <div class="swipe-row">
-      <?php foreach($activeQr as $aq): ?>
-        <a href="/checkin.php" class="swipe-card text-decoration-none" style="background:#ffffff22;color:#fff;flex-basis:240px;">
+      <?php foreach($activeQr as $aq):
+        $_qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data='.urlencode($aq['token']);
+      ?>
+        <a href="#" onclick="event.preventDefault();showQR('<?= htmlspecialchars($aq['token'],ENT_QUOTES) ?>','<?= htmlspecialchars($aq['jenis'],ENT_QUOTES) ?>','<?= htmlspecialchars($aq['tanggal'],ENT_QUOTES) ?>','<?= htmlspecialchars($aq['tempat'],ENT_QUOTES) ?>')" class="swipe-card text-decoration-none" style="background:#ffffff22;color:#fff;flex-basis:240px;">
           <div class="p-3">
             <div class="small opacity-75"><?= htmlspecialchars($aq['tanggal']) ?></div>
             <div class="fw-bold"><?= htmlspecialchars($aq['jenis']) ?></div>
             <div class="small"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($aq['tempat']) ?></div>
-            <div class="mt-2"><span class="badge bg-light text-dark">QR aktif</span></div>
+            <div class="mt-2"><span class="badge bg-light text-dark"><i class="bi bi-qr-code"></i> Klik untuk lihat QR</span></div>
           </div>
         </a>
       <?php endforeach; ?>
@@ -190,7 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="card-body">
   <div class="story-strip">
     <?php foreach($stories as $s): ?>
-      <div class="story-item">
+      <div class="story-item" style="cursor:pointer" onclick='showStory(<?= json_encode([
+        "nama"=>$s["nama"],
+        "foto"=>$s["foto_url"] ?? "",
+        "user_foto"=>$s["user_foto"] ?? "",
+        "caption"=>$s["caption"] ?? "",
+        "created_at"=>$s["created_at"] ?? "",
+      ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
         <div class="story-ring">
           <?php if ($s['foto_url'] || $s['caption']): ?>
             <img src="<?= htmlspecialchars($s['foto_url'] ?: '/assets/icon-192.png') ?>">
@@ -207,27 +219,34 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="col-lg-7">
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
       <div class="table-responsive"><table class="table table-hover table-stack mb-0">
-        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Tim</th><th>Koordinator</th></tr></thead><tbody>
+        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th></tr></thead><tbody>
         <?php foreach($jadwalTerdekat as $j): ?>
           <tr>
             <td data-label="Tanggal"><?= htmlspecialchars($j['tanggal']) ?></td>
             <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($j['jenis']) ?></span></td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
-            <td data-label="Tim"><?= htmlspecialchars($j['tim_nama'] ?? '—') ?></td>
             <td data-label="Koord"><a class="text-decoration-none" href="/user.php?id=<?= (int)$j['koordinator_id'] ?>"><?= user_name_with_avatar($j['koord_foto'] ?? null, $j['koordinator'] ?? '-', false, 24) ?></a></td>
           </tr>
         <?php endforeach; ?>
         </tbody></table></div>
     </div>
 
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-images text-primary"></i> Social Feed</div>
-    <div class="card-body">
+    <div class="card shadow-sm"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+     <div class="card-body" data-live="feed">
       <?php foreach($feed as $p): ?>
-        <div class="border-bottom pb-3 mb-3">
+        <div class="border-bottom pb-3 mb-3" id="post-<?= (int)$p['id'] ?>">
           <div class="d-flex align-items-center gap-2 mb-2">
             <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none"><?= user_avatar($p['user_foto'] ?? null, $p['nama'], 32) ?></a>
             <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none fw-semibold"><?= htmlspecialchars($p['nama']) ?></a>
             <small class="text-muted ms-auto"><?= date('d M H:i', strtotime($p['created_at'])) ?></small>
+            <?php if($u && $u['role']==='admin'): ?>
+              <form method="post" class="d-inline" onsubmit="return confirm('Hapus postingan ini?')">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="post_delete">
+                <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-link text-danger p-0" title="Hapus postingan (admin)"><i class="bi bi-trash"></i></button>
+              </form>
+            <?php endif; ?>
           </div>
           <?php if(!empty($p['post_foto'])): ?><img src="<?= htmlspecialchars($p['post_foto']) ?>" class="img-fluid rounded mb-2" style="max-height:400px;"><?php endif; ?>
           <div class="mb-2"><?= nl2br(htmlspecialchars($p['caption'] ?? '')) ?></div>
@@ -243,10 +262,18 @@ document.addEventListener('DOMContentLoaded', () => {
             <?php foreach($pcs as $pc): ?>
               <div class="d-flex align-items-start gap-2 mb-1">
                 <?= user_avatar($pc['foto_url'] ?? null, $pc['nama'], 22) ?>
-                <div class="small"><strong><?= htmlspecialchars($pc['nama']) ?></strong>
+                <div class="small flex-grow-1"><strong><?= htmlspecialchars($pc['nama']) ?></strong>
                   <span class="text-muted ms-1" style="font-size:.7rem"><?= date('d M H:i', strtotime($pc['created_at'])) ?></span><br>
                   <?= nl2br(htmlspecialchars($pc['isi'])) ?>
                 </div>
+                <?php if($u && $u['role']==='admin'): ?>
+                  <form method="post" class="d-inline" onsubmit="return confirm('Hapus komentar ini?')">
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="_action" value="comment_delete">
+                    <input type="hidden" name="comment_id" value="<?= (int)$pc['id'] ?>">
+                    <button class="btn btn-sm btn-link text-danger p-0" title="Hapus komentar (admin)"><i class="bi bi-x-lg"></i></button>
+                  </form>
+                <?php endif; ?>
               </div>
             <?php endforeach; ?>
           </div>
@@ -274,8 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <?php endforeach; ?>
       </ul></div>
 
-    <div class="card shadow-sm" id="forum"><div class="card-header"><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</div>
-    <div class="card-body">
+    <div class="card shadow-sm" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+    <div class="card-body" data-live="forum">
       <?php if($u): ?>
       <form method="post" class="d-flex gap-2 mb-3">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_post">
@@ -300,6 +327,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $c['id'] ?>"><input type="hidden" name="val" value="-1">
               <button class="btn btn-sm btn-link text-danger p-0 me-2"><i class="bi bi-hand-thumbs-down"></i> <?= (int)$c['dislikes'] ?></button></form>
             <button type="button" class="btn btn-sm btn-link p-0" onclick="document.getElementById('reply<?= $c['id'] ?>').classList.toggle('d-none')"><i class="bi bi-reply"></i> Reply</button>
+            <?php if($u['role']==='admin'): ?>
+            <form method="post" class="d-inline" onsubmit="return confirm('Hapus pesan ini?')">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_delete"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
+              <button class="btn btn-sm btn-link text-danger p-0 ms-2" title="Hapus (admin)"><i class="bi bi-trash"></i></button>
+            </form>
+            <?php endif; ?>
             <?php else: ?>
               <span class="text-muted"><i class="bi bi-hand-thumbs-up"></i> <?= (int)$c['likes'] ?> · <i class="bi bi-hand-thumbs-down"></i> <?= (int)$c['dislikes'] ?></span>
             <?php endif; ?>
@@ -353,5 +386,69 @@ document.addEventListener('DOMContentLoaded', () => {
   </form>
 </div></div>
 <?php endif; ?>
+
+<!-- QR Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-qr-code"></i> <span id="qrTitle">QR Sesi</span></h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body text-center">
+      <div class="small text-muted mb-2" id="qrMeta"></div>
+      <img id="qrImg" src="" alt="QR" class="img-fluid" style="max-width:340px;border:1px solid #eee;border-radius:8px;">
+      <div class="small text-muted mt-2"><code id="qrToken"></code></div>
+    </div>
+    <div class="modal-footer">
+      <a id="qrDownload" download="qr-checkin.png" class="btn btn-primary"><i class="bi bi-download"></i> Unduh QR Code</a>
+      <a id="qrCheckin" href="/checkin.php" class="btn btn-outline-secondary"><i class="bi bi-camera"></i> Buka Check-in</a>
+    </div>
+  </div>
+</div></div>
+
+<!-- Story Modal -->
+<div class="modal fade" id="storyModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-collection-play"></i> Story <small id="storyName" class="text-muted ms-2"></small></h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body text-center">
+      <img id="storyImg" src="" alt="" class="img-fluid mb-2" style="max-height:60vh;border-radius:8px;display:none;">
+      <div id="storyCaption" class="text-start"></div>
+      <div class="small text-muted mt-2" id="storyTime"></div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+let _qrM=null,_stM=null;
+function showQR(token, jenis, tanggal, tempat){
+  if(!_qrM) _qrM=new bootstrap.Modal(document.getElementById('qrModal'));
+  const src='https://api.qrserver.com/v1/create-qr-code/?size=400x400&data='+encodeURIComponent(token);
+  document.getElementById('qrTitle').textContent=jenis+' · '+tanggal;
+  document.getElementById('qrMeta').textContent=tempat;
+  document.getElementById('qrImg').src=src;
+  document.getElementById('qrToken').textContent=token;
+  // Unduh: ambil sebagai blob agar nama file rapi
+  const a=document.getElementById('qrDownload');
+  a.href=src; a.download='qr-'+(jenis||'sesi')+'-'+(tanggal||'')+'.png';
+  a.onclick=async function(ev){
+    ev.preventDefault();
+    try{
+      const r=await fetch(src); const b=await r.blob();
+      const url=URL.createObjectURL(b);
+      const dl=document.createElement('a'); dl.href=url; dl.download=a.download; dl.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+    }catch(e){ window.open(src,'_blank'); }
+  };
+  _qrM.show();
+}
+function showStory(d){
+  if(!_stM) _stM=new bootstrap.Modal(document.getElementById('storyModal'));
+  document.getElementById('storyName').textContent=d.nama||'';
+  const img=document.getElementById('storyImg');
+  if(d.foto){ img.src=d.foto; img.style.display='block'; } else { img.style.display='none'; }
+  document.getElementById('storyCaption').textContent=d.caption||'';
+  document.getElementById('storyTime').textContent=d.created_at||'';
+  _stM.show();
+}
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

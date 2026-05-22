@@ -707,3 +707,18 @@ ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "jam_mulai" TIME NULL;
 ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "jam_selesai" TIME NULL;
 ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "lokasi" VARCHAR(200) NULL;
 ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "batas_daftar" DATE NULL;
+
+-- ====================================================================
+-- v5 patch: tabel olahraga favorit per-user (CRUD di profile.php)
+-- Tabel ini juga akan dibuat otomatis (CREATE TABLE IF NOT EXISTS)
+-- saat profile.php pertama kali dibuka, jadi import patch ini opsional.
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS "user_olahraga_favorit" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "nama" VARCHAR(80) NOT NULL,
+    "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+    UNIQUE ("user_id", "nama"),
+    CONSTRAINT "user_olahraga_favorit_user_id_fkey"
+      FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);

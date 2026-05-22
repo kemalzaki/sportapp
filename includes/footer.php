@@ -42,13 +42,73 @@ document.addEventListener('DOMContentLoaded', function() {
     var form = ta.closest('form'); if (form) form.addEventListener('submit', function(){ ta.value = q.root.innerHTML; });
   });
 
-  // dark mode dihapus (selalu light)
+  // light mode only
   document.documentElement.setAttribute('data-bs-theme','light');
   try { localStorage.removeItem('darkMode'); } catch(e) {}
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
   }
+
+  // Hide preloader once DOM ready (and a short delay for smoothness)
+  const pre = document.getElementById('appPreloader');
+  if (pre) setTimeout(()=>{ pre.classList.add('hidden'); setTimeout(()=>pre.remove(), 400); }, 200);
+
+  // Show preloader briefly on internal navigation clicks
+  document.body.addEventListener('click', function(ev){
+    const a = ev.target.closest('a');
+    if(!a) return;
+    const href = a.getAttribute('href') || '';
+    if(!href || href.startsWith('#') || a.target==='_blank' || a.hasAttribute('download')) return;
+    try{
+      const u = new URL(href, location.href);
+      if(u.origin !== location.origin) return;
+      const p = document.createElement('div'); p.id='appPreloader'; p.innerHTML='<div class="spinner"></div><div class="lbl">Memuat…</div>';
+      document.body.appendChild(p);
+    }catch(e){}
+  });
 });
+
+/* === Soft auto-refresh (tanpa reload page) ===
+ * Setiap 25 detik, fetch ulang HTML halaman aktif dan replace bagian ber-attribute [data-live].
+ * Cara pakai: bungkus section dengan <div data-live="forum"> ... </div>
+ * Halaman lain (riwayat, profile, dll) bisa pakai pola yang sama tanpa perubahan JS.
+ */
+(function(){
+  const LIVE_INTERVAL = 25000;
+  let busy=false;
+  async function softRefresh(){
+    if(busy || document.hidden) return;
+    busy=true;
+    try{
+      const r=await fetch(location.pathname+location.search, {headers:{'X-Soft-Refresh':'1'}, credentials:'same-origin'});
+      if(!r.ok) return;
+      const html=await r.text();
+      const doc=new DOMParser().parseFromString(html,'text/html');
+      let changed=false;
+      document.querySelectorAll('[data-live]').forEach(node=>{
+        const key=node.getAttribute('data-live');
+        const fresh=doc.querySelector('[data-live="'+key+'"]');
+        if(fresh && fresh.innerHTML !== node.innerHTML){
+          node.innerHTML=fresh.innerHTML; changed=true;
+        }
+      });
+      if(changed){
+        const b=document.getElementById('liveRefreshBadge');
+        if(b){ b.style.display='inline-block'; setTimeout(()=>b.style.display='none',1500); }
+      }
+    }catch(e){}
+    finally{ busy=false; }
+  }
+  if(document.querySelector('[data-live]')) setInterval(softRefresh, LIVE_INTERVAL);
+
+  // Tombol "Refresh" generik: <button data-soft-refresh> → trigger soft refresh tanpa reload
+  document.addEventListener('click', function(ev){
+    const b=ev.target.closest('[data-soft-refresh]');
+    if(!b) return;
+    ev.preventDefault();
+    softRefresh();
+  });
+})();
 </script>
 </body></html>

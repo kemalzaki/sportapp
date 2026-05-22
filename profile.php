@@ -9,6 +9,17 @@ require_login();
 $u = current_user();
 $pageTitle = 'Profil Saya';
 
+// Pastikan tabel olahraga favorit ada (idempotent — aman tiap load)
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS user_olahraga_favorit (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        nama VARCHAR(80) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now(),
+        UNIQUE(user_id, nama)
+    )");
+} catch (Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -17,6 +28,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("UPDATE users SET bio=$1 WHERE id=$2", [$bio, (int)$u['id']]);
     } elseif ($a==='mark_notif') {
         db_exec("UPDATE notifications SET dibaca=1 WHERE user_id=$1", [(int)$u['id']]);
+    } elseif ($a==='fav_add') {
+        $nama = trim(substr($_POST['nama'] ?? '', 0, 80));
+        if ($nama !== '') {
+            try { db_exec("INSERT INTO user_olahraga_favorit(user_id,nama) VALUES($1,$2) ON CONFLICT DO NOTHING", [(int)$u['id'], $nama]); } catch (Throwable $e) {}
+        }
+    } elseif ($a==='fav_edit') {
+        $id = (int)($_POST['id'] ?? 0);
+        $nama = trim(substr($_POST['nama'] ?? '', 0, 80));
+        if ($id && $nama !== '') {
+            try { db_exec("UPDATE user_olahraga_favorit SET nama=$1 WHERE id=$2 AND user_id=$3", [$nama, $id, (int)$u['id']]); } catch (Throwable $e) {}
+        }
+    } elseif ($a==='fav_del') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) db_exec("DELETE FROM user_olahraga_favorit WHERE id=$1 AND user_id=$2", [$id, (int)$u['id']]);
     } elseif ($a==='update_foto') {
         if (!empty($_FILES['foto']['tmp_name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
             $mime = mime_content_type($_FILES['foto']['tmp_name']);
@@ -38,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     }
     header('Location: profile.php'); exit;
 }
+
+$favList = db_all("SELECT id, nama FROM user_olahraga_favorit WHERE user_id=$1 ORDER BY nama ASC", [(int)$u['id']]);
 
 recompute_badges((int)$u['id']);
 $me = db_one("SELECT * FROM users WHERE id=$1", [(int)$u['id']]);
@@ -131,7 +158,20 @@ include __DIR__.'/includes/header.php';
         <div class="col-6 col-md-3"><div class="card card-stat"><div class="card-body"><div class="stat-label">Jenis Olahraga</div><div class="stat-value"><?= $statOlahraga ?></div></div></div></div>
         <div class="col-6 col-md-3"><div class="card card-stat" data-bs-toggle="tooltip" title="Streak (mgg) = jumlah minggu berturut-turut aktif (upload aktivitas atau hadir di sesi). Reset jika ada 1 minggu kosong."><div class="card-body"><div class="stat-label">Streak (mgg) <i class="bi bi-info-circle small text-muted"></i></div><div class="stat-value"><?= (int)$me['streak_minggu'] ?></div><div class="small text-muted" style="font-size:.7rem">Minggu aktif beruntun</div></div></div></div>
         <div class="col-6 col-md-3"><div class="card card-stat"><div class="card-body"><div class="stat-label">Badge</div><div class="stat-value"><?= count($ownBadgeIds) ?></div></div></div></div>
-        <div class="col-6 col-md-3"><div class="card card-stat"><div class="card-body"><div class="stat-label">Olahraga Favorit</div><div class="stat-value" style="font-size:1rem"><?= htmlspecialchars($favOlahraga) ?></div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card card-stat" style="cursor:pointer" data-bs-toggle="modal" data-bs-target="#favModal">
+          <div class="card-body">
+            <div class="stat-label d-flex justify-content-between">Olahraga Favorit <i class="bi bi-pencil-square text-primary"></i></div>
+            <div class="stat-value" style="font-size:1rem;line-height:1.2">
+              <?php if($favList): ?>
+                <?php foreach(array_slice($favList,0,3) as $f): ?><span class="badge bg-primary-subtle text-primary me-1 mb-1"><?= htmlspecialchars($f['nama']) ?></span><?php endforeach; ?>
+                <?php if(count($favList)>3): ?><span class="small text-muted">+<?= count($favList)-3 ?></span><?php endif; ?>
+              <?php else: ?>
+                <span class="small text-muted">Klik untuk tambah</span>
+              <?php endif; ?>
+            </div>
+            <div class="small text-muted" style="font-size:.7rem">Tersering: <?= htmlspecialchars($favOlahraga) ?></div>
+          </div>
+        </div></div>
         <div class="col-6 col-md-3"><div class="card card-stat"><div class="card-body"><div class="stat-label">Total Kalori</div><div class="stat-value"><?= number_format($totalKalori) ?></div></div></div></div>
         <div class="col-6 col-md-3"><div class="card card-stat"><div class="card-body"><div class="stat-label">Total Jarak (km)</div><div class="stat-value"><?= number_format($totalJarak,1) ?></div></div></div></div>
         <div class="col-12"><div class="alert alert-info py-2 mb-0 small"><i class="bi bi-trophy"></i> Ranking Komunitas: <strong>#<?= $ranking ?: '-' ?></strong> dari <?= $totalMember ?> member</div></div>
@@ -184,4 +224,43 @@ document.addEventListener('DOMContentLoaded',function(){
   if(window.bootstrap){document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el=>new bootstrap.Tooltip(el));}
 });
 </script>
+<!-- Modal: CRUD Olahraga Favorit -->
+<div class="modal fade" id="favModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-heart-fill text-danger"></i> Olahraga Favorit Saya</h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <form method="post" class="d-flex gap-2 mb-3">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="fav_add">
+        <input name="nama" class="form-control" maxlength="80" placeholder="Tambah olahraga (mis. Lari, Futsal, Renang)..." required>
+        <button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</button>
+      </form>
+      <?php if($favList): ?>
+      <ul class="list-group">
+        <?php foreach($favList as $f): ?>
+        <li class="list-group-item d-flex align-items-center gap-2">
+          <form method="post" class="d-flex gap-2 flex-grow-1">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="fav_edit">
+            <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+            <input name="nama" class="form-control form-control-sm" maxlength="80" value="<?= htmlspecialchars($f['nama']) ?>" required>
+            <button class="btn btn-sm btn-outline-primary" title="Simpan"><i class="bi bi-check2"></i></button>
+          </form>
+          <form method="post" onsubmit="return confirm('Hapus olahraga ini?')">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="fav_del">
+            <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+            <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
+          </form>
+        </li>
+        <?php endforeach; ?>
+      </ul>
+      <?php else: ?>
+        <p class="text-muted small text-center mb-0">Belum ada olahraga favorit. Tambahkan di atas ya!</p>
+      <?php endif; ?>
+    </div>
+  </div>
+</div></div>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

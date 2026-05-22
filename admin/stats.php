@@ -48,6 +48,23 @@ include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-graph-up-arrow text-primary"></i> Statistik Kehadiran Pintar</h2>
 
+<div class="alert alert-info border-0 shadow-sm small mb-3">
+  <div class="fw-semibold mb-1"><i class="bi bi-info-circle"></i> Cara membaca statistik di halaman ini</div>
+  <ul class="mb-0 ps-3">
+    <li><b>Paling Sering Telat (60 hari)</b> — <code>Ø X mnt</code> = rata-rata keterlambatan, <code>Nx</code> = berapa kali telat dalam 60 hari terakhir.</li>
+    <li><b>Absensi Menurun</b> — membandingkan jumlah kehadiran 4 minggu terakhir (<i>now4</i>) vs 4 minggu sebelumnya (<i>prev4</i>).
+      Contoh <code>1 → 0 (-1)</code> artinya: minggu lalu hanya hadir 1 kali, sekarang 0 kali (turun 1 sesi). Semakin negatif <code>delta</code> = penurunan makin tajam.</li>
+    <li><b>Hampir Inactive (&gt;21 hari)</b> — member yang terakhir hadir lebih dari 21 hari yang lalu (atau belum pernah hadir). Tanggal di samping = hari terakhir tercatat hadir.</li>
+    <li><b>Prediksi Dropout (skor risiko)</b> — skor sederhana berbasis seberapa lama member tidak aktif. <code>risk N</code> = sudah <b>N hari</b> tidak hadir di sesi mana pun.
+      <ul class="mb-0">
+        <li><code>risk 30</code> ≈ tidak aktif sekitar 1 bulan (perlu di-<i>follow up</i>).</li>
+        <li><code>risk 365</code> ≈ tidak aktif &gt; 1 tahun (kemungkinan besar sudah <i>dropout</i>).</li>
+      </ul>
+    </li>
+    <li>Semua angka dihitung otomatis dari tabel <code>absensi</code> + <code>jadwal</code>. Refresh halaman / data otomatis tiap beberapa detik.</li>
+  </ul>
+</div>
+
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card shadow-sm"><div class="card-header">⏰ Paling Sering Telat (60 hari)</div>
