@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function(){
   </form>
 </div></div>
 
-<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0 align-middle" data-paginate="10">
   <thead><tr>
     <th>#</th>
     <th><?= sort_link('nama','Nama',$sort,$dir) ?></th>

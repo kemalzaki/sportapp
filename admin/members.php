@@ -106,7 +106,7 @@ include __DIR__.'/../includes/header.php'; ?>
       </select>
     </div>
   </div>
-  <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable">
+  <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable" data-paginate="10">
   <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null);
     $waDigits = preg_replace('/\D+/', '', $u['wa'] ?? '');

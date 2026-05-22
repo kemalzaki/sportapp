@@ -68,7 +68,7 @@ include __DIR__.'/../includes/header.php'; ?>
   <button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</button>
 </form></div></div>
 
-<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
+<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
   <thead><tr><th>#</th><th>Gambar</th><th>Judul</th><th>Tanggal</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($rows as $i=>$r): ?>
   <tr>

@@ -112,7 +112,11 @@ include __DIR__.'/includes/header.php';
 <div class="row g-3">
   <div class="col-lg-4">
     <div class="card shadow-sm"><div class="card-body text-center">
-      <?= user_avatar($me['foto_url'] ?? null, $me['nama'], 96) ?>
+      <?php if(!empty($me['foto_url'])): ?>
+        <img src="<?= htmlspecialchars($me['foto_url']) ?>" alt="" class="user-avatar zoomable" style="width:96px;height:96px;border-radius:50%;object-fit:cover;">
+      <?php else: ?>
+        <?= user_avatar(null, $me['nama'], 96) ?>
+      <?php endif; ?>
       <h4 class="mt-2 mb-0"><?= htmlspecialchars($me['nama']) ?></h4>
       <div class="small text-muted"><?= htmlspecialchars($me['email']) ?></div>
       <div class="mt-2"><span class="pill">Level <?= $level ?></span>
@@ -121,19 +125,19 @@ include __DIR__.'/includes/header.php';
       <div class="xp-bar mt-2"><div style="width:<?= min(100,$xpInLevel/2) ?>%"></div></div>
       <small class="text-muted">Butuh <?= $xpToNext ?> XP lagi ke Level <?= $level+1 ?></small>
 
-      <form method="post" enctype="multipart/form-data" class="mt-3 text-start">
+      <form data-ajax method="post" enctype="multipart/form-data" class="mt-3 text-start">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_foto">
         <label class="form-label small fw-semibold">Ganti Foto Profil</label>
         <div class="input-group input-group-sm">
-          <input type="file" name="foto" accept="image/*" class="form-control" required>
+          <input type="file" name="foto" accept="image/*" class="form-control" data-compress required>
           <button class="btn btn-outline-primary"><i class="bi bi-upload"></i></button>
         </div>
-        <div class="form-text">JPG/PNG/WebP · maks 5MB</div>
+        <div class="form-text compress-info">JPG/PNG/WebP · otomatis dikompresi</div>
       </form>
 
 
-      <form method="post" class="mt-3 text-start">
+      <form data-ajax method="post" class="mt-3 text-start">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_bio">
         <label class="form-label small fw-semibold">Bio singkat</label>
@@ -141,7 +145,7 @@ include __DIR__.'/includes/header.php';
         <button class="btn btn-sm btn-primary mt-2">Simpan Bio</button>
       </form>
 
-      <form method="post" class="mt-3 text-start border-top pt-3">
+      <form data-ajax method="post" class="mt-3 text-start border-top pt-3">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_wa">
         <label class="form-label small fw-semibold"><i class="bi bi-whatsapp text-success"></i> Nomor WhatsApp</label>
@@ -165,7 +169,7 @@ include __DIR__.'/includes/header.php';
     </div></div>
 
     <div class="card shadow-sm mt-3"><div class="card-header"><i class="bi bi-bell"></i> Notifikasi
-      <form method="post" class="float-end"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="mark_notif">
+      <form data-ajax method="post" class="float-end"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="mark_notif">
         <button class="btn btn-link btn-sm p-0">Tandai sudah dibaca</button>
       </form>
     </div>
@@ -262,7 +266,7 @@ document.addEventListener('DOMContentLoaded',function(){
     <div class="modal-header"><h5 class="modal-title"><i class="bi bi-heart-fill text-danger"></i> Olahraga Favorit Saya</h5>
       <button class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
-      <form method="post" class="d-flex gap-2 mb-3">
+      <form data-ajax method="post" class="d-flex gap-2 mb-3">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="fav_add">
         <input name="nama" class="form-control" maxlength="80" placeholder="Tambah olahraga (mis. Lari, Futsal, Renang)..." required>
@@ -272,14 +276,14 @@ document.addEventListener('DOMContentLoaded',function(){
       <ul class="list-group">
         <?php foreach($favList as $f): ?>
         <li class="list-group-item d-flex align-items-center gap-2">
-          <form method="post" class="d-flex gap-2 flex-grow-1">
+          <form data-ajax method="post" class="d-flex gap-2 flex-grow-1">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
             <input type="hidden" name="_action" value="fav_edit">
             <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
             <input name="nama" class="form-control form-control-sm" maxlength="80" value="<?= htmlspecialchars($f['nama']) ?>" required>
             <button class="btn btn-sm btn-outline-primary" title="Simpan"><i class="bi bi-check2"></i></button>
           </form>
-          <form method="post" onsubmit="return confirm('Hapus olahraga ini?')">
+          <form data-ajax method="post" onsubmit="return confirm('Hapus olahraga ini?')">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
             <input type="hidden" name="_action" value="fav_del">
             <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">

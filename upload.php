@@ -150,7 +150,7 @@ include __DIR__.'/includes/header.php'; ?>
       <span><i class="bi bi-list-check text-primary me-1"></i> Aktivitas Saya</span>
       <span class="badge bg-primary rounded-pill"><?= count($mine) ?></span>
     </div>
-      <div class="table-responsive"><table class="table table-hover mb-0">
+      <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
         <thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Pace</th><th>Kalori</th><th>Bukti</th><th class="text-end">Aksi</th></tr></thead>
         <tbody>
         <?php foreach($mine as $i=>$m): ?>

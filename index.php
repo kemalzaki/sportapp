@@ -100,6 +100,21 @@ $totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member'
 $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama
                           FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id LEFT JOIN tim t ON t.id=j.tim_id
                           WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT 5");
+// Detail absensi per jadwal terdekat (siapa hadir/izin/sakit/telat/absen + catatan)
+$absByJadwal = [];
+$_jids = array_map(fn($j)=>(int)$j['id'], $jadwalTerdekat);
+if ($_jids) {
+    $_rows = db_all(
+      "SELECT a.jadwal_id, a.status, a.hadir, a.keterangan, u.id AS uid, u.nama, u.foto_url
+       FROM absensi a JOIN users u ON u.id=a.user_id
+       WHERE a.jadwal_id = ANY($1::int[])
+       ORDER BY
+         CASE a.status WHEN 'hadir' THEN 1 WHEN 'telat' THEN 2 WHEN 'izin' THEN 3 WHEN 'sakit' THEN 4 ELSE 5 END,
+         u.nama",
+      ['{'.implode(',', $_jids).'}']
+    );
+    foreach ($_rows as $r) $absByJadwal[(int)$r['jadwal_id']][] = $r;
+}
 $onlineMembers = db_all("SELECT id, nama, foto_url, last_seen FROM users
                          WHERE last_seen IS NOT NULL AND last_seen >= NOW() - INTERVAL '2 minutes' ORDER BY nama");
 
@@ -230,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
           <div class="story-ring">
             <?php if ($sFotoDisp): ?>
-              <img src="<?= htmlspecialchars($sFotoDisp) ?>" alt="story" onerror="this.style.display='none'">
+              <img src="<?= htmlspecialchars($sFotoDisp) ?>" alt="story" class="zoomable" onerror="this.style.display='none'">
             <?php elseif ($s['caption']): ?>
               <div title="<?= htmlspecialchars($s['caption']) ?>"><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div>
             <?php else: ?><div><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div><?php endif; ?>
@@ -238,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <small><?= htmlspecialchars($s['nama']) ?></small>
         </div>
         <?php if($u && $u['role']==='admin'): ?>
-          <form method="post" class="position-absolute" style="top:-4px;right:-4px;z-index:5;" onsubmit="event.stopPropagation();return confirm('Hapus story ini?')">
+          <form method="post" class="position-absolute" data-ajax style="top:-4px;right:-4px;z-index:5;" onsubmit="event.stopPropagation();return confirm('Hapus story ini?')">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
             <input type="hidden" name="_action" value="story_delete">
             <input type="hidden" name="post_id" value="<?= (int)$s['id'] ?>">
@@ -254,17 +269,55 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="row g-3">
   <div class="col-lg-7">
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
-      <div class="table-responsive"><table class="table table-hover table-stack mb-0">
-        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th></tr></thead><tbody>
-        <?php foreach($jadwalTerdekat as $j): ?>
+      <div data-live="jadwal">
+      <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="10">
+        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-end">Absen</th></tr></thead><tbody>
+        <?php foreach($jadwalTerdekat as $j):
+          $jid=(int)$j['id']; $absList = $absByJadwal[$jid] ?? [];
+          $cnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
+          foreach($absList as $a){ $s=$a['status']?:'absen'; if(isset($cnt[$s])) $cnt[$s]++; }
+        ?>
           <tr>
+            <td data-label=""><button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#jdetail<?= $jid ?>" title="Lihat absen"><i class="bi bi-chevron-down"></i></button></td>
             <td data-label="Tanggal"><?= htmlspecialchars($j['tanggal']) ?></td>
             <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($j['jenis']) ?></span></td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
             <td data-label="Koord"><a class="text-decoration-none" href="/user.php?id=<?= (int)$j['koordinator_id'] ?>"><?= user_name_with_avatar($j['koord_foto'] ?? null, $j['koordinator'] ?? '-', false, 24) ?></a></td>
+            <td data-label="Absen" class="text-end small">
+              <span class="badge bg-success-subtle text-success" title="Hadir">H <?= $cnt['hadir'] ?></span>
+              <?php if($cnt['telat']): ?><span class="badge bg-warning-subtle text-warning" title="Telat">T <?= $cnt['telat'] ?></span><?php endif; ?>
+              <?php if($cnt['izin']): ?><span class="badge bg-info-subtle text-info" title="Izin">I <?= $cnt['izin'] ?></span><?php endif; ?>
+              <?php if($cnt['sakit']): ?><span class="badge bg-secondary-subtle text-secondary" title="Sakit">S <?= $cnt['sakit'] ?></span><?php endif; ?>
+              <?php if($cnt['absen']): ?><span class="badge bg-danger-subtle text-danger" title="Belum/Absen">A <?= $cnt['absen'] ?></span><?php endif; ?>
+            </td>
+          </tr>
+          <tr class="collapse" id="jdetail<?= $jid ?>">
+            <td colspan="6" class="bg-light">
+              <?php if(!$absList): ?>
+                <div class="text-muted small">Belum ada data absensi untuk sesi ini.</div>
+              <?php else: ?>
+                <div class="table-responsive"><table class="table table-sm mb-0" data-paginate="8">
+                  <thead><tr><th>Anggota</th><th>Status</th><th>Catatan</th></tr></thead>
+                  <tbody>
+                  <?php foreach($absList as $a):
+                    $st = $a['status'] ?: ((int)$a['hadir']===1?'hadir':'absen');
+                    $stMap = ['hadir'=>'success','telat'=>'warning','izin'=>'info','sakit'=>'secondary','absen'=>'danger'];
+                    $cls = $stMap[$st] ?? 'secondary';
+                  ?>
+                    <tr>
+                      <td><a class="text-decoration-none" href="/user.php?id=<?= (int)$a['uid'] ?>"><?= user_name_with_avatar($a['foto_url'] ?? null, $a['nama'], false, 22) ?></a></td>
+                      <td><span class="badge bg-<?= $cls ?>-subtle text-<?= $cls ?> text-uppercase"><?= htmlspecialchars($st) ?></span></td>
+                      <td class="small"><?= $a['keterangan'] ? htmlspecialchars($a['keterangan']) : '<span class="text-muted">—</span>' ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                  </tbody>
+                </table></div>
+              <?php endif; ?>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody></table></div>
+      </div>
     </div>
 
     <div class="card shadow-sm"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
@@ -276,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none fw-semibold"><?= htmlspecialchars($p['nama']) ?></a>
             <small class="text-muted ms-auto"><?= date('d M H:i', strtotime($p['created_at'])) ?></small>
             <?php if($u && $u['role']==='admin'): ?>
-              <form method="post" class="d-inline" onsubmit="return confirm('Hapus postingan ini?')">
+              <form method="post" class="d-inline" data-ajax onsubmit="return confirm('Hapus postingan ini?')">
                 <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                 <input type="hidden" name="_action" value="post_delete">
                 <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
@@ -284,11 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
               </form>
             <?php endif; ?>
           </div>
-          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" class="img-fluid rounded mb-2" style="max-height:400px;" onerror="this.style.display='none'"><?php endif; ?>
+          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" class="img-fluid rounded mb-2 zoomable" style="max-height:400px;" onerror="this.style.display='none'"><?php endif; ?>
           <div class="mb-2"><?= nl2br(htmlspecialchars($p['caption'] ?? '')) ?></div>
           <div class="d-flex gap-2 small">
             <?php if($u): ?>
-            <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="like"><input type="hidden" name="post_id" value="<?= $p['id'] ?>">
+            <form method="post" class="d-inline" data-ajax><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="like"><input type="hidden" name="post_id" value="<?= $p['id'] ?>">
               <button class="btn btn-sm btn-outline-danger"><i class="bi bi-heart"></i> <?= (int)$p['likes'] ?></button></form>
             <?php endif; ?>
             <span class="text-muted align-self-center"><i class="bi bi-chat"></i> <?= (int)$p['comments'] ?></span>
@@ -303,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <?= nl2br(htmlspecialchars($pc['isi'])) ?>
                 </div>
                 <?php if($u && $u['role']==='admin'): ?>
-                  <form method="post" class="d-inline" onsubmit="return confirm('Hapus komentar ini?')">
+                  <form method="post" class="d-inline" data-ajax onsubmit="return confirm('Hapus komentar ini?')">
                     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                     <input type="hidden" name="_action" value="comment_delete">
                     <input type="hidden" name="comment_id" value="<?= (int)$pc['id'] ?>">
@@ -315,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <?php endif; ?>
           <?php if($u): ?>
-          <form method="post" class="d-flex gap-2 mt-2">
+          <form method="post" class="d-flex gap-2 mt-2" data-ajax data-ajax-label="Mengirim komentar...">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="comment"><input type="hidden" name="post_id" value="<?= $p['id'] ?>">
             <input class="form-control form-control-sm" name="isi" placeholder="Tulis komentar..." maxlength="300" required>
             <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
@@ -340,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="card shadow-sm" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
     <div class="card-body" data-live="forum">
       <?php if($u): ?>
-      <form method="post" class="d-flex gap-2 mb-3">
+      <form method="post" class="d-flex gap-2 mb-3" data-ajax data-ajax-label="Mengirim pesan...">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_post">
         <input class="form-control" name="pesan" placeholder="Tulis pesan..." maxlength="500" required>
         <button class="btn btn-primary"><i class="bi bi-send"></i></button>
@@ -356,18 +409,19 @@ document.addEventListener('DOMContentLoaded', () => {
             <small class="chat-meta"><?= date('d M H:i', strtotime($c['created_at'])) ?></small>
           </div>
           <div><?= sanitize_html($c['pesan']) ?></div>
+          <?php if(!empty($c['updated_at'])): ?><small class="chat-meta fst-italic">(diedit)</small><?php endif; ?>
           <div class="d-flex gap-2 mt-1 small">
             <?php if($u): ?>
-            <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $c['id'] ?>"><input type="hidden" name="val" value="1">
+            <form method="post" class="d-inline" data-ajax><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $c['id'] ?>"><input type="hidden" name="val" value="1">
               <button class="btn btn-sm btn-link text-success p-0 me-2"><i class="bi bi-hand-thumbs-up"></i> <?= (int)$c['likes'] ?></button></form>
-            <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $c['id'] ?>"><input type="hidden" name="val" value="-1">
+            <form method="post" class="d-inline" data-ajax><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $c['id'] ?>"><input type="hidden" name="val" value="-1">
               <button class="btn btn-sm btn-link text-danger p-0 me-2"><i class="bi bi-hand-thumbs-down"></i> <?= (int)$c['dislikes'] ?></button></form>
             <button type="button" class="btn btn-sm btn-link p-0" onclick="document.getElementById('reply<?= $c['id'] ?>').classList.toggle('d-none')"><i class="bi bi-reply"></i> Reply</button>
             <?php if((int)$c['user_id']===(int)$u['id'] || $u['role']==='admin'): ?>
               <button type="button" class="btn btn-sm btn-link p-0 ms-2 text-primary" onclick="document.getElementById('editChat<?= $c['id'] ?>').classList.toggle('d-none')" title="Edit pesan"><i class="bi bi-pencil"></i> Edit</button>
             <?php endif; ?>
             <?php if($u['role']==='admin'): ?>
-            <form method="post" class="d-inline" onsubmit="return confirm('Hapus pesan ini?')">
+            <form method="post" class="d-inline" data-ajax onsubmit="return confirm('Hapus pesan ini?')">
               <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_delete"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
               <button class="btn btn-sm btn-link text-danger p-0 ms-2" title="Hapus (admin)"><i class="bi bi-trash"></i></button>
             </form>
@@ -377,13 +431,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <?php endif; ?>
           </div>
           <?php if($u): ?>
-          <form method="post" id="reply<?= $c['id'] ?>" class="d-flex gap-2 mt-2 d-none">
+          <form method="post" id="reply<?= $c['id'] ?>" class="d-flex gap-2 mt-2 d-none" data-ajax data-ajax-label="Mengirim balasan...">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_post"><input type="hidden" name="parent_id" value="<?= $c['id'] ?>">
             <input class="form-control form-control-sm" name="pesan" placeholder="Balas pesan..." maxlength="500" required>
             <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
           </form>
           <?php if((int)$c['user_id']===(int)$u['id'] || $u['role']==='admin'): ?>
-          <form method="post" id="editChat<?= $c['id'] ?>" class="d-flex gap-2 mt-2 d-none">
+          <form method="post" id="editChat<?= $c['id'] ?>" class="d-flex gap-2 mt-2 d-none" data-ajax data-ajax-label="Menyimpan pesan...">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_edit"><input type="hidden" name="id" value="<?= $c['id'] ?>">
             <input class="form-control form-control-sm" name="pesan" value="<?= htmlspecialchars(strip_tags($c['pesan'])) ?>" maxlength="500" required>
             <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i></button>
@@ -396,15 +450,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 <?= user_avatar($rep['foto_url'] ?? null, $rep['nama'] ?? '?', 20) ?>
                 <span class="fw-semibold small"><?= htmlspecialchars($rep['nama'] ?? 'Anon') ?></span>
                 <small class="chat-meta"><?= date('d M H:i', strtotime($rep['created_at'])) ?></small>
+                <?php if(!empty($rep['updated_at'])): ?><small class="chat-meta fst-italic">(diedit)</small><?php endif; ?>
               </div>
               <div class="small"><?= sanitize_html($rep['pesan']) ?></div>
               <?php if($u): ?>
               <div class="d-flex gap-2 mt-1 small">
-                <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $rep['id'] ?>"><input type="hidden" name="val" value="1">
+                <form method="post" class="d-inline" data-ajax><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $rep['id'] ?>"><input type="hidden" name="val" value="1">
                   <button class="btn btn-sm btn-link text-success p-0 me-2"><i class="bi bi-hand-thumbs-up"></i> <?= (int)$rep['likes'] ?></button></form>
-                <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $rep['id'] ?>"><input type="hidden" name="val" value="-1">
+                <form method="post" class="d-inline" data-ajax><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_react"><input type="hidden" name="chat_id" value="<?= $rep['id'] ?>"><input type="hidden" name="val" value="-1">
                   <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-hand-thumbs-down"></i> <?= (int)$rep['dislikes'] ?></button></form>
+                <?php if((int)$rep['user_id']===(int)$u['id'] || $u['role']==='admin'): ?>
+                  <button type="button" class="btn btn-sm btn-link p-0 ms-2 text-primary" onclick="document.getElementById('editChat<?= $rep['id'] ?>').classList.toggle('d-none')" title="Edit balasan"><i class="bi bi-pencil"></i> Edit</button>
+                <?php endif; ?>
+                <?php if($u['role']==='admin'): ?>
+                  <form method="post" class="d-inline" data-ajax onsubmit="return confirm('Hapus balasan ini?')">
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_delete"><input type="hidden" name="id" value="<?= (int)$rep['id'] ?>">
+                    <button class="btn btn-sm btn-link text-danger p-0 ms-2" title="Hapus (admin)"><i class="bi bi-trash"></i></button>
+                  </form>
+                <?php endif; ?>
               </div>
+              <?php if((int)$rep['user_id']===(int)$u['id'] || $u['role']==='admin'): ?>
+              <form method="post" id="editChat<?= $rep['id'] ?>" class="d-flex gap-2 mt-2 d-none" data-ajax data-ajax-label="Menyimpan balasan...">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="chat_edit"><input type="hidden" name="id" value="<?= (int)$rep['id'] ?>">
+                <input class="form-control form-control-sm" name="pesan" value="<?= htmlspecialchars(strip_tags($rep['pesan'])) ?>" maxlength="500" required>
+                <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i></button>
+              </form>
+              <?php endif; ?>
               <?php endif; ?>
             </div>
           <?php endforeach; ?>
@@ -417,14 +488,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <?php if($u): ?>
 <div class="modal fade" id="postModal" tabindex="-1"><div class="modal-dialog">
-  <form class="modal-content" method="post" enctype="multipart/form-data" id="postNewForm">
+  <form class="modal-content" method="post" enctype="multipart/form-data" id="postNewForm" data-ajax data-ajax-label="Mengunggah & mengoptimasi foto...">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="post_new">
     <div class="modal-header"><h5 class="modal-title">Posting baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
       <label class="form-label small">Tipe</label>
       <select name="jenis" class="form-select mb-2"><option value="post">Post (feed)</option><option value="story">Story (24 jam)</option></select>
-      <label class="form-label small">Foto (opsional, maks 5MB)</label>
-      <input type="file" name="foto" accept="image/*" class="form-control mb-2" id="postFotoInput">
+      <label class="form-label small">Foto (opsional, otomatis dikompresi)</label>
+      <input type="file" name="foto" accept="image/*" class="form-control mb-1" id="postFotoInput" data-compress>
+      <div class="form-text compress-info small">Foto MB akan otomatis dikompres ke KB sebelum diunggah.</div>
       <img id="postFotoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px">
       <label class="form-label small">Caption</label>
       <textarea name="caption" class="form-control" rows="3" maxlength="500" placeholder="Tulis caption..."></textarea>
@@ -442,18 +514,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var f=this.files && this.files[0]; if(!f){ pv.style.display='none'; return; }
     pv.src=URL.createObjectURL(f); pv.style.display='block';
   });}
-  var fm=document.getElementById('postNewForm');
-  if(fm){ fm.addEventListener('submit', function(){
-    var btn=document.getElementById('postSubmitBtn');
-    if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> Mengunggah...'; }
-    var pre=document.getElementById('appPreloader');
-    if(pre){ pre.classList.remove('hidden'); pre.querySelector('.lbl').textContent='Mengunggah foto...'; }
-    else {
-      var p=document.createElement('div'); p.id='appPreloader';
-      p.innerHTML='<div class="spinner"></div><div class="lbl">Mengunggah foto...</div>';
-      document.body.appendChild(p);
-    }
-  });}
+  // AJAX submit ditangani oleh handler global di footer (data-ajax).
 });
 </script>
 <?php endif; ?>

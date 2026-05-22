@@ -1,7 +1,7 @@
 </main>
 <?php include __DIR__ . '/bottom_nav.php'; ?>
 <footer class="app-footer text-center text-muted py-3 small">
-  <div class="container">&copy; 2026 HapFam SportApp · v4</div>
+  <div class="container">&copy; 2026 HapFam SportApp · v4 - By <a href="https://www.yuk-mari.com" target="_blank" rel="noopener" class="text-decoration-none">Yuk-Mari CyberLab</a></div>
 </footer>
 
 <?php if (!empty($_SESSION['error_popup'])): $__ep = $_SESSION['error_popup']; unset($_SESSION['error_popup']); ?>
@@ -110,13 +110,19 @@ document.addEventListener('DOMContentLoaded', function() {
       const html=await r.text();
       const doc=new DOMParser().parseFromString(html,'text/html');
       let changed=false;
-      document.querySelectorAll('[data-live]').forEach(node=>{
+      const liveNodes = document.querySelectorAll('[data-live]');
+      liveNodes.forEach(node=>{
         const key=node.getAttribute('data-live');
         const fresh=doc.querySelector('[data-live="'+key+'"]');
         if(fresh && fresh.innerHTML !== node.innerHTML){
           node.innerHTML=fresh.innerHTML; changed=true;
         }
       });
+      // Fallback: jika halaman tidak punya [data-live], refresh isi <main>
+      if(liveNodes.length===0){
+        const m1=document.querySelector('main'); const m2=doc.querySelector('main');
+        if(m1 && m2 && m1.innerHTML !== m2.innerHTML){ m1.innerHTML=m2.innerHTML; changed=true; }
+      }
       if(changed){
         const b=document.getElementById('liveRefreshBadge');
         if(b){ b.style.display='inline-block'; setTimeout(()=>b.style.display='none',1500); }
@@ -125,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
     finally{ busy=false; }
   }
   if(document.querySelector('[data-live]')) setInterval(softRefresh, LIVE_INTERVAL);
+  window.softRefresh = softRefresh;
 
   // Tombol "Refresh" generik: <button data-soft-refresh> → trigger soft refresh tanpa reload
   document.addEventListener('click', function(ev){
@@ -133,6 +140,160 @@ document.addEventListener('DOMContentLoaded', function() {
     ev.preventDefault();
     softRefresh();
   });
+})();
+</script>
+
+<!-- Lightbox global untuk foto -->
+<div class="modal fade" id="imgLightbox" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-transparent border-0">
+      <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index:10;"></button>
+      <img id="imgLightboxImg" src="" alt="" style="max-width:100%;max-height:90vh;border-radius:8px;object-fit:contain;background:#0008;">
+    </div>
+  </div>
+</div>
+<style>
+.zoomable{cursor:zoom-in;}
+#appMiniLoader{position:fixed;inset:0;background:rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;z-index:9998;backdrop-filter:blur(2px);}
+#appMiniLoader .spinner-border{width:2.5rem;height:2.5rem;color:#0ea5e9;}
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.5rem .25rem;font-size:.85rem;}
+.pagination-bar .pg-btns button{border:1px solid var(--bs-border-color,#e2e8f0);background:#fff;border-radius:6px;padding:2px 10px;margin-left:4px;cursor:pointer;}
+.pagination-bar .pg-btns button:disabled{opacity:.45;cursor:not-allowed;}
+</style>
+<script>
+/* ===== Global lightbox ===== */
+(function(){
+  let m=null;
+  document.addEventListener('click', function(ev){
+    const t = ev.target.closest('img.zoomable,[data-zoom] img,img[data-zoom]');
+    if(!t) return;
+    const src = t.getAttribute('data-full') || t.src;
+    if(!src) return;
+    ev.preventDefault();
+    if(!m) m = new bootstrap.Modal(document.getElementById('imgLightbox'));
+    document.getElementById('imgLightboxImg').src = src;
+    m.show();
+  });
+})();
+
+/* ===== Auto image compression for inputs[data-compress] =====
+ * Resize ke maxW dan kompres ke JPEG ~0.8 jika ukuran > thresholdKB.
+ */
+window.compressImageFile = async function(file, opts){
+  opts = Object.assign({maxW:1600, quality:0.8, thresholdKB:600}, opts||{});
+  if(!file || !file.type || !file.type.startsWith('image/')) return file;
+  if(file.size <= opts.thresholdKB*1024) return file;
+  try{
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, opts.maxW / bmp.width);
+    const w = Math.round(bmp.width*scale), h = Math.round(bmp.height*scale);
+    const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
+    cv.getContext('2d').drawImage(bmp, 0,0, w,h);
+    const blob = await new Promise(res=>cv.toBlob(res, 'image/jpeg', opts.quality));
+    if(!blob || blob.size >= file.size) return file;
+    return new File([blob], (file.name.replace(/\.[a-z0-9]+$/i,'')||'image')+'.jpg', {type:'image/jpeg', lastModified:Date.now()});
+  }catch(e){ return file; }
+};
+document.addEventListener('change', async function(ev){
+  const inp = ev.target;
+  if(!(inp instanceof HTMLInputElement)) return;
+  if(inp.type!=='file' || !inp.hasAttribute('data-compress')) return;
+  if(!inp.files || !inp.files.length) return;
+  const origSize = inp.files[0].size;
+  const lbl = inp.parentElement && inp.parentElement.querySelector('.compress-info');
+  if(lbl) lbl.textContent = 'Mengoptimasi gambar...';
+  const compressed = await window.compressImageFile(inp.files[0]);
+  if(compressed !== inp.files[0]){
+    const dt = new DataTransfer(); dt.items.add(compressed); inp.files = dt.files;
+  }
+  if(lbl){
+    const kb = (inp.files[0].size/1024).toFixed(0);
+    const oKb = (origSize/1024).toFixed(0);
+    lbl.textContent = origSize>inp.files[0].size ? ('Optimasi: '+oKb+' KB → '+kb+' KB') : ('Ukuran: '+kb+' KB');
+  }
+});
+
+/* ===== AJAX submit (forms[data-ajax]) =====
+ * Submit tanpa reload page; trigger soft refresh region [data-live] terdekat.
+ */
+function showMiniLoader(label){
+  let el = document.getElementById('appMiniLoader');
+  if(!el){
+    el = document.createElement('div'); el.id='appMiniLoader';
+    el.innerHTML='<div class="text-center"><div class="spinner-border"></div><div class="small mt-2 text-muted">'+(label||'Memproses...')+'</div></div>';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function hideMiniLoader(){ const el=document.getElementById('appMiniLoader'); if(el) el.remove(); }
+document.addEventListener('submit', async function(ev){
+  const f = ev.target;
+  if(!(f instanceof HTMLFormElement)) return;
+  if(!f.hasAttribute('data-ajax')) return;
+  ev.preventDefault();
+  const btn = f.querySelector('button[type=submit],button:not([type])');
+  if(btn) btn.disabled = true;
+  showMiniLoader(f.getAttribute('data-ajax-label')||'Menyimpan...');
+  try{
+    const fd = new FormData(f);
+    const r = await fetch(f.action || location.pathname+location.search, {
+      method: (f.method||'POST').toUpperCase(),
+      body: fd, credentials:'same-origin', headers:{'X-Requested-With':'fetch'}
+    });
+    if(r.ok || r.redirected){
+      if(typeof window.softRefresh==='function') await window.softRefresh();
+      // Bersihkan input teks pesan/komentar
+      f.querySelectorAll('input[name="pesan"],input[name="isi"],textarea[name="caption"]').forEach(i=>{ i.value=''; });
+      // Tutup modal bila ada
+      const md = f.closest('.modal');
+      if(md){ const inst = bootstrap.Modal.getInstance(md); if(inst) inst.hide(); }
+      // Reset file input
+      f.querySelectorAll('input[type=file]').forEach(i=>{ i.value=''; });
+      const prev = f.querySelector('img[id$="Preview"]'); if(prev){ prev.style.display='none'; prev.src=''; }
+    }
+  }catch(e){ /* silent */ }
+  finally{
+    if(btn) btn.disabled = false;
+    hideMiniLoader();
+  }
+});
+
+/* ===== Generic tabel pagination (table[data-paginate="N"]) ===== */
+(function(){
+  function paginate(tbl){
+    const per = parseInt(tbl.getAttribute('data-paginate')||'10',10) || 10;
+    const tbody = tbl.tBodies[0]; if(!tbody) return;
+    const rows = Array.from(tbody.rows);
+    if(rows.length <= per) return;
+    let page = 0;
+    const bar = document.createElement('div'); bar.className='pagination-bar';
+    const info = document.createElement('div'); info.className='pg-info text-muted';
+    const btns = document.createElement('div'); btns.className='pg-btns';
+    const prev = document.createElement('button'); prev.type='button'; prev.innerHTML='‹ Prev';
+    const next = document.createElement('button'); next.type='button'; next.innerHTML='Next ›';
+    btns.appendChild(prev); btns.appendChild(next);
+    bar.appendChild(info); bar.appendChild(btns);
+    tbl.parentNode.insertBefore(bar, tbl.nextSibling);
+    function render(){
+      const total = rows.length, pages = Math.ceil(total/per);
+      if(page>=pages) page=pages-1; if(page<0) page=0;
+      rows.forEach((r,i)=>{ r.style.display = (i>=page*per && i<(page+1)*per) ? '' : 'none'; });
+      info.textContent = 'Hal. '+(page+1)+' / '+pages+' · '+total+' baris';
+      prev.disabled = page===0; next.disabled = page>=pages-1;
+    }
+    prev.addEventListener('click', ()=>{ page--; render(); });
+    next.addEventListener('click', ()=>{ page++; render(); });
+    render();
+  }
+  function initAll(){ document.querySelectorAll('table[data-paginate]:not([data-pg-init])').forEach(t=>{ t.setAttribute('data-pg-init','1'); paginate(t); }); }
+  document.addEventListener('DOMContentLoaded', initAll);
+  // Re-init setelah soft refresh mengganti innerHTML region
+  const origSR = window.softRefresh;
+  if(typeof origSR==='function'){
+    window.softRefresh = async function(){ const r = await origSR.apply(this, arguments); initAll(); return r; };
+  }
+  // Observer untuk tabel yang dimuat dinamis
+  new MutationObserver(()=>initAll()).observe(document.body, {childList:true, subtree:true});
 })();
 </script>
 </body></html>

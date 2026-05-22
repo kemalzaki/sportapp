@@ -111,7 +111,7 @@ include __DIR__.'/../includes/header.php';
     <div class="col-md-3"><button class="btn btn-outline-primary w-100"><i class="bi bi-plus"></i> Match</button></div>
   </form>
   <?php if($ms): ?>
-  <div class="table-responsive mt-2"><table class="table table-sm align-middle">
+  <div class="table-responsive mt-2"><table class="table table-sm align-middle" data-paginate="10">
     <thead><tr><th>R</th><th>Tim A</th><th>Skor</th><th>Tim B</th><th></th></tr></thead><tbody>
     <?php foreach($ms as $m): ?>
     <tr>

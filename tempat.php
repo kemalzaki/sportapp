@@ -75,7 +75,7 @@ include __DIR__.'/includes/header.php';
     </div></div>
 
     <div class="card shadow-sm"><div class="card-body">
-      <table class="table table-bordered text-center align-middle small mb-0">
+      <table class="table table-bordered text-center align-middle small mb-0" data-paginate="10">
         <thead><tr><?php foreach(['Min','Sen','Sel','Rab','Kam','Jum','Sab'] as $h) echo "<th>$h</th>"; ?></tr></thead>
         <tbody><tr>
         <?php
