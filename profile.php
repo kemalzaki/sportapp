@@ -18,6 +18,10 @@ try {
         created_at TIMESTAMP NOT NULL DEFAULT now(),
         UNIQUE(user_id, nama)
     )");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS berat_kg NUMERIC(5,2)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tinggi_cm NUMERIC(5,2)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tanggal_lahir DATE");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS riwayat_penyakit TEXT");
 } catch (Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -52,6 +56,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='fav_del') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id) db_exec("DELETE FROM user_olahraga_favorit WHERE id=$1 AND user_id=$2", [$id, (int)$u['id']]);
+    } elseif ($a==='update_kesehatan') {
+        $berat = trim($_POST['berat_kg'] ?? '');
+        $tinggi = trim($_POST['tinggi_cm'] ?? '');
+        $tgl = trim($_POST['tanggal_lahir'] ?? '');
+        $riwayat = substr(trim($_POST['riwayat_penyakit'] ?? ''), 0, 2000);
+        $beratV = ($berat !== '' && is_numeric($berat)) ? (float)$berat : null;
+        $tinggiV = ($tinggi !== '' && is_numeric($tinggi)) ? (float)$tinggi : null;
+        $tglV = preg_match('/^\d{4}-\d{2}-\d{2}$/', $tgl) ? $tgl : null;
+        db_exec("UPDATE users SET berat_kg=$1, tinggi_cm=$2, tanggal_lahir=$3, riwayat_penyakit=$4 WHERE id=$5",
+            [$beratV, $tinggiV, $tglV, $riwayat ?: null, (int)$u['id']]);
     } elseif ($a==='update_foto') {
         if (!empty($_FILES['foto']['tmp_name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
             $mime = mime_content_type($_FILES['foto']['tmp_name']);
@@ -186,6 +200,51 @@ include __DIR__.'/includes/header.php';
   </div>
 
   <div class="col-lg-8">
+    <?php
+      $bmiP = null; $bmiCatP = '—';
+      if ((float)$me['berat_kg']>0 && (float)$me['tinggi_cm']>0) {
+        $hM = (float)$me['tinggi_cm']/100;
+        if ($hM>0) {
+          $bmiP = round((float)$me['berat_kg']/($hM*$hM),1);
+          if ($bmiP<18.5) $bmiCatP='Kurus'; elseif ($bmiP<25) $bmiCatP='Normal'; elseif ($bmiP<30) $bmiCatP='Gemuk'; else $bmiCatP='Obesitas';
+        }
+      }
+    ?>
+    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> Data Kesehatan (Publik) <a href="/kalkulator.php" class="btn btn-sm btn-outline-primary float-end"><i class="bi bi-calculator"></i> Kalkulator Sehat</a></div>
+    <div class="card-body">
+      <form data-ajax method="post" class="row g-2">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="update_kesehatan">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Berat Badan (kg)</label>
+          <input type="number" step="0.1" min="20" max="300" name="berat_kg" class="form-control form-control-sm" value="<?= htmlspecialchars($me['berat_kg'] ?? '') ?>" placeholder="cth: 65.5">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Tinggi Badan (cm)</label>
+          <input type="number" step="0.1" min="80" max="250" name="tinggi_cm" class="form-control form-control-sm" value="<?= htmlspecialchars($me['tinggi_cm'] ?? '') ?>" placeholder="cth: 170">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Tanggal Lahir</label>
+          <input type="date" name="tanggal_lahir" class="form-control form-control-sm" value="<?= htmlspecialchars($me['tanggal_lahir'] ?? '') ?>">
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Riwayat Penyakit</label>
+          <textarea name="riwayat_penyakit" rows="3" maxlength="2000" class="form-control form-control-sm" placeholder="cth: Asma ringan, alergi seafood..."><?= htmlspecialchars($me['riwayat_penyakit'] ?? '') ?></textarea>
+        </div>
+        <div class="col-12 d-flex justify-content-between align-items-center">
+          <div class="small text-muted">
+            <?php if($bmiP !== null): ?>
+              <strong>BMI: <?= $bmiP ?></strong> <span class="badge bg-<?= $bmiCatP==='Normal'?'success':($bmiCatP==='Kurus'?'warning':'danger') ?>"><?= $bmiCatP ?></span>
+            <?php else: ?>
+              Isi berat & tinggi untuk melihat BMI.
+            <?php endif; ?>
+          </div>
+          <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Data Kesehatan</button>
+        </div>
+      </form>
+      <div class="form-text mt-2"><i class="bi bi-eye"></i> Data ini akan tampil publik di halaman profil Anda.</div>
+    </div></div>
+
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-stars text-warning"></i> Achievement Profile</div>
     <div class="card-body">
       <div class="row g-2">

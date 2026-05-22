@@ -159,6 +159,13 @@ document.addEventListener('DOMContentLoaded', function() {
 .pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.5rem .25rem;font-size:.85rem;}
 .pagination-bar .pg-btns button{border:1px solid var(--bs-border-color,#e2e8f0);background:#fff;border-radius:6px;padding:2px 10px;margin-left:4px;cursor:pointer;}
 .pagination-bar .pg-btns button:disabled{opacity:.45;cursor:not-allowed;}
+/* Emoji picker */
+.emoji-picker-btn{position:absolute;right:6px;bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:2px 6px;cursor:pointer;font-size:1rem;line-height:1;z-index:5;}
+.emoji-picker-wrap{position:relative;}
+.emoji-picker-pop{position:absolute;z-index:1090;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;max-width:280px;display:none;}
+.emoji-picker-pop.show{display:block;}
+.emoji-picker-pop button{background:transparent;border:0;font-size:1.2rem;line-height:1;padding:4px 6px;cursor:pointer;border-radius:6px;}
+.emoji-picker-pop button:hover{background:#f1f5f9;}
 </style>
 <script>
 /* ===== Global lightbox ===== */
@@ -294,6 +301,81 @@ document.addEventListener('submit', async function(ev){
   }
   // Observer untuk tabel yang dimuat dinamis
   new MutationObserver(()=>initAll()).observe(document.body, {childList:true, subtree:true});
+})();
+</script>
+
+<script>
+/* ===== Emoji picker untuk semua textarea & input teks =====
+ * Otomatis pasang tombol 😊 di sebelah kanan setiap <textarea> dan
+ * input[type=text] / input bertype "search". Klik untuk sisipkan emoji.
+ * Juga mendukung Quill WYSIWYG (data-wysiwyg) — emoji disisipkan ke editor aktif.
+ */
+(function(){
+  const EMOJIS = ['😀','😁','😂','🤣','😊','😍','😘','😎','🤩','🤔','🙃','😉','😴','🥳','😇','🤗','🤝','👍','👎','👏','🙏','💪','🔥','✨','⭐','🎉','🎊','💯','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💖','💕','💞','⚽','🏀','🏐','🎾','🏸','🏓','🏊','🏃','🚴','🏋️','🤸','🤾','🥇','🥈','🥉','🏆','🏅','🎯','📅','📆','📍','📌','📝','💬','💡','✅','❌','⚠️','❓','❗','☀️','🌧️','🌈','🌟','🍎','🍌','🥗','🍔','🍕','☕','🥤','🍺'];
+  function attachPickerTo(target){
+    if(!target || target.dataset.emojiInit) return;
+    if(target.closest('.emoji-no')) return;
+    // Skip password / file / hidden / number etc
+    if(target.tagName==='INPUT'){
+      const t=(target.type||'text').toLowerCase();
+      if(!['text','search','email','url','tel'].includes(t)) return;
+    } else if(target.tagName!=='TEXTAREA'){ return; }
+    target.dataset.emojiInit='1';
+    let host = target.parentElement;
+    // Pastikan wrapper relative
+    const wrap = document.createElement('span');
+    wrap.className='emoji-picker-wrap d-inline-block';
+    wrap.style.position='relative'; wrap.style.width='100%';
+    host.insertBefore(wrap, target); wrap.appendChild(target);
+    const btn = document.createElement('button');
+    btn.type='button'; btn.className='emoji-picker-btn'; btn.title='Sisipkan emoji'; btn.textContent='😊';
+    wrap.appendChild(btn);
+    const pop = document.createElement('div');
+    pop.className='emoji-picker-pop';
+    EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.textContent=e; b.addEventListener('click', ev=>{ ev.preventDefault(); insertAt(target, e); pop.classList.remove('show'); target.focus(); }); pop.appendChild(b); });
+    wrap.appendChild(pop);
+    btn.addEventListener('click', ev=>{ ev.preventDefault(); ev.stopPropagation(); document.querySelectorAll('.emoji-picker-pop.show').forEach(p=>{ if(p!==pop) p.classList.remove('show'); }); pop.classList.toggle('show');
+      const r=btn.getBoundingClientRect(); pop.style.right='0px'; pop.style.bottom=(btn.offsetHeight+6)+'px';
+    });
+  }
+  function insertAt(el, txt){
+    if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){
+      const s=el.selectionStart||0, e=el.selectionEnd||0, v=el.value||'';
+      el.value = v.slice(0,s)+txt+v.slice(e);
+      el.selectionStart=el.selectionEnd=s+txt.length;
+      el.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+  }
+  document.addEventListener('click', ev=>{
+    if(!ev.target.closest('.emoji-picker-pop') && !ev.target.closest('.emoji-picker-btn')){
+      document.querySelectorAll('.emoji-picker-pop.show').forEach(p=>p.classList.remove('show'));
+    }
+  });
+  function initAll(){
+    document.querySelectorAll('textarea:not([data-wysiwyg]):not([data-emoji-init])').forEach(attachPickerTo);
+    document.querySelectorAll('input[type=text]:not([data-emoji-init]),input[type=search]:not([data-emoji-init]),input:not([type]):not([data-emoji-init])').forEach(attachPickerTo);
+    // Quill: tambahkan tombol emoji setelah toolbar
+    document.querySelectorAll('.wysiwyg-wrap:not([data-emoji-init])').forEach(w=>{
+      w.dataset.emojiInit='1';
+      const tb = w.querySelector('.ql-toolbar'); if(!tb) return;
+      const btn=document.createElement('button'); btn.type='button'; btn.className='ql-emoji'; btn.style.cssText='border:0;background:transparent;font-size:1rem;cursor:pointer;padding:0 6px;'; btn.textContent='😊'; btn.title='Emoji';
+      tb.appendChild(btn);
+      const pop=document.createElement('div'); pop.className='emoji-picker-pop'; pop.style.position='absolute';
+      EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.textContent=e; b.addEventListener('click', ev=>{ ev.preventDefault();
+        const ed = w.querySelector('.ql-editor'); if(ed){ ed.focus(); document.execCommand('insertText', false, e); }
+        pop.classList.remove('show');
+      }); pop.appendChild(b); });
+      w.style.position='relative'; w.appendChild(pop);
+      btn.addEventListener('click', ev=>{ ev.preventDefault(); ev.stopPropagation();
+        const r=btn.getBoundingClientRect(); const wr=w.getBoundingClientRect();
+        pop.style.top=(r.bottom-wr.top+4)+'px'; pop.style.left=(r.left-wr.left)+'px';
+        document.querySelectorAll('.emoji-picker-pop.show').forEach(p=>{ if(p!==pop) p.classList.remove('show'); });
+        pop.classList.toggle('show');
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(initAll,150));
+  new MutationObserver(()=>initAll()).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body></html>

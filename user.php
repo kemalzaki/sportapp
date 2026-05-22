@@ -6,9 +6,59 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
 send_security_headers(); enforce_session_timeout();
 $id = (int)($_GET['id'] ?? 0);
-$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen FROM users WHERE id=$1", [$id]);
+
+// ===== Idempotent migrasi tabel untuk fitur baru =====
+try {
+    // Kolom tambahan profil kesehatan
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nomor_wa VARCHAR(20)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS berat_kg NUMERIC(5,2)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tinggi_cm NUMERIC(5,2)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tanggal_lahir DATE");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS riwayat_penyakit TEXT");
+    // Tabel titip pesan (guestbook) — bisa di-reply
+    db_exec("CREATE TABLE IF NOT EXISTS guest_messages (
+        id SERIAL PRIMARY KEY,
+        owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        parent_id INTEGER REFERENCES guest_messages(id) ON DELETE CASCADE,
+        pesan TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now(),
+        updated_at TIMESTAMP
+    )");
+} catch (Throwable $e) {}
+
+$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit FROM users WHERE id=$1", [$id]);
 if (!$user) { http_response_code(404); die('User tidak ditemukan.'); }
 $pageTitle = 'Profil '.$user['nama'];
+
+// ===== CRUD Titip Pesan =====
+$me = current_user();
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    csrf_check();
+    if (!$me) { header('Location: /login.php'); exit; }
+    $act = $_POST['_action'] ?? '';
+    $meId = (int)$me['id'];
+    if ($act==='gm_add') {
+        $pesan = trim(substr($_POST['pesan'] ?? '', 0, 1000));
+        $pid = (int)($_POST['parent_id'] ?? 0) ?: null;
+        if ($pesan !== '') {
+            db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,parent_id,pesan) VALUES($1,$2,$3,$4)", [$id, $meId, $pid, $pesan]);
+        }
+    } elseif ($act==='gm_edit') {
+        $mid = (int)($_POST['id'] ?? 0);
+        $pesan = trim(substr($_POST['pesan'] ?? '', 0, 1000));
+        if ($mid && $pesan !== '') {
+            db_exec("UPDATE guest_messages SET pesan=$1, updated_at=now() WHERE id=$2 AND sender_user_id=$3", [$pesan, $mid, $meId]);
+        }
+    } elseif ($act==='gm_del') {
+        $mid = (int)($_POST['id'] ?? 0);
+        if ($mid) {
+            // Pengirim atau pemilik halaman boleh hapus
+            db_exec("DELETE FROM guest_messages WHERE id=$1 AND (sender_user_id=$2 OR owner_user_id=$2)", [$mid, $meId]);
+        }
+    }
+    header('Location: user.php?id='.$id); exit;
+}
 
 $badges = user_badges($id);
 $hadir = (int) db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1 AND hadir=1", [$id]);
@@ -32,6 +82,36 @@ foreach ($weeklyRuns as $r) {
     $wkTotalMin  += (int)$r['durasi_menit'];
     $wkTotalKcal += (int)$r['kalori'];
 }
+
+// Ambil daftar titip pesan (root) + replies
+$gmRoots = db_all("SELECT g.*, u.nama AS sender_nama, u.foto_url AS sender_foto
+                   FROM guest_messages g JOIN users u ON u.id=g.sender_user_id
+                   WHERE g.owner_user_id=$1 AND g.parent_id IS NULL
+                   ORDER BY g.created_at DESC LIMIT 200", [$id]);
+$gmReplies = db_all("SELECT g.*, u.nama AS sender_nama, u.foto_url AS sender_foto
+                     FROM guest_messages g JOIN users u ON u.id=g.sender_user_id
+                     WHERE g.owner_user_id=$1 AND g.parent_id IS NOT NULL
+                     ORDER BY g.created_at ASC", [$id]);
+$gmByParent = [];
+foreach ($gmReplies as $rep) { $gmByParent[(int)$rep['parent_id']][] = $rep; }
+
+// ===== Helper kalkulasi sehat (BMI sederhana) =====
+$bmi = null; $bmiCat = '—';
+if ((float)$user['berat_kg'] > 0 && (float)$user['tinggi_cm'] > 0) {
+    $hM = (float)$user['tinggi_cm'] / 100;
+    if ($hM > 0) {
+        $bmi = round((float)$user['berat_kg'] / ($hM*$hM), 1);
+        if ($bmi < 18.5) $bmiCat = 'Kurus';
+        elseif ($bmi < 25) $bmiCat = 'Normal';
+        elseif ($bmi < 30) $bmiCat = 'Gemuk';
+        else $bmiCat = 'Obesitas';
+    }
+}
+$umur = null;
+if (!empty($user['tanggal_lahir'])) {
+    try { $umur = (new DateTime($user['tanggal_lahir']))->diff(new DateTime('today'))->y; } catch (Throwable $e) {}
+}
+
 include __DIR__.'/includes/header.php';
 ?>
 <div class="card shadow-sm mb-3"><div class="card-body d-flex gap-3 align-items-center">
@@ -45,9 +125,31 @@ include __DIR__.'/includes/header.php';
     <h4 class="mb-0"><?= htmlspecialchars($user['nama']) ?> <span class="badge bg-light text-dark">Lv <?= (int)$user['level'] ?></span></h4>
     <div class="text-muted small"><?= htmlspecialchars($user['role']) ?> · ⭐ <?= (int)$user['xp'] ?> XP · 🔥 <?= (int)$user['streak_minggu'] ?> minggu</div>
     <?php if($user['bio']): ?><p class="mb-0 mt-1"><?= htmlspecialchars($user['bio']) ?></p><?php endif; ?>
+    <?php if(!empty($user['nomor_wa'])):
+        $waNum = preg_replace('/^0/','62', preg_replace('/\D+/','', $user['nomor_wa'])); ?>
+      <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+        <a class="btn btn-success btn-sm" target="_blank" rel="noopener" href="https://wa.me/<?= htmlspecialchars($waNum) ?>"><i class="bi bi-whatsapp"></i> Chat WA Langsung</a>
+        <span class="small text-muted"><i class="bi bi-telephone"></i> <?= htmlspecialchars($user['nomor_wa']) ?></span>
+      </div>
+    <?php endif; ?>
   </div>
   <div class="text-end">
     <div class="small text-muted">Hadir</div><div class="h5 mb-0"><?= $hadir ?>/<?= $sesi ?></div>
+  </div>
+</div></div>
+
+<!-- Info kesehatan publik -->
+<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> Profil Kesehatan</div>
+<div class="card-body">
+  <div class="row g-2 mb-2">
+    <div class="col-6 col-md-3"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">Umur</div><div class="stat-value"><?= $umur !== null ? (int)$umur.' th' : '—' ?></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">Berat</div><div class="stat-value"><?= $user['berat_kg'] ? htmlspecialchars($user['berat_kg']).' kg' : '—' ?></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">Tinggi</div><div class="stat-value"><?= $user['tinggi_cm'] ? htmlspecialchars($user['tinggi_cm']).' cm' : '—' ?></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card card-stat text-center"><div class="card-body p-2"><div class="stat-label">BMI</div><div class="stat-value"><?= $bmi !== null ? $bmi.' <small class="text-muted" style="font-size:.7rem">('.$bmiCat.')</small>' : '—' ?></div></div></div></div>
+  </div>
+  <div class="small">
+    <strong><i class="bi bi-clipboard2-pulse text-primary"></i> Riwayat Penyakit:</strong>
+    <div class="text-muted mt-1" style="white-space:pre-wrap"><?= $user['riwayat_penyakit'] ? htmlspecialchars($user['riwayat_penyakit']) : '— belum diisi —' ?></div>
   </div>
 </div></div>
 
@@ -112,4 +214,122 @@ include __DIR__.'/includes/header.php';
 <?php endforeach; ?>
 </div></div></div>
 <?php endif; ?>
+
+<!-- ===== Titip Pesan (Guestbook) ===== -->
+<div class="card shadow-sm mt-3" data-live="guestbook"><div class="card-header"><i class="bi bi-envelope-heart text-primary"></i> Titip Pesan untuk <?= htmlspecialchars($user['nama']) ?> <span class="badge bg-secondary"><?= count($gmRoots) ?></span></div>
+<div class="card-body">
+  <?php if($me): ?>
+  <form data-ajax method="post" class="mb-3">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <input type="hidden" name="_action" value="gm_add">
+    <textarea name="pesan" class="form-control" rows="2" maxlength="1000" placeholder="Tulis pesan untuk <?= htmlspecialchars($user['nama']) ?>..." required></textarea>
+    <div class="text-end mt-2"><button class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Kirim Pesan</button></div>
+  </form>
+  <?php else: ?>
+    <div class="alert alert-info py-2 small mb-3"><i class="bi bi-info-circle"></i> <a href="/login.php">Login</a> untuk titip pesan.</div>
+  <?php endif; ?>
+
+  <?php if(!$gmRoots): ?>
+    <p class="text-muted small text-center mb-0">Belum ada pesan. Jadilah yang pertama!</p>
+  <?php else: ?>
+    <div class="list-group list-group-flush">
+    <?php foreach($gmRoots as $g):
+        $isMine = $me && (int)$me['id']===(int)$g['sender_user_id'];
+        $isOwner = $me && (int)$me['id']===(int)$user['id'];
+    ?>
+      <div class="list-group-item px-0">
+        <div class="d-flex gap-2">
+          <?php if($g['sender_foto']): ?>
+            <img src="<?= htmlspecialchars($g['sender_foto']) ?>" class="rounded-circle zoomable" style="width:38px;height:38px;object-fit:cover">
+          <?php else: ?>
+            <?= user_avatar(null, $g['sender_nama'], 38) ?>
+          <?php endif; ?>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center">
+              <div><a href="/user.php?id=<?= (int)$g['sender_user_id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($g['sender_nama']) ?></a>
+                <small class="text-muted ms-2"><?= date('d M Y H:i', strtotime($g['created_at'])) ?><?= $g['updated_at']?' <em>(edited)</em>':'' ?></small></div>
+              <div class="btn-group btn-group-sm">
+                <?php if($me): ?><button class="btn btn-link btn-sm p-0 me-2" type="button" onclick="document.getElementById('gmReply<?= (int)$g['id'] ?>').classList.toggle('d-none')"><i class="bi bi-reply"></i> Reply</button><?php endif; ?>
+                <?php if($isMine): ?><button class="btn btn-link btn-sm p-0 me-2 text-primary" type="button" onclick="document.getElementById('gmEdit<?= (int)$g['id'] ?>').classList.toggle('d-none')"><i class="bi bi-pencil"></i></button><?php endif; ?>
+                <?php if($isMine || $isOwner): ?>
+                <form data-ajax method="post" onsubmit="return confirm('Hapus pesan ini?')" class="d-inline">
+                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="_action" value="gm_del">
+                  <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+                  <button class="btn btn-link btn-sm p-0 text-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                <?php endif; ?>
+              </div>
+            </div>
+            <div class="mt-1" style="white-space:pre-wrap"><?= htmlspecialchars($g['pesan']) ?></div>
+
+            <?php if($isMine): ?>
+            <form data-ajax method="post" id="gmEdit<?= (int)$g['id'] ?>" class="d-none mt-2">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="gm_edit">
+              <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+              <textarea name="pesan" rows="2" maxlength="1000" class="form-control form-control-sm" required><?= htmlspecialchars($g['pesan']) ?></textarea>
+              <div class="text-end mt-1"><button class="btn btn-sm btn-primary">Simpan</button></div>
+            </form>
+            <?php endif; ?>
+
+            <?php if($me): ?>
+            <form data-ajax method="post" id="gmReply<?= (int)$g['id'] ?>" class="d-none mt-2">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="gm_add">
+              <input type="hidden" name="parent_id" value="<?= (int)$g['id'] ?>">
+              <textarea name="pesan" rows="2" maxlength="1000" class="form-control form-control-sm" placeholder="Balas pesan..." required></textarea>
+              <div class="text-end mt-1"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-reply"></i> Balas</button></div>
+            </form>
+            <?php endif; ?>
+
+            <?php $reps = $gmByParent[(int)$g['id']] ?? []; if($reps): ?>
+              <div class="mt-2 ps-3 border-start">
+              <?php foreach($reps as $rp):
+                $isMineRp = $me && (int)$me['id']===(int)$rp['sender_user_id']; ?>
+                <div class="d-flex gap-2 mt-2">
+                  <?php if($rp['sender_foto']): ?>
+                    <img src="<?= htmlspecialchars($rp['sender_foto']) ?>" class="rounded-circle zoomable" style="width:28px;height:28px;object-fit:cover">
+                  <?php else: ?>
+                    <?= user_avatar(null, $rp['sender_nama'], 28) ?>
+                  <?php endif; ?>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div><a href="/user.php?id=<?= (int)$rp['sender_user_id'] ?>" class="fw-semibold text-decoration-none small"><?= htmlspecialchars($rp['sender_nama']) ?></a>
+                        <small class="text-muted ms-2"><?= date('d M H:i', strtotime($rp['created_at'])) ?><?= $rp['updated_at']?' <em>(edited)</em>':'' ?></small></div>
+                      <div>
+                        <?php if($isMineRp): ?><button class="btn btn-link btn-sm p-0 me-2 text-primary" type="button" onclick="document.getElementById('gmEdit<?= (int)$rp['id'] ?>').classList.toggle('d-none')"><i class="bi bi-pencil"></i></button><?php endif; ?>
+                        <?php if($isMineRp || $isOwner): ?>
+                        <form data-ajax method="post" onsubmit="return confirm('Hapus balasan?')" class="d-inline">
+                          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                          <input type="hidden" name="_action" value="gm_del">
+                          <input type="hidden" name="id" value="<?= (int)$rp['id'] ?>">
+                          <button class="btn btn-link btn-sm p-0 text-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+                    <div class="small" style="white-space:pre-wrap"><?= htmlspecialchars($rp['pesan']) ?></div>
+                    <?php if($isMineRp): ?>
+                    <form data-ajax method="post" id="gmEdit<?= (int)$rp['id'] ?>" class="d-none mt-1">
+                      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                      <input type="hidden" name="_action" value="gm_edit">
+                      <input type="hidden" name="id" value="<?= (int)$rp['id'] ?>">
+                      <textarea name="pesan" rows="2" maxlength="1000" class="form-control form-control-sm" required><?= htmlspecialchars($rp['pesan']) ?></textarea>
+                      <div class="text-end mt-1"><button class="btn btn-sm btn-primary">Simpan</button></div>
+                    </form>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div></div>
+
 <?php include __DIR__.'/includes/footer.php'; ?>
