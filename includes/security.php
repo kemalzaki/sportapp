@@ -63,17 +63,28 @@ function sanitize_html(string $html): string {
 }
 
 // ---------- Upload MIME validation ----------
-function validate_image_upload(array $file, int $maxBytes = 5_000_000): array {
+function validate_image_upload(array $file, int $maxBytes = 20_000_000): array {
     if (!isset($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
         return [false, 'Upload gagal.'];
     }
-    if ($file['size'] > $maxBytes) return [false, 'File terlalu besar (>5MB).'];
+    if ($file['size'] > $maxBytes) return [false, 'File terlalu besar (>20MB).'];
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime  = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
-    $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'];
-    if (!isset($allowed[$mime])) return [false, 'Tipe file tidak diizinkan: '.$mime];
-    // simple "virus" scan: tolak jika konten mengandung tag PHP / script
+    $allowed = [
+        'image/jpeg'=>'jpg','image/pjpeg'=>'jpg','image/jpg'=>'jpg',
+        'image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif',
+        'image/bmp'=>'bmp','image/x-ms-bmp'=>'bmp',
+        'image/heic'=>'heic','image/heif'=>'heif',
+        'image/avif'=>'avif','image/tiff'=>'tiff','image/svg+xml'=>'svg',
+    ];
+    if (!isset($allowed[$mime])) {
+        // fallback by extension agar foto dari HP (HEIC/JFIF) tetap bisa lewat
+        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+        $extMap = ['jpg'=>'jpg','jpeg'=>'jpg','jfif'=>'jpg','png'=>'png','webp'=>'webp','gif'=>'gif','bmp'=>'bmp','heic'=>'heic','heif'=>'heif','avif'=>'avif','tif'=>'tiff','tiff'=>'tiff'];
+        if (isset($extMap[$ext]) && str_starts_with((string)$mime, 'image/')) return [true, $extMap[$ext]];
+        return [false, 'Tipe file tidak diizinkan: '.$mime];
+    }
     $head = file_get_contents($file['tmp_name'], false, null, 0, 4096);
     if (preg_match('/<\?php|<script\b/i', $head)) return [false, 'File mencurigakan ditolak.'];
     return [true, $allowed[$mime]];

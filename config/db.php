@@ -30,6 +30,10 @@ if (!$dbconn) {
     die("Koneksi database gagal. Pastikan ekstensi php-pgsql aktif & kredensial benar.");
 }
 
+// === Timezone Asia/Jakarta (GMT+7) untuk konsistensi tampilan waktu ===
+date_default_timezone_set('Asia/Jakarta');
+@pg_query($dbconn, "SET TIME ZONE 'Asia/Jakarta'");
+
 function db() { global $dbconn; return $dbconn; }
 
 function db_query(string $sql, array $params = []) {
