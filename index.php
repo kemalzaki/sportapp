@@ -44,10 +44,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         if (!empty($_FILES['foto']['name'])) {
             [$ok, $extOrErr] = validate_image_upload($_FILES['foto']);
             if ($ok) {
-                $name = 'post_'.bin2hex(random_bytes(8)).'.'.$extOrErr;
-                @mkdir(__DIR__.'/uploads', 0775, true);
-                move_uploaded_file($_FILES['foto']['tmp_name'], __DIR__.'/uploads/'.$name);
-                $fotoUrl = 'uploads/'.$name;
+                $name = preg_replace('/[^a-z0-9]/i','_', $u['nama']).'-'.$jenis.'-'.time().'-'.bin2hex(random_bytes(4)).'.'.$extOrErr;
+                require_once __DIR__.'/config/imagekit.php';
+                global $imageKit;
+                try {
+                    $uploadFile = $imageKit->uploadFile([
+                        'file' => base64_encode(file_get_contents($_FILES['foto']['tmp_name'])),
+                        'fileName' => $name,
+                        'folder' => '/sportapp/social/'.date('F_Y'),
+                    ]);
+                    if (!$uploadFile->error) {
+                        $fotoUrl = $uploadFile->result->url;
+                    }
+                } catch (Throwable $e) { /* fail silently, post tanpa foto */ }
             }
         }
         if ($jenis === 'story') {
