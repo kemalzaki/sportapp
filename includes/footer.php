@@ -1,8 +1,29 @@
 </main>
 <?php include __DIR__ . '/bottom_nav.php'; ?>
 <footer class="app-footer text-center text-muted py-3 small">
-  <div class="container">&copy; 2026 HapFam SportApp · v4 · QR Check-in · Badges · Calendar · Dark Mode · PWA</div>
+  <div class="container">&copy; 2026 HapFam SportApp · v4</div>
 </footer>
+
+<?php if (!empty($_SESSION['error_popup'])): $__ep = $_SESSION['error_popup']; unset($_SESSION['error_popup']); ?>
+<div class="modal fade" id="sqlErrorModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-exclamation-octagon"></i> Terjadi Kesalahan Database</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2"><strong>Pesan:</strong></p>
+        <pre class="bg-light p-2 border rounded small" style="white-space:pre-wrap;"><?= htmlspecialchars($__ep) ?></pre>
+        <small class="text-muted">Bila terus berulang, hubungi admin.</small>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button></div>
+    </div>
+  </div>
+</div>
+<script>document.addEventListener('DOMContentLoaded',()=>{ new bootstrap.Modal(document.getElementById('sqlErrorModal')).show(); });</script>
+<?php endif; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
@@ -21,7 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var form = ta.closest('form'); if (form) form.addEventListener('submit', function(){ ta.value = q.root.innerHTML; });
   });
 
-  // ===== Dark Mode toggle =====
   var html = document.documentElement;
   var stored = localStorage.getItem('darkMode');
   if (stored === '1') html.setAttribute('data-bs-theme','dark');
@@ -39,12 +59,10 @@ document.addEventListener('DOMContentLoaded', function() {
       html.setAttribute('data-bs-theme', next);
       localStorage.setItem('darkMode', next==='dark'?'1':'0');
       syncIcon();
-      // persist server-side jika login
       fetch('/api_dark_mode.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'mode='+(next==='dark'?'1':'0')}).catch(()=>{});
     });
   }
 
-  // PWA service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
   }

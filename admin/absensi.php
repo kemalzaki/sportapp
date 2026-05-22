@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $st = in_array($st, $allowed, true) ? $st : 'absen';
         $hadir = ($st === 'hadir' || $st === 'telat') ? 1 : 0;
         $ket = trim((string)($_POST['keterangan'][$uid] ?? ''));
-        if (!in_array($st, ['izin','sakit'], true)) $ket = '';
+        
         db_exec("INSERT INTO absensi(jadwal_id,user_id,hadir,status,keterangan) VALUES($1,$2,$3,$4,$5)",
                 [$jadwalId, (int)$uid, $hadir, $st, $ket ?: null]);
     }

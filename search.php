@@ -32,17 +32,17 @@ include __DIR__.'/includes/header.php'; ?>
   </div></div>
   <div class="col-md-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-calendar-event"></i> Jadwal (<?= count($jadwal) ?>)</div>
     <ul class="list-group list-group-flush"><?php foreach($jadwal as $j): ?>
-      <li class="list-group-item"><strong><?= htmlspecialchars($j['jenis']) ?></strong> · <?= htmlspecialchars($j['tanggal']) ?> · <small class="text-muted"><?= htmlspecialchars($j['tempat']) ?></small></li>
+      <li class="list-group-item"><a href="/calendar.php" class="text-decoration-none"><strong><?= htmlspecialchars($j['jenis']) ?></strong> · <?= htmlspecialchars($j['tanggal']) ?> · <small class="text-muted"><?= htmlspecialchars($j['tempat']) ?></small></a></li>
     <?php endforeach; if(!$jadwal): ?><li class="list-group-item text-muted small">Tidak ada hasil.</li><?php endif; ?></ul>
   </div></div>
   <div class="col-md-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-geo-alt"></i> Tempat (<?= count($tempat) ?>)</div>
     <ul class="list-group list-group-flush"><?php foreach($tempat as $t): ?>
-      <li class="list-group-item"><strong><?= htmlspecialchars($t['nama']) ?></strong><br><small class="text-muted"><?= htmlspecialchars($t['alamat'] ?? '') ?></small></li>
+      <li class="list-group-item"><a href="/tempat.php?id=<?= (int)$t['id'] ?>" class="text-decoration-none"><strong><?= htmlspecialchars($t['nama']) ?></strong></a><br><small class="text-muted"><?= htmlspecialchars($t['alamat'] ?? '') ?></small></li>
     <?php endforeach; if(!$tempat): ?><li class="list-group-item text-muted small">Tidak ada hasil.</li><?php endif; ?></ul>
   </div></div>
   <div class="col-md-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity"></i> Aktivitas (<?= count($aktivitas) ?>)</div>
     <ul class="list-group list-group-flush"><?php foreach($aktivitas as $a): ?>
-      <li class="list-group-item"><strong><?= htmlspecialchars($a['jenis']) ?></strong> · <?= htmlspecialchars($a['tanggal']) ?> · <small class="text-muted">oleh <?= htmlspecialchars($a['user']) ?></small><br><small><?= htmlspecialchars(mb_strimwidth($a['deskripsi'] ?? '',0,120,'...')) ?></small></li>
+      <li class="list-group-item"><a href="/riwayat.php" class="text-decoration-none"><strong><?= htmlspecialchars($a['jenis']) ?></strong> · <?= htmlspecialchars($a['tanggal']) ?> · <small class="text-muted">oleh <?= htmlspecialchars($a['user']) ?></small></a><br><small><?= htmlspecialchars(mb_strimwidth($a['deskripsi'] ?? '',0,120,'...')) ?></small></li>
     <?php endforeach; if(!$aktivitas): ?><li class="list-group-item text-muted small">Tidak ada hasil.</li><?php endif; ?></ul>
   </div></div>
 </div>

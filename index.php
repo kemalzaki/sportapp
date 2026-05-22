@@ -81,12 +81,13 @@ foreach ($chats as $c) {
 }
 
 // Social feed
-$stories = db_all("SELECT p.*, u.nama, u.foto_url FROM posts p JOIN users u ON u.id=p.user_id
+$stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN users u ON u.id=p.user_id
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
                    ORDER BY p.created_at DESC LIMIT 20");
 $feed = db_all("SELECT p.*, u.nama, u.foto_url,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
-                  (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments
+                  (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
+                  (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
                 WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12");
 
@@ -190,7 +191,7 @@ include __DIR__.'/includes/header.php'; ?>
       <?php foreach($feed as $p): ?>
         <div class="border-bottom pb-3 mb-3">
           <div class="d-flex align-items-center gap-2 mb-2">
-            <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none"><?= user_avatar($p['foto_url'] ?? null, $p['nama'], 32) ?></a>
+            <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none"><?= user_avatar($p['user_foto'] ?? null, $p['nama'], 32) ?></a>
             <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none fw-semibold"><?= htmlspecialchars($p['nama']) ?></a>
             <small class="text-muted ms-auto"><?= date('d M H:i', strtotime($p['created_at'])) ?></small>
           </div>

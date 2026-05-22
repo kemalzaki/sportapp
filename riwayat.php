@@ -48,9 +48,14 @@ if ($cat === 'konsisten') {
 
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                           (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir,
-                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id) AS total
+                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id) AS total,
+                          (SELECT COUNT(*) FROM member_eksternal me WHERE me.jadwal_id=j.id) AS tamu
                    FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
                    ORDER BY j.tanggal DESC LIMIT 50");
+
+// Riwayat aktivitas publik (semua user)
+$publicActs = db_all("SELECT uh.id,uh.tanggal,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.file_path,uh.deskripsi,u.id AS uid,u.nama,u.foto_url
+                      FROM upload_harian uh JOIN users u ON u.id=uh.user_id ORDER BY uh.tanggal DESC LIMIT 30");
 
 // Riwayat aktivitas saya (untuk bukti popup)
 $myActs = $u ? db_all("SELECT id,tanggal,jenis,durasi_menit,jarak_km,kalori,file_path,deskripsi
@@ -101,16 +106,36 @@ include __DIR__.'/includes/header.php';
   <div class="col-lg-7">
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 text-primary"></i> Riwayat Sesi</div>
     <div class="table-responsive"><table class="table table-hover table-stack mb-0">
-      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Kehadiran</th></tr></thead>
+      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
       <tbody>
       <?php foreach($riwayat as $r): ?>
         <tr>
           <td data-label="Tanggal"><?= htmlspecialchars($r['tanggal']) ?> <span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
           <td data-label="Jenis"><?= htmlspecialchars($r['jenis']) ?></td>
           <td data-label="Tempat"><?= htmlspecialchars($r['tempat']) ?></td>
+          <td data-label="Koordinator"><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 22) ?></td>
+          <td data-label="Durasi"><?= !empty($r['durasi_menit']) ? (int)$r['durasi_menit'].' mnt' : '<span class="text-muted small">—</span>' ?></td>
+          <td data-label="Tamu"><span class="badge bg-info-subtle text-info-emphasis"><?= (int)$r['tamu'] ?></span></td>
           <td data-label="Hadir"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?></td>
         </tr>
       <?php endforeach; ?>
+      </tbody></table></div>
+    </div>
+
+    <!-- Riwayat aktivitas publik (semua member) -->
+    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-globe text-primary"></i> Riwayat Aktivitas Publik</div>
+    <div class="table-responsive"><table class="table table-hover mb-0">
+      <thead><tr><th>Tanggal</th><th>Member</th><th>Jenis</th><th>Durasi</th><th>Jarak</th></tr></thead>
+      <tbody>
+        <?php foreach($publicActs as $a): ?>
+        <tr>
+          <td><?= htmlspecialchars($a['tanggal']) ?></td>
+          <td><a class="text-decoration-none" href="/user.php?id=<?= (int)$a['uid'] ?>"><?= user_name_with_avatar($a['foto_url'], $a['nama'], false, 22) ?></a></td>
+          <td><span class="pill"><?= htmlspecialchars($a['jenis']) ?></span></td>
+          <td><?= (int)$a['durasi_menit'] ?> mnt</td>
+          <td><?= htmlspecialchars($a['jarak_km'] ?? '0') ?> km</td>
+        </tr>
+        <?php endforeach; if(!$publicActs): ?><tr><td colspan="5" class="text-center text-muted small py-3">Belum ada aktivitas.</td></tr><?php endif; ?>
       </tbody></table></div>
     </div>
 

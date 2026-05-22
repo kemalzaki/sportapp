@@ -1,8 +1,8 @@
 <?php
 // Admin: generate / tampilkan QR per jadwal
-require __DIR__.'/config/db.php';
-require __DIR__.'/includes/auth.php';
-require __DIR__.'/includes/security.php';
+require __DIR__.'/../config/db.php';
+require __DIR__.'/../includes/auth.php';
+require __DIR__.'/../includes/security.php';
 send_security_headers(); enforce_session_timeout();
 require_role('admin');
 $pageTitle = 'QR Sesi';
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $j) {
 
 $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal ORDER BY tanggal DESC LIMIT 50");
 $tokens = $j ? db_all("SELECT * FROM qr_tokens WHERE jadwal_id=$1 ORDER BY id DESC", [$jadwalId]) : [];
-include __DIR__.'/includes/header.php';
+include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-qr-code text-primary"></i> QR Check-in Sesi</h2>
 
@@ -80,4 +80,4 @@ include __DIR__.'/includes/header.php';
     <?php endif; ?>
   </div>
 </div>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php include __DIR__.'/../includes/footer.php'; ?>
