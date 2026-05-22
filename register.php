@@ -1,63 +1,44 @@
 <?php
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
-require __DIR__.'/includes/helpers.php';
-$pageTitle='Daftar'; $err='';
-
+require __DIR__.'/includes/security.php';
+send_security_headers();
+$pageTitle = 'Daftar';
+$err = null;
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
-    $nama=trim($_POST['nama']??''); $email=trim($_POST['email']??''); $pass=$_POST['password']??'';
-    $captcha = trim($_POST['captcha'] ?? '');
-    if (!captcha_check($captcha)) {
-        $err='Jawaban captcha salah.';
-    } elseif(!$nama || !$email || strlen($pass)<6){
-        $err='Lengkapi data, password minimal 6 karakter.';
-    } else {
-        try{
-            db_exec("INSERT INTO users(nama,email,password_hash,role) VALUES($1,$2,$3,'member')",
-                    [$nama, $email, password_hash($pass, PASSWORD_BCRYPT)]);
-            unset($_SESSION['captcha_answer']);
-            header('Location: /login.php?registered=1'); exit;
+    rate_limit_or_die('register:'.($_SERVER['REMOTE_ADDR'] ?? '0'), 5, 600);
+    $nama = trim($_POST['nama'] ?? '');
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $pass = $_POST['password'] ?? '';
+    if (strlen($nama) < 2 || strlen($nama) > 80) $err = 'Nama 2-80 karakter.';
+    elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $err = 'Email tidak valid.';
+    elseif (strlen($pass) < 8) $err = 'Password minimal 8 karakter.';
+    elseif (db_one("SELECT id FROM users WHERE LOWER(email)=$1", [$email])) $err = 'Email sudah terdaftar.';
+    else {
+        $hash = hash_password($pass);
+        try {
+            db_exec("INSERT INTO users(nama,email,password,role) VALUES($1,$2,$3,'member')", [$nama, $email, $hash]);
+            header('Location: /login.php'); exit;
         } catch (Throwable $e) {
-            $err='Email sudah terdaftar.';
+            // fallback bila kolom bernama password_hash
+            try { db_exec("INSERT INTO users(nama,email,password_hash,role) VALUES($1,$2,$3,'member')", [$nama,$email,$hash]); header('Location: /login.php'); exit; }
+            catch (Throwable $e2) { $err = 'Pendaftaran gagal: '.$e2->getMessage(); }
         }
     }
 }
-[$ca,$cb] = captcha_new();
-include __DIR__.'/includes/header.php'; ?>
-
-<div class="auth-wrap">
-  <div class="auth-card">
-    <div class="auth-head">
-      <div class="ic mb-2"><i class="bi bi-person-plus"></i></div>
-      <h4 class="mb-0 fw-bold">Daftar Member Baru</h4>
-      <small class="opacity-75">Mulai pantau performa olahragamu</small>
-    </div>
-    <div class="auth-body">
-      <?php if($err): ?><div class="alert alert-danger py-2 small"><?= $err ?></div><?php endif; ?>
-      <form method="post">
-        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-        <div class="mb-3"><label class="form-label small fw-semibold">Nama Lengkap</label>
-          <div class="input-group"><span class="input-group-text"><i class="bi bi-person"></i></span>
-          <input class="form-control" name="nama" required></div></div>
-        <div class="mb-3"><label class="form-label small fw-semibold">Email</label>
-          <div class="input-group"><span class="input-group-text"><i class="bi bi-envelope"></i></span>
-          <input class="form-control" name="email" type="email" required></div></div>
-        <div class="mb-3"><label class="form-label small fw-semibold">Password (min 6)</label>
-          <div class="input-group"><span class="input-group-text"><i class="bi bi-lock"></i></span>
-          <input class="form-control" name="password" type="password" required></div></div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Verifikasi (captcha)</label>
-          <div class="d-flex gap-2 align-items-center">
-            <div class="captcha-box"><i class="bi bi-shield-check text-primary"></i> <?= $ca ?> + <?= $cb ?> =</div>
-            <input class="form-control" name="captcha" type="number" inputmode="numeric" required placeholder="?">
-          </div>
-        </div>
-        <button class="btn btn-primary w-100"><i class="bi bi-person-check me-1"></i> Daftar</button>
-        <p class="text-center mt-3 mb-0 small">Sudah punya akun? <a href="login.php" class="fw-semibold">Masuk</a></p>
-      </form>
-    </div>
-  </div>
-</div>
-
+include __DIR__.'/includes/header.php';
+?>
+<div class="row justify-content-center"><div class="col-md-5"><div class="card shadow-sm"><div class="card-body p-4">
+<h4 class="mb-3 text-center">Daftar Akun</h4>
+<?php if($err): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+<form method="post">
+  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+  <div class="mb-2"><label class="small fw-semibold">Nama</label><input class="form-control" name="nama" required maxlength="80"></div>
+  <div class="mb-2"><label class="small fw-semibold">Email</label><input class="form-control" name="email" type="email" required></div>
+  <div class="mb-3"><label class="small fw-semibold">Password (min 8)</label><input class="form-control" name="password" type="password" minlength="8" required></div>
+  <button class="btn btn-primary w-100">Daftar</button>
+</form>
+<div class="text-center small mt-3">Sudah punya akun? <a href="/login.php">Masuk</a></div>
+</div></div></div></div>
 <?php include __DIR__.'/includes/footer.php'; ?>

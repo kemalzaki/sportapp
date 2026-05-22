@@ -1,67 +1,62 @@
 <?php
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
-$pageTitle='Login'; $err='';
+require __DIR__.'/includes/security.php';
+send_security_headers();
+$pageTitle = 'Login';
+$err = null;
+if (!empty($_GET['expired'])) $err = 'Sesi habis. Silakan login kembali.';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
-    $email   = trim($_POST['email'] ?? '');
-    $pass    = $_POST['password'] ?? '';
-    $captcha = trim($_POST['captcha'] ?? '');
-
-    if (!captcha_check($captcha)) {
-        $err = 'Jawaban captcha salah.';
-    } else {
-        $u = db_one("SELECT * FROM users WHERE email=$1", [$email]);
-        if ($u && password_verify($pass, $u['password_hash'])) {
-            $_SESSION['user'] = ['id'=>$u['id'],'nama'=>$u['nama'],'email'=>$u['email'],'role'=>$u['role']];
-            unset($_SESSION['captcha_answer']);
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $pass  = $_POST['password'] ?? '';
+    $cap   = $_POST['captcha'] ?? '';
+    $ip    = $_SERVER['REMOTE_ADDR'] ?? '0';
+    if (!rate_limit("login:$ip", 10, 60)) { http_response_code(429); $err = 'Terlalu banyak percobaan. Coba lagi sebentar.'; }
+    elseif (!captcha_check($cap)) $err = 'Captcha salah.';
+    elseif (too_many_failed_logins($email)) $err = 'Akun sementara dikunci karena terlalu banyak login gagal. Coba lagi 10 menit.';
+    else {
+        $u = db_one("SELECT * FROM users WHERE LOWER(email)=$1", [$email]);
+        $ok = false;
+        if ($u) {
+            $stored = $u['password'] ?? $u['password_hash'] ?? '';
+            // Backward compatibility: kalau hash mulai dengan $2y/$argon -> verify, kalau tidak -> compare plain dan upgrade
+            if ($stored && (str_starts_with($stored,'$2y$') || str_starts_with($stored,'$argon'))) {
+                $ok = verify_password($pass, $stored);
+            } else {
+                $ok = hash_equals((string)$stored, (string)$pass);
+                if ($ok) { try { db_exec("UPDATE users SET password=$1 WHERE id=$2", [hash_password($pass), (int)$u['id']]); } catch(Throwable $e) {} }
+            }
+        }
+        log_login_attempt($email, $ok);
+        if ($ok) {
+            session_regenerate_id(true);
+            $_SESSION['user'] = ['id'=>(int)$u['id'], 'nama'=>$u['nama'], 'email'=>$u['email'], 'role'=>$u['role']];
+            $_SESSION['last_activity'] = time();
             header('Location: /index.php'); exit;
         }
         $err = 'Email atau password salah.';
     }
 }
-
-[$ca, $cb] = captcha_new();
-include __DIR__.'/includes/header.php'; ?>
-
-<div class="auth-wrap">
-  <div class="auth-card">
-    <div class="auth-head">
-      <div class="ic mb-2"><i class="bi bi-box-arrow-in-right"></i></div>
-      <h4 class="mb-0 fw-bold">Masuk ke HapFam SportApp</h4>
-      <small class="opacity-75">Lanjutkan untuk catat aktivitas olahraga</small>
+[$a,$b] = captcha_new();
+include __DIR__.'/includes/header.php';
+?>
+<div class="row justify-content-center"><div class="col-md-5">
+<div class="card shadow-sm"><div class="card-body p-4">
+  <h4 class="mb-3 text-center">Masuk</h4>
+  <?php if($err): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+  <form method="post">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <div class="mb-2"><label class="small fw-semibold">Email</label><input class="form-control" name="email" type="email" required></div>
+    <div class="mb-2"><label class="small fw-semibold">Password</label><input class="form-control" name="password" type="password" required></div>
+    <div class="mb-3 d-flex align-items-center gap-2">
+      <span class="captcha-box bg-light px-3 py-2 rounded"><?= $a ?> + <?= $b ?> = ?</span>
+      <input class="form-control" name="captcha" required style="max-width:120px">
     </div>
-    <div class="auth-body">
-      <?php if($err): ?><div class="alert alert-danger py-2 small"><?= $err ?></div><?php endif; ?>
-      <form method="post">
-        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Email</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-            <input class="form-control" name="email" type="email" required autofocus>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Password</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-            <input class="form-control" name="password" type="password" required>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Verifikasi (captcha)</label>
-          <div class="d-flex gap-2 align-items-center">
-            <div class="captcha-box"><i class="bi bi-shield-check text-primary"></i> <?= $ca ?> + <?= $cb ?> =</div>
-            <input class="form-control" name="captcha" type="number" inputmode="numeric" required placeholder="?">
-          </div>
-        </div>
-        <button class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-right me-1"></i> Masuk</button>
-        <p class="text-center mt-3 mb-0 small">Belum punya akun? <a href="register.php" class="fw-semibold">Daftar di sini</a></p>
-      </form>
-    </div>
-  </div>
-</div>
-
+    <button class="btn btn-primary w-100">Masuk</button>
+  </form>
+  <div class="text-center small mt-3">Belum punya akun? <a href="/register.php">Daftar</a></div>
+</div></div>
+</div></div>
 <?php include __DIR__.'/includes/footer.php'; ?>

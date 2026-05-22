@@ -1,22 +1,28 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/notifications.php';
+send_security_headers(); enforce_session_timeout();
 $u = current_user();
 if ($u) touch_online();
-// ambil foto user untuk navbar
-$navFoto = null;
+$navFoto = null; $nUnread = 0; $darkMode = 0;
 if ($u) {
-  $_uf = db_one("SELECT foto_url FROM users WHERE id=$1", [(int)$u['id']]);
+  $_uf = db_one("SELECT foto_url, COALESCE(dark_mode,0) AS dark_mode FROM users WHERE id=$1", [(int)$u['id']]);
   $navFoto = $_uf['foto_url'] ?? null;
+  $darkMode = (int)($_uf['dark_mode'] ?? 0);
+  $nUnread = unread_notif_count((int)$u['id']);
 }
 ?>
 <!doctype html>
-<html lang="id">
+<html lang="id" data-bs-theme="<?= $darkMode? 'dark':'light' ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#0ea5e9">
 <title><?= htmlspecialchars(($pageTitle ?? 'HapFam SportApp') . ' · HapFam SportApp') ?></title>
+<link rel="manifest" href="/manifest.php">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
@@ -24,72 +30,90 @@ if ($u) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app-v3.css">
 <style>
 .user-with-avatar{display:inline-flex;align-items:center;gap:.4rem;position:relative;}
 .user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
-.online-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px #fff;display:inline-block;}
-.captcha-box{padding:.45rem .75rem;background:#f1f5f9;border-radius:8px;font-weight:700;letter-spacing:.05em;}
-.news-slider{border-radius:12px;overflow:hidden;}
-.news-slider .carousel-item img{width:100%;height:300px;object-fit:cover;display:block;}
-.news-slider .news-caption{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(15,23,42,0) 0%,rgba(15,23,42,.85) 100%);color:#fff;padding:1rem 1.25rem;}
-.news-slider .news-caption h5{margin:0 0 .25rem;font-size:1rem;}
-.news-slider .news-caption .small{font-size:.78rem;opacity:.9;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-@media (max-width: 576px){.news-slider .carousel-item img{height:200px;} .news-slider .news-caption{padding:.6rem .8rem;}}
-.modal-body.wysiwyg-body{max-height:65vh;overflow-y:auto;}
+.online-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px #fff;display:inline-block;position:absolute;bottom:0;right:0;}
+.chat-bubble{background:var(--bs-tertiary-bg,#f1f5f9);border-radius:12px;padding:.5rem .75rem;margin-bottom:.4rem;}
+.chat-reply{margin-left:2rem;border-left:3px solid #0ea5e9;}
+.chat-meta{font-size:.7rem;color:var(--bs-secondary-color,#64748b);}
+.pill{display:inline-block;padding:.15rem .6rem;border-radius:999px;background:var(--bs-tertiary-bg,#f1f5f9);font-size:.75rem;color:var(--bs-secondary-color,#475569);}
+.card-stat .stat-icon{width:38px;height:38px;border-radius:10px;background:#e0f2fe;color:#0369a1;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:.4rem;}
+.card-stat .stat-label{font-size:.75rem;color:var(--bs-secondary-color,#64748b);}
+.card-stat .stat-value{font-size:1.4rem;font-weight:700;}
+.hero{padding:.5rem 0;}
+.badge-soft{display:inline-block;padding:.25rem .75rem;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.8rem;font-weight:500;}
+/* WYSIWYG: pisahkan editor satu sama lain agar tidak tumpang tindih */
+.ql-container{min-height:140px;}
 .ql-editor{min-height:140px;}
-.chat-bubble{background:#f1f5f9;border-radius:12px;padding:.5rem .75rem;margin-bottom:.4rem;}
-.chat-meta{font-size:.7rem;color:#64748b;}
+.wysiwyg-wrap{margin-bottom:1.25rem;}
+/* Heatmap GitHub-style */
+.heatmap{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);gap:3px;overflow-x:auto;padding:4px 0;}
+.heatmap .cell{width:12px;height:12px;border-radius:2px;background:#ebedf0;}
+.heatmap .l1{background:#9be9a8;} .heatmap .l2{background:#40c463;} .heatmap .l3{background:#30a14e;} .heatmap .l4{background:#216e39;}
+[data-bs-theme=dark] .heatmap .cell{background:#1f2937;}
 </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg app-nav sticky-top">
+<nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
-    <a class="navbar-brand" href="/index.php">
-      <span class="brand-logo"><i class="bi bi-lightning-charge-fill"></i></span>
-      <span class="brand-text">HapFam <span>SportApp</span></span>
-    </a>
-    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="menu">
-      <i class="bi bi-list text-white fs-3"></i>
-    </button>
+    <a class="navbar-brand fw-bold" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> HapFam <span class="opacity-75">SportApp</span></a>
+    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="/index.php"><i class="bi bi-house-door"></i> Beranda</a></li>
+        <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a></li>
         <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a></li>
         <?php if ($u): ?>
-          <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload Harian</a></li>
+          <li class="nav-item"><a class="nav-link" href="/checkin.php"><i class="bi bi-qr-code-scan"></i> Check-in</a></li>
+          <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a></li>
           <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a></li>
+          <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
+          <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
         <?php endif; ?>
-        <?php if ($u && $u['role'] === 'admin'): ?>
+        <?php if ($u && $u['role']==='admin'): ?>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-shield-lock"></i> Admin</a>
             <ul class="dropdown-menu dropdown-menu-end shadow">
-              <li><a class="dropdown-item" href="/admin/jadwal.php"><i class="bi bi-calendar-event me-2"></i>Manajemen Jadwal</a></li>
-              <li><a class="dropdown-item" href="/admin/absensi.php"><i class="bi bi-check2-square me-2"></i>Input Absensi</a></li>
-              <li><a class="dropdown-item" href="/admin/members.php"><i class="bi bi-people me-2"></i>Member</a></li>
-              <li><a class="dropdown-item" href="/admin/tim.php"><i class="bi bi-people-fill me-2"></i>Tim</a></li>
-              <li><a class="dropdown-item" href="/admin/tempat.php"><i class="bi bi-geo-alt me-2"></i>Tempat</a></li>
-              <li><a class="dropdown-item" href="/admin/jenis.php"><i class="bi bi-tags me-2"></i>Jenis Olahraga</a></li>
-              <li><a class="dropdown-item" href="/admin/berita.php"><i class="bi bi-newspaper me-2"></i>Berita</a></li>
+              <li><a class="dropdown-item" href="/admin/jadwal.php">Manajemen Jadwal</a></li>
+              <li><a class="dropdown-item" href="/admin/absensi.php">Input Absensi</a></li>
+              <li><a class="dropdown-item" href="/admin/qr_show.php">QR Check-in</a></li>
+              <li><a class="dropdown-item" href="/admin/members.php">Member</a></li>
+              <li><a class="dropdown-item" href="/admin/tim.php">Tim</a></li>
+              <li><a class="dropdown-item" href="/admin/tempat.php">Tempat</a></li>
+              <li><a class="dropdown-item" href="/admin/event.php">Event / Tournament</a></li>
+              <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
+              <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><h6 class="dropdown-header">Export Data</h6></li>
+              <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>
+              <li><a class="dropdown-item" href="/export.php?type=jadwal&format=csv">Jadwal · Excel</a></li>
+              <li><a class="dropdown-item" href="/export.php?type=tempat&format=csv">Tempat · Excel</a></li>
+              <li><a class="dropdown-item" href="/export.php?type=aktivitas&format=csv">Aktivitas · Excel</a></li>
+              <li><a class="dropdown-item" href="/export.php?type=booking&format=csv">Booking · Excel</a></li>
+              <li><a class="dropdown-item" href="/export.php?type=members&format=pdf">Member · PDF</a></li>
             </ul>
           </li>
         <?php endif; ?>
       </ul>
-      <ul class="navbar-nav align-items-lg-center">
+      <form class="d-flex me-2" role="search" action="/search.php">
+        <input class="form-control form-control-sm" name="q" placeholder="🔍 Cari semua..." style="min-width:180px">
+      </form>
+      <ul class="navbar-nav">
+        <li class="nav-item"><button id="darkToggle" type="button" class="btn btn-sm btn-outline-light me-2" title="Dark Mode"><i class="bi bi-moon-stars"></i></button></li>
         <?php if ($u): ?>
-          <li class="nav-item me-lg-2">
-            <a href="/profile.php" class="text-decoration-none">
-            <span class="user-chip">
-              <?= user_avatar($navFoto, $u['nama'], 22) ?>
-              <?= htmlspecialchars($u['nama']) ?>
-              <span class="role role-<?= $u['role'] ?>"><?= $u['role'] ?></span>
-            </span></a>
-          </li>
-          <li class="nav-item"><a class="btn btn-sm btn-light" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+          <li class="nav-item"><a class="nav-link position-relative" href="/profile.php" title="Profil">
+            <?= user_avatar($navFoto, $u['nama'], 28) ?>
+            <?php if($nUnread): ?><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;"><?= $nUnread ?></span><?php endif; ?>
+          </a></li>
+          <li class="nav-item"><a class="nav-link" href="/logout.php"><i class="bi bi-box-arrow-right"></i></a></li>
         <?php else: ?>
-          <li class="nav-item"><a class="btn btn-sm btn-light" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="/login.php">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="/register.php">Daftar</a></li>
         <?php endif; ?>
       </ul>
     </div>
   </div>
 </nav>
-<main class="container py-4 page-fade">
+<main class="container py-3">

@@ -1,188 +1,167 @@
 <?php
+// Riwayat + Leaderboard + Riwayat Aktivitas (dengan bukti popup)
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
+require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
-$pageTitle = 'Riwayat Olahraga';
+send_security_headers(); enforce_session_timeout();
+$pageTitle = 'Riwayat & Leaderboard';
+$u = current_user();
 
-$bulan = $_GET['bulan'] ?? '';
-$jenis = $_GET['jenis'] ?? '';
-$koord = $_GET['koord'] ?? '';
+$period = $_GET['period'] ?? 'monthly';
+$cat = $_GET['cat'] ?? 'konsisten';
 
-$totalMember = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
+$periodSql = "j.tanggal >= CURRENT_DATE - INTERVAL '30 days'";
+if ($period === 'weekly') $periodSql = "j.tanggal >= CURRENT_DATE - INTERVAL '7 days'";
+if ($period === 'all')    $periodSql = "TRUE";
 
-$sql = "SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto,
-        (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir_internal,
-        (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id) AS total_absen
-        FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id WHERE 1=1";
-$p = []; $i = 1;
-if ($bulan) { $sql .= " AND bulan = \$$i";        $p[] = $bulan; $i++; }
-if ($jenis) { $sql .= " AND jenis::text = \$$i";  $p[] = $jenis; $i++; }
-if ($koord) { $sql .= " AND u.nama ILIKE \$$i";   $p[] = "%$koord%"; $i++; }
-$sql .= " ORDER BY tanggal DESC";
-$rows = db_all($sql, $p);
+$uPeriodSql = str_replace('j.tanggal','uh.tanggal',$periodSql);
 
-$tamuMap = [];
-if ($rows) {
-    $ids = array_map(fn($r)=>(int)$r['id'], $rows);
-    $tamus = db_all("SELECT me.jadwal_id, me.nama_tamu, u.nama AS dibawa FROM member_eksternal me
-                     LEFT JOIN users u ON u.id=me.dibawa_oleh_id
-                     WHERE me.jadwal_id = ANY($1::int[])", ['{'.implode(',', $ids).'}']);
-    foreach ($tamus as $t) $tamuMap[$t['jadwal_id']][] = $t;
+$lb = [];
+if ($cat === 'konsisten') {
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url, COUNT(*) AS skor
+                  FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id JOIN users u ON u.id=a.user_id
+                  WHERE a.hadir=1 AND $periodSql
+                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+} elseif ($cat === 'jarak') {
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url, COALESCE(SUM(uh.jarak_km),0) AS skor
+                  FROM upload_harian uh JOIN users u ON u.id=uh.user_id
+                  WHERE $uPeriodSql
+                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+} elseif ($cat === 'pace') {
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url, MIN(uh.pace_detik) AS skor
+                  FROM upload_harian uh JOIN users u ON u.id=uh.user_id
+                  WHERE $uPeriodSql AND uh.pace_detik IS NOT NULL
+                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor ASC LIMIT 20");
+} elseif ($cat === 'kalori') {
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url, COALESCE(SUM(uh.kalori),0) AS skor
+                  FROM upload_harian uh JOIN users u ON u.id=uh.user_id
+                  WHERE $uPeriodSql
+                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+} else {
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url,
+                    (COUNT(DISTINCT j.jenis)*10 + COUNT(*)) AS skor
+                  FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id JOIN users u ON u.id=a.user_id
+                  WHERE a.hadir=1 AND $periodSql
+                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
 }
 
-$koords = array_column(db_all("SELECT nama FROM users WHERE role='admin' ORDER BY nama"), 'nama');
-$jenisList = array_column(db_all("SELECT nama FROM jenis_olahraga ORDER BY nama"), 'nama');
-if (!$jenisList) $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya'];
+$riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
+                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir,
+                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id) AS total
+                   FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
+                   ORDER BY j.tanggal DESC LIMIT 50");
 
-// Aktivitas member publik (dari upload_harian)
-$aktivitas = db_all("SELECT uh.*, u.nama, u.foto_url FROM upload_harian uh
-                     JOIN users u ON u.id=uh.user_id
-                     ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 100");
-
-// Leaderboard kehadiran
-$totalSesi = (int) db_val("SELECT COUNT(*) FROM jadwal");
-$rank = db_all("
-  SELECT u.id, u.nama, u.foto_url,
-         COUNT(a.id) FILTER (WHERE a.hadir=1) AS hadir,
-         CASE WHEN $totalSesi>0
-              THEN ROUND(COUNT(a.id) FILTER (WHERE a.hadir=1)::numeric * 100 / $totalSesi, 1)
-              ELSE 0 END AS persen
-  FROM users u
-  LEFT JOIN absensi a ON a.user_id=u.id
-  WHERE u.role IN ('member','admin')
-  GROUP BY u.id, u.nama, u.foto_url
-  ORDER BY hadir DESC
-");
-
-include __DIR__.'/includes/header.php'; ?>
-
-<div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
-  <h2 class="mb-0"><i class="bi bi-clock-history text-primary"></i> Riwayat Olahraga</h2>
-  <span class="badge bg-primary rounded-pill"><?= count($rows) ?> sesi</span>
-</div>
+// Riwayat aktivitas saya (untuk bukti popup)
+$myActs = $u ? db_all("SELECT id,tanggal,jenis,durasi_menit,jarak_km,kalori,file_path,deskripsi
+                       FROM upload_harian WHERE user_id=$1 ORDER BY tanggal DESC LIMIT 30", [(int)$u['id']]) : [];
+include __DIR__.'/includes/header.php';
+?>
+<h2 class="mb-3"><i class="bi bi-clock-history text-primary"></i> Riwayat & Leaderboard</h2>
 
 <div class="card shadow-sm mb-3"><div class="card-body">
-<form class="row g-2" method="get">
-  <div class="col-12 col-md-3"><label class="form-label small fw-semibold text-muted">Bulan</label>
-    <input class="form-control" name="bulan" value="<?= htmlspecialchars($bulan) ?>" placeholder="cth: May"></div>
-  <div class="col-6 col-md-3"><label class="form-label small fw-semibold text-muted">Jenis</label>
-    <select class="form-select" name="jenis"><option value="">Semua</option>
-      <?php foreach($jenisList as $j): ?><option <?= $jenis===$j?'selected':'' ?>><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
-    </select></div>
-  <div class="col-6 col-md-3"><label class="form-label small fw-semibold text-muted">Koordinator</label>
-    <select class="form-select" name="koord"><option value="">Semua</option>
-      <?php foreach($koords as $k): ?><option <?= $koord===$k?'selected':'' ?>><?= htmlspecialchars($k) ?></option><?php endforeach; ?>
-    </select></div>
-  <div class="col-12 col-md-3 d-flex gap-2 align-items-end">
-    <button class="btn btn-primary flex-grow-1"><i class="bi bi-funnel"></i> Filter</button>
-    <a class="btn btn-outline-secondary" href="riwayat.php">Reset</a>
-  </div>
-</form>
+  <form class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="small fw-semibold">Kategori</label>
+      <select name="cat" class="form-select" onchange="this.form.submit()">
+        <?php foreach(['konsisten'=>'Paling Konsisten','jarak'=>'Jarak Terbanyak','pace'=>'Pace Terbaik','kalori'=>'Kalori Terbanyak','all'=>'All Rounder'] as $k=>$v): ?>
+          <option value="<?= $k ?>" <?= $cat===$k?'selected':'' ?>><?= $v ?></option>
+        <?php endforeach; ?>
+      </select></div>
+    <div class="col-md-3"><label class="small fw-semibold">Periode</label>
+      <select name="period" class="form-select" onchange="this.form.submit()">
+        <option value="weekly"  <?= $period==='weekly'?'selected':'' ?>>Mingguan</option>
+        <option value="monthly" <?= $period==='monthly'?'selected':'' ?>>Bulanan</option>
+        <option value="all"     <?= $period==='all'?'selected':'' ?>>All-time</option>
+      </select></div>
+  </form>
 </div></div>
 
-<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
-  <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-center">Durasi</th><th class="text-center">Hadir</th><th>Tamu</th></tr></thead><tbody>
-  <?php foreach($rows as $i=>$r): $tamus = $tamuMap[$r['id']] ?? []; ?>
-    <tr>
-      <td class="text-muted"><?= $i+1 ?></td>
-      <td><?= htmlspecialchars($r['tanggal']) ?></td>
-      <td><span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
-      <td><span class="pill"><?= htmlspecialchars($r['jenis']) ?></span></td>
-      <td><?= htmlspecialchars($r['tempat']) ?></td>
-      <td><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koordinator'] ?? '-', false, 26) ?></td>
-      <td class="text-center"><?= !empty($r['durasi_menit']) ? ((int)$r['durasi_menit'].' mnt') : '<span class="text-muted small">—</span>' ?></td>
-      <td class="text-center"><span class="badge bg-success rounded-pill"><?= (int)$r['hadir_internal'] ?>/<?= $totalMember ?></span></td>
-      <td>
-        <?php if ($tamus): ?>
-          <?php foreach ($tamus as $t): ?>
-            <span class="pill"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($t['nama_tamu']) ?><?php if (!empty($t['dibawa'])): ?> <span class="text-muted">· <?= htmlspecialchars($t['dibawa']) ?></span><?php endif; ?></span>
-          <?php endforeach; ?>
-        <?php else: ?><span class="text-muted small">—</span><?php endif; ?>
-      </td>
-    </tr>
-  <?php endforeach; if(!$rows): ?>
-    <tr><td colspan="9" class="text-center text-muted py-4">Belum ada data sesuai filter.</td></tr>
-  <?php endif; ?>
-  </tbody>
-</table></div></div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
+    <ol class="list-group list-group-flush list-group-numbered">
+      <?php foreach($lb as $i=>$row): ?>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <a href="/user.php?id=<?= (int)$row['id'] ?>" class="text-decoration-none">
+            <?= user_name_with_avatar($row['foto_url'] ?? null, $row['nama'], false, 28) ?>
+          </a>
+          <span class="badge bg-primary rounded-pill">
+            <?php
+              if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
+              elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
+              elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
+              else echo (int)$row['skor'];
+            ?>
+          </span>
+        </li>
+      <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
+    </ol></div>
+  </div>
 
-<div class="row g-3 mt-3">
   <div class="col-lg-7">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-primary me-1"></i> Riwayat Aktivitas Member (Publik)</div>
-      <div class="table-responsive"><table class="table table-sm table-hover mb-0">
-        <thead><tr><th>Tanggal</th><th>Hari</th><th>Member</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Pace</th><th>Bukti</th></tr></thead><tbody>
-        <?php foreach($aktivitas as $a): ?>
+    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 text-primary"></i> Riwayat Sesi</div>
+    <div class="table-responsive"><table class="table table-hover table-stack mb-0">
+      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Kehadiran</th></tr></thead>
+      <tbody>
+      <?php foreach($riwayat as $r): ?>
+        <tr>
+          <td data-label="Tanggal"><?= htmlspecialchars($r['tanggal']) ?> <span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
+          <td data-label="Jenis"><?= htmlspecialchars($r['jenis']) ?></td>
+          <td data-label="Tempat"><?= htmlspecialchars($r['tempat']) ?></td>
+          <td data-label="Hadir"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody></table></div>
+    </div>
+
+    <?php if($u): ?>
+    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-primary"></i> Riwayat Aktifitas Saya</div>
+    <div class="table-responsive"><table class="table table-hover mb-0">
+      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Kalori</th><th>Bukti</th></tr></thead>
+      <tbody>
+        <?php foreach($myActs as $a): ?>
         <tr>
           <td><?= htmlspecialchars($a['tanggal']) ?></td>
-          <td><small><?= hari_id($a['tanggal']) ?></small></td>
-          <td><?= user_name_with_avatar($a['foto_url'] ?? null, $a['nama'], false, 24) ?></td>
           <td><span class="pill"><?= htmlspecialchars($a['jenis']) ?></span></td>
           <td><?= (int)$a['durasi_menit'] ?> mnt</td>
           <td><?= htmlspecialchars($a['jarak_km']) ?> km</td>
-          <td><?= htmlspecialchars($a['pace'] ?? '') ?: '-' ?></td>
-          <td><?php if($a['file_path']): ?><button type="button" class="btn btn-sm btn-outline-primary" onclick="showBukti('<?= htmlspecialchars($a['file_path'], ENT_QUOTES) ?>','<?= htmlspecialchars($a['tanggal']) ?> · <?= htmlspecialchars($a['nama']) ?>')"><i class="bi bi-image"></i></button><?php else: ?>-<?php endif; ?></td>
+          <td><?= (int)$a['kalori'] ?></td>
+          <td>
+            <?php if($a['file_path']): ?>
+              <a href="#" onclick="showBukti(event,'<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>','<?= htmlspecialchars($a['tanggal']) ?>')">
+                <img src="<?= htmlspecialchars($a['file_path']) ?>" alt="bukti" style="height:42px;width:42px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:1px solid #ddd;">
+              </a>
+            <?php else: ?>-<?php endif; ?>
+          </td>
         </tr>
-        <?php endforeach; if(!$aktivitas): ?><tr><td colspan="8" class="text-center text-muted py-3">Belum ada aktivitas member.</td></tr><?php endif; ?>
-        </tbody></table></div></div>
-  </div>
-  <div class="col-lg-5">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-trophy text-primary me-1"></i> Leaderboard Kehadiran</div>
-      <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>#</th><th>Nama</th><th class="text-center">Hadir</th><th class="text-end">%</th></tr></thead><tbody>
-        <?php foreach($rank as $i=>$r): $medal = $i===0?'🥇':($i===1?'🥈':($i===2?'🥉':'')); ?>
-          <tr><td><?= $medal ?: ($i+1) ?></td>
-            <td><?= user_name_with_avatar($r['foto_url'] ?? null, $r['nama'], false, 26) ?></td>
-            <td class="text-center"><span class="badge bg-success rounded-pill"><?= (int)$r['hadir'] ?></span></td>
-            <td class="text-end fw-semibold"><?= $r['persen'] ?>%</td></tr>
-        <?php endforeach; ?>
-        </tbody></table></div></div>
+        <?php endforeach; if(!$myActs): ?><tr><td colspan="6" class="text-center text-muted small py-3">Belum ada aktivitas.</td></tr><?php endif; ?>
+      </tbody>
+    </table></div>
+    </div>
+    <?php endif; ?>
   </div>
 </div>
 
-<?php if ($rows): ?>
-<div class="row g-3 mt-3">
-  <div class="col-md-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-chat-dots text-primary me-1"></i> Konten Obrolan</div><ul class="list-group list-group-flush">
-    <?php $any=false; foreach($rows as $r): if(!trim(strip_tags($r['konten_obrolan']??''))) continue; $any=true; ?>
-      <li class="list-group-item"><small class="text-muted"><?= $r['tanggal'] ?> · <?= htmlspecialchars($r['jenis']) ?></small><br><?= $r['konten_obrolan'] ?></li>
-    <?php endforeach; if(!$any): ?><li class="list-group-item text-muted text-center small">Belum ada konten.</li><?php endif; ?>
-  </ul></div></div>
-  <div class="col-md-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-journal-text text-primary me-1"></i> Catatan Kondisi</div><ul class="list-group list-group-flush">
-    <?php $any=false; foreach($rows as $r): if(!trim(strip_tags($r['catatan']??''))) continue; $any=true; ?>
-      <li class="list-group-item"><small class="text-muted"><?= $r['tanggal'] ?></small><br><?= $r['catatan'] ?></li>
-    <?php endforeach; if(!$any): ?><li class="list-group-item text-muted text-center small">Belum ada catatan.</li><?php endif; ?>
-  </ul></div></div>
-</div>
-<?php endif; ?>
-
-
-<!-- Modal Bukti Aktivitas -->
+<!-- Bukti modal -->
 <div class="modal fade" id="buktiModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Bukti Aktivitas <small id="buktiDate" class="text-muted ms-2"></small></h5>
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Bukti Aktivitas <small id="bDate" class="text-muted ms-2"></small></h5>
         <button class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body text-center">
-        <img id="buktiImg" src="" alt="Bukti" style="max-width:100%;">
-        <div id="buktiFallback" class="d-none mt-3">
-          <a id="buktiOpen" href="#" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i> Buka file</a>
-        </div>
-      </div>
+      <div class="modal-body text-center"><img id="bImg" src="" style="max-width:100%;border-radius:8px;"></div>
+      <div class="modal-footer"><a id="bOpen" href="#" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i> Buka di tab baru</a></div>
     </div>
   </div>
 </div>
 <script>
-let buktiModal = null;
-function showBukti(src, date){
-  if (!buktiModal) buktiModal = new bootstrap.Modal(document.getElementById('buktiModal'));
-  const img = document.getElementById('buktiImg');
-  const fb  = document.getElementById('buktiFallback');
-  const op  = document.getElementById('buktiOpen');
-  document.getElementById('buktiDate').textContent = date || '';
-  img.classList.remove('d-none'); fb.classList.add('d-none');
-  img.onerror = () => { img.classList.add('d-none'); fb.classList.remove('d-none'); op.href = src; };
-  img.src = src; op.href = src;
-  buktiModal.show();
+let _bModal=null;
+function showBukti(ev, src, date){
+  if(ev) ev.preventDefault();
+  if(!_bModal) _bModal = new bootstrap.Modal(document.getElementById('buktiModal'));
+  document.getElementById('bImg').src = src;
+  document.getElementById('bOpen').href = src;
+  document.getElementById('bDate').textContent = date || '';
+  _bModal.show();
 }
 </script>
-
 <?php include __DIR__.'/includes/footer.php'; ?>

@@ -1,117 +1,133 @@
 <?php
+// Monitoring lanjutan: VO2, pace trend, calories, consistency, fatigue, heatmap
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
-require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/security.php';
+send_security_headers(); enforce_session_timeout();
 require_login();
-$pageTitle='Monitoring Performa';
+$u = current_user();
+$pageTitle = 'Monitoring Performa';
 
-$totalSesi = (int) db_val("SELECT COUNT(*) FROM jadwal");
+// Range default: 365 hari ke belakang
+$uploads = db_all("SELECT * FROM upload_harian WHERE user_id=$1 AND tanggal >= CURRENT_DATE - INTERVAL '365 days' ORDER BY tanggal", [(int)$u['id']]);
 
-$trend = db_all("
-  SELECT j.bulan, j.minggu_ke, MIN(j.tanggal) AS tgl,
-         COALESCE(SUM(CASE WHEN a.hadir=1 THEN 1 ELSE 0 END),0) AS total
-  FROM jadwal j
-  LEFT JOIN absensi a ON a.jadwal_id=j.id
-  GROUP BY j.bulan, j.minggu_ke
-  ORDER BY tgl
-");
+// ---- VO2 estimation (Cooper test ish): jika ada jarak_km >= 1.6 di durasi <=15 menit utk lari, atau pakai HR cadangan ----
+$vo2 = null;
+foreach (array_reverse($uploads) as $r) {
+    if (!empty($r['jarak_km']) && (float)$r['jarak_km'] >= 1.6 && !empty($r['durasi_menit'])) {
+        // Cooper: (jarak_meter - 504.9) / 44.73
+        $meters = (float)$r['jarak_km'] * 1000;
+        $vo2 = max(0, ($meters - 504.9) / 44.73);
+        break;
+    }
+}
 
-// Tren performa jogging harian (akumulasi semua user)
-$trendJog = db_all("
-  SELECT tanggal,
-         COALESCE(SUM(durasi_menit),0) AS durasi,
-         COALESCE(SUM(jarak_km),0) AS jarak,
-         COALESCE(SUM(kalori),0) AS kalori
-  FROM upload_harian
-  WHERE jenis='Jogging'
-  GROUP BY tanggal
-  ORDER BY tanggal
-");
+// ---- Pace trend (detik per km, lebih rendah lebih bagus) ----
+$pacePoints = [];
+foreach ($uploads as $r) {
+    if (!empty($r['pace_detik'])) $pacePoints[] = ['t'=>$r['tanggal'], 'v'=>(int)$r['pace_detik']];
+    elseif (!empty($r['jarak_km']) && !empty($r['durasi_menit']) && (float)$r['jarak_km']>0) {
+        $pacePoints[] = ['t'=>$r['tanggal'], 'v'=> (int) round(((int)$r['durasi_menit']*60)/(float)$r['jarak_km'])];
+    }
+}
 
-$me = current_user();
-$s = db_one("SELECT COALESCE(SUM(durasi_menit),0) dm, COALESCE(SUM(jarak_km),0) jk, COALESCE(SUM(kalori),0) kl
-             FROM upload_harian WHERE user_id=$1", [$me['id']]);
+// ---- Calories weekly ----
+$calMap = [];
+foreach ($uploads as $r) {
+    if (!empty($r['kalori'])) {
+        $w = date('o-\WW', strtotime($r['tanggal']));
+        $calMap[$w] = ($calMap[$w] ?? 0) + (int)$r['kalori'];
+    }
+}
+ksort($calMap);
+$calLabels = array_keys($calMap); $calVals = array_values($calMap);
 
-include __DIR__.'/includes/header.php'; ?>
+// ---- Consistency score: % minggu dengan minimal 1 aktivitas, 12 minggu terakhir ----
+$weeks12 = [];
+for ($i=11; $i>=0; $i--) $weeks12[date('o-\WW', strtotime("-$i week"))] = 0;
+foreach ($uploads as $r) {
+    $w = date('o-\WW', strtotime($r['tanggal']));
+    if (isset($weeks12[$w])) $weeks12[$w] = 1;
+}
+$consistency = (int) round(array_sum($weeks12) / count($weeks12) * 100);
 
+// ---- Fatigue indicator: rata-rata RPE 7 hari vs 28 hari ----
+$rpe7=[]; $rpe28=[];
+$today = time();
+foreach ($uploads as $r) {
+    if (empty($r['rpe'])) continue;
+    $age = ($today - strtotime($r['tanggal'])) / 86400;
+    if ($age <= 7) $rpe7[] = (int)$r['rpe'];
+    if ($age <= 28) $rpe28[] = (int)$r['rpe'];
+}
+$avg7  = $rpe7  ? array_sum($rpe7)/count($rpe7) : 0;
+$avg28 = $rpe28 ? array_sum($rpe28)/count($rpe28) : 0;
+$fatigue = $avg28 > 0 ? round(($avg7/$avg28 - 1)*100) : 0;
+$fatigueLabel = $fatigue > 30 ? '🔥 Overload' : ($fatigue > 10 ? '⚠️ Cukup berat' : ($fatigue < -10 ? '🟢 Recovery' : '✅ Seimbang'));
+
+// ---- Heatmap 53 minggu x 7 hari ----
+$heat = [];
+foreach ($uploads as $r) {
+    $heat[$r['tanggal']] = ($heat[$r['tanggal']] ?? 0) + 1;
+}
+
+include __DIR__.'/includes/header.php';
+?>
 <h2 class="mb-3"><i class="bi bi-graph-up-arrow text-primary"></i> Monitoring Performa</h2>
 
-<div class="alert alert-info py-2 small d-flex align-items-center gap-2">
-  <i class="bi bi-info-circle fs-5"></i>
-  <div>
-    <strong>Keterangan Jogging:</strong> data durasi, jarak, dan kalori bersumber dari upload aktivitas
-    <u>jogging</u> harian masing-masing member.
-  </div>
-</div>
-
 <div class="row g-3 mb-3">
-  <div class="col-6 col-lg-4">
-    <div class="card card-stat shadow-sm h-100"><div class="card-body">
-      <div class="stat-icon"><i class="bi bi-stopwatch"></i></div>
-      <div class="stat-label">Total Durasi Saya</div>
-      <div class="stat-value"><?= (int)$s['dm'] ?><small class="fs-6 fw-normal text-muted"> mnt</small></div>
-    </div></div>
-  </div>
-  <div class="col-6 col-lg-4">
-    <div class="card card-stat shadow-sm h-100"><div class="card-body">
-      <div class="stat-icon"><i class="bi bi-signpost-split"></i></div>
-      <div class="stat-label">Total Jarak Saya</div>
-      <div class="stat-value"><?= $s['jk'] ?><small class="fs-6 fw-normal text-muted"> km</small></div>
-    </div></div>
-  </div>
-  <div class="col-12 col-lg-4">
-    <div class="card card-stat shadow-sm h-100"><div class="card-body">
-      <div class="stat-icon"><i class="bi bi-fire"></i></div>
-      <div class="stat-label">Total Kalori Saya</div>
-      <div class="stat-value"><?= (int)$s['kl'] ?></div>
-    </div></div>
-  </div>
+  <div class="col-6 col-md-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-label">VO₂ Estimasi</div>
+    <div class="stat-value"><?= $vo2 ? number_format($vo2,1) : '—' ?></div>
+    <small class="text-muted">ml/kg/min</small></div></div></div>
+  <div class="col-6 col-md-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-label">Consistency</div>
+    <div class="stat-value"><?= $consistency ?>%</div>
+    <small class="text-muted">12 minggu</small></div></div></div>
+  <div class="col-6 col-md-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-label">Fatigue Index</div>
+    <div class="stat-value"><?= $fatigue ?>%</div>
+    <small class="text-muted"><?= $fatigueLabel ?></small></div></div></div>
+  <div class="col-6 col-md-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-label">Kalori (mgg ini)</div>
+    <div class="stat-value"><?= number_format(end($calVals) ?: 0) ?></div>
+    <small class="text-muted">kkal</small></div></div></div>
 </div>
 
 <div class="row g-3">
-  <div class="col-lg-6">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-primary me-1"></i> Tren Total Kehadiran Mingguan</div>
-      <div class="card-body"><canvas id="trendChart" height="160"></canvas></div></div>
-  </div>
-  <div class="col-lg-6">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-graph-up text-primary me-1"></i> Tren Performa Jogging Harian</div>
-      <div class="card-body"><canvas id="jogChart" height="160"></canvas></div></div>
-  </div>
+  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header">Pace Trend (detik/km, lower = better)</div>
+    <div class="card-body"><canvas id="paceChart" height="160"></canvas></div></div></div>
+  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header">Kalori per Minggu</div>
+    <div class="card-body"><canvas id="calChart" height="160"></canvas></div></div></div>
 </div>
 
-<script>
-window.addEventListener('load', function(){
-  if (typeof Chart === 'undefined') { console.warn('Chart.js belum termuat'); return; }
-  const trendLabels = <?= json_encode(array_map(fn($t)=>$t['bulan'].' '.$t['minggu_ke'], $trend)) ?>;
-  const trendData   = <?= json_encode(array_map(fn($t)=>(int)$t['total'], $trend)) ?>;
-  const ctx = document.getElementById('trendChart');
-  if (ctx) {
-    if (trendLabels.length === 0) {
-      ctx.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada data jadwal.</p>';
-    } else {
-      const grad = ctx.getContext('2d').createLinearGradient(0,0,0,200);
-      grad.addColorStop(0,'rgba(14,165,233,.45)'); grad.addColorStop(1,'rgba(14,165,233,0)');
-      new Chart(ctx,{type:'line',data:{labels:trendLabels,datasets:[{label:'Total Hadir',data:trendData,borderColor:'#0ea5e9',backgroundColor:grad,fill:true,tension:.35,pointBackgroundColor:'#0ea5e9'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-    }
+<div class="card shadow-sm mt-3"><div class="card-header">Heatmap Aktivitas (53 minggu)</div>
+<div class="card-body"><div class="heatmap">
+<?php
+$start = strtotime('sunday -52 week');
+for ($w=0; $w<53; $w++) {
+  for ($d=0; $d<7; $d++) {
+    $date = date('Y-m-d', strtotime("+".($w*7+$d)." day", $start));
+    $cnt = $heat[$date] ?? 0;
+    $cls = $cnt<=0?'':($cnt==1?'l1':($cnt==2?'l2':($cnt==3?'l3':'l4')));
+    echo '<div class="cell '.$cls.'" title="'.$date.': '.$cnt.'"></div>';
   }
+}
+?>
+</div></div></div>
 
-  const jogLabels = <?= json_encode(array_map(fn($t)=>$t['tanggal'], $trendJog)) ?>;
-  const jogDur    = <?= json_encode(array_map(fn($t)=>(int)$t['durasi'], $trendJog)) ?>;
-  const jogJrk    = <?= json_encode(array_map(fn($t)=>(float)$t['jarak'], $trendJog)) ?>;
-  const jogKal    = <?= json_encode(array_map(fn($t)=>(int)$t['kalori'], $trendJog)) ?>;
-  const jc = document.getElementById('jogChart');
-  if (jc) {
-    if (jogLabels.length === 0) {
-      jc.parentNode.innerHTML = '<p class="text-muted text-center py-3 mb-0">Belum ada upload jogging.</p>';
-    } else {
-      new Chart(jc,{type:'line',data:{labels:jogLabels,datasets:[
-        {label:'Durasi (mnt)',data:jogDur,borderColor:'#0ea5e9',tension:.3,fill:false},
-        {label:'Jarak (km)',data:jogJrk,borderColor:'#22c55e',tension:.3,fill:false},
-        {label:'Kalori',data:jogKal,borderColor:'#f59e0b',tension:.3,fill:false}
-      ]},options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}});
-    }
-  }
+<script>
+const paceData = <?= json_encode($pacePoints) ?>;
+const calLabels = <?= json_encode($calLabels) ?>;
+const calVals = <?= json_encode($calVals) ?>;
+new Chart(document.getElementById('paceChart'), {
+  type:'line',
+  data:{ labels: paceData.map(p=>p.t), datasets:[{ label:'pace (s/km)', data: paceData.map(p=>p.v), tension:.3, borderColor:'#0ea5e9'}]},
+  options:{ scales:{ y:{ reverse:true } } }
+});
+new Chart(document.getElementById('calChart'), {
+  type:'bar',
+  data:{ labels: calLabels, datasets:[{ label:'kalori', data: calVals, backgroundColor:'#6366f1' }]}
 });
 </script>
-
 <?php include __DIR__.'/includes/footer.php'; ?>
