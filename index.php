@@ -84,12 +84,13 @@ foreach ($chats as $c) {
 $stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN users u ON u.id=p.user_id
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
                    ORDER BY p.created_at DESC LIMIT 20");
+$uidMe = (int)($u['id'] ?? 0);
 $feed = db_all("SELECT p.*, u.nama, u.foto_url,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
-                  (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=) AS liked_by_me
+                  (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=$1) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
-                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12");
+                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12", [$uidMe]);
 
 $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
                     FROM qr_tokens q JOIN jadwal j ON j.id=q.jadwal_id
