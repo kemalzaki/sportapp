@@ -42,26 +42,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var form = ta.closest('form'); if (form) form.addEventListener('submit', function(){ ta.value = q.root.innerHTML; });
   });
 
-  var html = document.documentElement;
-  var stored = localStorage.getItem('darkMode');
-  if (stored === '1') html.setAttribute('data-bs-theme','dark');
-  if (stored === '0') html.setAttribute('data-bs-theme','light');
-  var btn = document.getElementById('darkToggle');
-  if (btn) {
-    function syncIcon(){
-      var d = html.getAttribute('data-bs-theme')==='dark';
-      btn.innerHTML = d ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
-    }
-    syncIcon();
-    btn.addEventListener('click', function(){
-      var d = html.getAttribute('data-bs-theme')==='dark';
-      var next = d ? 'light':'dark';
-      html.setAttribute('data-bs-theme', next);
-      localStorage.setItem('darkMode', next==='dark'?'1':'0');
-      syncIcon();
-      fetch('/api_dark_mode.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'mode='+(next==='dark'?'1':'0')}).catch(()=>{});
-    });
-  }
+  // dark mode dihapus (selalu light)
+  document.documentElement.setAttribute('data-bs-theme','light');
+  try { localStorage.removeItem('darkMode'); } catch(e) {}
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});

@@ -64,10 +64,12 @@ include __DIR__.'/includes/header.php';
        <span class="pill"><?= htmlspecialchars($detail['jenis']) ?></span>
        <span class="pill">Status: <?= htmlspecialchars($detail['status']) ?></span></div>
   <p class="mt-2"><?= nl2br(htmlspecialchars($detail['deskripsi'] ?? '')) ?></p>
-  <div class="row small">
-    <div class="col-md-4"><b>Mulai:</b> <?= htmlspecialchars($detail['tanggal_mulai']) ?></div>
-    <div class="col-md-4"><b>Selesai:</b> <?= htmlspecialchars($detail['tanggal_selesai'] ?? '-') ?></div>
-    <div class="col-md-4"><b>Hadiah:</b> <?= htmlspecialchars($detail['hadiah'] ?? '-') ?></div>
+  <div class="row small g-2">
+    <div class="col-md-4"><b><i class="bi bi-calendar-event"></i> Mulai:</b> <?= htmlspecialchars($detail['tanggal_mulai']) ?><?php if(!empty($detail['jam_mulai'])): ?> · <?= substr($detail['jam_mulai'],0,5) ?><?php endif; ?></div>
+    <div class="col-md-4"><b><i class="bi bi-calendar-check"></i> Selesai:</b> <?= htmlspecialchars($detail['tanggal_selesai'] ?? '-') ?><?php if(!empty($detail['jam_selesai'])): ?> · <?= substr($detail['jam_selesai'],0,5) ?><?php endif; ?></div>
+    <div class="col-md-4"><b><i class="bi bi-trophy"></i> Hadiah:</b> <?= htmlspecialchars($detail['hadiah'] ?? '-') ?></div>
+    <?php if(!empty($detail['lokasi'])): ?><div class="col-md-6"><b><i class="bi bi-geo-alt"></i> Lokasi:</b> <?= htmlspecialchars($detail['lokasi']) ?></div><?php endif; ?>
+    <?php if(!empty($detail['batas_daftar'])): ?><div class="col-md-6"><b><i class="bi bi-hourglass-split"></i> Batas Pendaftaran:</b> <?= htmlspecialchars($detail['batas_daftar']) ?></div><?php endif; ?>
   </div>
 
   <?php if($detail['status']==='open'): ?>

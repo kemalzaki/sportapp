@@ -164,37 +164,43 @@ for ($w=0; $w<53; $w++) {
 </div></div>
 
 <script>
-const paceData = <?= json_encode($pacePoints) ?>;
-const calLabels = <?= json_encode($calLabels) ?>;
-const calVals   = <?= json_encode($calVals) ?>;
-const wkLabels  = <?= json_encode($wkLabels) ?>;
-const wkVals    = <?= json_encode($wkVals) ?>;
-const jogLabels = <?= json_encode($jogLabels) ?>;
-const jogDist   = <?= json_encode($jogDist) ?>;
-const jogPace   = <?= json_encode($jogPace) ?>;
+const paceData = <?= json_encode($pacePoints ?: []) ?>;
+const calLabels = <?= json_encode($calLabels ?: []) ?>;
+const calVals   = <?= json_encode($calVals ?: []) ?>;
+const wkLabels  = <?= json_encode($wkLabels ?: []) ?>;
+const wkVals    = <?= json_encode($wkVals ?: []) ?>;
+const jogLabels = <?= json_encode($jogLabels ?: []) ?>;
+const jogDist   = <?= json_encode($jogDist ?: []) ?>;
+const jogPace   = <?= json_encode($jogPace ?: []) ?>;
 
-new Chart(document.getElementById('paceChart'), {
-  type:'line',
-  data:{ labels: paceData.map(p=>p.t), datasets:[{ label:'pace (s/km)', data: paceData.map(p=>p.v), tension:.3, borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.15)', fill:true }]},
-  options:{ scales:{ y:{ reverse:true } } }
-});
-new Chart(document.getElementById('calChart'), {
-  type:'bar',
-  data:{ labels: calLabels, datasets:[{ label:'kalori', data: calVals, backgroundColor:'#6366f1' }]}
-});
-new Chart(document.getElementById('wkChart'), {
-  type:'line',
-  data:{ labels: wkLabels, datasets:[{ label:'Total hadir', data: wkVals, tension:.3, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true }]}
-});
-new Chart(document.getElementById('jogChart'), {
-  type:'line',
-  data:{ labels: jogLabels, datasets:[
-    { label:'Jarak (km)', data: jogDist, yAxisID:'y',  borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.15)', tension:.3 },
-    { label:'Pace (s/km)',data: jogPace, yAxisID:'y1', borderColor:'#ef4444', tension:.3 }
-  ]},
-  options:{ scales:{ y:{ position:'left', title:{display:true,text:'km'} }, y1:{ position:'right', reverse:true, grid:{drawOnChartArea:false}, title:{display:true,text:'s/km'} } } }
-});
+function _renderMonitoringCharts(){
+  if (typeof Chart === 'undefined') { return setTimeout(_renderMonitoringCharts, 120); }
+  // Helper untuk dataset kosong: tampilkan minimal 1 titik 0 agar grid tren tetap kelihatan
+  function ensure(arr, fallbackLabel){ if(arr && arr.length) return arr; return [fallbackLabel || '—']; }
 
-document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+  new Chart(document.getElementById('paceChart'), {
+    type:'line',
+    data:{ labels: paceData.length? paceData.map(p=>p.t):['—'], datasets:[{ label:'pace (s/km)', data: paceData.length? paceData.map(p=>p.v):[0], tension:.3, borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.15)', fill:true }]},
+    options:{ scales:{ y:{ reverse:true, beginAtZero:false } } }
+  });
+  new Chart(document.getElementById('calChart'), {
+    type:'bar',
+    data:{ labels: calLabels.length? calLabels:['—'], datasets:[{ label:'kalori', data: calVals.length? calVals:[0], backgroundColor:'#6366f1' }]}
+  });
+  new Chart(document.getElementById('wkChart'), {
+    type:'line',
+    data:{ labels: wkLabels.length? wkLabels:['—'], datasets:[{ label:'Total hadir', data: wkVals.length? wkVals:[0], tension:.3, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true }]}
+  });
+  new Chart(document.getElementById('jogChart'), {
+    type:'line',
+    data:{ labels: jogLabels.length? jogLabels:['—'], datasets:[
+      { label:'Jarak (km)', data: jogDist.length? jogDist:[0], yAxisID:'y',  borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.15)', tension:.3 },
+      { label:'Pace (s/km)',data: jogPace.length? jogPace:[0], yAxisID:'y1', borderColor:'#ef4444', tension:.3 }
+    ]},
+    options:{ scales:{ y:{ position:'left', title:{display:true,text:'km'} }, y1:{ position:'right', reverse:true, grid:{drawOnChartArea:false}, title:{display:true,text:'s/km'} } } }
+  });
+  if (window.bootstrap) document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+}
+document.addEventListener('DOMContentLoaded', _renderMonitoringCharts);
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

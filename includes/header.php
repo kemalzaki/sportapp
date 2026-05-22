@@ -15,7 +15,7 @@ if ($u) {
 }
 ?>
 <!doctype html>
-<html lang="id" data-bs-theme="<?= $darkMode? 'dark':'light' ?>">
+<html lang="id" data-bs-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -100,8 +100,7 @@ if ($u) {
       <form class="d-flex me-2" role="search" action="/search.php">
         <input class="form-control form-control-sm" name="q" placeholder="🔍 Cari semua..." style="min-width:180px">
       </form>
-      <ul class="navbar-nav">
-        <li class="nav-item"><button id="darkToggle" type="button" class="btn btn-sm btn-outline-light me-2" title="Dark Mode"><i class="bi bi-moon-stars"></i></button></li>
+      <ul class="navbar-nav align-items-lg-center">
         <?php if ($u): ?>
           <li class="nav-item"><a class="nav-link position-relative" href="/profile.php" title="Profil">
             <?= user_avatar($navFoto, $u['nama'], 28) ?>

@@ -65,6 +65,10 @@ function haversine_m(float $a1, float $a2, float $b1, float $b2): float {
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-qr-code-scan text-primary"></i> Check-in QR</h2>
+<div class="alert alert-info py-2 small">
+  <i class="bi bi-info-circle"></i> <strong>Kode QR diperoleh dari Admin.</strong>
+  Bila belum punya kode, hubungi <em>Admin</em> sesi olahraga atau cek panel <a href="/index.php" class="alert-link">Beranda</a> (bagian "QR aktif" muncul saat ada sesi).
+</div>
 <?php if($msg): ?><div class="alert alert-success"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
 <?php if($err): ?><div class="alert alert-danger"><?= htmlspecialchars($err) ?></div><?php endif; ?>
 
@@ -77,7 +81,7 @@ include __DIR__.'/includes/header.php';
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="lat" id="lat"><input type="hidden" name="lng" id="lng">
         <div class="input-group">
-          <input class="form-control" name="token" id="token" placeholder="Kode QR (auto saat scan)" required>
+          <input class="form-control" name="token" id="token" placeholder="Kode QR (auto saat scan)" value="<?= htmlspecialchars($_GET['prefill'] ?? '') ?>" required>
           <button class="btn btn-primary"><i class="bi bi-check2-circle"></i> Check-in</button>
         </div>
         <div class="form-text" id="gpsStatus">📍 Mendeteksi lokasi…</div>

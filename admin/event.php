@@ -12,11 +12,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
     if ($a==='create') {
-        $id = db_one("INSERT INTO event(nama,jenis,tipe,deskripsi,tanggal_mulai,tanggal_selesai,hadiah,status,created_by)
-                      VALUES($1,$2,$3,$4,$5,$6,$7,'open',$8) RETURNING id",
+        $id = db_one("INSERT INTO event(nama,jenis,tipe,deskripsi,tanggal_mulai,tanggal_selesai,jam_mulai,jam_selesai,lokasi,batas_daftar,hadiah,status,created_by)
+                      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'open',$12) RETURNING id",
             [trim($_POST['nama']), $_POST['jenis'], $_POST['tipe'], $_POST['deskripsi'] ?? '',
-             $_POST['tanggal_mulai'], $_POST['tanggal_selesai'] ?: null, $_POST['hadiah'] ?? '',
-             (int)current_user()['id']]);
+             $_POST['tanggal_mulai'], $_POST['tanggal_selesai'] ?: null,
+             $_POST['jam_mulai'] ?: null, $_POST['jam_selesai'] ?: null,
+             trim($_POST['lokasi'] ?? '') ?: null, $_POST['batas_daftar'] ?: null,
+             $_POST['hadiah'] ?? '', (int)current_user()['id']]);
         notify_all('event', '🏆 Event baru: '.$_POST['nama'], 'Daftar sekarang di menu Event.', '/event.php?id='.$id['id']);
     } elseif ($a==='delete') {
         db_exec("DELETE FROM event WHERE id=$1", [(int)$_POST['id']]);
@@ -25,6 +27,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='add_match') {
         db_exec("INSERT INTO event_match(event_id,round,tim_a,tim_b) VALUES($1,$2,$3,$4)",
             [(int)$_POST['event_id'], (int)$_POST['round'], (int)$_POST['tim_a'], (int)$_POST['tim_b']]);
+        // Auto-tambahkan tim ke peserta event (jika belum ada)
+        foreach ([(int)$_POST['tim_a'], (int)$_POST['tim_b']] as $tid) {
+            if ($tid > 0) {
+                try { db_exec("INSERT INTO event_peserta(event_id,tim_id) SELECT $1,$2
+                               WHERE NOT EXISTS (SELECT 1 FROM event_peserta WHERE event_id=$1 AND tim_id=$2)",
+                              [(int)$_POST['event_id'], $tid]); } catch (Throwable $e) {}
+            }
+        }
+    } elseif ($a==='add_peserta') {
+        $eid = (int)$_POST['event_id'];
+        $tid = (int)($_POST['tim_id'] ?? 0) ?: null;
+        $uid = (int)($_POST['user_id'] ?? 0) ?: null;
+        if ($tid || $uid) {
+            try { db_exec("INSERT INTO event_peserta(event_id,tim_id,user_id) VALUES($1,$2,$3)", [$eid,$tid,$uid]); } catch (Throwable $e) {}
+        }
+    } elseif ($a==='del_peserta') {
+        db_exec("DELETE FROM event_peserta WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='update_score') {
         $sa = (int)$_POST['score_a']; $sb = (int)$_POST['score_b'];
         $win = $sa > $sb ? (int)$_POST['tim_a'] : ($sb > $sa ? (int)$_POST['tim_b'] : null);
@@ -54,6 +73,10 @@ include __DIR__.'/../includes/header.php';
     </select></div>
   <div class="col-md-2"><label class="small fw-semibold">Mulai</label><input type="date" name="tanggal_mulai" class="form-control" required></div>
   <div class="col-md-2"><label class="small fw-semibold">Selesai</label><input type="date" name="tanggal_selesai" class="form-control"></div>
+  <div class="col-md-2"><label class="small fw-semibold">Jam Mulai</label><input type="time" name="jam_mulai" class="form-control"></div>
+  <div class="col-md-2"><label class="small fw-semibold">Jam Selesai</label><input type="time" name="jam_selesai" class="form-control"></div>
+  <div class="col-md-4"><label class="small fw-semibold">Lokasi / Tempat</label><input class="form-control" name="lokasi" placeholder="cth: GOR Senayan"></div>
+  <div class="col-md-4"><label class="small fw-semibold">Batas Pendaftaran</label><input type="date" name="batas_daftar" class="form-control"></div>
   <div class="col-md-6"><label class="small fw-semibold">Hadiah</label><input class="form-control" name="hadiah" placeholder="cth: Badge eksklusif + Voucher"></div>
   <div class="col-12"><label class="small fw-semibold">Deskripsi</label><textarea name="deskripsi" class="form-control" rows="2"></textarea></div>
   <div class="col-12"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</button></div>

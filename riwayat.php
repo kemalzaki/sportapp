@@ -53,6 +53,19 @@ $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                    FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
                    ORDER BY j.tanggal DESC LIMIT 50");
 
+// detail peserta per sesi untuk popup
+$sesiDetail = [];
+$jids = array_map(fn($r)=>(int)$r['id'], $riwayat);
+if ($jids) {
+    $inList = implode(',', $jids);
+    $absRows = db_all("SELECT a.jadwal_id, a.hadir, a.keterangan, u.nama, u.foto_url
+                       FROM absensi a JOIN users u ON u.id=a.user_id
+                       WHERE a.jadwal_id IN ($inList) ORDER BY a.hadir DESC, u.nama");
+    foreach ($absRows as $ar) $sesiDetail[(int)$ar['jadwal_id']]['anggota'][] = $ar;
+    $tamuRows = db_all("SELECT jadwal_id, nama FROM member_eksternal WHERE jadwal_id IN ($inList)");
+    foreach ($tamuRows as $tr) $sesiDetail[(int)$tr['jadwal_id']]['tamu'][] = $tr;
+}
+
 // Riwayat aktivitas publik (semua user)
 $publicActs = db_all("SELECT uh.id,uh.tanggal,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.file_path,uh.deskripsi,u.id AS uid,u.nama,u.foto_url
                       FROM upload_harian uh JOIN users u ON u.id=uh.user_id ORDER BY uh.tanggal DESC LIMIT 30");
@@ -109,14 +122,14 @@ include __DIR__.'/includes/header.php';
       <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
       <tbody>
       <?php foreach($riwayat as $r): ?>
-        <tr>
+        <tr style="cursor:pointer" onclick="showSesi(<?= (int)$r['id'] ?>)" title="Klik untuk detail peserta">
           <td data-label="Tanggal"><?= htmlspecialchars($r['tanggal']) ?> <span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
           <td data-label="Jenis"><?= htmlspecialchars($r['jenis']) ?></td>
           <td data-label="Tempat"><?= htmlspecialchars($r['tempat']) ?></td>
           <td data-label="Koordinator"><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 22) ?></td>
           <td data-label="Durasi"><?= !empty($r['durasi_menit']) ? (int)$r['durasi_menit'].' mnt' : '<span class="text-muted small">—</span>' ?></td>
           <td data-label="Tamu"><span class="badge bg-info-subtle text-info-emphasis"><?= (int)$r['tamu'] ?></span></td>
-          <td data-label="Hadir"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?></td>
+          <td data-label="Hadir"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?> <i class="bi bi-zoom-in text-muted small"></i></td>
         </tr>
       <?php endforeach; ?>
       </tbody></table></div>
@@ -187,6 +200,55 @@ function showBukti(ev, src, date){
   document.getElementById('bOpen').href = src;
   document.getElementById('bDate').textContent = date || '';
   _bModal.show();
+}
+</script>
+<?php
+$_sesiJs = [];
+foreach($riwayat as $r){
+  $jid = (int)$r['id'];
+  $_sesiJs[$jid] = [
+    'tanggal'=>$r['tanggal'],'jenis'=>$r['jenis'],'tempat'=>$r['tempat'],
+    'koord'=>$r['koord']??'-','durasi'=>(int)$r['durasi_menit'],
+    'hadir'=>(int)$r['hadir'],'total'=>(int)$r['total'],
+    'anggota'=>$sesiDetail[$jid]['anggota']??[], 'tamu'=>$sesiDetail[$jid]['tamu']??[],
+  ];
+}
+?>
+<!-- Sesi Detail modal -->
+<div class="modal fade" id="sesiModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-calendar3"></i> Detail Sesi</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" id="sesiBody"></div>
+    </div>
+  </div>
+</div>
+<script>
+const SESI_DATA = <?= json_encode($_sesiJs, JSON_UNESCAPED_UNICODE) ?>;
+let _sModal=null;
+function showSesi(id){
+  const d=SESI_DATA[id]; if(!d) return;
+  if(!_sModal) _sModal=new bootstrap.Modal(document.getElementById('sesiModal'));
+  let html=`<div class="mb-2"><span class="pill">${d.tanggal}</span> <span class="pill">${d.jenis}</span> <span class="pill">${d.tempat}</span></div>`;
+  html+=`<div class="small text-muted mb-3">Koordinator: <b>${d.koord}</b> · Durasi: ${d.durasi||'-'} mnt · Hadir: <b>${d.hadir}/${d.total}</b></div>`;
+  html+=`<h6 class="mb-2"><i class="bi bi-people"></i> Daftar Anggota</h6>`;
+  if(d.anggota.length){
+    html+=`<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Nama</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>`;
+    d.anggota.forEach(a=>{
+      const ava=a.foto_url?`<img src="${a.foto_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover" class="me-1">`:'';
+      const st=a.hadir==1?'<span class="badge bg-success">Hadir</span>':'<span class="badge bg-secondary">Tidak hadir</span>';
+      html+=`<tr><td>${ava}${a.nama||'-'}</td><td>${st}</td><td class="small text-muted">${a.keterangan||''}</td></tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  } else html+=`<div class="text-muted small">Belum ada data absensi.</div>`;
+  if(d.tamu.length){
+    html+=`<h6 class="mt-3 mb-2"><i class="bi bi-person-plus"></i> Tamu Eksternal (${d.tamu.length})</h6><ul class="mb-0">`;
+    d.tamu.forEach(t=>{html+=`<li>${t.nama}</li>`;});
+    html+=`</ul>`;
+  }
+  document.getElementById('sesiBody').innerHTML=html;
+  _sModal.show();
 }
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

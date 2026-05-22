@@ -82,13 +82,13 @@ include __DIR__.'/../includes/header.php'; ?>
             <div class="btn-group btn-group-sm flex-wrap">
               <?php foreach($opts as $k=>$o):
                 $rid = "rsvp_{$m['id']}_$k"; ?>
-                <input type="radio" class="btn-check" name="status[<?= $m['id'] ?>]" value="<?= $k ?>" id="<?= $rid ?>" <?= $st===$k?'checked':'' ?> onchange="document.getElementById('ketbox<?= $m['id'] ?>').style.display=(this.value=='izin'||this.value=='sakit')?'block':'none'">
+                <input type="radio" class="btn-check" name="status[<?= $m['id'] ?>]" value="<?= $k ?>" id="<?= $rid ?>" <?= $st===$k?'checked':'' ?>>
                 <label class="btn btn-outline-<?= $o[1] ?>" for="<?= $rid ?>"><i class="bi <?= $o[2] ?>"></i> <?= $o[0] ?></label>
               <?php endforeach; ?>
             </div>
           </div>
-          <div id="ketbox<?= $m['id'] ?>" class="mt-2" style="display:<?= in_array($st,['izin','sakit'])?'block':'none' ?>">
-            <input type="text" class="form-control form-control-sm" name="keterangan[<?= $m['id'] ?>]" placeholder="Keterangan izin/sakit (wajib jika izin/sakit)" value="<?= htmlspecialchars($ket) ?>">
+          <div class="mt-2">
+            <input type="text" class="form-control form-control-sm" name="keterangan[<?= $m['id'] ?>]" placeholder="Catatan (opsional) — mis. cedera, alasan izin/sakit, dll." value="<?= htmlspecialchars($ket) ?>">
           </div>
         </li>
         <?php endforeach; ?>

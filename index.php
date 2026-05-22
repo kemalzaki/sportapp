@@ -43,16 +43,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 $fotoUrl = '/uploads/'.$name;
             }
         }
-        $exp = $jenis==='story' ? "now() + interval '24 hours'" : "NULL";
-        db_exec("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, $exp::timestamp)",
-            [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
+        if ($jenis === 'story') {
+            db_exec("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, now() + interval '24 hours')",
+                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
+        } else {
+            db_exec("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, NULL)",
+                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
+        }
     } elseif ($a === 'like') {
         $pid = (int)$_POST['post_id'];
         try { db_exec("INSERT INTO post_likes(post_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [$pid, (int)$u['id']]); } catch (Throwable $e) {}
     } elseif ($a === 'comment') {
         $pid = (int)$_POST['post_id'];
         $isi = substr(trim($_POST['isi'] ?? ''), 0, 300);
-        if ($isi !== '') db_exec("INSERT INTO post_comments(post_id,user_id,isi) VALUES($1,$2,$3)", [$pid, (int)$u['id'], htmlspecialchars($isi)]);
+        if ($isi !== '') db_exec("INSERT INTO post_comments(post_id,user_id,isi) VALUES($1,$2,$3)", [$pid, (int)$u['id'], $isi]);
     }
     header('Location: /index.php#feed'); exit;
 }
@@ -85,12 +89,23 @@ $stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
                    ORDER BY p.created_at DESC LIMIT 20");
 $uidMe = (int)($u['id'] ?? 0);
-$feed = db_all("SELECT p.*, u.nama, u.foto_url,
+$feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis, p.created_at,
+                  u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
                   (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=$1) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
                 WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12", [$uidMe]);
+
+// Komentar per post (untuk ditampilkan inline)
+$feedIds = array_map(fn($x)=>(int)$x['id'], $feed);
+$commentsByPost = [];
+if ($feedIds) {
+    $rows = db_all("SELECT pc.post_id, pc.isi, pc.created_at, u.nama, u.foto_url
+                    FROM post_comments pc JOIN users u ON u.id=pc.user_id
+                    WHERE pc.post_id = ANY($1::int[]) ORDER BY pc.created_at ASC", ['{'.implode(',', $feedIds).'}']);
+    foreach ($rows as $r) $commentsByPost[(int)$r['post_id']][] = $r;
+}
 
 $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
                     FROM qr_tokens q JOIN jadwal j ON j.id=q.jadwal_id
@@ -99,11 +114,29 @@ $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
 
 include __DIR__.'/includes/header.php'; ?>
 
-<section class="hero mb-3">
-  <span class="badge-soft mb-2"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
-  <h1 class="h3 mb-1">Dashboard Olahraga Komunitas</h1>
-  <p class="mb-0 text-muted">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
+<section class="hero mb-3 p-3 p-md-4 rounded-3" style="background:linear-gradient(135deg,#0ea5e91a,#6366f11a);">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <span class="badge-soft"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
+  </div>
+  <h1 class="h3 mb-1" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
+  <p class="mb-2 text-muted" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
+  <button id="installBtn" class="btn btn-sm btn-primary d-none"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
 </section>
+<script>
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); _deferredInstall = e;
+  const b = document.getElementById('installBtn'); if (b) b.classList.remove('d-none');
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('installBtn');
+  if (!b) return;
+  b.addEventListener('click', async () => {
+    if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; b.classList.add('d-none'); }
+    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app".'); }
+  });
+});
+</script>
 
 <?php if ($u): ?>
 <div class="card shadow-sm mb-3 border-0" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;">
@@ -196,7 +229,7 @@ include __DIR__.'/includes/header.php'; ?>
             <a href="/user.php?id=<?= (int)$p['user_id'] ?>" class="text-decoration-none fw-semibold"><?= htmlspecialchars($p['nama']) ?></a>
             <small class="text-muted ms-auto"><?= date('d M H:i', strtotime($p['created_at'])) ?></small>
           </div>
-          <?php if($p['foto_url']): ?><img src="<?= htmlspecialchars($p['foto_url']) ?>" class="img-fluid rounded mb-2" style="max-height:400px;"><?php endif; ?>
+          <?php if(!empty($p['post_foto'])): ?><img src="<?= htmlspecialchars($p['post_foto']) ?>" class="img-fluid rounded mb-2" style="max-height:400px;"><?php endif; ?>
           <div class="mb-2"><?= nl2br(htmlspecialchars($p['caption'] ?? '')) ?></div>
           <div class="d-flex gap-2 small">
             <?php if($u): ?>
@@ -205,6 +238,19 @@ include __DIR__.'/includes/header.php'; ?>
             <?php endif; ?>
             <span class="text-muted align-self-center"><i class="bi bi-chat"></i> <?= (int)$p['comments'] ?></span>
           </div>
+          <?php $pcs = $commentsByPost[(int)$p['id']] ?? []; if($pcs): ?>
+          <div class="mt-2 ps-2 border-start">
+            <?php foreach($pcs as $pc): ?>
+              <div class="d-flex align-items-start gap-2 mb-1">
+                <?= user_avatar($pc['foto_url'] ?? null, $pc['nama'], 22) ?>
+                <div class="small"><strong><?= htmlspecialchars($pc['nama']) ?></strong>
+                  <span class="text-muted ms-1" style="font-size:.7rem"><?= date('d M H:i', strtotime($pc['created_at'])) ?></span><br>
+                  <?= nl2br(htmlspecialchars($pc['isi'])) ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
           <?php if($u): ?>
           <form method="post" class="d-flex gap-2 mt-2">
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="comment"><input type="hidden" name="post_id" value="<?= $p['id'] ?>">
