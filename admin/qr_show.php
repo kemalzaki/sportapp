@@ -3,7 +3,6 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
-require __DIR__.'/../config/maps.php';
 send_security_headers(); enforce_session_timeout();
 require_role('admin');
 $pageTitle = 'QR Sesi';
@@ -96,62 +95,8 @@ include __DIR__.'/../includes/header.php';
         </div>
         <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Generate QR Baru</button></div>
       </form>
-      <script>
-        function initQrMap(){
-          var latEl=document.getElementById('lat'), lngEl=document.getElementById('lng');
-          var lat=parseFloat(latEl.value)||-6.2, lng=parseFloat(lngEl.value)||106.816666;
-          var center={lat:lat,lng:lng};
-          var map=new google.maps.Map(document.getElementById('map'),{center:center,zoom:14,mapTypeControl:false,streetViewControl:false});
-          var marker=new google.maps.Marker({position:center,map:map,draggable:true});
-          function setLL(ll){ latEl.value=ll.lat().toFixed(6); lngEl.value=ll.lng().toFixed(6); }
-          setLL(marker.getPosition());
-          marker.addListener('dragend', function(e){ setLL(e.latLng); });
-          map.addListener('click', function(e){ marker.setPosition(e.latLng); setLL(e.latLng); });
-
-          var qEl=document.getElementById('placeQuery');
-          var rEl=document.getElementById('searchResults');
-          var geocoder=new google.maps.Geocoder();
-          var ac=new google.maps.places.Autocomplete(qEl,{fields:['geometry','formatted_address','name']});
-          ac.bindTo('bounds', map);
-          ac.addListener('place_changed', function(){
-            var place=ac.getPlace();
-            if(!place.geometry||!place.geometry.location){ doSearch(); return; }
-            var loc=place.geometry.location;
-            map.setCenter(loc); map.setZoom(16);
-            marker.setPosition(loc); setLL(loc);
-            rEl.innerHTML='';
-          });
-          function doSearch(){
-            var q=qEl.value.trim(); if(!q) return;
-            rEl.innerHTML='<div class="list-group-item small text-muted">Mencari...</div>';
-            geocoder.geocode({address:q}, function(results,status){
-              if(status!=='OK'||!results||!results.length){ rEl.innerHTML='<div class="list-group-item small text-muted">Tidak ditemukan ('+status+').</div>'; return; }
-              rEl.innerHTML='';
-              results.slice(0,6).forEach(function(it){
-                var a=document.createElement('a');
-                a.href='#'; a.className='list-group-item list-group-item-action small';
-                a.textContent=it.formatted_address;
-                a.onclick=function(ev){
-                  ev.preventDefault();
-                  var loc=it.geometry.location;
-                  map.setCenter(loc); map.setZoom(16);
-                  marker.setPosition(loc); setLL(loc); rEl.innerHTML='';
-                };
-                rEl.appendChild(a);
-              });
-            });
-          }
-          document.getElementById('searchBtn').addEventListener('click', doSearch);
-          qEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); doSearch(); } });
-        }
-        function gmFailed(){
-          document.getElementById('map').innerHTML='<div class="alert alert-warning m-2">Gagal memuat Google Maps. Pastikan API key valid &amp; API (Maps JavaScript, Places, Geocoding) sudah diaktifkan.</div>';
-        }
-        window.gm_authFailure = gmFailed;
-      </script>
-      <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars($GOOGLE_MAPS_API_KEY) ?>&libraries=places&callback=initQrMap"
-        onerror="gmFailed()"></script>
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
       <script>
         document.addEventListener('DOMContentLoaded', function(){
           if (typeof L === 'undefined') {
