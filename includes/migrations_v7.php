@@ -34,6 +34,20 @@ function hapfam_v7_migrate(){
       keterangan TEXT,
       updated_at TIMESTAMP NOT NULL DEFAULT now()
     )");
+    // 4. Log sapaan member baru (1x per pasangan sender->target)
+    db_exec("CREATE TABLE IF NOT EXISTS sapa_log (
+      id SERIAL PRIMARY KEY,
+      sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      target_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP NOT NULL DEFAULT now(),
+      UNIQUE(sender_user_id, target_user_id)
+    )");
+    // 5. Tracking notifikasi terakhir yang sudah ditampilkan ke user (PWA push sederhana)
+    db_exec("CREATE TABLE IF NOT EXISTS push_seen (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      last_notif_id INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
   } catch (Throwable $e) { /* ignore — log on server */ }
 }
 }

@@ -85,17 +85,17 @@ if ($u) {
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="/index.php"><i class="bi bi-house-door"></i> Beranda</a></li>
-        <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a></li>
-        <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a></li>
-        <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
         <?php if ($u): ?>
+          <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a></li>
+          <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a></li>
+          <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
           <li class="nav-item"><a class="nav-link" href="/checkin.php"><i class="bi bi-qr-code-scan"></i> Check-in</a></li>
           <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a></li>
           <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a></li>
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
+          <li class="nav-item"><a class="nav-link" href="/kalkulator.php"><i class="bi bi-heart-pulse"></i> Kalkulator Sehat</a></li>
         <?php endif; ?>
-        <li class="nav-item"><a class="nav-link" href="/kalkulator.php"><i class="bi bi-heart-pulse"></i> Kalkulator Sehat</a></li>
         <?php if ($u && $u['role']==='admin'): ?>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-shield-lock"></i> Admin</a>
@@ -121,9 +121,12 @@ if ($u) {
           </li>
         <?php endif; ?>
       </ul>
+      <?php if ($u): ?>
       <form class="d-flex me-2" role="search" action="/search.php">
         <input class="form-control form-control-sm" name="q" placeholder="🔍 Cari semua..." style="min-width:180px">
       </form>
+      <?php endif; ?>
+
       <ul class="navbar-nav align-items-lg-center">
         <?php if ($u): ?>
           <li class="nav-item"><a class="nav-link position-relative" href="/profile.php" title="Profil">

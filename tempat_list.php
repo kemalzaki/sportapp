@@ -5,6 +5,8 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Daftar Tempat';
+$u = current_user();
+$isAdmin = $u && $u['role']==='admin';
 
 $q = trim($_GET['q'] ?? '');
 $fJenis = (int)($_GET['jenis'] ?? 0);
@@ -12,7 +14,7 @@ $where = []; $params = []; $i=1;
 if ($q !== '') { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $params[]="%$q%"; $i++; }
 if ($fJenis) { $where[] = "t.jenis_id = \$$i"; $params[]=$fJenis; $i++; }
 $wsql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
-$rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto
+$rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto, u.nomor_wa AS pic_wa
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id $wsql ORDER BY t.nama ASC", $params);
 $jenisList = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
@@ -34,7 +36,31 @@ include __DIR__.'/includes/header.php';
 
 <div class="row g-3">
 <?php foreach($rows as $r):
-  $maps = ($r['lat'] && $r['lng']) ? ('https://www.google.com/maps?q='.$r['lat'].','.$r['lng']) : ('https://www.google.com/maps/search/'.urlencode($r['nama'].' '.($r['alamat']??''))); ?>
+  $maps = ($r['lat'] && $r['lng']) ? ('https://www.openstreetmap.org/?mlat='.$r['lat'].'&mlon='.$r['lng'].'#map=17/'.$r['lat'].'/'.$r['lng']) : ('https://www.openstreetmap.org/search?query='.urlencode($r['nama'].' '.($r['alamat']??'')));
+  // Data untuk popup member
+  $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
+  $popup = [
+    'nama' => $r['nama'],
+    'alamat' => $r['alamat'] ?? '',
+    'jenis' => $r['jenis_nama'] ?? '',
+    'status' => $r['status_booking'],
+    'harga_lapang' => (float)$r['harga_lapang'],
+    'harga_jam' => (float)$r['harga_per_jam'],
+    'harga_tiket' => (float)($r['harga_tiket'] ?? 0),
+    'harga_parkir' => (float)($r['harga_parkir'] ?? 0),
+    'catatan' => $r['catatan'] ?? '',
+    'pic_nama' => $r['pic_nama'] ?? '',
+    'pic_foto' => $r['pic_foto'] ?? '',
+    // Nomor telepon TIDAK dikirim ke member; hanya admin
+    'kontak_wa' => $isAdmin ? ($r['kontak_wa'] ?? '') : '',
+    'pic_wa_admin' => $isAdmin ? ($r['pic_wa'] ?? '') : '',
+    'wa_link' => $picWa ? ('https://wa.me/'.$picWa) : '', // tombol WA tetap, tanpa expose nomor
+    'lat' => $r['lat'],
+    'lng' => $r['lng'],
+    'maps' => $maps,
+    'is_admin' => $isAdmin,
+  ];
+?>
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-sm h-100">
       <div class="card-body">
@@ -47,12 +73,92 @@ include __DIR__.'/includes/header.php';
         <p class="small text-muted mb-2"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($r['alamat'] ?? '—') ?></p>
         <?php if($r['pic_nama']): ?><div class="small mb-2">PIC: <?= user_name_with_avatar($r['pic_foto']??null,$r['pic_nama'],false,22) ?></div><?php endif; ?>
         <div class="d-flex gap-2">
-          <a href="/tempat_detail.php?id=<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-info-circle"></i> Detail</a>
-          <a href="<?= htmlspecialchars($maps) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success"><i class="bi bi-google"></i> Lihat Lokasi</a>
+          <?php if($isAdmin): ?>
+            <a href="/tempat_detail.php?id=<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-info-circle"></i> Detail</a>
+          <?php else: ?>
+            <button type="button" class="btn btn-sm btn-outline-primary"
+              onclick='showTempatDetail(<?= json_encode($popup, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
+              <i class="bi bi-info-circle"></i> Detail
+            </button>
+          <?php endif; ?>
+          <a href="<?= htmlspecialchars($maps) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success">
+            <i class="bi bi-geo-alt"></i> Lihat Lokasi
+          </a>
         </div>
       </div>
     </div>
   </div>
 <?php endforeach; if(!$rows): ?><div class="col-12"><div class="alert alert-info">Tidak ada tempat.</div></div><?php endif; ?>
 </div>
+
+<!-- Popup detail Tempat (untuk member) -->
+<div class="modal fade" id="tempatModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="bi bi-geo-alt-fill text-primary"></i> <span id="tmNama">Tempat</span></h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+      <div class="mb-2 small text-muted" id="tmAlamat"></div>
+      <div class="mb-2" id="tmJenis"></div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <table class="table table-sm mb-2">
+            <tr><th>Status</th><td><span id="tmStatus" class="badge bg-info-subtle text-info"></span></td></tr>
+            <tr><th>Harga Lapang</th><td id="tmHL"></td></tr>
+            <tr><th>Harga / Jam</th><td id="tmHJ"></td></tr>
+            <tr><th>Harga Tiket</th><td id="tmHT"></td></tr>
+            <tr><th>Harga Parkir</th><td id="tmHP"></td></tr>
+            <tr id="tmRowPIC" class="d-none"><th>PIC</th><td id="tmPIC"></td></tr>
+          </table>
+          <div id="tmCatatan" class="small text-muted" style="white-space:pre-wrap"></div>
+          <div class="mt-2 d-flex flex-wrap gap-2">
+            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-success"><i class="bi bi-geo-alt"></i> Buka di OpenStreetMap</a>
+            <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div id="tmMapWrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+let _tmM = null;
+function showTempatDetail(d){
+  if(!_tmM) _tmM = new bootstrap.Modal(document.getElementById('tempatModal'));
+  const fmt = v => 'Rp '+ Number(v||0).toLocaleString('id-ID');
+  document.getElementById('tmNama').textContent = d.nama || '';
+  document.getElementById('tmAlamat').innerHTML = '<i class="bi bi-geo-alt"></i> ' + (d.alamat || '—');
+  document.getElementById('tmJenis').innerHTML = d.jenis ? ('<span class="pill">'+d.jenis+'</span>') : '';
+  document.getElementById('tmStatus').textContent = d.status || '';
+  document.getElementById('tmHL').textContent = fmt(d.harga_lapang);
+  document.getElementById('tmHJ').textContent = fmt(d.harga_jam);
+  document.getElementById('tmHT').textContent = fmt(d.harga_tiket);
+  document.getElementById('tmHP').textContent = fmt(d.harga_parkir);
+  if (d.pic_nama) {
+    document.getElementById('tmRowPIC').classList.remove('d-none');
+    document.getElementById('tmPIC').textContent = d.pic_nama;
+  } else {
+    document.getElementById('tmRowPIC').classList.add('d-none');
+  }
+  document.getElementById('tmCatatan').textContent = d.catatan || '';
+  document.getElementById('tmMaps').href = d.maps;
+  const wa = document.getElementById('tmWa');
+  if (d.wa_link) { wa.href = d.wa_link; wa.classList.remove('d-none'); } else { wa.classList.add('d-none'); }
+
+  // Map: OpenStreetMap embed (bukan Google Maps)
+  const mapWrap = document.getElementById('tmMapWrap');
+  if (d.lat && d.lng) {
+    const bbox = [Number(d.lng)-0.005, Number(d.lat)-0.003, Number(d.lng)+0.005, Number(d.lat)+0.003].join(',');
+    const src = 'https://www.openstreetmap.org/export/embed.html?bbox='+bbox+'&layer=mapnik&marker='+d.lat+','+d.lng;
+    mapWrap.innerHTML = '<iframe width="100%" height="320" style="border:0;border-radius:8px" loading="lazy" src="'+src+'"></iframe>';
+  } else {
+    mapWrap.innerHTML = '<div class="alert alert-warning small">Koordinat belum diisi admin.</div>';
+  }
+  _tmM.show();
+}
+</script>
 <?php include __DIR__.'/includes/footer.php'; ?>

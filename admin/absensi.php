@@ -10,16 +10,35 @@ $jadwalId = (int)($_GET['id'] ?? 0);
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $jadwalId = (int)$_POST['jadwal_id'];
-    db_exec("DELETE FROM absensi WHERE jadwal_id=$1", [$jadwalId]);
+    // Kumpulkan user yang sudah ber-AUTO-SAKIT pada jadwal ini -> dipertahankan, tidak boleh diubah.
+    $lockedRows = db_all(
+        "SELECT user_id, status, hadir, keterangan FROM absensi
+         WHERE jadwal_id=$1 AND status='sakit' AND COALESCE(keterangan,'') LIKE '[AUTO-SAKIT]%'",
+        [$jadwalId]
+    );
+    $locked = [];
+    foreach ($lockedRows as $lr) { $locked[(int)$lr['user_id']] = $lr; }
+
+    // Hapus seluruh entry KECUALI yang locked
+    if ($locked) {
+        $ids = array_map('intval', array_keys($locked));
+        db_exec("DELETE FROM absensi WHERE jadwal_id=$1 AND user_id <> ALL($2::int[])",
+            [$jadwalId, '{'.implode(',', $ids).'}']);
+    } else {
+        db_exec("DELETE FROM absensi WHERE jadwal_id=$1", [$jadwalId]);
+    }
     db_exec("DELETE FROM member_eksternal WHERE jadwal_id=$1", [$jadwalId]);
+
     $allowed = ['hadir','izin','sakit','telat','absen'];
     foreach (($_POST['status'] ?? []) as $uid => $st) {
+        $uid = (int)$uid;
+        if (isset($locked[$uid])) continue; // skip — entry AUTO-SAKIT tetap dipertahankan
         $st = in_array($st, $allowed, true) ? $st : 'absen';
         $hadir = ($st === 'hadir' || $st === 'telat') ? 1 : 0;
         $ket = trim((string)($_POST['keterangan'][$uid] ?? ''));
-        
+
         db_exec("INSERT INTO absensi(jadwal_id,user_id,hadir,status,keterangan) VALUES($1,$2,$3,$4,$5)",
-                [$jadwalId, (int)$uid, $hadir, $st, $ket ?: null]);
+                [$jadwalId, $uid, $hadir, $st, $ket ?: null]);
     }
     foreach (($_POST['tamu_nama'] ?? []) as $i => $n) {
         $n = trim($n); if (!$n) continue;
@@ -75,20 +94,23 @@ include __DIR__.'/../includes/header.php'; ?>
             'absen' => ['Absen','secondary','bi-x-circle'],
           ];
           foreach($members as $m): $st = $current[$m['id']] ?? 'absen'; $ket = $currentKet[$m['id']] ?? '';
+          $isAutoSakit = ($st === 'sakit' && strpos((string)$ket, '[AUTO-SAKIT]') === 0);
         ?>
-        <li class="list-group-item">
+        <li class="list-group-item <?= $isAutoSakit ? 'bg-light' : '' ?>">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span><?= user_name_with_avatar($m['foto_url'] ?? null, $m['nama'], is_online($m['last_seen'] ?? null), 28) ?> <span class="role role-<?= $m['role'] ?>"><?= $m['role'] ?></span></span>
+            <span><?= user_name_with_avatar($m['foto_url'] ?? null, $m['nama'], is_online($m['last_seen'] ?? null), 28) ?> <span class="role role-<?= $m['role'] ?>"><?= $m['role'] ?></span>
+              <?php if($isAutoSakit): ?><span class="badge bg-danger ms-1" title="Member set kondisi Sakit dari profil. Tidak bisa diedit di sini."><i class="bi bi-lock-fill"></i> AUTO-SAKIT</span><?php endif; ?>
+            </span>
             <div class="btn-group btn-group-sm flex-wrap">
               <?php foreach($opts as $k=>$o):
                 $rid = "rsvp_{$m['id']}_$k"; ?>
-                <input type="radio" class="btn-check" name="status[<?= $m['id'] ?>]" value="<?= $k ?>" id="<?= $rid ?>" <?= $st===$k?'checked':'' ?>>
-                <label class="btn btn-outline-<?= $o[1] ?>" for="<?= $rid ?>"><i class="bi <?= $o[2] ?>"></i> <?= $o[0] ?></label>
+                <input type="radio" class="btn-check" name="status[<?= $m['id'] ?>]" value="<?= $k ?>" id="<?= $rid ?>" <?= $st===$k?'checked':'' ?> <?= $isAutoSakit?'disabled':'' ?>>
+                <label class="btn btn-outline-<?= $o[1] ?> <?= $isAutoSakit?'disabled':'' ?>" for="<?= $rid ?>"><i class="bi <?= $o[2] ?>"></i> <?= $o[0] ?></label>
               <?php endforeach; ?>
             </div>
           </div>
           <div class="mt-2">
-            <input type="text" class="form-control form-control-sm" name="keterangan[<?= $m['id'] ?>]" placeholder="Catatan (opsional) — mis. cedera, alasan izin/sakit, dll." value="<?= htmlspecialchars($ket) ?>">
+            <input type="text" class="form-control form-control-sm" name="keterangan[<?= $m['id'] ?>]" placeholder="Catatan (opsional) — mis. cedera, alasan izin/sakit, dll." value="<?= htmlspecialchars($ket) ?>" <?= $isAutoSakit?'readonly':'' ?>>
           </div>
         </li>
         <?php endforeach; ?>

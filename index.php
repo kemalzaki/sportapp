@@ -94,7 +94,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $target = (int)($_POST['target_id'] ?? 0);
         $pesan  = trim(substr($_POST['pesan'] ?? '', 0, 500));
         if ($target && $target !== (int)$u['id'] && $pesan !== '') {
-            // Pastikan tabel guest_messages ada (migrasi user.php), insert sebagai sapaan
             try {
                 db_exec("CREATE TABLE IF NOT EXISTS guest_messages (
                   id SERIAL PRIMARY KEY,
@@ -105,8 +104,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                   created_at TIMESTAMP NOT NULL DEFAULT now(),
                   updated_at TIMESTAMP
                 )");
-                db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,pesan) VALUES($1,$2,$3)",
-                  [$target, (int)$u['id'], '👋 '.$pesan]);
+                // Cek apakah sudah pernah disapa
+                $exists = db_val("SELECT 1 FROM sapa_log WHERE sender_user_id=$1 AND target_user_id=$2",
+                  [(int)$u['id'], $target]);
+                if (!$exists) {
+                    db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,pesan) VALUES($1,$2,$3)",
+                      [$target, (int)$u['id'], '👋 '.$pesan]);
+                    db_exec("INSERT INTO sapa_log(sender_user_id,target_user_id) VALUES($1,$2)
+                             ON CONFLICT DO NOTHING", [(int)$u['id'], $target]);
+                }
             } catch (Throwable $e) {}
         }
     }
@@ -144,11 +150,47 @@ if ($jadwalTerdekat) {
     } catch (Throwable $e) {}
   }
 }
-// Member baru 7 hari terakhir (sapa)
-$newMembers = db_all("SELECT id, nama, foto_url, created_at FROM users
-                      WHERE created_at >= NOW() - INTERVAL '7 days' AND role IN ('member','admin')
-                      ".($u ? "AND id <> ".(int)$u['id'] : "")."
-                      ORDER BY created_at DESC LIMIT 10");
+// Member baru 7 hari terakhir (sapa) — sembunyikan yang sudah disapa oleh user ini
+if ($u) {
+  $newMembers = db_all(
+    "SELECT id, nama, foto_url, created_at FROM users
+     WHERE created_at >= NOW() - INTERVAL '7 days'
+       AND role IN ('member','admin')
+       AND id <> $1
+       AND id NOT IN (SELECT target_user_id FROM sapa_log WHERE sender_user_id=$1)
+     ORDER BY created_at DESC LIMIT 10",
+    [(int)$u['id']]
+  );
+} else {
+  $newMembers = db_all(
+    "SELECT id, nama, foto_url, created_at FROM users
+     WHERE created_at >= NOW() - INTERVAL '7 days' AND role IN ('member','admin')
+     ORDER BY created_at DESC LIMIT 10"
+  );
+}
+
+// === Kabari Kawan: member yang berada di bawah PIC user ini, atau sesama anggota PIC yang sama
+$kabariKawan = [];
+$jadwalDekat1 = null;
+if ($u) {
+  // Jadwal terdekat (1 item) untuk pesan WA
+  $jadwalDekat1 = db_one(
+    "SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.jam_selesai
+     FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1"
+  );
+  $myPic = db_val("SELECT pic_admin_id FROM users WHERE id=$1", [(int)$u['id']]);
+  $kabariKawan = db_all(
+    "SELECT id, nama, foto_url, nomor_wa FROM users
+     WHERE id <> $1 AND role IN ('member','admin')
+       AND nomor_wa IS NOT NULL AND nomor_wa <> ''
+       AND ( pic_admin_id = $1
+             ".($myPic ? " OR id = $2 OR pic_admin_id = $2 " : "")."
+           )
+     ORDER BY nama LIMIT 30",
+    $myPic ? [(int)$u['id'], (int)$myPic] : [(int)$u['id']]
+  );
+}
+
 // Detail absensi per jadwal terdekat (siapa hadir/izin/sakit/telat/absen + catatan)
 $absByJadwal = [];
 $_jids = array_map(fn($j)=>(int)$j['id'], $jadwalTerdekat);
@@ -230,6 +272,50 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
+
+
+<?php if($u): ?>
+<button id="btnEnableNotif" class="btn btn-sm btn-outline-primary mb-3" type="button">
+  <i class="bi bi-bell"></i> Aktifkan Notifikasi
+</button>
+<?php endif; ?>
+
+<?php if($u && $kabariKawan && $jadwalDekat1):
+  $jamTxt = $jadwalDekat1['jam_mulai'] ? (' pukul '.substr($jadwalDekat1['jam_mulai'],0,5).(($jadwalDekat1['jam_selesai'])?('-'.substr($jadwalDekat1['jam_selesai'],0,5)):'')) : '';
+  $msgTpl = "Halo Kawan! Jangan lupa ada jadwal *".$jadwalDekat1['jenis']."* tanggal ".date('d M Y', strtotime($jadwalDekat1['tanggal'])).$jamTxt." di ".$jadwalDekat1['tempat'].". Yuk ikutan! — dari ".$u['nama'];
+?>
+<div class="card shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-megaphone text-warning"></i> Kabari Kawan</span>
+    <small class="text-muted">Jadwal terdekat: <?= date('d M', strtotime($jadwalDekat1['tanggal'])) ?> · <?= htmlspecialchars($jadwalDekat1['jenis']) ?></small>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">Klik WhatsApp untuk langsung mengirim info jadwal terdekat ke kawan dalam grup PIC kamu.</p>
+    <div class="row g-2">
+      <?php foreach($kabariKawan as $k):
+        $wa = preg_replace('/^0/','62', preg_replace('/\D+/','', $k['nomor_wa']));
+        $waUrl = 'https://wa.me/'.$wa.'?text='.rawurlencode($msgTpl);
+      ?>
+        <div class="col-md-6 col-lg-4">
+          <div class="border rounded p-2 d-flex align-items-center gap-2">
+            <?= user_avatar($k['foto_url'] ?? null, $k['nama'], 32) ?>
+            <div class="flex-grow-1 small">
+              <div class="fw-semibold text-truncate"><?= htmlspecialchars($k['nama']) ?></div>
+              <div class="text-muted text-truncate">📱 <?= htmlspecialchars($k['nomor_wa']) ?></div>
+            </div>
+            <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success">
+              <i class="bi bi-whatsapp"></i>
+            </a>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+
 
 <?php if ($u): ?>
 <div class="card shadow-sm mb-3 border-0" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;">
@@ -692,5 +778,51 @@ function showStory(d){
   _stM.show();
 }
 </script>
+
+<?php if($u): ?>
+<script>
+// === PWA Push sederhana (tanpa pihak ke-3) ===
+// Pakai Notification API + polling /api_notif_poll.php tiap 60 detik.
+(function(){
+  const btn = document.getElementById('btnEnableNotif');
+  function updateLabel(){
+    if (!btn) return;
+    if (!('Notification' in window)) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-bell-slash"></i> Notifikasi tidak didukung'; return; }
+    if (Notification.permission === 'granted') btn.innerHTML = '<i class="bi bi-bell-fill text-success"></i> Notifikasi aktif';
+    else if (Notification.permission === 'denied') { btn.disabled = true; btn.innerHTML = '<i class="bi bi-bell-slash"></i> Notifikasi diblokir browser'; }
+    else btn.innerHTML = '<i class="bi bi-bell"></i> Aktifkan Notifikasi';
+  }
+  updateLabel();
+  if (btn) btn.addEventListener('click', async () => {
+    try { await Notification.requestPermission(); } catch(e){}
+    updateLabel();
+    if (Notification.permission === 'granted') startPoll();
+  });
+
+  async function poll(){
+    if (Notification.permission !== 'granted') return;
+    try {
+      const r = await fetch('/api_notif_poll.php', { credentials: 'same-origin' });
+      if (!r.ok) return;
+      const data = await r.json();
+      (data.items || []).forEach(n => {
+        const opt = { body: n.isi || '', icon: '/assets/icon-192.png', badge: '/assets/icon-192.png', tag: 'hapfam-'+n.id, data: { url: n.url || '/' } };
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(reg => reg.showNotification(n.judul || 'HapFam', opt));
+        } else {
+          try { new Notification(n.judul || 'HapFam', opt); } catch(e){}
+        }
+      });
+    } catch(e){}
+  }
+  let _t = null;
+  function startPoll(){ if (_t) return; poll(); _t = setInterval(poll, 60000); }
+  document.addEventListener('DOMContentLoaded', () => {
+    if ('Notification' in window && Notification.permission === 'granted') startPoll();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+  });
+})();
+</script>
+<?php endif; ?>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

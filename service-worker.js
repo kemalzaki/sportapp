@@ -24,9 +24,22 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Firebase Messaging background handler (jika dikonfigurasi)
-try {
-  importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-  importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-  // Konfigurasi diisi via /assets/js/firebase-config.js
-} catch(e) {}
+// Klik notifikasi -> buka halaman target
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(clients.matchAll({ type:'window' }).then(list => {
+    for (const c of list) { if ('focus' in c) { c.navigate(url); return c.focus(); } }
+    if (clients.openWindow) return clients.openWindow(url);
+  }));
+});
+
+// Push payload (mendukung server-trigger nanti, opsional)
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch(_) { data = { title:'HapFam', body: e.data ? e.data.text() : '' }; }
+  const title = data.title || 'HapFam';
+  const opt = { body: data.body || '', icon: '/assets/icon-192.png', badge: '/assets/icon-192.png', data: { url: data.url || '/' } };
+  e.waitUntil(self.registration.showNotification(title, opt));
+});
+
