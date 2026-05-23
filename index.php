@@ -185,6 +185,7 @@ if ($u) {
     $kabariKawan = db_all(
       "SELECT id, nama, foto_url, nomor_wa FROM users
        WHERE pic_admin_id = $1
+         AND role = 'member'
          AND nomor_wa IS NOT NULL AND nomor_wa <> ''
        ORDER BY nama LIMIT 100",
       [(int)$u['id']]
@@ -405,7 +406,13 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="row g-3">
   <div class="col-lg-7">
     <?php if($newMembers): ?>
-    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></div>
+    <div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
+      <button type="button" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan widget"
+        onclick="document.getElementById('sapaMemberCard').style.display='none';try{localStorage.setItem('hideSapaWidget','1')}catch(e){}">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
       <div class="card-body" data-live="newmembers">
         <div class="row g-2">
         <?php foreach($newMembers as $nm): ?>
@@ -434,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     </div>
+    <script>try{if(localStorage.getItem('hideSapaWidget')==='1'){var el=document.getElementById('sapaMemberCard');if(el)el.style.display='none';}}catch(e){}</script>
     <?php endif; ?>
 
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>

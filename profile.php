@@ -25,6 +25,19 @@ try {
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS riwayat_penyakit TEXT");
 } catch (Throwable $e) {}
 
+// Pastikan tabel guest_messages ada (untuk fitur Titip Pesan di profile)
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS guest_messages (
+        id SERIAL PRIMARY KEY,
+        owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        parent_id INTEGER REFERENCES guest_messages(id) ON DELETE CASCADE,
+        pesan TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now(),
+        updated_at TIMESTAMP
+    )");
+} catch (Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -142,6 +155,28 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $pid=(int)($_POST['id']??0);
         if ($pid) db_exec("DELETE FROM user_perlengkapan WHERE id=$1 AND user_id=$2", [$pid,(int)$u['id']]);
     }
+    // ===== Titip Pesan (guestbook di profil saya) =====
+    elseif ($a==='gm_add') {
+        $pesan = trim(substr($_POST['pesan'] ?? '', 0, 1000));
+        $pid = (int)($_POST['parent_id'] ?? 0) ?: null;
+        if ($pesan !== '') {
+            db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,parent_id,pesan) VALUES($1,$2,$3,$4)",
+                [(int)$u['id'], (int)$u['id'], $pid, $pesan]);
+        }
+    } elseif ($a==='gm_edit') {
+        $mid = (int)($_POST['id'] ?? 0);
+        $pesan = trim(substr($_POST['pesan'] ?? '', 0, 1000));
+        if ($mid && $pesan !== '') {
+            db_exec("UPDATE guest_messages SET pesan=$1, updated_at=now() WHERE id=$2 AND sender_user_id=$3",
+                [$pesan, $mid, (int)$u['id']]);
+        }
+    } elseif ($a==='gm_del') {
+        $mid = (int)($_POST['id'] ?? 0);
+        if ($mid) {
+            db_exec("DELETE FROM guest_messages WHERE id=$1 AND (sender_user_id=$2 OR owner_user_id=$2)",
+                [$mid, (int)$u['id']]);
+        }
+    }
     header('Location: profile.php'); exit;
 }
 
@@ -170,6 +205,18 @@ $favOlahraga = $favRow['jenis'] ?? '—';
 // ranking komunitas berdasarkan total hadir
 $ranking = (int) db_val("SELECT rnk FROM (SELECT user_id, RANK() OVER (ORDER BY COUNT(*) DESC) AS rnk FROM absensi WHERE hadir=1 GROUP BY user_id) t WHERE user_id=$1", [(int)$u['id']]);
 $totalMember = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
+
+// Ambil daftar titip pesan untuk profil saya (root + replies)
+$gmRoots = db_all("SELECT g.*, u.nama AS sender_nama, u.foto_url AS sender_foto
+                   FROM guest_messages g JOIN users u ON u.id=g.sender_user_id
+                   WHERE g.owner_user_id=$1 AND g.parent_id IS NULL
+                   ORDER BY g.created_at DESC LIMIT 200", [(int)$u['id']]);
+$gmReplies = db_all("SELECT g.*, u.nama AS sender_nama, u.foto_url AS sender_foto
+                     FROM guest_messages g JOIN users u ON u.id=g.sender_user_id
+                     WHERE g.owner_user_id=$1 AND g.parent_id IS NOT NULL
+                     ORDER BY g.created_at ASC", [(int)$u['id']]);
+$gmByParent = [];
+foreach ($gmReplies as $rep) { $gmByParent[(int)$rep['parent_id']][] = $rep; }
 
 // Heatmap data 1 tahun terakhir (per tanggal)
 $heatRows = db_all("SELECT j.tanggal::date AS d, COUNT(*) AS c FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id
@@ -466,6 +513,101 @@ document.addEventListener('DOMContentLoaded',function(){
   if(window.bootstrap){document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el=>new bootstrap.Tooltip(el));}
 });
 </script>
+
+<!-- ===== Titip Pesan (Guestbook) untuk Profil Saya ===== -->
+<div class="card shadow-sm mt-3" data-live="guestbook-profile">
+  <div class="card-header"><i class="bi bi-envelope-heart text-primary"></i> Titip Pesan untuk Saya
+    <span class="badge bg-secondary"><?= count($gmRoots) ?></span>
+  </div>
+  <div class="card-body">
+    <form data-ajax method="post" class="mb-3">
+      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+      <input type="hidden" name="_action" value="gm_add">
+      <textarea name="pesan" class="form-control" rows="2" maxlength="1000" placeholder="Tulis catatan / pengingat untuk diri sendiri, atau balasan ke pesan member..." required></textarea>
+      <div class="text-end mt-2"><button class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Kirim</button></div>
+    </form>
+    <?php if(!$gmRoots): ?>
+      <p class="text-muted small text-center mb-0">Belum ada titip pesan masuk.</p>
+    <?php else: ?>
+      <div class="list-group list-group-flush">
+      <?php foreach($gmRoots as $g):
+          $isMine  = (int)$u['id']===(int)$g['sender_user_id'];
+          $isOwner = true; // di profile.php, saya selalu owner
+      ?>
+        <div class="list-group-item px-0">
+          <div class="d-flex gap-2">
+            <?php if($g['sender_foto']): ?>
+              <img src="<?= htmlspecialchars($g['sender_foto']) ?>" class="rounded-circle zoomable" style="width:38px;height:38px;object-fit:cover">
+            <?php else: ?>
+              <?= user_avatar(null, $g['sender_nama'], 38) ?>
+            <?php endif; ?>
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <div><a href="/user.php?id=<?= (int)$g['sender_user_id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($g['sender_nama']) ?></a>
+                  <small class="text-muted ms-2"><?= date('d M Y H:i', strtotime($g['created_at'])) ?><?= $g['updated_at']?' <em>(edited)</em>':'' ?></small></div>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-link btn-sm p-0 me-2" type="button" onclick="document.getElementById('gmReplyP<?= (int)$g['id'] ?>').classList.toggle('d-none')"><i class="bi bi-reply"></i> Reply</button>
+                  <?php if($isMine): ?><button class="btn btn-link btn-sm p-0 me-2 text-primary" type="button" onclick="document.getElementById('gmEditP<?= (int)$g['id'] ?>').classList.toggle('d-none')"><i class="bi bi-pencil"></i></button><?php endif; ?>
+                  <form data-ajax method="post" onsubmit="return confirm('Hapus pesan ini?')" class="d-inline">
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="_action" value="gm_del">
+                    <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+                    <button class="btn btn-link btn-sm p-0 text-danger"><i class="bi bi-trash"></i></button>
+                  </form>
+                </div>
+              </div>
+              <div class="mt-1" style="white-space:pre-wrap"><?= htmlspecialchars($g['pesan']) ?></div>
+              <?php if($isMine): ?>
+              <form data-ajax method="post" id="gmEditP<?= (int)$g['id'] ?>" class="d-none mt-2">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="gm_edit">
+                <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+                <textarea name="pesan" rows="2" maxlength="1000" class="form-control form-control-sm" required><?= htmlspecialchars($g['pesan']) ?></textarea>
+                <div class="text-end mt-1"><button class="btn btn-sm btn-primary">Simpan</button></div>
+              </form>
+              <?php endif; ?>
+              <form data-ajax method="post" id="gmReplyP<?= (int)$g['id'] ?>" class="d-none mt-2">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="gm_add">
+                <input type="hidden" name="parent_id" value="<?= (int)$g['id'] ?>">
+                <textarea name="pesan" rows="2" maxlength="1000" class="form-control form-control-sm" placeholder="Balas pesan..." required></textarea>
+                <div class="text-end mt-1"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-reply"></i> Balas</button></div>
+              </form>
+              <?php $reps = $gmByParent[(int)$g['id']] ?? []; if($reps): ?>
+                <div class="mt-2 ps-3 border-start">
+                <?php foreach($reps as $rp): $isMineRp = (int)$u['id']===(int)$rp['sender_user_id']; ?>
+                  <div class="d-flex gap-2 mt-2">
+                    <?php if($rp['sender_foto']): ?>
+                      <img src="<?= htmlspecialchars($rp['sender_foto']) ?>" class="rounded-circle zoomable" style="width:28px;height:28px;object-fit:cover">
+                    <?php else: ?>
+                      <?= user_avatar(null, $rp['sender_nama'], 28) ?>
+                    <?php endif; ?>
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div><a href="/user.php?id=<?= (int)$rp['sender_user_id'] ?>" class="fw-semibold text-decoration-none small"><?= htmlspecialchars($rp['sender_nama']) ?></a>
+                          <small class="text-muted ms-2"><?= date('d M H:i', strtotime($rp['created_at'])) ?></small></div>
+                        <form data-ajax method="post" onsubmit="return confirm('Hapus balasan?')" class="d-inline">
+                          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                          <input type="hidden" name="_action" value="gm_del">
+                          <input type="hidden" name="id" value="<?= (int)$rp['id'] ?>">
+                          <button class="btn btn-link btn-sm p-0 text-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                      </div>
+                      <div class="small" style="white-space:pre-wrap"><?= htmlspecialchars($rp['pesan']) ?></div>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <!-- Modal: CRUD Olahraga Favorit -->
 <div class="modal fade" id="favModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
   <div class="modal-content">

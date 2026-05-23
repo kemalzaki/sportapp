@@ -65,6 +65,20 @@ if ($u) {
   .navbar .navbar-nav.align-items-lg-center .nav-item + .nav-item{margin-left:.25rem;}
 }
 .navbar .dropdown-menu{min-width:240px;}
+/* === Mobile: admin dropdown bisa di-scroll === */
+@media (max-width:991.98px){
+  .navbar .dropdown-menu{
+    max-height: 70vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Pastikan collapse-nya juga bisa di-scroll bila menu sangat panjang */
+  .navbar .navbar-collapse{
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
 /* === Preloader === */
 #appPreloader{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;transition:opacity .25s ease;}
 #appPreloader .spinner{width:54px;height:54px;border:5px solid #e2e8f0;border-top-color:#0ea5e9;border-radius:50%;animation:hfspin 1s linear infinite;}

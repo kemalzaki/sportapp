@@ -73,17 +73,10 @@ include __DIR__.'/includes/header.php';
         <p class="small text-muted mb-2"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($r['alamat'] ?? '—') ?></p>
         <?php if($r['pic_nama']): ?><div class="small mb-2">PIC: <?= user_name_with_avatar($r['pic_foto']??null,$r['pic_nama'],false,22) ?></div><?php endif; ?>
         <div class="d-flex gap-2">
-          <?php if($isAdmin): ?>
-            <a href="/tempat_detail.php?id=<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-info-circle"></i> Detail</a>
-          <?php else: ?>
-            <button type="button" class="btn btn-sm btn-outline-primary"
-              onclick='showTempatDetail(<?= json_encode($popup, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
-              <i class="bi bi-info-circle"></i> Detail
-            </button>
-          <?php endif; ?>
-          <a href="<?= htmlspecialchars($maps) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success">
-            <i class="bi bi-geo-alt"></i> Lihat Lokasi
-          </a>
+          <button type="button" class="btn btn-sm btn-outline-primary"
+            onclick='showTempatDetail(<?= json_encode($popup, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
+            <i class="bi bi-info-circle"></i> Detail
+          </button>
         </div>
       </div>
     </div>
@@ -102,7 +95,7 @@ include __DIR__.'/includes/header.php';
       <div class="mb-2 small text-muted" id="tmAlamat"></div>
       <div class="mb-2" id="tmJenis"></div>
       <div class="row g-3">
-        <div class="col-md-6">
+        <div class="col-12">
           <table class="table table-sm mb-2">
             <tr><th>Status</th><td><span id="tmStatus" class="badge bg-info-subtle text-info"></span></td></tr>
             <tr><th>Harga Lapang</th><td id="tmHL"></td></tr>
@@ -113,12 +106,8 @@ include __DIR__.'/includes/header.php';
           </table>
           <div id="tmCatatan" class="small text-muted" style="white-space:pre-wrap"></div>
           <div class="mt-2 d-flex flex-wrap gap-2">
-            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-success"><i class="bi bi-geo-alt"></i> Buka di Google Maps</a>
             <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
           </div>
-        </div>
-        <div class="col-md-6">
-          <div id="tmMapWrap"></div>
         </div>
       </div>
     </div>
@@ -145,19 +134,8 @@ function showTempatDetail(d){
     document.getElementById('tmRowPIC').classList.add('d-none');
   }
   document.getElementById('tmCatatan').textContent = d.catatan || '';
-  document.getElementById('tmMaps').href = d.maps;
   const wa = document.getElementById('tmWa');
   if (d.wa_link) { wa.href = d.wa_link; wa.classList.remove('d-none'); } else { wa.classList.add('d-none'); }
-
-  // Map: OpenStreetMap embed (bukan Google Maps)
-  const mapWrap = document.getElementById('tmMapWrap');
-  if (d.lat && d.lng) {
-    const bbox = [Number(d.lng)-0.005, Number(d.lat)-0.003, Number(d.lng)+0.005, Number(d.lat)+0.003].join(',');
-    const src = 'https://www.openstreetmap.org/export/embed.html?bbox='+bbox+'&layer=mapnik&marker='+d.lat+','+d.lng;
-    mapWrap.innerHTML = '<iframe width="100%" height="320" style="border:0;border-radius:8px" loading="lazy" src="'+src+'"></iframe>';
-  } else {
-    mapWrap.innerHTML = '<div class="alert alert-warning small">Koordinat belum diisi admin.</div>';
-  }
   _tmM.show();
 }
 </script>
