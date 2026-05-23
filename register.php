@@ -22,7 +22,8 @@ require_once __DIR__.'/includes/islami_migrations.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
-    rate_limit_or_die('register:'.($_SERVER['REMOTE_ADDR'] ?? '0'), 5, 600);
+    // Rate limit longgar: 30 percobaan / 10 menit per IP (cukup untuk salah ketik berulang)
+    rate_limit_or_die('register:'.($_SERVER['REMOTE_ADDR'] ?? '0'), 30, 600);
     $nama = trim($_POST['nama'] ?? '');
     $email = strtolower(trim($_POST['email'] ?? ''));
     $pass = $_POST['password'] ?? '';

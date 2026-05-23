@@ -4,7 +4,7 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_helpers.php';
-send_security_headers();
+send_security_headers(); require_login();
 $pageTitle = 'Jadwal Sholat';
 $u = current_user();
 $pref = $u ? islami_pref((int)$u['id']) : ['kota'=>'Jakarta','negara'=>'Indonesia','mode_tenang'=>1];

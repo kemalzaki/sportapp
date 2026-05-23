@@ -5,7 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_data.php';
 require __DIR__.'/includes/islami_helpers.php';
-send_security_headers();
+send_security_headers(); require_login();
 $pageTitle = 'Hub Islami';
 $u = current_user();
 

@@ -42,5 +42,37 @@ include __DIR__.'/includes/header.php';
       <?php if($r['catatan']): ?><div class="mt-3"><strong>Catatan:</strong><p class="small text-muted mb-0" style="white-space:pre-wrap"><?= htmlspecialchars($r['catatan']) ?></p></div><?php endif; ?>
     </div>
   </div>
+
+  <?php if (!empty($r['lat']) && !empty($r['lng'])): ?>
+    <hr>
+    <h6 class="mb-2"><i class="bi bi-map text-primary"></i> Lokasi di Peta</h6>
+    <div id="tempatMap" style="height:340px;border-radius:12px;overflow:hidden;border:1px solid var(--bs-border-color,#dee2e6)"></div>
+    <div class="mt-2 d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-primary" target="_blank" rel="noopener"
+         href="https://www.google.com/maps/dir/?api=1&destination=<?= (float)$r['lat'] ?>,<?= (float)$r['lng'] ?>">
+        <i class="bi bi-signpost-split"></i> Petunjuk Arah (Google Maps)
+      </a>
+      <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+         href="https://www.openstreetmap.org/?mlat=<?= (float)$r['lat'] ?>&mlon=<?= (float)$r['lng'] ?>#map=17/<?= (float)$r['lat'] ?>/<?= (float)$r['lng'] ?>">
+        <i class="bi bi-geo-alt"></i> Buka di OSM
+      </a>
+      <span class="small text-muted align-self-center">Koordinat: <?= (float)$r['lat'] ?>, <?= (float)$r['lng'] ?></span>
+    </div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      (function(){
+        var lat=<?= (float)$r['lat'] ?>, lng=<?= (float)$r['lng'] ?>;
+        var map=L.map('tempatMap').setView([lat,lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
+        L.marker([lat,lng]).addTo(map)
+          .bindPopup(<?= json_encode($r['nama']) ?>).openPopup();
+      })();
+    </script>
+  <?php else: ?>
+    <div class="mt-3 alert alert-warning small mb-0"><i class="bi bi-exclamation-triangle"></i>
+      Koordinat lokasi belum diisi oleh admin.</div>
+  <?php endif; ?>
 </div></div>
 <?php include __DIR__.'/includes/footer.php'; ?>

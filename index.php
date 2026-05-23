@@ -78,12 +78,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
             }
         }
         if ($jenis === 'story') {
-            db_exec("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, now() + interval '24 hours')",
+            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, now() + interval '24 hours') RETURNING id",
                 [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
         } else {
-            db_exec("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, NULL)",
+            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, NULL) RETURNING id",
                 [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
         }
+        if (function_exists('sync_post_tags') && $newId) { sync_post_tags($newId, $caption); }
     } elseif ($a === 'like') {
         $pid = (int)$_POST['post_id'];
         try { db_exec("INSERT INTO post_likes(post_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [$pid, (int)$u['id']]); } catch (Throwable $e) {}
@@ -553,11 +554,21 @@ document.addEventListener('DOMContentLoaded', () => {
             <?php endif; ?>
           </div>
           <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" class="img-fluid rounded mb-2 zoomable" style="max-height:400px;" onerror="this.style.display='none'"><?php endif; ?>
-          <div class="mb-2"><?= nl2br(htmlspecialchars($p['caption'] ?? '')) ?></div>
-          <div class="d-flex gap-2 small">
+          <div class="mb-2"><?= nl2br(render_tags_and_mentions(htmlspecialchars($p['caption'] ?? ''))) ?></div>
+          <div class="d-flex flex-wrap gap-2 small">
             <?php if($u): ?>
             <form method="post" class="d-inline" data-ajax><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="like"><input type="hidden" name="post_id" value="<?= $p['id'] ?>">
-              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-heart"></i> <?= (int)$p['likes'] ?></button></form>
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-heart<?= ((int)$p['liked_by_me']>0?'-fill':'') ?>"></i> <?= (int)$p['likes'] ?></button></form>
+            <form method="post" action="/bookmark.php" class="d-inline">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="add"><input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+              <button class="btn btn-sm btn-outline-warning" title="Simpan ke bookmark"><i class="bi bi-bookmark-plus"></i></button>
+            </form>
+            <form method="post" action="/repost.php" class="d-inline" onsubmit="this.querySelector('[name=caption]').value=prompt('Tambahkan komentar (opsional):','')||''">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+              <input type="hidden" name="caption" value="">
+              <button class="btn btn-sm btn-outline-info" title="Repost"><i class="bi bi-arrow-repeat"></i></button>
+            </form>
+            <a href="/report.php?post_id=<?= (int)$p['id'] ?>" class="btn btn-sm btn-outline-secondary" title="Laporkan"><i class="bi bi-flag"></i></a>
             <?php endif; ?>
             <span class="text-muted align-self-center"><i class="bi bi-chat"></i> <?= (int)$p['comments'] ?></span>
           </div>
@@ -600,7 +611,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <?php foreach($onlineMembers as $om): ?>
           <li class="list-group-item d-flex align-items-center justify-content-between">
             <a href="/user.php?id=<?= (int)$om['id'] ?>" class="text-decoration-none"><?= user_name_with_avatar($om['foto_url'] ?? null, $om['nama'], true, 28) ?></a>
-            <small class="text-muted"><?= date('H:i', strtotime($om['last_seen'])) ?></small>
+            <span class="d-flex align-items-center gap-2">
+              <?php if($u && (int)$om['id'] !== (int)$u['id']): ?>
+                <a href="/dm.php?u=<?= (int)$om['id'] ?>" class="btn btn-sm btn-outline-primary py-0 px-2" title="Chat"><i class="bi bi-chat-dots"></i></a>
+              <?php endif; ?>
+              <small class="text-muted"><?= date('H:i', strtotime($om['last_seen'])) ?></small>
+            </span>
           </li>
         <?php endforeach; if(!$onlineMembers): ?><li class="list-group-item text-muted small">Belum ada yang online.</li><?php endif; ?>
       </ul></div>

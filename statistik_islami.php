@@ -1,6 +1,6 @@
 <?php
 require __DIR__.'/config/db.php'; require __DIR__.'/includes/auth.php'; require __DIR__.'/includes/security.php'; require __DIR__.'/includes/helpers.php'; require __DIR__.'/includes/islami_helpers.php';
-send_security_headers(); $pageTitle='Statistik & Streak'; $u=current_user();
+send_security_headers(); require_login(); $pageTitle='Statistik & Streak'; $u=current_user();
 include __DIR__.'/includes/header.php';
 if(!$u){ echo '<div class="alert alert-warning">Login dulu.</div>'; include __DIR__.'/includes/footer.php'; exit; }
 $rows=db_all("SELECT tanggal, quran_done, dzikir_pagi, dzikir_petang, doa_done, subuh_walk, sedekah, poin FROM islami_streak WHERE user_id=$1 ORDER BY tanggal DESC LIMIT 60",[(int)$u['id']]);

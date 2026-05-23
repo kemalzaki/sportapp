@@ -1,6 +1,6 @@
 <?php
 require __DIR__.'/config/db.php'; require __DIR__.'/includes/auth.php'; require __DIR__.'/includes/security.php'; require __DIR__.'/includes/helpers.php'; require __DIR__.'/includes/islami_helpers.php';
-send_security_headers(); $pageTitle='Kajian Kesehatan Islami'; $u=current_user();
+send_security_headers(); require_login(); $pageTitle='Kajian Kesehatan Islami'; $u=current_user();
 if($_SERVER['REQUEST_METHOD']==='POST' && $u){ csrf_check();
  $a=$_POST['_action']??'';
  if($a==='post'){ db_exec("INSERT INTO islami_kajian(user_id,judul,isi,link_video) VALUES($1,$2,$3,$4)",[(int)$u['id'],substr(trim($_POST['judul']??''),0,180),substr($_POST['isi']??'',0,3000),substr(trim($_POST['link_video']??''),0,255)]); }

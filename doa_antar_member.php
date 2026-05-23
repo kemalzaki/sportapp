@@ -1,6 +1,6 @@
 <?php
 require __DIR__.'/config/db.php'; require __DIR__.'/includes/auth.php'; require __DIR__.'/includes/security.php'; require __DIR__.'/includes/helpers.php'; require __DIR__.'/includes/islami_helpers.php';
-send_security_headers(); $pageTitle='Saling Mendoakan'; $u=current_user();
+send_security_headers(); require_login(); $pageTitle='Saling Mendoakan'; $u=current_user();
 if($_SERVER['REQUEST_METHOD']==='POST' && $u){ csrf_check();
  $a=$_POST['_action']??'';
  if($a==='post'){ $isi=substr(trim($_POST['isi']??''),0,500); if($isi!=='') db_exec("INSERT INTO doa_request(user_id,isi) VALUES($1,$2)",[(int)$u['id'],htmlspecialchars($isi)]); }

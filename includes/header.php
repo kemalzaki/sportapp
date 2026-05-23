@@ -4,6 +4,7 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/migrations_v7.php';
+require_once __DIR__ . '/migrations_v8.php';
 send_security_headers(); enforce_session_timeout();
 $u = current_user();
 if ($u) touch_online();
@@ -109,6 +110,9 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
           <li class="nav-item"><a class="nav-link" href="/kalkulator.php"><i class="bi bi-heart-pulse"></i> Kalkulator Sehat</a></li>
+          <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Lari</a></li>
+          <li class="nav-item"><a class="nav-link" href="/dm.php"><i class="bi bi-chat-dots text-info"></i> Pesan</a></li>
+          <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
           <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami</a></li>
         <?php endif; ?>
         <?php if ($u && $u['role']==='admin'): ?>
@@ -125,6 +129,7 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>
               <li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li>
+              <li><a class="dropdown-item" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>
               <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>
