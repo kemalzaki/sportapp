@@ -265,13 +265,65 @@ document.addEventListener('submit', async function(ev){
   }
 });
 
-/* ===== Generic tabel pagination (table[data-paginate="N"]) ===== */
+/* ===== Generic tabel pagination + sorting global =====
+ * - Pagination: <table data-paginate="N">.
+ * - Sorting: otomatis pada SEMUA <table> ber-<thead><th>. Klik header asc/desc.
+ *   Nonaktifkan dengan atribut data-no-sort di <table> atau <th>.
+ *   Gunakan data-sort-value="..." di <td> untuk override nilai sorting.
+ */
 (function(){
+  function parseCell(td){
+    if(!td) return '';
+    const raw = ((td.getAttribute && td.getAttribute('data-sort-value')) || td.textContent || '').trim();
+    if(raw === '') return '';
+    if(/^[-+]?\d[\d.,]*\s*%?$/.test(raw)){
+      const n = parseFloat(raw.replace(/\./g,'').replace(',','.').replace('%',''));
+      if(!isNaN(n)) return n;
+    }
+    const m1 = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if(m1){ const y=m1[3].length===2?('20'+m1[3]):m1[3]; const t=new Date(+y,+m1[2]-1,+m1[1]).getTime(); if(!isNaN(t)) return t; }
+    const m2 = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m2){ const t=new Date(+m2[1],+m2[2]-1,+m2[3]).getTime(); if(!isNaN(t)) return t; }
+    return raw.toLowerCase();
+  }
+  function applySort(tbl, colIdx, dir){
+    const tbody = tbl.tBodies[0]; if(!tbody) return;
+    const rows = Array.from(tbody.rows);
+    rows.sort((a,b)=>{
+      const va = parseCell(a.cells[colIdx]); const vb = parseCell(b.cells[colIdx]);
+      if(va<vb) return dir==='asc'?-1:1;
+      if(va>vb) return dir==='asc'?1:-1;
+      return 0;
+    });
+    rows.forEach(r=>tbody.appendChild(r));
+    if(typeof tbl._pgRender==='function') tbl._pgRender(true);
+  }
+  function attachSort(tbl){
+    if(tbl.hasAttribute('data-no-sort') || tbl.dataset.sortInit) return;
+    const thead = tbl.tHead; if(!thead || !thead.rows.length) return;
+    const tbody = tbl.tBodies[0]; if(!tbody || tbody.rows.length<2) { tbl.dataset.sortInit='1'; return; }
+    tbl.dataset.sortInit='1';
+    const ths = Array.from(thead.rows[0].cells);
+    ths.forEach((th, idx)=>{
+      if(th.hasAttribute('data-no-sort')) return;
+      th.style.cursor='pointer'; th.style.userSelect='none';
+      if(!th.querySelector('.sort-ind')){
+        const s=document.createElement('span'); s.className='sort-ind text-muted'; s.style.cssText='margin-left:4px;font-size:.75em;opacity:.6;'; s.textContent='⇅'; th.appendChild(s);
+      }
+      th.addEventListener('click', (ev)=>{
+        if(ev.target.closest('a,button,input,select,label')) return;
+        const cur = th.dataset.sortDir || '';
+        const next = cur==='asc'?'desc':'asc';
+        ths.forEach(o=>{ o.dataset.sortDir=''; const i=o.querySelector('.sort-ind'); if(i){ i.textContent='⇅'; i.style.opacity='.6'; } });
+        th.dataset.sortDir = next;
+        const ind = th.querySelector('.sort-ind'); if(ind){ ind.textContent = next==='asc'?'▲':'▼'; ind.style.opacity='1'; }
+        applySort(tbl, idx, next);
+      });
+    });
+  }
   function paginate(tbl){
     const per = parseInt(tbl.getAttribute('data-paginate')||'10',10) || 10;
     const tbody = tbl.tBodies[0]; if(!tbody) return;
-    const rows = Array.from(tbody.rows);
-    if(rows.length <= per) return;
     let page = 0;
     const bar = document.createElement('div'); bar.className='pagination-bar';
     const info = document.createElement('div'); info.className='pg-info text-muted';
@@ -281,25 +333,30 @@ document.addEventListener('submit', async function(ev){
     btns.appendChild(prev); btns.appendChild(next);
     bar.appendChild(info); bar.appendChild(btns);
     tbl.parentNode.insertBefore(bar, tbl.nextSibling);
-    function render(){
-      const total = rows.length, pages = Math.ceil(total/per);
+    function render(keepPage){
+      const rows = Array.from(tbody.rows);
+      const total = rows.length, pages = Math.max(1, Math.ceil(total/per));
+      if(!keepPage) page = 0;
       if(page>=pages) page=pages-1; if(page<0) page=0;
       rows.forEach((r,i)=>{ r.style.display = (i>=page*per && i<(page+1)*per) ? '' : 'none'; });
       info.textContent = 'Hal. '+(page+1)+' / '+pages+' · '+total+' baris';
       prev.disabled = page===0; next.disabled = page>=pages-1;
+      bar.style.display = total<=per ? 'none' : '';
     }
-    prev.addEventListener('click', ()=>{ page--; render(); });
-    next.addEventListener('click', ()=>{ page++; render(); });
-    render();
+    prev.addEventListener('click', ()=>{ page--; render(true); });
+    next.addEventListener('click', ()=>{ page++; render(true); });
+    tbl._pgRender = render;
+    render(false);
   }
-  function initAll(){ document.querySelectorAll('table[data-paginate]:not([data-pg-init])').forEach(t=>{ t.setAttribute('data-pg-init','1'); paginate(t); }); }
+  function initAll(){
+    document.querySelectorAll('table:not([data-sort-init])').forEach(attachSort);
+    document.querySelectorAll('table[data-paginate]:not([data-pg-init])').forEach(t=>{ t.setAttribute('data-pg-init','1'); paginate(t); });
+  }
   document.addEventListener('DOMContentLoaded', initAll);
-  // Re-init setelah soft refresh mengganti innerHTML region
   const origSR = window.softRefresh;
   if(typeof origSR==='function'){
     window.softRefresh = async function(){ const r = await origSR.apply(this, arguments); initAll(); return r; };
   }
-  // Observer untuk tabel yang dimuat dinamis
   new MutationObserver(()=>initAll()).observe(document.body, {childList:true, subtree:true});
 })();
 </script>
