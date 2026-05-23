@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS "absensi" (
 	CONSTRAINT "absensi_status_check" CHECK (((status)::text = ANY ((ARRAY['hadir'::character varying, 'izin'::character varying, 'sakit'::character varying, 'telat'::character varying, 'absen'::character varying])::text[])))
 );
 
--- Dumping data for table public.absensi: 72 rows
+-- Dumping data for table public.absensi: 82 rows
 /*!40000 ALTER TABLE "absensi" DISABLE KEYS */;
 INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin_at", "lat", "lng", "telat_menit", "status", "keterangan") VALUES
 	(183, 1, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
@@ -50,7 +50,13 @@ INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin
 	(193, 1, 11, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
 	(194, 1, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', 'Dani sama Rifat ada Kuliah Online'),
 	(195, 1, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(292, 6, 16, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(293, 6, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(294, 6, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(295, 6, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(296, 6, 6, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Tidak suka badminton'),
 	(214, 5, 16, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(297, 6, 7, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(216, 5, 13, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', 'Ada acara grup ITB'),
 	(217, 5, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(218, 5, 8, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
@@ -65,6 +71,15 @@ INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin
 	(227, 5, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(228, 5, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
 	(229, 5, 5, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Masih Tidur'),
+	(298, 6, 14, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Vcat 2x acara intern'),
+	(299, 6, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(300, 6, 15, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Muncak with CMD'),
+	(301, 6, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', 'Gak di read chat dani'),
+	(302, 6, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(303, 6, 11, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Pulkam'),
+	(304, 6, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(305, 6, 17, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Pulkam'),
+	(306, 6, 5, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Lomba'),
 	(123, 2, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
 	(124, 2, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(125, 2, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
@@ -184,6 +199,7 @@ CREATE TABLE IF NOT EXISTS "chat_forum" (
 	"pesan" TEXT NOT NULL,
 	"created_at" TIMESTAMP NULL DEFAULT 'now()',
 	"parent_id" INTEGER NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
 	PRIMARY KEY ("id"),
 	CONSTRAINT "chat_forum_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "chat_forum" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
 	CONSTRAINT "chat_forum_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
@@ -191,11 +207,14 @@ CREATE TABLE IF NOT EXISTS "chat_forum" (
 
 -- Dumping data for table public.chat_forum: -1 rows
 /*!40000 ALTER TABLE "chat_forum" DISABLE KEYS */;
-INSERT INTO "chat_forum" ("id", "user_id", "pesan", "created_at", "parent_id") VALUES
-	(3, 2, 'Assalamualaikum lagi, ada yang online?', '2026-05-21 11:41:53.489748', NULL),
-	(4, 3, 'wa''alikumussalam', '2026-05-21 15:47:46.367728', NULL),
-	(5, 2, 'siap kawan', '2026-05-22 00:37:27.733498', 4),
-	(6, 2, 'Semangat malam. Untuk absen, dilakukan di area sekitar lapang. Terimakasih.', '2026-05-22 16:36:35.671593', NULL);
+INSERT INTO "chat_forum" ("id", "user_id", "pesan", "created_at", "parent_id", "updated_at") VALUES
+	(3, 2, 'Assalamualaikum lagi, ada yang online?', '2026-05-21 11:41:53.489748', NULL, NULL),
+	(4, 3, 'wa''alikumussalam', '2026-05-21 15:47:46.367728', NULL, NULL),
+	(6, 2, 'Semangat malam. Untuk absen, dilakukan di area sekitar lapang, karena radius absen 150 meter dari lokasi. Terimakasih.', '2026-05-22 16:36:35.671593', NULL, '2026-05-23 05:52:06.486691'),
+	(8, 4, 'Semangat pagi. Siapp laksanakan', '2026-05-23 06:18:22.527654', 6, NULL),
+	(5, 2, 'siap kawans', '2026-05-22 00:37:27.733498', 4, '2026-05-23 06:42:22.877495'),
+	(9, 2, 'Pengumuman, sudah ada kalkulator sehat, bisa dicoba', '2026-05-23 07:05:27.882099', NULL, NULL),
+	(10, 4, 'Mantappp', '2026-05-23 16:24:57.427956', 9, NULL);
 /*!40000 ALTER TABLE "chat_forum" ENABLE KEYS */;
 
 -- Dumping structure for table public.chat_reactions
@@ -213,7 +232,9 @@ CREATE TABLE IF NOT EXISTS "chat_reactions" (
 /*!40000 ALTER TABLE "chat_reactions" DISABLE KEYS */;
 INSERT INTO "chat_reactions" ("chat_id", "user_id", "val") VALUES
 	(4, 2, 1),
-	(6, 2, 1);
+	(6, 2, 1),
+	(8, 2, 1),
+	(9, 14, 1);
 /*!40000 ALTER TABLE "chat_reactions" ENABLE KEYS */;
 
 -- Dumping structure for table public.event
@@ -294,6 +315,32 @@ CREATE TABLE IF NOT EXISTS "fcm_tokens" (
 /*!40000 ALTER TABLE "fcm_tokens" DISABLE KEYS */;
 /*!40000 ALTER TABLE "fcm_tokens" ENABLE KEYS */;
 
+-- Dumping structure for table public.guest_messages
+CREATE TABLE IF NOT EXISTS "guest_messages" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''guest_messages_id_seq''::regclass)',
+	"owner_user_id" INTEGER NOT NULL,
+	"sender_user_id" INTEGER NOT NULL,
+	"parent_id" INTEGER NULL DEFAULT NULL,
+	"pesan" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "guest_messages_owner_user_id_fkey" FOREIGN KEY ("owner_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "guest_messages_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "guest_messages" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "guest_messages_sender_user_id_fkey" FOREIGN KEY ("sender_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.guest_messages: -1 rows
+/*!40000 ALTER TABLE "guest_messages" DISABLE KEYS */;
+INSERT INTO "guest_messages" ("id", "owner_user_id", "sender_user_id", "parent_id", "pesan", "created_at", "updated_at") VALUES
+	(1, 3, 2, NULL, 'Berqurban Yuks...👍', '2026-05-23 07:02:06.611451', NULL),
+	(2, 14, 2, NULL, '👋 Semangat Pagi', '2026-05-23 07:18:03.654891', NULL),
+	(3, 14, 2, NULL, '👋 Assalamualaikum', '2026-05-23 07:51:17.711997', NULL),
+	(5, 2, 4, NULL, 'Kang, kumaha kabarna, sehat?', '2026-05-23 08:05:05.864711', NULL),
+	(6, 17, 4, NULL, '👋 🤗', '2026-05-23 09:15:10.057807', NULL),
+	(7, 2, 2, 5, 'Alhamdulilah dan', '2026-05-23 21:17:33.682802', NULL);
+/*!40000 ALTER TABLE "guest_messages" ENABLE KEYS */;
+
 -- Dumping structure for table public.jadwal
 CREATE TABLE IF NOT EXISTS "jadwal" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''jadwal_id_seq''::regclass)',
@@ -350,7 +397,9 @@ INSERT INTO "jenis_olahraga" ("id", "nama", "deskripsi", "created_at") VALUES
 	(8, 'Hiking', 'Ngalam bagian healing', '2026-05-22 16:19:49.34839'),
 	(9, 'Camping', 'Bersama dalam malam', '2026-05-22 16:20:06.583601'),
 	(10, 'Gerak Jalan', 'Menjaga intensitas kaki', '2026-05-22 16:20:27.018665'),
-	(5, 'Renang', 'Renang gaya yang bagian dari edukasi', '2026-05-21 00:40:55.617378');
+	(5, 'Renang', 'Renang gaya yang bagian dari edukasi', '2026-05-21 00:40:55.617378'),
+	(11, 'Biliard', 'Kuy, maen bola kecil', '2026-05-23 04:33:57.391667'),
+	(12, 'Ping Pong', 'Bola Bolaan Kecil', '2026-05-23 06:40:37.374439');
 /*!40000 ALTER TABLE "jenis_olahraga" ENABLE KEYS */;
 
 -- Dumping structure for table public.login_attempts
@@ -363,7 +412,7 @@ CREATE TABLE IF NOT EXISTS "login_attempts" (
 	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.login_attempts: 52 rows
+-- Dumping data for table public.login_attempts: 109 rows
 /*!40000 ALTER TABLE "login_attempts" DISABLE KEYS */;
 INSERT INTO "login_attempts" ("id", "email", "ip", "success", "created_at") VALUES
 	(1, 'firdam@sport.local', '::1', 1, '2026-05-22 00:12:26.427246'),
@@ -418,7 +467,71 @@ INSERT INTO "login_attempts" ("id", "email", "ip", "success", "created_at") VALU
 	(50, 'firdam@sport.local', '::1', 1, '2026-05-22 16:02:56.558954'),
 	(51, 'firdam@sport.local', '::1', 1, '2026-05-22 16:50:07.36065'),
 	(52, 'firdam@sport.local', '::1', 1, '2026-05-22 16:50:29.760719'),
-	(53, 'farhan@sport.local', '::1', 1, '2026-05-22 20:32:57.610004');
+	(53, 'farhan@sport.local', '::1', 1, '2026-05-22 20:32:57.610004'),
+	(54, 'firdam@sport.local', '::1', 1, '2026-05-23 04:32:52.006381'),
+	(55, 'firdam@sport.local', '::1', 1, '2026-05-23 05:11:39.051908'),
+	(56, 'firdam@sport.local', '::1', 1, '2026-05-23 05:45:57.544728'),
+	(57, 'firdam@sport.local', '::1', 1, '2026-05-23 05:57:10.94672'),
+	(58, 'firdam@sport.local', '::1', 1, '2026-05-23 05:58:14.043684'),
+	(59, 'firdam@sport.local', '::1', 1, '2026-05-23 06:01:13.646096'),
+	(60, 'dani@sport.local', '::1', 1, '2026-05-23 06:16:18.049163'),
+	(61, 'firdam@sport.local', '::1', 1, '2026-05-23 06:40:21.467383'),
+	(62, 'firdam@sport.local', '::1', 1, '2026-05-23 07:00:19.265408'),
+	(63, 'firdam@sport.local', '::1', 1, '2026-05-23 07:17:49.750471'),
+	(64, 'firdam@sport.local', '::1', 1, '2026-05-23 07:51:09.666772'),
+	(65, 'firdam@sport.local', '::1', 1, '2026-05-23 07:53:56.730811'),
+	(66, 'hanif@sport.local', '::1', 1, '2026-05-23 07:55:42.030535'),
+	(67, 'firdam@sport.local', '::1', 1, '2026-05-23 08:00:14.234138'),
+	(68, 'firdam@sport.local', '::1', 1, '2026-05-23 08:00:50.925963'),
+	(69, 'hanif@sport.local', '::1', 1, '2026-05-23 08:01:10.53084'),
+	(70, 'firdam@sport.local', '::1', 1, '2026-05-23 08:01:54.533101'),
+	(71, 'firdam@sport.local', '::1', 1, '2026-05-23 08:01:57.43081'),
+	(72, 'dani@sport.local', '::1', 1, '2026-05-23 08:04:25.631009'),
+	(73, 'firdam@sport.local', '::1', 1, '2026-05-23 08:17:17.036734'),
+	(74, 'hanif@sport.local', '::1', 1, '2026-05-23 08:17:57.438327'),
+	(75, 'firdam@sport.local', '::1', 1, '2026-05-23 08:18:23.336663'),
+	(76, 'farhan@sport.local', '::1', 0, '2026-05-23 09:06:58.780826'),
+	(77, 'farhan@sport.local', '::1', 1, '2026-05-23 09:07:15.78216'),
+	(78, 'dani@sport.local', '::1', 1, '2026-05-23 09:13:09.993464'),
+	(79, 'rifat@sport.local', '::1', 1, '2026-05-23 09:13:59.298529'),
+	(80, 'rifat@sport.local', '::1', 1, '2026-05-23 09:14:02.285043'),
+	(81, 'rifat@sport.local', '::1', 1, '2026-05-23 09:14:03.576288'),
+	(82, 'firdam@sport.local', '::1', 1, '2026-05-23 09:14:49.881582'),
+	(83, 'rifat@sport.local', '::1', 0, '2026-05-23 09:14:51.184753'),
+	(84, 'rifat@sport.local', '::1', 1, '2026-05-23 09:15:25.480309'),
+	(85, 'dani@sport.local', '::1', 1, '2026-05-23 09:16:56.881765'),
+	(86, 'firdam@sport.local', '::1', 1, '2026-05-23 10:58:45.370556'),
+	(87, 'firdam@sport.local', '::1', 1, '2026-05-23 10:58:48.364178'),
+	(88, 'firdam@sport.local', '::1', 1, '2026-05-23 11:26:02.090968'),
+	(89, 'firdam@sport.local', '::1', 1, '2026-05-23 14:11:11.46566'),
+	(90, 'firdam@sport.local', '::1', 1, '2026-05-23 14:32:36.622198'),
+	(91, 'dani@sport.local', '::1', 1, '2026-05-23 15:55:35.428255'),
+	(92, 'adithsetiawan62@gmail.com', '::1', 0, '2026-05-23 15:56:11.031084'),
+	(93, 'adithsetiawan62@gmail.com', '::1', 0, '2026-05-23 15:56:38.930822'),
+	(94, 'adithsetiawan62@gmail.com', '::1', 1, '2026-05-23 15:56:58.428601'),
+	(95, 'dani@sport.local', '::1', 1, '2026-05-23 16:24:12.85294'),
+	(96, 'adithsetiawan62@gmail.com', '::1', 1, '2026-05-23 16:24:48.460409'),
+	(97, 'firdam@sport.local', '::1', 1, '2026-05-23 16:24:55.46588'),
+	(98, 'firdam@sport.local', '::1', 1, '2026-05-23 16:24:59.058688'),
+	(99, 'faiz@sport.local', '::1', 1, '2026-05-23 16:26:33.246502'),
+	(100, 'adithsetiawan62@gmail.com', '::1', 1, '2026-05-23 16:27:59.048286'),
+	(101, 'firdam@sport.local', '::1', 1, '2026-05-23 17:01:18.09499'),
+	(102, 'firdam@sport.local', '::1', 1, '2026-05-23 17:01:21.102968'),
+	(103, 'dedi@sport.local', '::1', 1, '2026-05-23 17:10:11.295735'),
+	(104, 'firdam@sport.local', '::1', 1, '2026-05-23 18:31:01.491479'),
+	(105, 'firdam@sport.local', '::1', 1, '2026-05-23 18:31:04.477134'),
+	(106, 'firdam@sport.local', '::1', 1, '2026-05-23 18:54:13.463847'),
+	(107, 'firdam@sport.local', '::1', 1, '2026-05-23 19:05:44.174095'),
+	(108, 'farhan@sport.local', '::1', 1, '2026-05-23 19:06:33.775824'),
+	(109, 'farhan@sport.local', '::1', 1, '2026-05-23 19:06:36.865871'),
+	(110, 'firdam@sport.local', '::1', 1, '2026-05-23 19:10:43.370673'),
+	(111, 'firdam@sport.local', '::1', 1, '2026-05-23 21:15:16.789076'),
+	(112, 'firdam@sport.local', '::1', 1, '2026-05-23 21:16:21.282745'),
+	(113, 'firdam@sport.local', '::1', 1, '2026-05-23 21:16:24.694205'),
+	(114, 'hanif@sport.local', '::1', 1, '2026-05-23 21:18:46.803703'),
+	(115, 'hanif@sport.local', '::1', 1, '2026-05-23 21:18:47.990227'),
+	(116, 'firdam@sport.local', '::1', 1, '2026-05-23 21:21:22.500638'),
+	(117, 'firdam@sport.local', '::1', 1, '2026-05-23 21:21:23.688742');
 /*!40000 ALTER TABLE "login_attempts" ENABLE KEYS */;
 
 -- Dumping structure for table public.member_eksternal
@@ -474,7 +587,9 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(18, 8, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 0, '2026-05-22 03:22:47.970868'),
 	(19, 14, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 0, '2026-05-22 09:29:51.433106'),
 	(20, 4, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-05-22 10:34:05.881776'),
-	(2, 4, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:56.72524');
+	(2, 4, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:56.72524'),
+	(21, 3, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 0, '2026-05-23 09:18:05.260227'),
+	(22, 2, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 0, '2026-05-23 16:27:31.593629');
 /*!40000 ALTER TABLE "notifications" ENABLE KEYS */;
 
 -- Dumping structure for table public.posts
@@ -498,8 +613,10 @@ INSERT INTO "posts" ("id", "user_id", "caption", "foto_url", "jenis", "expired_a
 	(8, 2, 'Qurban moal?', NULL, 'story', '2026-05-23 05:00:49.909346', '2026-05-22 05:00:49.909346'),
 	(10, 2, 'tes b', '/uploads/post_37cbf90924ba9b51.jpg', 'story', '2026-05-23 05:23:01.584754', '2026-05-22 05:23:01.584754'),
 	(12, 2, 'Dimana ini?', 'uploads/post_2098d5361db54699.jpg', 'story', '2026-05-23 05:28:20.343507', '2026-05-22 05:28:20.343507'),
-	(14, 2, 'Hayu ath qurban dulu', NULL, 'story', '2026-05-23 12:16:57.55121', '2026-05-22 12:16:57.55121'),
-	(16, 2, 'Tes', 'https://ik.imagekit.io/ahsansur/sportapp/social/May_2026/Firdam-story-1779463780-0a9f6c49_qV6eavhdu.jpg', 'story', '2026-05-23 15:29:42.251876', '2026-05-22 15:29:42.251876');
+	(20, 2, 'Hiking Zaman doloe...', 'https://ik.imagekit.io/ahsansur/sportapp/social/May_2026/Firdam-story-1779493421-2b6b42d2_AEpezqZSR.jpg', 'story', '2026-05-24 06:43:42.642329', '2026-05-23 06:43:42.642329'),
+	(21, 2, 'Hati2, jalanan macet penuh dengan persib', 'https://ik.imagekit.io/ahsansur/sportapp/social/May_2026/Firdam-story-1779547426-900d5ed9_c4S84uqK_.jpg', 'story', '2026-05-24 21:43:48.245773', '2026-05-23 21:43:48.245773'),
+	(22, 2, 'Qurban moal', 'https://ik.imagekit.io/ahsansur/sportapp/social/May_2026/Firdam-post-1779547507-7ed5637f_9n8arlV51.jpg', 'post', NULL, '2026-05-23 21:45:08.625407'),
+	(23, 2, 'Climate Funding', 'https://ik.imagekit.io/ahsansur/sportapp/social/May_2026/Firdam-post-1779547596-1e76b6d1_9wtvJIxFg.jpg', 'post', NULL, '2026-05-23 21:46:38.411556');
 /*!40000 ALTER TABLE "posts" ENABLE KEYS */;
 
 -- Dumping structure for table public.post_comments
@@ -532,6 +649,23 @@ CREATE TABLE IF NOT EXISTS "post_likes" (
 /*!40000 ALTER TABLE "post_likes" DISABLE KEYS */;
 /*!40000 ALTER TABLE "post_likes" ENABLE KEYS */;
 
+-- Dumping structure for table public.push_seen
+CREATE TABLE IF NOT EXISTS "push_seen" (
+	"user_id" INTEGER NOT NULL,
+	"last_notif_id" INTEGER NOT NULL DEFAULT '0',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "push_seen_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.push_seen: -1 rows
+/*!40000 ALTER TABLE "push_seen" DISABLE KEYS */;
+INSERT INTO "push_seen" ("user_id", "last_notif_id", "updated_at") VALUES
+	(4, 20, '2026-05-23 08:04:28.841735'),
+	(2, 22, '2026-05-23 16:28:26.443175'),
+	(15, 11, '2026-05-23 21:18:51.120847');
+/*!40000 ALTER TABLE "push_seen" ENABLE KEYS */;
+
 -- Dumping structure for table public.qr_tokens
 CREATE TABLE IF NOT EXISTS "qr_tokens" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''qr_tokens_id_seq''::regclass)',
@@ -551,7 +685,7 @@ CREATE TABLE IF NOT EXISTS "qr_tokens" (
 -- Dumping data for table public.qr_tokens: -1 rows
 /*!40000 ALTER TABLE "qr_tokens" DISABLE KEYS */;
 INSERT INTO "qr_tokens" ("id", "jadwal_id", "token", "valid_from", "valid_until", "lat", "lng", "radius_meter", "created_at") VALUES
-	(3, 6, '07452096cfe8e90687cea8ce618a282f', '2026-05-22 16:34:18.088311', '2026-05-23 16:34:18.088311', -6.927241, 107.732561, 1500, '2026-05-22 16:34:18.088311');
+	(5, 6, 'cd37adec1cf2590065502b658ecf499d', '2026-05-23 05:49:08.58788', '2026-05-24 05:49:08.58788', -6.930473, 107.731552, 150, '2026-05-23 05:49:08.58788');
 /*!40000 ALTER TABLE "qr_tokens" ENABLE KEYS */;
 
 -- Dumping structure for table public.rate_limit
@@ -564,8 +698,33 @@ CREATE TABLE IF NOT EXISTS "rate_limit" (
 -- Dumping data for table public.rate_limit: 2 rows
 /*!40000 ALTER TABLE "rate_limit" DISABLE KEYS */;
 INSERT INTO "rate_limit" ("bucket", "ts") VALUES
-	('login:::1', '2026-05-22 20:32:57.22181');
+	('checkin:2', '2026-05-23 21:47:52.87521'),
+	('checkin:2', '2026-05-23 21:47:54.27412'),
+	('checkin:2', '2026-05-23 21:48:03.811032'),
+	('checkin:2', '2026-05-23 21:48:05.394371'),
+	('checkin:2', '2026-05-23 21:48:06.953983'),
+	('checkin:2', '2026-05-23 21:48:08.319382'),
+	('checkin:2', '2026-05-23 21:48:09.619387');
 /*!40000 ALTER TABLE "rate_limit" ENABLE KEYS */;
+
+-- Dumping structure for table public.sapa_log
+CREATE TABLE IF NOT EXISTS "sapa_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''sapa_log_id_seq''::regclass)',
+	"sender_user_id" INTEGER NOT NULL,
+	"target_user_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "sapa_log_sender_user_id_target_user_id_key" ("sender_user_id", "target_user_id"),
+	CONSTRAINT "sapa_log_sender_user_id_fkey" FOREIGN KEY ("sender_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "sapa_log_target_user_id_fkey" FOREIGN KEY ("target_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.sapa_log: -1 rows
+/*!40000 ALTER TABLE "sapa_log" DISABLE KEYS */;
+INSERT INTO "sapa_log" ("id", "sender_user_id", "target_user_id", "created_at") VALUES
+	(1, 2, 14, '2026-05-23 07:54:08.724011'),
+	(2, 4, 17, '2026-05-23 09:15:10.100932');
+/*!40000 ALTER TABLE "sapa_log" ENABLE KEYS */;
 
 -- Dumping structure for table public.tempat
 CREATE TABLE IF NOT EXISTS "tempat" (
@@ -579,39 +738,46 @@ CREATE TABLE IF NOT EXISTS "tempat" (
 	"created_at" TIMESTAMP NULL DEFAULT 'now()',
 	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
 	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
-	PRIMARY KEY ("id")
+	"pic_user_id" INTEGER NULL DEFAULT NULL,
+	"kontak_wa" VARCHAR(30) NULL DEFAULT NULL,
+	"jenis_id" INTEGER NULL DEFAULT NULL,
+	"harga_tiket" NUMERIC(12,2) NULL DEFAULT '0',
+	"harga_parkir" NUMERIC(12,2) NULL DEFAULT '0',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "tempat_jenis_id_fkey" FOREIGN KEY ("jenis_id") REFERENCES "jenis_olahraga" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "tempat_pic_user_id_fkey" FOREIGN KEY ("pic_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.tempat: -1 rows
+-- Dumping data for table public.tempat: 27 rows
 /*!40000 ALTER TABLE "tempat" DISABLE KEYS */;
-INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "status_booking", "catatan", "created_at", "lat", "lng") VALUES
-	(5, 'Summarecon', '-', 0.00, 0.00, 'tersedia', NULL, '2026-05-21 11:16:55.600715', NULL, NULL),
-	(3, 'GOR Purbaya', 'Jln. Ciguruwik', 25000.00, 25000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL),
-	(4, 'Jln.SR - Panyileukan', '-', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL),
-	(2, 'GOR Mayasari (Futsal)', '-', 125000.00, 125000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL),
-	(1, 'GOR Adiguna', 'Jln. Pertamina, Soetta', 110000.00, 110000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL),
-	(8, 'BSD Sport', 'Cipamokolan', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:04.47909', NULL, NULL),
-	(9, 'Kolam Renang Panorama', 'Ujung Berung', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:36.928503', NULL, NULL),
-	(10, 'Kolam Renang UPI', 'UPI Setiabudi', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:05:55.865701', NULL, NULL),
-	(11, 'Kolam Renang Lettu Pas Basonai', 'Lanud Sulaiman, Margahayu', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:38.344177', NULL, NULL),
-	(12, 'Kolam Renang Yadika', 'Tanjungsari', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:56.515685', NULL, NULL),
-	(13, 'GOR Mayasari (Badminton)', 'Soekarno Hatta, Bunderan Cibiru', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:08:01.628889', NULL, NULL),
-	(14, 'GOR Gaza', 'Cinunuk, Cibiru', 20000.00, 20000.00, 'tersedia', '', '2026-05-22 16:08:56.792858', NULL, NULL),
-	(15, 'GOR Sindangreret', 'Sindangreret, Cibiru', 40000.00, 40000.00, 'tersedia', '', '2026-05-22 16:09:31.917895', NULL, NULL),
-	(16, 'GOR Cempaka Arum', 'Panyileukan, Al-Jabbar', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:10:20.815157', NULL, NULL),
-	(6, 'GOR Azaka', 'Pasirimpun Atas', 50000.00, 50000.00, 'tersedia', '0', '2026-05-21 11:29:20.544026', NULL, NULL),
-	(17, 'GOR Pasanggrahan', 'Cilengkrang, Bandung', 45000.00, 45000.00, 'tersedia', '', '2026-05-22 16:12:36.197922', NULL, NULL),
-	(18, 'GOR Pilar Biru', 'Pilar Biru, Cibiru Hilir', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:13:13.801444', NULL, NULL),
-	(19, 'Biliar Sinai', 'Baleendah, Rancamanyar', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:13:43.837103', NULL, NULL),
-	(20, 'GOR Gaza (Biliar)', 'Ciguruwik, Cibiru', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:16.040455', NULL, NULL),
-	(21, 'Biliar BS Pool and Cafe', 'Wastukencana, Kota Bandung', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:44.253902', NULL, NULL),
-	(22, 'Lapang Pingpong', 'Pinggir Kampus UIN', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:15:28.522765', NULL, NULL),
-	(7, 'Singgasana Sport (Ping Pong)', 'Cibaduyut', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:56:55.240167', NULL, NULL),
-	(23, 'Hiking: Tangkuban Perahu-Cibarebeuy', 'Subang', 0.00, 0.00, 'tersedia', 'Parkir di warung. 5000/motor', '2026-05-22 16:24:00.396558', NULL, NULL),
-	(24, 'Hiking: Gmn.Pangradinan', 'Rancaekek', 0.00, 0.00, 'tersedia', 'HTM+Parkir. 5000/motor', '2026-05-22 16:25:11.313536', NULL, NULL),
-	(25, 'Hiking: Sanggara/Lembah Tengkorak/Pangparang', 'Bukit Kina, Cibodas', 0.00, 0.00, 'tersedia', 'Parkir di warga. 5000/motor', '2026-05-22 16:26:01.59066', NULL, NULL),
-	(26, 'Hiking: BHD-Warung Yos', 'Dago Atas', 0.00, 0.00, 'tersedia', 'Parkir di BHD. 5000/motor', '2026-05-22 16:27:23.261738', NULL, NULL),
-	(27, 'Hiking: Manglayang', 'Batu Kuda', 0.00, 0.00, 'tersedia', 'Parkir di tempat. 5000/motor', '2026-05-22 16:28:03.059991', NULL, NULL);
+INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "status_booking", "catatan", "created_at", "lat", "lng", "pic_user_id", "kontak_wa", "jenis_id", "harga_tiket", "harga_parkir") VALUES
+	(5, 'Parkiran Taman Sumringah', 'Summarecon Bandung', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.9537503, 107.6929201, 3, NULL, 1, 0.00, 0.00),
+	(22, 'Lapang Pingpong', 'Pinggir Kampus UIN', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:15:28.522765', NULL, NULL, 4, NULL, 12, 0.00, 0.00),
+	(11, 'Kolam Renang Lettu Pas Basonai', 'Lanud Sulaiman, Margahayu', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:38.344177', -6.9912435, 107.5759873, 2, NULL, 5, 0.00, 0.00),
+	(9, 'Kolam Renang Panorama', 'Ujung Berung', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:36.928503', -6.898462, 107.7103046, 2, NULL, 5, 0.00, 0.00),
+	(10, 'Kolam Renang UPI', 'UPI Setiabudi', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:05:55.865701', -6.8594515, 107.5855598, 4, NULL, 5, 0.00, 0.00),
+	(19, 'Biliar Sinai', 'Baleendah, Rancamanyar', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:13:43.837103', NULL, NULL, 2, '089638726182', 11, 0.00, 0.00),
+	(8, 'BSD Sport', 'Cipamokolan', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:04.47909', NULL, NULL, 3, '08872947080', 2, 0.00, 0.00),
+	(1, 'GOR Adiguna', 'Jln. Pertamina, Soetta', 110000.00, 110000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 3, NULL, 3, 0.00, 0.00),
+	(6, 'GOR Azaka', 'Pasirimpun Atas', 50000.00, 50000.00, 'tersedia', '0', '2026-05-21 11:29:20.544026', NULL, NULL, 2, '081320906764', 2, 0.00, 0.00),
+	(16, 'GOR Cempaka Arum', 'Panyileukan, Al-Jabbar', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:10:20.815157', NULL, NULL, 3, NULL, 2, 0.00, 0.00),
+	(12, 'Kolam Renang Yadika', 'Tanjungsari', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:56.515685', -6.8974891, 107.8055482, 3, NULL, 5, 0.00, 0.00),
+	(7, 'Singgasana Sport', 'Cibaduyut', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:56:55.240167', -6.9612456, 107.5942425, 2, NULL, 12, 0.00, 0.00),
+	(21, 'Biliar BS Pool and Cafe', 'Wastukencana, Kota Bandung', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:44.253902', -6.9081659, 107.6049949, 2, NULL, 11, 0.00, 0.00),
+	(13, 'GOR Mayasari', 'Soekarno Hatta, Bunderan Cibiru', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:08:01.628889', NULL, NULL, 4, NULL, 2, 0.00, 0.00),
+	(2, 'GOR Mayasari', 'Soekarno Hatta, Bunderan Cibiru', 125000.00, 125000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 4, NULL, 3, 0.00, 0.00),
+	(17, 'GOR Pasanggrahan', 'Cilengkrang, Bandung', 45000.00, 45000.00, 'tersedia', '', '2026-05-22 16:12:36.197922', NULL, NULL, 2, '089655369495', 2, 0.00, 0.00),
+	(18, 'GOR Pilar Biru', 'Pilar Biru, Cibiru Hilir', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:13:13.801444', NULL, NULL, 2, NULL, 2, 0.00, 0.00),
+	(3, 'GOR Purbaya', 'Jln. Ciguruwik', 25000.00, 25000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 3, NULL, 2, 0.00, 0.00),
+	(15, 'GOR Sindangreret', 'Sindangreret, Cibiru', 40000.00, 40000.00, 'tersedia', '', '2026-05-22 16:09:31.917895', NULL, NULL, 2, '089628188960', 2, 0.00, 0.00),
+	(14, 'GOR Gaza', 'Cinunuk, Cibiru', 20000.00, 20000.00, 'tersedia', '', '2026-05-22 16:08:56.792858', -6.930473, 107.7315517, 3, '082215309779', 2, 0.00, 0.00),
+	(20, 'GOR Gaza', 'Ciguruwik, Cibiru', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:16.040455', -6.930473, 107.731552, 2, '082215309779', 11, 0.00, 0.00),
+	(26, 'BHD - Warung Yos', 'Dago Atas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:27:23.261738', -6.846409, 107.650307, 2, NULL, 8, 0.00, 5000.00),
+	(24, 'Gn.Pangradinan', 'Rancaekek', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:25:11.313536', -7.043889, 107.828311, 3, NULL, 8, 0.00, 5000.00),
+	(27, 'Batukuda - Manglayang', 'Batu Kuda', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:28:03.059991', -6.8928621, 107.7429292, 4, NULL, 8, 15000.00, 2000.00),
+	(25, 'Kina - Sanggara/Lembah Tengkorak/Pangparang', 'Bukit Kina, Cibodas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:26:01.59066', -6.8370644, 107.7277736, 2, NULL, 8, 0.00, 5000.00),
+	(23, 'Tangkuban Perahu - Cibarebeuy', 'Subang', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:24:00.396558', -6.7733931, 107.6359156, 2, NULL, 8, 0.00, 5000.00),
+	(4, 'Sindangreret - Panyileukan', 'BnC Cookies', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.9318895, 107.7216289, 2, NULL, 10, 0.00, 0.00);
 /*!40000 ALTER TABLE "tempat" ENABLE KEYS */;
 
 -- Dumping structure for table public.tim
@@ -709,28 +875,39 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"streak_minggu" INTEGER NOT NULL DEFAULT '0',
 	"bio" TEXT NULL DEFAULT NULL,
 	"dark_mode" SMALLINT NOT NULL DEFAULT '0',
+	"wa" VARCHAR(30) NULL DEFAULT NULL,
+	"pic_admin_id" INTEGER NULL DEFAULT NULL,
+	"nomor_wa" VARCHAR(25) NULL DEFAULT NULL,
+	"berat_kg" NUMERIC(5,2) NULL DEFAULT NULL,
+	"tinggi_cm" NUMERIC(5,2) NULL DEFAULT NULL,
+	"tanggal_lahir" DATE NULL DEFAULT NULL,
+	"riwayat_penyakit" TEXT NULL DEFAULT NULL,
+	"kode_referal" VARCHAR(32) NULL DEFAULT NULL,
+	"referred_by_code" VARCHAR(32) NULL DEFAULT NULL,
 	PRIMARY KEY ("id"),
-	UNIQUE INDEX "users_email_key" ("email")
+	UNIQUE INDEX "users_email_key" ("email"),
+	UNIQUE INDEX "users_kode_referal_uidx" ("kode_referal"),
+	CONSTRAINT "users_pic_admin_id_fkey" FOREIGN KEY ("pic_admin_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
 -- Dumping data for table public.users: 15 rows
 /*!40000 ALTER TABLE "users" DISABLE KEYS */;
-INSERT INTO "users" ("id", "nama", "email", "password_hash", "role", "google_id", "created_at", "foto_url", "foto_file_id", "last_seen", "jenis_kelamin", "xp", "level", "streak_minggu", "bio", "dark_mode") VALUES
-	(13, 'Aziz', 'aziz@sport.local', '$2y$10$hscxGGWZSkrUVdUi9GPuleeSCgD6HfEktM/SU4TzVT85LVuRsfcwO', 'member', NULL, '2026-05-19 07:56:12.862165', NULL, NULL, '2026-05-22 05:47:41.226206', 'L', 0, 1, 0, NULL, 0),
-	(2, 'Firdam', 'firdam@sport.local', '$2y$10$J219qLjtcMqVaSla3vEmsuaOMwxaL7XVJ4Xpnc7VQl8TJKBNMDv0m', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Firdam-avatar-1779423163_TlgPp4MS-.jpg', '6a0ee0135c7cd75eb87edbaf', '2026-05-22 17:17:32.666475', 'L', 150, 1, 0, 'Mau yang mana?', 0),
-	(6, 'Dendra', 'dendra@sport.local', '$2y$10$6Xt5Sj9rKVSr9fqdXcF14.y/DP5240ULEtf/lie738rt1H5frLo/y', 'member', NULL, '2026-05-19 07:54:35.123756', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(16, 'ADITH SETIAWAN', 'adithsetiawan62@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$NzkuSWtnU0J1UjFTcGV4Ug$3kOfbqXaVv19r43a8KDxVPg33BbgV/AkqZ7Gt6oY9u8', 'member', NULL, '2026-05-22 09:25:05.526258', NULL, NULL, '2026-05-22 09:29:29.816667', 'L', 0, 1, 0, NULL, 0),
-	(7, 'Faiz', 'faiz@sport.local', '$2y$10$IU70GA7RajjzT1JaITB/0Oo3D7xTWI1OfuNs.U61Zh0q7GCGPs.o2', 'member', NULL, '2026-05-19 07:54:49.054143', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(4, 'Dani', 'dani@sport.local', '$2y$10$VgQ6RZkSly9XqDDlNH0B8e/VTM.GB.3nDyxY6O4nyA2HtTOD8MOi2', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dani-avatar-1779446202_D6MgJZEDkC.jpg', NULL, '2026-05-22 10:39:52.639224', 'L', 150, 1, 0, NULL, 0),
-	(3, 'Rifat', 'rifat@sport.local', '$2y$10$2nAaw2Qjru8mkOrZMA5Bcu2nX7ulxiqPObQk1Ekp0VxBPTjowBrNW', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Rifat-avatar-1779378411_1K68zsR1h.jpg', '6a0f28ed5c7cd75eb84a1dad', '2026-05-21 15:47:47.464521', 'L', 0, 1, 0, NULL, 0),
-	(15, 'Hanif', 'hanif@sport.local', '$2y$10$GnFSPJJ7.9X2BsmQ2ScrTOza76tmuZt1y8RFiX9QptHnZEFr4u8WK', 'member', NULL, '2026-05-19 07:56:40.664031', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(10, 'Reyhan', 'reyhan@sport.local', '$2y$10$84RpoOaWh9iDdj4eVoNgnuy3ycDWsYTpJnhKoCW3rd74cPepinhni', 'member', NULL, '2026-05-19 07:55:29.376846', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(9, 'Rafi', 'rafi@sport.local', '$2y$10$WXVJ/JHsAzNkfEEz/ZAyOuioNuZj4iM5TVN4xRd1qkqqEanljth8y', 'member', NULL, '2026-05-19 07:55:12.485671', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(11, 'Rian', 'rian@sport.local', '$2y$10$1i9pPdfgTNmnk.znbNW/O.RqmElHfaA0l/cnj3Lc98BUZto6kIVhS', 'member', NULL, '2026-05-19 07:55:42.436033', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(5, 'Usama', 'usama@sport.local', '$2y$10$.t7NxThSxmHvK3Bst9NmguSIlu9zz2QjlaTxOnB6PvcSv71OsdWm2', 'member', NULL, '2026-05-19 07:54:22.015654', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0),
-	(17, 'RIZAL SAAD', 'rizalsaad1405@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$dWZVNkNuMDFRbUxEbTdUbQ$FymiSUHfBJnWIII+P5DJeMVHC7cH5YbosxTQNxhFqUw', 'member', NULL, '2026-05-22 09:25:26.79199', NULL, NULL, '2026-05-22 09:26:42.829588', 'L', 0, 1, 0, NULL, 0),
-	(14, 'Farhan Akmali', 'farhan@sport.local', '$2y$10$FJBGlMFxj85cDACsi1G/BuyLCGZQQO1vq6j.RpXLGudAFayjKm76W', 'member', NULL, '2026-05-19 07:56:28.908609', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Farhan_Akmali-avatar-1779482008_KIqU_LMhc.jpg', NULL, '2026-05-22 20:33:32.350349', 'L', 150, 1, 0, NULL, 0),
-	(8, 'Dedi', 'dedi@sport.local', '$2y$10$nuKddv8x8SvUhueELQwWv.F/F8YzaEOLA52T438WdLXMeLhZlee8q', 'member', NULL, '2026-05-19 07:55:00.498075', NULL, NULL, '2026-05-22 04:16:27.599527', 'L', 150, 1, 0, NULL, 0);
+INSERT INTO "users" ("id", "nama", "email", "password_hash", "role", "google_id", "created_at", "foto_url", "foto_file_id", "last_seen", "jenis_kelamin", "xp", "level", "streak_minggu", "bio", "dark_mode", "wa", "pic_admin_id", "nomor_wa", "berat_kg", "tinggi_cm", "tanggal_lahir", "riwayat_penyakit", "kode_referal", "referred_by_code") VALUES
+	(5, 'Usama', 'usama@sport.local', '$2y$10$.t7NxThSxmHvK3Bst9NmguSIlu9zz2QjlaTxOnB6PvcSv71OsdWm2', 'member', NULL, '2026-05-19 07:54:22.015654', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(6, 'Dendra', 'dendra@sport.local', '$2y$10$6Xt5Sj9rKVSr9fqdXcF14.y/DP5240ULEtf/lie738rt1H5frLo/y', 'member', NULL, '2026-05-19 07:54:35.123756', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(3, 'Rifat', 'rifat@sport.local', '$2y$10$2nAaw2Qjru8mkOrZMA5Bcu2nX7ulxiqPObQk1Ekp0VxBPTjowBrNW', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Rifat-avatar-1779378411_1K68zsR1h.jpg', '6a0f28ed5c7cd75eb84a1dad', '2026-05-23 09:37:50.009296', 'L', 150, 1, 0, '', 0, '081369248630', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(16, 'ADITH SETIAWAN', 'adithsetiawan62@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$NzkuSWtnU0J1UjFTcGV4Ug$3kOfbqXaVv19r43a8KDxVPg33BbgV/AkqZ7Gt6oY9u8', 'member', NULL, '2026-05-22 09:25:05.526258', NULL, NULL, '2026-05-23 16:28:12.225207', 'L', 0, 1, 2, NULL, 0, NULL, 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(7, 'Faiz', 'faiz@sport.local', '$2y$10$IU70GA7RajjzT1JaITB/0Oo3D7xTWI1OfuNs.U61Zh0q7GCGPs.o2', 'member', NULL, '2026-05-19 07:54:49.054143', NULL, NULL, '2026-05-23 16:28:16.452662', 'L', 0, 1, 2, NULL, 0, NULL, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(9, 'Rafi', 'rafi@sport.local', '$2y$10$WXVJ/JHsAzNkfEEz/ZAyOuioNuZj4iM5TVN4xRd1qkqqEanljth8y', 'member', NULL, '2026-05-19 07:55:12.485671', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(14, 'Farhan Akmali', 'farhan@sport.local', '$2y$10$FJBGlMFxj85cDACsi1G/BuyLCGZQQO1vq6j.RpXLGudAFayjKm76W', 'member', NULL, '2026-05-19 07:56:28.908609', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Farhan_Akmali-avatar-1779482008_KIqU_LMhc.jpg', NULL, '2026-05-23 19:16:57.547088', 'L', 150, 1, 0, NULL, 0, '087854972839', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(4, 'Dani', 'dani@sport.local', '$2y$10$VgQ6RZkSly9XqDDlNH0B8e/VTM.GB.3nDyxY6O4nyA2HtTOD8MOi2', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dani-avatar-1779446202_D6MgJZEDkC.jpg', NULL, '2026-05-23 16:27:37.061541', 'L', 150, 1, 0, NULL, 0, '0895337148803', 4, NULL, 58.00, 163.00, '2004-10-09', 'Darah Tinggi', NULL, NULL),
+	(13, 'Aziz', 'aziz@sport.local', '$2y$10$hscxGGWZSkrUVdUi9GPuleeSCgD6HfEktM/SU4TzVT85LVuRsfcwO', 'member', NULL, '2026-05-19 07:56:12.862165', NULL, NULL, '2026-05-22 05:47:41.226206', 'L', 0, 1, 0, NULL, 0, '081223450704', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(15, 'Hanif', 'hanif@sport.local', '$2y$10$GnFSPJJ7.9X2BsmQ2ScrTOza76tmuZt1y8RFiX9QptHnZEFr4u8WK', 'member', NULL, '2026-05-19 07:56:40.664031', NULL, NULL, '2026-05-23 21:20:58.269648', 'L', 0, 1, 0, NULL, 0, '082117100115', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(10, 'Reyhan', 'reyhan@sport.local', '$2y$10$84RpoOaWh9iDdj4eVoNgnuy3ycDWsYTpJnhKoCW3rd74cPepinhni', 'member', NULL, '2026-05-19 07:55:29.376846', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(2, 'Firdam', 'firdam@sport.local', '$2y$10$J219qLjtcMqVaSla3vEmsuaOMwxaL7XVJ4Xpnc7VQl8TJKBNMDv0m', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Firdam-avatar-1779423163_TlgPp4MS-.jpg', '6a0ee0135c7cd75eb87edbaf', '2026-05-23 21:48:39.300801', 'L', 300, 2, 6, 'Mau yang mana?', 0, '081386369207', 2, '081386369207', 83.00, 170.00, '1996-03-11', 'Usus Buntu', NULL, NULL),
+	(8, 'Dedi', 'dedi@sport.local', '$2y$10$nuKddv8x8SvUhueELQwWv.F/F8YzaEOLA52T438WdLXMeLhZlee8q', 'member', NULL, '2026-05-19 07:55:00.498075', NULL, NULL, '2026-05-23 17:11:43.514279', 'L', 150, 1, 0, NULL, 0, NULL, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(11, 'Rian', 'rian@sport.local', '$2y$10$1i9pPdfgTNmnk.znbNW/O.RqmElHfaA0l/cnj3Lc98BUZto6kIVhS', 'member', NULL, '2026-05-19 07:55:42.436033', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(17, 'RIZAL SAAD', 'rizalsaad1405@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$dWZVNkNuMDFRbUxEbTdUbQ$FymiSUHfBJnWIII+P5DJeMVHC7cH5YbosxTQNxhFqUw', 'member', NULL, '2026-05-22 09:25:26.79199', NULL, NULL, '2026-05-22 09:26:42.829588', 'L', 0, 1, 0, NULL, 0, NULL, 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 /*!40000 ALTER TABLE "users" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_badges
@@ -751,8 +928,26 @@ INSERT INTO "user_badges" ("id", "user_id", "badge_id", "earned_at") VALUES
 	(1, 2, 7, '2026-05-22 00:37:28.111196'),
 	(2, 8, 7, '2026-05-22 03:22:47.755994'),
 	(3, 14, 7, '2026-05-22 09:29:51.266041'),
-	(4, 4, 7, '2026-05-22 10:34:05.720315');
+	(4, 4, 7, '2026-05-22 10:34:05.720315'),
+	(5, 3, 7, '2026-05-23 09:18:05.084045'),
+	(6, 2, 2, '2026-05-23 16:27:31.433549');
 /*!40000 ALTER TABLE "user_badges" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_kondisi
+CREATE TABLE IF NOT EXISTS "user_kondisi" (
+	"user_id" INTEGER NOT NULL,
+	"status" VARCHAR(10) NOT NULL DEFAULT 'sehat',
+	"keterangan" TEXT NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "user_kondisi_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.user_kondisi: -1 rows
+/*!40000 ALTER TABLE "user_kondisi" DISABLE KEYS */;
+INSERT INTO "user_kondisi" ("user_id", "status", "keterangan", "updated_at") VALUES
+	(2, 'sehat', 'Ga enak badan', '2026-05-23 07:55:15.791319');
+/*!40000 ALTER TABLE "user_kondisi" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_olahraga_favorit
 CREATE TABLE IF NOT EXISTS "user_olahraga_favorit" (
@@ -771,6 +966,52 @@ INSERT INTO "user_olahraga_favorit" ("id", "user_id", "nama", "created_at") VALU
 	(1, 2, 'Badminton, Renang, Futsal, Hiking', '2026-05-22 04:54:22.608755'),
 	(2, 4, 'Badminton', '2026-05-22 10:37:33.838919');
 /*!40000 ALTER TABLE "user_olahraga_favorit" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_pengalaman
+CREATE TABLE IF NOT EXISTS "user_pengalaman" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''user_pengalaman_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis" VARCHAR(20) NOT NULL,
+	"judul" VARCHAR(160) NOT NULL,
+	"lokasi" VARCHAR(200) NULL DEFAULT NULL,
+	"tanggal" DATE NULL DEFAULT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"foto_url" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "user_pengalaman_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.user_pengalaman: -1 rows
+/*!40000 ALTER TABLE "user_pengalaman" DISABLE KEYS */;
+INSERT INTO "user_pengalaman" ("id", "user_id", "jenis", "judul", "lokasi", "tanggal", "deskripsi", "foto_url", "created_at") VALUES
+	(1, 2, 'hiking', 'Muncak Bareng Barudak', 'Gunung Putri', '2026-05-17', 'Adem Ayem', NULL, '2026-05-23 07:20:18.626138');
+/*!40000 ALTER TABLE "user_pengalaman" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_perlengkapan
+CREATE TABLE IF NOT EXISTS "user_perlengkapan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''user_perlengkapan_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis_olahraga_id" INTEGER NULL DEFAULT NULL,
+	"jenis_nama" VARCHAR(80) NULL DEFAULT NULL,
+	"nama" VARCHAR(120) NOT NULL,
+	"jumlah" INTEGER NOT NULL DEFAULT '1',
+	"catatan" VARCHAR(200) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "user_perlengkapan_jenis_olahraga_id_fkey" FOREIGN KEY ("jenis_olahraga_id") REFERENCES "jenis_olahraga" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "user_perlengkapan_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.user_perlengkapan: -1 rows
+/*!40000 ALTER TABLE "user_perlengkapan" DISABLE KEYS */;
+INSERT INTO "user_perlengkapan" ("id", "user_id", "jenis_olahraga_id", "jenis_nama", "nama", "jumlah", "catatan", "created_at") VALUES
+	(1, 2, 1, 'Jogging', 'Sepatu', 1, 'Merk Asics', '2026-05-23 07:22:07.385253'),
+	(2, 2, 12, 'Ping Pong', 'Raket', 2, NULL, '2026-05-23 07:22:31.855522'),
+	(3, 2, 12, 'Ping Pong', 'Bola', 2, 'Warna Kuninig', '2026-05-23 07:22:48.543813'),
+	(4, 2, 5, 'Renang', 'Kacamata', 1, 'Pribadi', '2026-05-23 07:23:16.66464'),
+	(5, 2, 2, 'Badminton', 'Sepatu', 1, 'Biasa dipakai futsal', '2026-05-23 07:23:55.738743');
+/*!40000 ALTER TABLE "user_perlengkapan" ENABLE KEYS */;
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

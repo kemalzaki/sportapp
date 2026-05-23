@@ -9,7 +9,7 @@ $err = null;
 // === Konfigurasi nomor WA admin Firdam (untuk minta kode referal) ===
 // GANTI nomor di bawah ini dengan nomor WA admin Firdam yang sebenarnya.
 // Format internasional tanpa tanda '+' (cth: 62812xxxxxxx)
-$ADMIN_WA_FIRDAM = getenv('ADMIN_WA_FIRDAM') ?: '6281234567890';
+$ADMIN_WA_FIRDAM = getenv('ADMIN_WA_FIRDAM') ?: '6281386369207';
 
 // === Migrasi idempotent kolom kode referal ===
 try {
@@ -17,6 +17,8 @@ try {
     @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by_code VARCHAR(32)");
     @pg_query(db(), "CREATE UNIQUE INDEX IF NOT EXISTS users_kode_referal_uidx ON users(kode_referal) WHERE kode_referal IS NOT NULL");
 } catch (Throwable $e) {}
+// Tabel referal_codes (CRUD admin)
+require_once __DIR__.'/includes/islami_migrations.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -34,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     elseif (strlen($wa) < 8 || strlen($wa) > 20) $err = 'Nomor WhatsApp tidak valid.';
     elseif ($ref === '' || strlen($ref) < 3 || strlen($ref) > 32) $err = 'Kode referal wajib diisi (3-32 karakter). Hubungi admin Firdam via WhatsApp jika belum punya.';
     elseif (db_one("SELECT id FROM users WHERE LOWER(email)=$1", [$email])) $err = 'Email sudah terdaftar.';
+    elseif (($_validRef = db_one("SELECT * FROM referal_codes WHERE UPPER(kode)=$1 AND aktif=1 AND (expired_at IS NULL OR expired_at >= CURRENT_DATE) AND (max_pakai IS NULL OR jumlah_terpakai < max_pakai)", [$ref])) === null
+            && (int)db_val("SELECT COUNT(*) FROM referal_codes")>0) $err='Kode referal tidak valid / sudah habis kuota / kadaluarsa.';
     else {
         $hash = hash_password($pass);
         try {

@@ -109,6 +109,7 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
           <li class="nav-item"><a class="nav-link" href="/kalkulator.php"><i class="bi bi-heart-pulse"></i> Kalkulator Sehat</a></li>
+          <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami</a></li>
         <?php endif; ?>
         <?php if ($u && $u['role']==='admin'): ?>
           <li class="nav-item dropdown">
@@ -123,6 +124,7 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/event.php">Event / Tournament</a></li>
               <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>
+              <li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>
               <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>

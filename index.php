@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/migrations_v7.php';
+require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Beranda';
 $u = current_user();
@@ -150,17 +151,23 @@ if ($jadwalTerdekat) {
     } catch (Throwable $e) {}
   }
 }
-// Member baru 7 hari terakhir (sapa) — sembunyikan yang sudah disapa oleh user ini
+// Member baru 7 hari terakhir (sapa) — sembunyikan yg sudah disapa user ini, dan honor pref hide_sapa per akun
+$newMembers = [];
+$hideSapaForMe = 0;
 if ($u) {
-  $newMembers = db_all(
-    "SELECT id, nama, foto_url, created_at FROM users
-     WHERE created_at >= NOW() - INTERVAL '7 days'
-       AND role IN ('member','admin')
-       AND id <> $1
-       AND id NOT IN (SELECT target_user_id FROM sapa_log WHERE sender_user_id=$1)
-     ORDER BY created_at DESC LIMIT 10",
-    [(int)$u['id']]
-  );
+  $_p = islami_pref((int)$u['id']);
+  $hideSapaForMe = (int)($_p['hide_sapa'] ?? 0);
+  if (!$hideSapaForMe) {
+    $newMembers = db_all(
+      "SELECT id, nama, foto_url, created_at FROM users
+       WHERE created_at >= NOW() - INTERVAL '7 days'
+         AND role IN ('member','admin')
+         AND id <> $1
+         AND id NOT IN (SELECT target_user_id FROM sapa_log WHERE sender_user_id=$1)
+       ORDER BY created_at DESC LIMIT 10",
+      [(int)$u['id']]
+    );
+  }
 } else {
   $newMembers = db_all(
     "SELECT id, nama, foto_url, created_at FROM users
@@ -405,13 +412,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <div class="row g-3">
   <div class="col-lg-7">
+    <?php include __DIR__.'/includes/islami_widget.php'; ?>
     <?php if($newMembers): ?>
     <div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
-      <button type="button" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan widget"
-        onclick="document.getElementById('sapaMemberCard').style.display='none';try{localStorage.setItem('hideSapaWidget','1')}catch(e){}">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      <?php if($u): ?>
+      <form method="post" action="/islami.php" class="m-0" onsubmit="return confirm('Sembunyikan widget Sapa untuk akun Anda? Member lain tetap melihatnya.')">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="hide_sapa">
+        <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan untuk akun saya saja"><i class="bi bi-x-lg"></i></button>
+      </form>
+      <?php endif; ?>
     </div>
       <div class="card-body" data-live="newmembers">
         <div class="row g-2">
@@ -441,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     </div>
-    <script>try{if(localStorage.getItem('hideSapaWidget')==='1'){var el=document.getElementById('sapaMemberCard');if(el)el.style.display='none';}}catch(e){}</script>
+
     <?php endif; ?>
 
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
