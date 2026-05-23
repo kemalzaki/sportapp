@@ -5,6 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/badges.php';
+require __DIR__.'/includes/migrations_v7.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Beranda';
 $u = current_user();
@@ -89,6 +90,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $pid = (int)$_POST['post_id'];
         $isi = substr(trim($_POST['isi'] ?? ''), 0, 300);
         if ($isi !== '') db_exec("INSERT INTO post_comments(post_id,user_id,isi) VALUES($1,$2,$3)", [$pid, (int)$u['id'], $isi]);
+    } elseif ($a === 'sapa_send') {
+        $target = (int)($_POST['target_id'] ?? 0);
+        $pesan  = trim(substr($_POST['pesan'] ?? '', 0, 500));
+        if ($target && $target !== (int)$u['id'] && $pesan !== '') {
+            // Pastikan tabel guest_messages ada (migrasi user.php), insert sebagai sapaan
+            try {
+                db_exec("CREATE TABLE IF NOT EXISTS guest_messages (
+                  id SERIAL PRIMARY KEY,
+                  owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                  sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                  parent_id INTEGER REFERENCES guest_messages(id) ON DELETE CASCADE,
+                  pesan TEXT NOT NULL,
+                  created_at TIMESTAMP NOT NULL DEFAULT now(),
+                  updated_at TIMESTAMP
+                )");
+                db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,pesan) VALUES($1,$2,$3)",
+                  [$target, (int)$u['id'], '👋 '.$pesan]);
+            } catch (Throwable $e) {}
+        }
     }
     header('Location: /index.php#feed'); exit;
 }
@@ -97,9 +117,38 @@ $totalSesi    = (int) db_val("SELECT COUNT(*) FROM jadwal");
 $totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1");
 $totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
 
-$jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama
-                          FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id LEFT JOIN tim t ON t.id=j.tim_id
+$jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama,
+                          tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama
+                          FROM jadwal j
+                          LEFT JOIN users u ON u.id=j.koordinator_id
+                          LEFT JOIN tim t ON t.id=j.tim_id
+                          LEFT JOIN tempat tp ON tp.id=j.tempat_id
                           WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT 5");
+// Perlengkapan per jadwal (berdasarkan jenis olahraga jadwal)
+$perlByJadwal = [];
+if ($jadwalTerdekat) {
+  $jenisList = array_unique(array_map(fn($j)=>$j['jenis'], $jadwalTerdekat));
+  $jenisList = array_values(array_filter($jenisList));
+  if ($jenisList) {
+    $arr = '{'.implode(',', array_map(fn($s)=>'"'.str_replace('"','\"',$s).'"', $jenisList)).'}';
+    try {
+      $perlRows = db_all(
+        "SELECT p.jenis_nama, p.nama AS item, p.jumlah, u.id AS uid, u.nama AS uname, u.foto_url
+         FROM user_perlengkapan p JOIN users u ON u.id=p.user_id
+         WHERE p.jenis_nama ILIKE ANY($1::text[])
+         ORDER BY p.jenis_nama, u.nama, p.nama", [$arr]);
+      foreach ($perlRows as $pr) {
+        $key = mb_strtolower($pr['jenis_nama']);
+        $perlByJadwal[$key][] = $pr;
+      }
+    } catch (Throwable $e) {}
+  }
+}
+// Member baru 7 hari terakhir (sapa)
+$newMembers = db_all("SELECT id, nama, foto_url, created_at FROM users
+                      WHERE created_at >= NOW() - INTERVAL '7 days' AND role IN ('member','admin')
+                      ".($u ? "AND id <> ".(int)$u['id'] : "")."
+                      ORDER BY created_at DESC LIMIT 10");
 // Detail absensi per jadwal terdekat (siapa hadir/izin/sakit/telat/absen + catatan)
 $absByJadwal = [];
 $_jids = array_map(fn($j)=>(int)$j['id'], $jadwalTerdekat);
@@ -268,10 +317,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <div class="row g-3">
   <div class="col-lg-7">
+    <?php if($newMembers): ?>
+    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></div>
+      <div class="card-body" data-live="newmembers">
+        <div class="row g-2">
+        <?php foreach($newMembers as $nm): ?>
+          <div class="col-md-6">
+            <div class="border rounded p-2 h-100">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="text-decoration-none"><?= user_avatar($nm['foto_url']??null, $nm['nama'], 36) ?></a>
+                <div class="flex-grow-1">
+                  <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($nm['nama']) ?></a>
+                  <div class="small text-muted">Bergabung <?= date('d M', strtotime($nm['created_at'])) ?></div>
+                </div>
+                <span class="badge bg-success-subtle text-success">Baru</span>
+              </div>
+              <?php if($u): ?>
+              <form method="post" class="d-flex gap-1" data-ajax data-ajax-label="Mengirim sapaan...">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="sapa_send">
+                <input type="hidden" name="target_id" value="<?= (int)$nm['id'] ?>">
+                <input class="form-control form-control-sm" name="pesan" maxlength="500" placeholder="Sapa <?= htmlspecialchars($nm['nama']) ?>..." required>
+                <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
+              </form>
+              <?php else: ?><div class="small text-muted"><a href="/login.php">Login</a> untuk menyapa.</div><?php endif; ?>
+            </div>
+          </div>
+        <?php endforeach; ?>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
       <div data-live="jadwal">
       <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="10">
-        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th class="text-end">Absen</th></tr></thead><tbody>
+        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th class="text-end">Absen</th></tr></thead><tbody>
         <?php foreach($jadwalTerdekat as $j):
           $jid=(int)$j['id']; $absList = $absByJadwal[$jid] ?? [];
           $cnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
@@ -282,6 +363,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <td data-label="Tanggal"><?= htmlspecialchars($j['tanggal']) ?></td>
             <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($j['jenis']) ?></span></td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
+            <td data-label="Lokasi">
+              <?php
+                $maps = ($j['tp_lat'] && $j['tp_lng'])
+                  ? 'https://www.google.com/maps?q='.$j['tp_lat'].','.$j['tp_lng']
+                  : 'https://www.google.com/maps/search/'.urlencode($j['tempat']);
+              ?>
+              <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($maps) ?>" title="Lihat di Google Maps"><i class="bi bi-google"></i> Lokasi</a>
+            </td>
             <td data-label="Koord"><a class="text-decoration-none" href="/user.php?id=<?= (int)$j['koordinator_id'] ?>"><?= user_name_with_avatar($j['koord_foto'] ?? null, $j['koordinator'] ?? '-', false, 24) ?></a></td>
             <td data-label="Absen" class="text-end small">
               <span class="badge bg-success-subtle text-success" title="Hadir">H <?= $cnt['hadir'] ?></span>
@@ -292,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
           </tr>
           <tr class="collapse" id="jdetail<?= $jid ?>">
-            <td colspan="6" class="bg-light">
+            <td colspan="7" class="bg-light">
               <?php if(!$absList): ?>
                 <div class="text-muted small">Belum ada data absensi untuk sesi ini.</div>
               <?php else: ?>
@@ -313,6 +402,27 @@ document.addEventListener('DOMContentLoaded', () => {
                   </tbody>
                 </table></div>
               <?php endif; ?>
+              <?php
+                $perlKey = mb_strtolower($j['jenis']);
+                $perlItems = $perlByJadwal[$perlKey] ?? [];
+              ?>
+              <div class="mt-2"><strong class="small"><i class="bi bi-bag-check text-primary"></i> Perlengkapan yang akan dibawa member:</strong>
+                <?php if(!$perlItems): ?>
+                  <span class="small text-muted">— belum ada member yang mendaftarkan perlengkapan untuk <?= htmlspecialchars($j['jenis']) ?> —</span>
+                <?php else: ?>
+                  <div class="table-responsive"><table class="table table-sm mb-0">
+                    <thead><tr><th>Member</th><th>Perlengkapan</th><th class="text-end">Jumlah</th></tr></thead>
+                    <tbody>
+                    <?php foreach($perlItems as $pi): ?>
+                      <tr>
+                        <td><a class="text-decoration-none" href="/user.php?id=<?= (int)$pi['uid'] ?>"><?= user_name_with_avatar($pi['foto_url']??null,$pi['uname'],false,20) ?></a></td>
+                        <td><?= htmlspecialchars($pi['item']) ?></td>
+                        <td class="text-end fw-semibold"><?= (int)$pi['jumlah'] ?></td>
+                      </tr>
+                    <?php endforeach; ?>
+                    </tbody></table></div>
+                <?php endif; ?>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>

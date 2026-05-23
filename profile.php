@@ -4,6 +4,7 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/notifications.php';
+require __DIR__.'/includes/migrations_v7.php';
 send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
@@ -85,10 +86,70 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
         }
     }
+    // ===== v7: Kondisi Terkini =====
+    elseif ($a==='kondisi_set') {
+        $st = ($_POST['status'] ?? 'sehat')==='sakit' ? 'sakit' : 'sehat';
+        $ket = substr(trim($_POST['keterangan'] ?? ''),0,500);
+        db_exec("INSERT INTO user_kondisi(user_id,status,keterangan,updated_at) VALUES($1,$2,$3,now())
+                 ON CONFLICT (user_id) DO UPDATE SET status=EXCLUDED.status, keterangan=EXCLUDED.keterangan, updated_at=now()",
+                [(int)$u['id'], $st, $ket ?: null]);
+        apply_kondisi_to_absensi((int)$u['id'], $st, $ket);
+    }
+    // ===== v7: Pengalaman Hiking / Camping =====
+    elseif ($a==='peng_add' || $a==='peng_edit') {
+        $jenis  = in_array($_POST['jenis'] ?? '', ['hiking','camping'], true) ? $_POST['jenis'] : 'hiking';
+        $judul  = trim(substr($_POST['judul'] ?? '',0,160));
+        $lokasi = trim(substr($_POST['lokasi'] ?? '',0,200));
+        $tgl    = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal'] ?? '') ? $_POST['tanggal'] : null;
+        $desk   = substr(trim($_POST['deskripsi'] ?? ''),0,2000);
+        $foto   = trim(substr($_POST['foto_url'] ?? '', 0, 500));
+        if ($judul !== '') {
+          if ($a==='peng_add') {
+            db_exec("INSERT INTO user_pengalaman(user_id,jenis,judul,lokasi,tanggal,deskripsi,foto_url) VALUES($1,$2,$3,$4,$5,$6,$7)",
+              [(int)$u['id'],$jenis,$judul,$lokasi ?: null,$tgl,$desk ?: null,$foto ?: null]);
+          } else {
+            $pid = (int)($_POST['id'] ?? 0);
+            if ($pid) db_exec("UPDATE user_pengalaman SET jenis=$1,judul=$2,lokasi=$3,tanggal=$4,deskripsi=$5,foto_url=$6 WHERE id=$7 AND user_id=$8",
+              [$jenis,$judul,$lokasi ?: null,$tgl,$desk ?: null,$foto ?: null,$pid,(int)$u['id']]);
+          }
+        }
+    } elseif ($a==='peng_del') {
+        $pid = (int)($_POST['id'] ?? 0);
+        if ($pid) db_exec("DELETE FROM user_pengalaman WHERE id=$1 AND user_id=$2", [$pid,(int)$u['id']]);
+    }
+    // ===== v7: Perlengkapan Olahraga =====
+    elseif ($a==='perl_add' || $a==='perl_edit') {
+        $jId    = (int)($_POST['jenis_olahraga_id'] ?? 0) ?: null;
+        $jNama  = trim(substr($_POST['jenis_nama'] ?? '',0,80));
+        if ($jId) {
+          $jRow = db_one("SELECT nama FROM jenis_olahraga WHERE id=$1", [$jId]);
+          if ($jRow) $jNama = $jRow['nama'];
+        }
+        $nama   = trim(substr($_POST['nama'] ?? '',0,120));
+        $jumlah = max(1, (int)($_POST['jumlah'] ?? 1));
+        $cat    = substr(trim($_POST['catatan'] ?? ''),0,200);
+        if ($nama !== '' && $jNama !== '') {
+          if ($a==='perl_add') {
+            db_exec("INSERT INTO user_perlengkapan(user_id,jenis_olahraga_id,jenis_nama,nama,jumlah,catatan) VALUES($1,$2,$3,$4,$5,$6)",
+              [(int)$u['id'],$jId,$jNama,$nama,$jumlah,$cat ?: null]);
+          } else {
+            $pid=(int)($_POST['id']??0);
+            if ($pid) db_exec("UPDATE user_perlengkapan SET jenis_olahraga_id=$1,jenis_nama=$2,nama=$3,jumlah=$4,catatan=$5 WHERE id=$6 AND user_id=$7",
+              [$jId,$jNama,$nama,$jumlah,$cat ?: null,$pid,(int)$u['id']]);
+          }
+        }
+    } elseif ($a==='perl_del') {
+        $pid=(int)($_POST['id']??0);
+        if ($pid) db_exec("DELETE FROM user_perlengkapan WHERE id=$1 AND user_id=$2", [$pid,(int)$u['id']]);
+    }
     header('Location: profile.php'); exit;
 }
 
 $favList = db_all("SELECT id, nama FROM user_olahraga_favorit WHERE user_id=$1 ORDER BY nama ASC", [(int)$u['id']]);
+$kondisi = db_one("SELECT status,keterangan,updated_at FROM user_kondisi WHERE user_id=$1", [(int)$u['id']]) ?: ['status'=>'sehat','keterangan'=>null,'updated_at'=>null];
+$pengList = db_all("SELECT * FROM user_pengalaman WHERE user_id=$1 ORDER BY tanggal DESC NULLS LAST, id DESC", [(int)$u['id']]);
+$perlList = db_all("SELECT p.*, jo.nama AS jenis_resmi FROM user_perlengkapan p LEFT JOIN jenis_olahraga jo ON jo.id=p.jenis_olahraga_id WHERE p.user_id=$1 ORDER BY p.jenis_nama, p.nama", [(int)$u['id']]);
+$jenisOR = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 
 recompute_badges((int)$u['id']);
 $me = db_one("SELECT * FROM users WHERE id=$1", [(int)$u['id']]);
@@ -312,6 +373,92 @@ include __DIR__.'/includes/header.php';
       <?php endforeach; ?>
       </div>
     </div></div>
+
+    <!-- ===== v7: Kondisi Terkini ===== -->
+    <div class="card shadow-sm mt-3"><div class="card-header"><i class="bi bi-activity text-danger"></i> Kondisi Terkini</div>
+    <div class="card-body">
+      <form data-ajax method="post" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="kondisi_set">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Status</label>
+          <select name="status" class="form-select form-select-sm" onchange="document.getElementById('ketWrap').style.display = this.value==='sakit'?'block':'none';">
+            <option value="sehat" <?= $kondisi['status']==='sehat'?'selected':'' ?>>🟢 Sehat</option>
+            <option value="sakit" <?= $kondisi['status']==='sakit'?'selected':'' ?>>🔴 Sakit</option>
+          </select>
+        </div>
+        <div class="col-md-7" id="ketWrap" style="display:<?= $kondisi['status']==='sakit'?'block':'none' ?>">
+          <label class="form-label small fw-semibold">Keterangan sakit</label>
+          <input class="form-control form-control-sm" name="keterangan" maxlength="500" placeholder="cth: demam, flu berat" value="<?= htmlspecialchars($kondisi['keterangan'] ?? '') ?>">
+        </div>
+        <div class="col-md-2 d-grid"><button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
+      </form>
+      <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Jika <strong>Sakit</strong>, sesi-sesi mendatang otomatis terisi <em>sakit</em> di absen. Ubah ke <strong>Sehat</strong> dulu untuk bisa hadir.</div>
+      <?php if(!empty($kondisi['updated_at'])): ?><small class="text-muted">Diperbarui: <?= date('d M Y H:i', strtotime($kondisi['updated_at'])) ?></small><?php endif; ?>
+    </div></div>
+
+    <!-- ===== v7: Pengalaman Hiking & Camping ===== -->
+    <div class="card shadow-sm mt-3"><div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-mountain text-success"></i> Pengalaman Hiking & Camping</span>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pengModal" onclick="pengReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
+    </div>
+    <div class="card-body">
+      <?php if(!$pengList): ?><p class="text-muted small mb-0 text-center">Belum ada pengalaman tercatat.</p><?php else: ?>
+      <div class="table-responsive"><table class="table table-sm align-middle" data-paginate="6">
+        <thead><tr><th>Jenis</th><th>Judul</th><th>Lokasi</th><th>Tanggal</th><th class="text-end">Aksi</th></tr></thead>
+        <tbody>
+        <?php foreach($pengList as $p): ?>
+          <tr>
+            <td><span class="badge bg-<?= $p['jenis']==='hiking'?'success':'warning' ?>-subtle text-<?= $p['jenis']==='hiking'?'success':'warning' ?>"><i class="bi bi-<?= $p['jenis']==='hiking'?'signpost-split':'fire' ?>"></i> <?= htmlspecialchars($p['jenis']) ?></span></td>
+            <td><strong><?= htmlspecialchars($p['judul']) ?></strong><?php if($p['deskripsi']): ?><div class="small text-muted"><?= htmlspecialchars(mb_substr($p['deskripsi'],0,80)) ?></div><?php endif; ?></td>
+            <td class="small"><?= htmlspecialchars($p['lokasi'] ?? '—') ?></td>
+            <td class="small"><?= $p['tanggal'] ? htmlspecialchars($p['tanggal']) : '—' ?></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary" onclick='pengEdit(<?= json_encode($p, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'><i class="bi bi-pencil"></i></button>
+              <form data-ajax method="post" class="d-inline" onsubmit="return confirm('Hapus pengalaman ini?')">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="peng_del">
+                <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody></table></div>
+      <?php endif; ?>
+    </div></div>
+
+    <!-- ===== v7: Perlengkapan Olahraga ===== -->
+    <div class="card shadow-sm mt-3"><div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-bag-check text-primary"></i> Perlengkapan Olahraga</span>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#perlModal" onclick="perlReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
+    </div>
+    <div class="card-body">
+      <?php if(!$perlList): ?><p class="text-muted small mb-0 text-center">Belum ada perlengkapan. Tambahkan agar terintegrasi otomatis dengan jadwal olahraga.</p><?php else: ?>
+      <div class="table-responsive"><table class="table table-sm align-middle" data-paginate="8">
+        <thead><tr><th>Jenis Olahraga</th><th>Perlengkapan</th><th class="text-end">Jumlah</th><th>Catatan</th><th class="text-end">Aksi</th></tr></thead>
+        <tbody>
+        <?php foreach($perlList as $p): ?>
+          <tr>
+            <td><span class="pill"><?= htmlspecialchars($p['jenis_nama']) ?></span></td>
+            <td><strong><?= htmlspecialchars($p['nama']) ?></strong></td>
+            <td class="text-end"><?= (int)$p['jumlah'] ?></td>
+            <td class="small text-muted"><?= htmlspecialchars($p['catatan'] ?? '—') ?></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary" onclick='perlEdit(<?= json_encode($p, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'><i class="bi bi-pencil"></i></button>
+              <form data-ajax method="post" class="d-inline" onsubmit="return confirm('Hapus perlengkapan ini?')">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="perl_del">
+                <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody></table></div>
+      <?php endif; ?>
+      <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Perlengkapan otomatis muncul di "Jadwal Terdekat" sesuai jenis olahraga.</div>
+    </div></div>
   </div>
 </div>
 <script>
@@ -357,5 +504,70 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
   </div>
 </div></div>
+
+
+<!-- ===== v7: Modal Pengalaman ===== -->
+<div class="modal fade" id="pengModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+  <form class="modal-content" data-ajax method="post" id="pengForm">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <input type="hidden" name="_action" id="pengAction" value="peng_add">
+    <input type="hidden" name="id" id="pengId" value="">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-mountain text-success"></i> Pengalaman</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="row g-2">
+        <div class="col-md-4"><label class="form-label small fw-semibold">Jenis</label>
+          <select name="jenis" id="pengJenis" class="form-select form-select-sm">
+            <option value="hiking">Hiking</option><option value="camping">Camping</option>
+          </select></div>
+        <div class="col-md-8"><label class="form-label small fw-semibold">Judul</label>
+          <input name="judul" id="pengJudul" class="form-control form-control-sm" maxlength="160" required></div>
+        <div class="col-md-7"><label class="form-label small fw-semibold">Lokasi</label>
+          <input name="lokasi" id="pengLokasi" class="form-control form-control-sm" maxlength="200"></div>
+        <div class="col-md-5"><label class="form-label small fw-semibold">Tanggal</label>
+          <input type="date" name="tanggal" id="pengTanggal" class="form-control form-control-sm"></div>
+        <div class="col-12"><label class="form-label small fw-semibold">Deskripsi</label>
+          <textarea name="deskripsi" id="pengDeskripsi" rows="3" maxlength="2000" class="form-control form-control-sm"></textarea></div>
+        <div class="col-12"><label class="form-label small fw-semibold">Foto URL (opsional)</label>
+          <input name="foto_url" id="pengFoto" class="form-control form-control-sm" maxlength="500" placeholder="https://..."></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
+  </form>
+</div></div>
+
+<!-- ===== v7: Modal Perlengkapan ===== -->
+<div class="modal fade" id="perlModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+  <form class="modal-content" data-ajax method="post" id="perlForm">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <input type="hidden" name="_action" id="perlAction" value="perl_add">
+    <input type="hidden" name="id" id="perlId" value="">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-bag-check text-primary"></i> Perlengkapan</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="row g-2">
+        <div class="col-md-6"><label class="form-label small fw-semibold">Jenis Olahraga</label>
+          <select name="jenis_olahraga_id" id="perlJenisId" class="form-select form-select-sm">
+            <option value="0">— pilih atau isi manual —</option>
+            <?php foreach($jenisOR as $jn): ?><option value="<?= (int)$jn['id'] ?>"><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
+          </select></div>
+        <div class="col-md-6"><label class="form-label small fw-semibold">atau Nama jenis (manual)</label>
+          <input name="jenis_nama" id="perlJenisNama" class="form-control form-control-sm" maxlength="80" placeholder="cth: Badminton"></div>
+        <div class="col-md-8"><label class="form-label small fw-semibold">Nama Perlengkapan</label>
+          <input name="nama" id="perlNama" class="form-control form-control-sm" maxlength="120" required placeholder="cth: Raket"></div>
+        <div class="col-md-4"><label class="form-label small fw-semibold">Jumlah</label>
+          <input type="number" min="1" name="jumlah" id="perlJumlah" class="form-control form-control-sm" value="1" required></div>
+        <div class="col-12"><label class="form-label small fw-semibold">Catatan</label>
+          <input name="catatan" id="perlCatatan" class="form-control form-control-sm" maxlength="200"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
+  </form>
+</div></div>
+
+<script>
+function pengReset(){document.getElementById('pengAction').value='peng_add';document.getElementById('pengId').value='';document.getElementById('pengForm').reset();}
+function pengEdit(p){document.getElementById('pengAction').value='peng_edit';document.getElementById('pengId').value=p.id;document.getElementById('pengJenis').value=p.jenis||'hiking';document.getElementById('pengJudul').value=p.judul||'';document.getElementById('pengLokasi').value=p.lokasi||'';document.getElementById('pengTanggal').value=p.tanggal||'';document.getElementById('pengDeskripsi').value=p.deskripsi||'';document.getElementById('pengFoto').value=p.foto_url||'';new bootstrap.Modal(document.getElementById('pengModal')).show();}
+function perlReset(){document.getElementById('perlAction').value='perl_add';document.getElementById('perlId').value='';document.getElementById('perlForm').reset();document.getElementById('perlJumlah').value=1;}
+function perlEdit(p){document.getElementById('perlAction').value='perl_edit';document.getElementById('perlId').value=p.id;document.getElementById('perlJenisId').value=p.jenis_olahraga_id||0;document.getElementById('perlJenisNama').value=p.jenis_nama||'';document.getElementById('perlNama').value=p.nama||'';document.getElementById('perlJumlah').value=p.jumlah||1;document.getElementById('perlCatatan').value=p.catatan||'';new bootstrap.Modal(document.getElementById('perlModal')).show();}
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

@@ -4,6 +4,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
+require __DIR__.'/includes/migrations_v7.php';
 send_security_headers(); enforce_session_timeout();
 $id = (int)($_GET['id'] ?? 0);
 
@@ -94,6 +95,11 @@ $gmReplies = db_all("SELECT g.*, u.nama AS sender_nama, u.foto_url AS sender_fot
                      ORDER BY g.created_at ASC", [$id]);
 $gmByParent = [];
 foreach ($gmReplies as $rep) { $gmByParent[(int)$rep['parent_id']][] = $rep; }
+
+// ===== v7: data publik =====
+$kondisiPub = db_one("SELECT status, keterangan, updated_at FROM user_kondisi WHERE user_id=$1", [$id]);
+$pengPub = db_all("SELECT * FROM user_pengalaman WHERE user_id=$1 ORDER BY tanggal DESC NULLS LAST, id DESC LIMIT 50", [$id]);
+$perlPub = db_all("SELECT * FROM user_perlengkapan WHERE user_id=$1 ORDER BY jenis_nama, nama", [$id]);
 
 // ===== Helper kalkulasi sehat (BMI sederhana) =====
 $bmi = null; $bmiCat = '—';
@@ -214,6 +220,60 @@ include __DIR__.'/includes/header.php';
 <?php endforeach; ?>
 </div></div></div>
 <?php endif; ?>
+
+<!-- ===== Titip Pesan (Guestbook) ===== -->
+<!-- ===== v7: Kondisi Terkini (publik) ===== -->
+<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-activity text-danger"></i> Kondisi Terkini</div>
+<div class="card-body">
+  <?php if($kondisiPub): $st=$kondisiPub['status']; ?>
+    <span class="badge bg-<?= $st==='sehat'?'success':'danger' ?> me-2"><?= $st==='sehat'?'🟢 Sehat':'🔴 Sakit' ?></span>
+    <?php if($st==='sakit' && $kondisiPub['keterangan']): ?><span class="small text-muted"><?= htmlspecialchars($kondisiPub['keterangan']) ?></span><?php endif; ?>
+    <?php if($kondisiPub['updated_at']): ?><div class="small text-muted mt-1">Diperbarui: <?= date('d M Y H:i', strtotime($kondisiPub['updated_at'])) ?></div><?php endif; ?>
+  <?php else: ?><span class="text-muted small">Belum mengisi kondisi.</span><?php endif; ?>
+</div></div>
+
+<!-- ===== v7: Pengalaman Hiking & Camping (publik) ===== -->
+<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-mountain text-success"></i> Pengalaman Hiking & Camping (<?= count($pengPub) ?>)</div>
+<div class="card-body">
+  <?php if(!$pengPub): ?><p class="text-muted small mb-0 text-center">Belum ada pengalaman.</p><?php else: ?>
+  <div class="row g-2">
+  <?php foreach($pengPub as $p): ?>
+    <div class="col-md-6">
+      <div class="border rounded p-2 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <span class="badge bg-<?= $p['jenis']==='hiking'?'success':'warning' ?>-subtle text-<?= $p['jenis']==='hiking'?'success':'warning' ?>"><i class="bi bi-<?= $p['jenis']==='hiking'?'signpost-split':'fire' ?>"></i> <?= htmlspecialchars($p['jenis']) ?></span>
+          <?php if($p['tanggal']): ?><small class="text-muted"><?= htmlspecialchars($p['tanggal']) ?></small><?php endif; ?>
+        </div>
+        <div class="fw-semibold mt-1"><?= htmlspecialchars($p['judul']) ?></div>
+        <?php if($p['lokasi']): ?><div class="small text-muted"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($p['lokasi']) ?></div><?php endif; ?>
+        <?php if($p['foto_url']): ?><img src="<?= htmlspecialchars($p['foto_url']) ?>" class="img-fluid rounded mt-2 zoomable" style="max-height:180px" onerror="this.style.display='none'"><?php endif; ?>
+        <?php if($p['deskripsi']): ?><div class="small mt-2" style="white-space:pre-wrap"><?= htmlspecialchars($p['deskripsi']) ?></div><?php endif; ?>
+      </div>
+    </div>
+  <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+</div></div>
+
+<!-- ===== v7: Perlengkapan Olahraga (publik) ===== -->
+<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-bag-check text-primary"></i> Perlengkapan Olahraga</div>
+<div class="card-body">
+  <?php if(!$perlPub): ?><p class="text-muted small mb-0 text-center">Belum ada perlengkapan tercatat.</p><?php else: ?>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0" data-paginate="8">
+    <thead><tr><th>Jenis</th><th>Perlengkapan</th><th class="text-end">Jumlah</th><th>Catatan</th></tr></thead>
+    <tbody>
+    <?php foreach($perlPub as $p): ?>
+      <tr>
+        <td><span class="pill"><?= htmlspecialchars($p['jenis_nama']) ?></span></td>
+        <td><?= htmlspecialchars($p['nama']) ?></td>
+        <td class="text-end fw-semibold"><?= (int)$p['jumlah'] ?></td>
+        <td class="small text-muted"><?= htmlspecialchars($p['catatan'] ?? '—') ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody></table></div>
+  <?php endif; ?>
+  <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Otomatis terintegrasi ke jadwal sesuai jenis olahraga.</div>
+</div></div>
 
 <!-- ===== Titip Pesan (Guestbook) ===== -->
 <div class="card shadow-sm mt-3" data-live="guestbook"><div class="card-header"><i class="bi bi-envelope-heart text-primary"></i> Titip Pesan untuk <?= htmlspecialchars($user['nama']) ?> <span class="badge bg-secondary"><?= count($gmRoots) ?></span></div>
