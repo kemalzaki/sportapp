@@ -36,7 +36,7 @@ include __DIR__.'/includes/header.php';
 
 <div class="row g-3">
 <?php foreach($rows as $r):
-  $maps = ($r['lat'] && $r['lng']) ? ('https://www.openstreetmap.org/?mlat='.$r['lat'].'&mlon='.$r['lng'].'#map=17/'.$r['lat'].'/'.$r['lng']) : ('https://www.openstreetmap.org/search?query='.urlencode($r['nama'].' '.($r['alamat']??'')));
+  $maps = ($r['lat'] && $r['lng']) ? ('https://www.google.com/maps/search/?api=1&query='.$r['lat'].','.$r['lng']) : ('https://www.google.com/maps/search/?api=1&query='.urlencode($r['nama'].' '.($r['alamat']??'')));
   // Data untuk popup member
   $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
   $popup = [
@@ -113,7 +113,7 @@ include __DIR__.'/includes/header.php';
           </table>
           <div id="tmCatatan" class="small text-muted" style="white-space:pre-wrap"></div>
           <div class="mt-2 d-flex flex-wrap gap-2">
-            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-success"><i class="bi bi-geo-alt"></i> Buka di OpenStreetMap</a>
+            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-success"><i class="bi bi-geo-alt"></i> Buka di Google Maps</a>
             <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
           </div>
         </div>

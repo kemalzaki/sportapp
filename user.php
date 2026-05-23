@@ -4,6 +4,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
+require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/migrations_v7.php';
 send_security_headers(); enforce_session_timeout();
 $id = (int)($_GET['id'] ?? 0);
@@ -44,6 +45,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $pid = (int)($_POST['parent_id'] ?? 0) ?: null;
         if ($pesan !== '') {
             db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,parent_id,pesan) VALUES($1,$2,$3,$4)", [$id, $meId, $pid, $pesan]);
+            // === Push notification ke pemilik halaman (member aktif yang dititipi pesan)
+            try {
+                $cuplikan = mb_substr($pesan, 0, 120);
+                $urlNotif = '/user.php?id='.(int)$id.'#titip-pesan';
+                if ((int)$id !== $meId) {
+                    notify((int)$id, 'titip_pesan',
+                        '💌 Titip pesan baru dari '.$me['nama'],
+                        $cuplikan, $urlNotif);
+                }
+                // Jika ini reply, kabari juga pengirim pesan induk
+                if ($pid) {
+                    $parentSender = (int) db_val("SELECT sender_user_id FROM guest_messages WHERE id=$1", [$pid]);
+                    if ($parentSender && $parentSender !== $meId && $parentSender !== (int)$id) {
+                        notify($parentSender, 'titip_pesan_reply',
+                            '↩️ '.$me['nama'].' membalas pesanmu',
+                            $cuplikan, $urlNotif);
+                    }
+                }
+            } catch (Throwable $e) {}
         }
     } elseif ($act==='gm_edit') {
         $mid = (int)($_POST['id'] ?? 0);

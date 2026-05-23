@@ -169,7 +169,9 @@ if ($u) {
   );
 }
 
-// === Kabari Kawan: member yang berada di bawah PIC user ini, atau sesama anggota PIC yang sama
+// === Kabari Kawan: HANYA tampil untuk PIC/koordinator.
+// PIC = user yang menjadi pic_admin_id dari minimal 1 member.
+// Daftar yang ditampilkan = member-member di bawah PIC tersebut.
 $kabariKawan = [];
 $jadwalDekat1 = null;
 if ($u) {
@@ -178,17 +180,16 @@ if ($u) {
     "SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.jam_selesai
      FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1"
   );
-  $myPic = db_val("SELECT pic_admin_id FROM users WHERE id=$1", [(int)$u['id']]);
-  $kabariKawan = db_all(
-    "SELECT id, nama, foto_url, nomor_wa FROM users
-     WHERE id <> $1 AND role IN ('member','admin')
-       AND nomor_wa IS NOT NULL AND nomor_wa <> ''
-       AND ( pic_admin_id = $1
-             ".($myPic ? " OR id = $2 OR pic_admin_id = $2 " : "")."
-           )
-     ORDER BY nama LIMIT 30",
-    $myPic ? [(int)$u['id'], (int)$myPic] : [(int)$u['id']]
-  );
+  $isPic = (int) db_val("SELECT COUNT(*) FROM users WHERE pic_admin_id=$1", [(int)$u['id']]);
+  if ($isPic > 0) {
+    $kabariKawan = db_all(
+      "SELECT id, nama, foto_url, nomor_wa FROM users
+       WHERE pic_admin_id = $1
+         AND nomor_wa IS NOT NULL AND nomor_wa <> ''
+       ORDER BY nama LIMIT 100",
+      [(int)$u['id']]
+    );
+  }
 }
 
 // Detail absensi per jadwal terdekat (siapa hadir/izin/sakit/telat/absen + catatan)
@@ -287,11 +288,11 @@ document.addEventListener('DOMContentLoaded', () => {
 ?>
 <div class="card shadow-sm mb-3">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-megaphone text-warning"></i> Kabari Kawan</span>
+    <span><i class="bi bi-megaphone text-warning"></i> Kabari Member (Koordinator PIC)</span>
     <small class="text-muted">Jadwal terdekat: <?= date('d M', strtotime($jadwalDekat1['tanggal'])) ?> · <?= htmlspecialchars($jadwalDekat1['jenis']) ?></small>
   </div>
   <div class="card-body">
-    <p class="small text-muted mb-2">Klik WhatsApp untuk langsung mengirim info jadwal terdekat ke kawan dalam grup PIC kamu.</p>
+    <p class="small text-muted mb-2">Sebagai PIC, klik WhatsApp untuk mengabari setiap member di bawah koordinasi kamu tentang jadwal terdekat.</p>
     <div class="row g-2">
       <?php foreach($kabariKawan as $k):
         $wa = preg_replace('/^0/','62', preg_replace('/\D+/','', $k['nomor_wa']));
