@@ -2,6 +2,24 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/islami_migrations.php';
 
+// Polyfill: ekstensi PHP `calendar` mungkin tidak terpasang di server produksi.
+// Implementasi murni-PHP dari gregoriantojd() (rumus standar Fliegel–Van Flandern).
+if (!function_exists('gregoriantojd')) {
+    function gregoriantojd($month, $day, $year) {
+        $m = (int)$month; $d = (int)$day; $y = (int)$year;
+        $a = intdiv(14 - $m, 12);
+        $y2 = $y + 4800 - $a;
+        $m2 = $m + 12 * $a - 3;
+        return $d
+            + intdiv(153 * $m2 + 2, 5)
+            + 365 * $y2
+            + intdiv($y2, 4)
+            - intdiv($y2, 100)
+            + intdiv($y2, 400)
+            - 32045;
+    }
+}
+
 function islami_pref(int $uid): array {
     $row = db_one("SELECT * FROM user_islami_pref WHERE user_id=$1", [$uid]);
     if (!$row) {
