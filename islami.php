@@ -4,6 +4,7 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_data.php';
+require __DIR__.'/includes/cities_data.php';
 require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login();
 $pageTitle = 'Hub Islami';
@@ -68,13 +69,13 @@ include __DIR__.'/includes/header.php';
   <div class="col-md-3"><a href="/leaderboard_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-bar-chart-line fs-2 text-danger"></i><div class="fw-semibold mt-1">Leaderboard Amal</div></div></a></div>
   <div class="col-md-3"><a href="/statistik_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-graph-up fs-2 text-primary"></i><div class="fw-semibold mt-1">Statistik & Streak</div></div></a></div>
 
-  <div class="col-md-3"><a href="/kajian.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-mic fs-2 text-info"></i><div class="fw-semibold mt-1">Kajian Kesehatan Islami</div></div></a></div>
+  <div class="col-md-3"><a href="/kajian.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-journal-bookmark fs-2 text-info"></i><div class="fw-semibold mt-1">Kajian Literatur Buku</div></div></a></div>
   <div class="col-md-3"><a href="/artikel_sunnah.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-journal-text fs-2 text-success"></i><div class="fw-semibold mt-1">Artikel Sunnah</div></div></a></div>
   <div class="col-md-3"><a href="/feed_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-chat-dots fs-2 text-warning"></i><div class="fw-semibold mt-1">Feed Quote Komunitas</div></div></a></div>
   <div class="col-md-3"><a href="/doa_antar_member.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart fs-2 text-danger"></i><div class="fw-semibold mt-1">Saling Mendoakan</div></div></a></div>
 
-  <div class="col-md-3"><a href="/donasi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-cash-stack fs-2 text-success"></i><div class="fw-semibold mt-1">Donasi Masjid/Sosial</div></div></a></div>
-  <div class="col-md-3"><a href="/donasi.php?tab=sedekah" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-gift fs-2 text-warning"></i><div class="fw-semibold mt-1">Sedekah Challenge</div></div></a></div>
+  <div class="col-md-3"><a href="/donasi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart-fill fs-2 text-danger"></i><div class="fw-semibold mt-1">Donasi Yayasan KRB</div></div></a></div>
+  <div class="col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
 </div>
 
 <div class="row g-3">
@@ -91,28 +92,78 @@ include __DIR__.'/includes/header.php';
     </div></div>
   </div>
   <div class="col-md-5">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown</div><div class="card-body">
-      <div class="mb-2"><strong>Ramadhan</strong> (<?= $ramadhan->format('d M Y') ?>): <span id="cdRamadhan">…</span></div>
-      <div><strong>Idul Adha</strong> (<?= $iedAdha->format('d M Y') ?>): <span id="cdIedAdha">…</span></div>
+    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya & Peristiwa</div><div class="card-body">
+      <?php
+        $cdEvents = [
+          ['Ramadhan',       hijri_event_to_gregorian(9, 1),  'cdRamadhan',   'success'],
+          ['Idul Fitri',     hijri_event_to_gregorian(10,1),  'cdIedFitri',   'warning'],
+          ['Idul Adha',      hijri_event_to_gregorian(12,10), 'cdIedAdha',    'danger'],
+          ['Tahun Baru Hijriyah', hijri_event_to_gregorian(1, 1),  'cdMuharram','info'],
+          ['Asyura (10 Muharram)',hijri_event_to_gregorian(1,10),  'cdAsyura', 'secondary'],
+          ['Maulid Nabi (12 Rabiul Awal)', hijri_event_to_gregorian(3,12), 'cdMaulid', 'primary'],
+          ['Isra Mi\'raj (27 Rajab)',     hijri_event_to_gregorian(7,27), 'cdIsra',   'info'],
+          ['Nisfu Sya\'ban (15 Sya\'ban)',hijri_event_to_gregorian(8,15), 'cdNisfu',  'dark'],
+          ['Arafah (9 Dzulhijjah)',       hijri_event_to_gregorian(12,9), 'cdArafah', 'warning'],
+        ];
+        foreach ($cdEvents as $e): ?>
+          <div class="mb-1 small"><strong class="text-<?= $e[3] ?>"><?= $e[0] ?></strong>
+            <span class="text-muted">(<?= $e[1]->format('d M Y') ?>)</span>:
+            <span id="<?= $e[2] ?>">…</span></div>
+      <?php endforeach; ?>
     </div></div>
 
     <?php if ($u): ?>
     <div class="card shadow-sm mt-3"><div class="card-header"><i class="bi bi-sliders text-primary"></i> Preferensi</div><div class="card-body">
-      <form method="post">
+      <form method="post" id="prefForm">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="save_pref">
-        <div class="mb-2"><label class="small">Kota</label><input class="form-control form-control-sm" name="kota" value="<?= htmlspecialchars($pref['kota']) ?>"></div>
-        <div class="mb-2"><label class="small">Negara</label><input class="form-control form-control-sm" name="negara" value="<?= htmlspecialchars($pref['negara']) ?>"></div>
+        <div class="mb-2"><label class="small">Negara</label>
+          <select class="form-select form-select-sm" name="negara" id="prefNegara">
+            <?php foreach (array_keys($CITIES_BY_COUNTRY) as $neg): ?>
+              <option value="<?= htmlspecialchars($neg) ?>" <?= ($pref['negara']===$neg)?'selected':'' ?>><?= htmlspecialchars($neg) ?></option>
+            <?php endforeach; ?>
+          </select></div>
+        <div class="mb-2"><label class="small">Kota (autocomplete sesuai negara)</label>
+          <input class="form-control form-control-sm" name="kota" id="prefKota" list="kotaList" value="<?= htmlspecialchars($pref['kota']) ?>" autocomplete="off">
+          <datalist id="kotaList">
+            <?php foreach (($CITIES_BY_COUNTRY[$pref['negara']] ?? []) as $kt): ?>
+              <option value="<?= htmlspecialchars($kt) ?>"></option>
+            <?php endforeach; ?>
+          </datalist>
+        </div>
         <div class="form-check"><input class="form-check-input" type="checkbox" id="modeT" name="mode_tenang" <?= !empty($pref['mode_tenang'])?'checked':'' ?>>
           <label for="modeT" class="form-check-label small">Aktifkan Mode Tenang saat adzan</label></div>
         <button class="btn btn-sm btn-primary mt-2">Simpan</button>
       </form>
+      <script>
+        (function(){
+          var citiesByCountry = <?= json_encode($CITIES_BY_COUNTRY, JSON_UNESCAPED_UNICODE) ?>;
+          var sel = document.getElementById('prefNegara');
+          var dl  = document.getElementById('kotaList');
+          var kt  = document.getElementById('prefKota');
+          if (!sel || !dl) return;
+          function refresh(){
+            var list = citiesByCountry[sel.value] || [];
+            dl.innerHTML = list.map(function(c){ return '<option value="'+c.replace(/"/g,'&quot;')+'"></option>'; }).join('');
+            if (list.length && list.indexOf(kt.value) === -1) kt.value = list[0];
+          }
+          sel.addEventListener('change', refresh);
+        })();
+      </script>
     </div></div>
     <?php endif; ?>
   </div>
 </div>
 
 <script src="/assets/js/islami.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (!window.islamiCountdown) return;
+  <?php foreach ($cdEvents as $e): ?>
+    window.islamiCountdown('<?= $e[2] ?>', '<?= $e[1]->format('Y-m-d') ?>T00:00:00');
+  <?php endforeach; ?>
+});
+</script>
 <script>
   document.addEventListener('DOMContentLoaded', function(){
     if (window.islamiCountdown) {

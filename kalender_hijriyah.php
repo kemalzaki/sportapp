@@ -18,12 +18,13 @@ $startDow = (int)$first->format('w'); // 0=Sun
 $ramadhan = hijri_event_to_gregorian(9, 1);
 $iedAdha  = hijri_event_to_gregorian(12, 10);
 $iedFitri = hijri_event_to_gregorian(10, 1);
-$tahunBaru = hijri_event_to_gregorian(1, 1);
+$tahunBaru= hijri_event_to_gregorian(1, 1);
 $asyura   = hijri_event_to_gregorian(1, 10);
 $tasua    = hijri_event_to_gregorian(1, 9);
 $arafah   = hijri_event_to_gregorian(12, 9);
 $isra     = hijri_event_to_gregorian(7, 27);
 $nisfu    = hijri_event_to_gregorian(8, 15);
+$maulid   = hijri_event_to_gregorian(3, 12);
 
 // Cari Ayyamul Bidh berikutnya (13,14,15 Hijriyah)
 function next_ayyamul_bidh(): DateTime {
@@ -110,27 +111,27 @@ for ($d=1; $d<=$dim; $d++) {
   <?php endforeach; ?>
 </div>
 
+<h5 class="mt-4"><i class="bi bi-calendar-event text-danger"></i> Countdown Hari Raya Besar Islam</h5>
 <div class="row g-3 mb-3">
-  <div class="col-md-3"><div class="card border-success"><div class="card-body">
-    <div class="small text-muted">Countdown Ramadhan</div>
-    <div class="fw-bold"><?= $ramadhan->format('d M Y') ?></div>
-    <div id="cdR" class="text-success">…</div>
-  </div></div></div>
-  <div class="col-md-3"><div class="card border-warning"><div class="card-body">
-    <div class="small text-muted">Countdown Idul Fitri</div>
-    <div class="fw-bold"><?= $iedFitri->format('d M Y') ?></div>
-    <div id="cdF" class="text-warning">…</div>
-  </div></div></div>
-  <div class="col-md-3"><div class="card border-danger"><div class="card-body">
-    <div class="small text-muted">Countdown Idul Adha</div>
-    <div class="fw-bold"><?= $iedAdha->format('d M Y') ?></div>
-    <div id="cdI" class="text-danger">…</div>
-  </div></div></div>
-  <div class="col-md-3"><div class="card border-info"><div class="card-body">
-    <div class="small text-muted">Tahun Baru Hijriyah</div>
-    <div class="fw-bold"><?= $tahunBaru->format('d M Y') ?></div>
-    <div id="cdTH" class="text-info">…</div>
-  </div></div></div>
+  <?php
+  $holidays = [
+    ['Ramadhan',          $ramadhan, 'success', 'cdR'],
+    ['Idul Fitri',        $iedFitri, 'warning', 'cdF'],
+    ['Idul Adha',         $iedAdha,  'danger',  'cdI'],
+    ['Tahun Baru Hijriyah',$tahunBaru,'info',   'cdTH'],
+    ['Maulid Nabi',       $maulid,   'primary', 'cdM'],
+    ['Isra Mi\'raj',      $isra,     'info',    'cdIs'],
+    ['Nisfu Sya\'ban',    $nisfu,    'secondary','cdNS'],
+    ['Asyura',            $asyura,   'dark',    'cdAS'],
+    ['Arafah',            $arafah,   'warning', 'cdAR'],
+  ];
+  foreach ($holidays as $h): ?>
+    <div class="col-md-4 col-lg-3"><div class="card border-<?= $h[2] ?>"><div class="card-body py-2">
+      <div class="small text-muted">Countdown <?= $h[0] ?></div>
+      <div class="fw-bold"><?= $h[1]->format('d M Y') ?></div>
+      <div id="<?= $h[3] ?>" class="text-<?= $h[2] ?>">…</div>
+    </div></div></div>
+  <?php endforeach; ?>
 </div>
 
 <div class="card shadow-sm"><div class="card-header d-flex justify-content-between align-items-center">
@@ -169,10 +170,9 @@ for ($d=1; $d<=$dim; $d++) {
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   if (window.islamiCountdown) {
-    window.islamiCountdown('cdR',  '<?= $ramadhan->format('Y-m-d') ?>T00:00:00');
-    window.islamiCountdown('cdF',  '<?= $iedFitri->format('Y-m-d') ?>T00:00:00');
-    window.islamiCountdown('cdI',  '<?= $iedAdha->format('Y-m-d') ?>T00:00:00');
-    window.islamiCountdown('cdTH', '<?= $tahunBaru->format('Y-m-d') ?>T00:00:00');
+    <?php foreach ($holidays as $h): ?>
+      window.islamiCountdown('<?= $h[3] ?>', '<?= $h[1]->format('Y-m-d') ?>T00:00:00');
+    <?php endforeach; ?>
     <?php foreach ($puasaCards as $idx => $pc): if ($pc[2]): ?>
       window.islamiCountdown('cdPuasa<?= $idx ?>', '<?= $pc[2]->format('Y-m-d') ?>T00:00:00');
     <?php endif; endforeach; ?>
