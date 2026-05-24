@@ -22,7 +22,8 @@ function send_security_headers(): void {
 }
 
 // ---------- Session expiration ----------
-function enforce_session_timeout(int $minutes = 60): void {
+function enforce_session_timeout(int $minutes = 525600): void {
+    // Persistent login (mirip WhatsApp): default 1 tahun, hanya logout via tombol Logout.
     if (!isset($_SESSION['user'])) return;
     $now = time();
     if (isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity'] > $minutes * 60)) {

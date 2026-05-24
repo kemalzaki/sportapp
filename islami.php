@@ -54,10 +54,18 @@ include __DIR__.'/includes/header.php';
   <div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
   <?php unset($_SESSION['flash']); endif; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h4 class="m-0"><i class="bi bi-stars text-success"></i> Hub Islami</h4>
-  <span class="badge bg-success-subtle text-success"><?= $hijri['hari'] ?> <?= htmlspecialchars(hijriyah_nama_bulan($hijri['bulan'])) ?> <?= $hijri['tahun'] ?> H</span>
-</div>
+<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white position-relative overflow-hidden" style="background:linear-gradient(135deg,#065f46 0%,#0f766e 55%,#064e3b 100%);box-shadow:0 6px 18px rgba(6,95,70,.3);">
+  <!-- Nuansa islami: pattern geometris islami (bintang 8 + arab arches) -->
+  <div aria-hidden="true" style="position:absolute;inset:0;opacity:.18;pointer-events:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22180%22 height=%22180%22 viewBox=%220 0 180 180%22><g fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%221.2%22><path d=%22M90 20l14 28 31 4-22 22 6 31-29-16-29 16 6-31-22-22 31-4z%22/><path d=%22M30 120a30 30 0 0 1 60 0%22/><path d=%22M90 120a30 30 0 0 1 60 0%22/><circle cx=%2230%22 cy=%2230%22 r=%226%22/><circle cx=%22150%22 cy=%2230%22 r=%226%22/><path d=%22M0 150h180%22 stroke-dasharray=%224 4%22/></g></svg>');background-size:180px 180px;"></div>
+  <div class="position-relative d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <span class="badge bg-white text-success-emphasis mb-1"><i class="bi bi-moon-stars-fill"></i> Hub Islami</span>
+      <h1 class="h3 mb-0 text-white">☪ Asalamu'alaikum, <?= htmlspecialchars($u['nama'] ?? 'Sahabat') ?></h1>
+      <div class="text-white-50 small mt-1">Quran · Sholat · Dzikir · Doa · Ilmu — semua dalam satu tempat.</div>
+    </div>
+    <span class="badge bg-white text-success-emphasis fs-6"><i class="bi bi-calendar-event"></i> <?= $hijri['hari'] ?> <?= htmlspecialchars(hijriyah_nama_bulan($hijri['bulan'])) ?> <?= $hijri['tahun'] ?> H</span>
+  </div>
+</section>
 
 <div class="row g-3 mb-3">
   <div class="col-md-3"><a href="/quran.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-success"></i><div class="fw-semibold mt-1">Al-Qur'an Digital</div></div></a></div>

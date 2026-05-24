@@ -237,13 +237,19 @@ $stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
                    ORDER BY p.created_at DESC LIMIT 20");
 $uidMe = (int)($u['id'] ?? 0);
+// Pagination feed
+$feedPage = max(1, (int)($_GET['fp'] ?? 1));
+$feedPer  = 8;
+$feedOffset = ($feedPage - 1) * $feedPer;
+$feedTotal = (int)db_val("SELECT COUNT(*) FROM posts WHERE jenis='post'");
+$feedPages = max(1, (int)ceil($feedTotal / $feedPer));
 $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis, p.created_at,
                   u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
                   (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=$1) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
-                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12", [$uidMe]);
+                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT $feedPer OFFSET $feedOffset", [$uidMe]);
 
 // Komentar per post (untuk ditampilkan inline)
 $feedIds = array_map(fn($x)=>(int)$x['id'], $feed);
@@ -262,13 +268,18 @@ $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
 
 include __DIR__.'/includes/header.php'; ?>
 
-<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
+<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white position-relative overflow-hidden" style="background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 60%,#1e1b4b 100%);box-shadow:0 6px 18px rgba(14,165,233,.25);">
+  <!-- Nuansa olahraga: SVG pattern (raket, bola, lapangan) -->
+  <div aria-hidden="true" style="position:absolute;inset:0;opacity:.18;pointer-events:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22220%22 height=%22220%22 viewBox=%220 0 220 220%22><g fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%221.4%22><circle cx=%2235%22 cy=%2235%22 r=%2218%22/><path d=%22M22 22l26 26M48 22l-26 26%22/><circle cx=%22170%22 cy=%2250%22 r=%2226%22/><path d=%22M144 50h52M170 24v52M150 32l40 36M190 32l-40 36%22/><circle cx=%2260%22 cy=%22160%22 r=%2222%22 fill=%22%23ffffff%22 fill-opacity=%22.15%22/><path d=%22M60 138v44M38 160h44%22/><rect x=%22130%22 y=%22140%22 width=%2270%22 height=%2250%22 rx=%224%22/><path d=%22M165 140v50M130 165h70%22/></g></svg>');background-size:220px 220px;"></div>
+  <div class="position-relative">
   <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
     <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
+    <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-trophy me-1"></i> Sport · Sehat · Bareng</span>
   </div>
-  <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
-  <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
+  <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">🏆 Dashboard Olahraga Komunitas</h1>
+  <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, lari, dan komunitas dalam satu tempat.</p>
   <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
+  </div>
 </section>
 <script>
 let _deferredInstall = null;
@@ -603,6 +614,19 @@ document.addEventListener('DOMContentLoaded', () => {
           <?php endif; ?>
         </div>
       <?php endforeach; if(!$feed): ?><p class="text-muted small text-center mb-0">Belum ada postingan.</p><?php endif; ?>
+      <?php if ($feedPages > 1): ?>
+        <nav class="d-flex justify-content-center mt-3" aria-label="Pagination feed">
+          <ul class="pagination pagination-sm mb-0">
+            <?php $prev=max(1,$feedPage-1); $next=min($feedPages,$feedPage+1); ?>
+            <li class="page-item <?= $feedPage<=1?'disabled':'' ?>"><a class="page-link" href="?fp=<?= $prev ?>#feed">«</a></li>
+            <?php for($pp=max(1,$feedPage-2); $pp<=min($feedPages,$feedPage+2); $pp++): ?>
+              <li class="page-item <?= $pp==$feedPage?'active':'' ?>"><a class="page-link" href="?fp=<?= $pp ?>#feed"><?= $pp ?></a></li>
+            <?php endfor; ?>
+            <li class="page-item <?= $feedPage>=$feedPages?'disabled':'' ?>"><a class="page-link" href="?fp=<?= $next ?>#feed">»</a></li>
+          </ul>
+        </nav>
+        <div class="text-center small text-muted mt-1">Halaman <?= $feedPage ?> dari <?= $feedPages ?> · Total <?= $feedTotal ?> postingan</div>
+      <?php endif; ?>
     </div></div>
   </div>
 

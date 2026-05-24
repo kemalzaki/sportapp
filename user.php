@@ -6,7 +6,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/migrations_v7.php';
-send_security_headers(); enforce_session_timeout();
+send_security_headers(); enforce_session_timeout(); require_login();
 $id = (int)($_GET['id'] ?? 0);
 
 // ===== Idempotent migrasi tabel untuk fitur baru =====

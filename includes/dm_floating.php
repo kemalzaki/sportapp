@@ -177,8 +177,28 @@ $__onDmPage = (basename($__self) === 'dm.php');
   }
   pingUnread(); setInterval(pingUnread, 20000);
 
+  var lastDayKey = '';
+  function dayKey(s){var d=new Date(s); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+  function fmtDayLabel(s){
+    var d=new Date(s);
+    var today=new Date(); var yest=new Date(); yest.setDate(today.getDate()-1);
+    var hari=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
+    var bln=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'][d.getMonth()];
+    if (dayKey(s)===dayKey(today)) return 'Hari ini · '+hari+', '+d.getDate()+' '+bln+' '+d.getFullYear();
+    if (dayKey(s)===dayKey(yest))  return 'Kemarin · '+hari+', '+d.getDate()+' '+bln+' '+d.getFullYear();
+    return hari+', '+d.getDate()+' '+bln+' '+d.getFullYear();
+  }
+  function appendDaySeparator(s){
+    var k = dayKey(s);
+    if (k === lastDayKey) return;
+    lastDayKey = k;
+    chatBody.insertAdjacentHTML('beforeend',
+      '<div class="text-center my-2"><span style="display:inline-block;background:#e2e8f0;color:#475569;font-size:.7rem;font-weight:600;padding:2px 10px;border-radius:999px">'+
+      esc(fmtDayLabel(s))+'</span></div>');
+  }
+
   function openChat(peerId, nama, foto){
-    currentPeer = peerId; lastId = 0;
+    currentPeer = peerId; lastId = 0; lastDayKey = '';
     chatTo.value = peerId;
     chatName.textContent = nama || ('User #'+peerId);
     if (foto) { chatAv.src = foto; chatAv.style.visibility='visible'; } else { chatAv.style.visibility='hidden'; }
@@ -197,11 +217,12 @@ $__onDmPage = (basename($__self) === 'dm.php');
     fetch('/api_dm.php?peer='+currentPeer+'&since='+lastId, {credentials:'same-origin'}).then(function(r){return r.text();}).then(function(txt){
       var d; try{ d = JSON.parse(txt); }catch(e){ return; }
       var rows = (d && d.messages) || [];
-      if (lastId === 0) chatBody.innerHTML = '';
+      if (lastId === 0) { chatBody.innerHTML = ''; lastDayKey = ''; }
       var atBottom = (chatBody.scrollTop + chatBody.clientHeight) >= (chatBody.scrollHeight - 60);
       rows.forEach(function(m){
         if (m.id <= lastId) return;
         lastId = Math.max(lastId, parseInt(m.id,10));
+        appendDaySeparator(m.created_at);
         var mine = parseInt(m.sender_id,10) === MY_ID;
         var html = '<div class="msg '+(mine?'mine':'')+'"><div class="bub">'+esc(m.pesan)+'<span class="tm">'+fmtTime(m.created_at)+'</span></div></div>';
         chatBody.insertAdjacentHTML('beforeend', html);

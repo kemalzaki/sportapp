@@ -7,6 +7,35 @@ header('Content-Type: application/json');
 $u = current_user();
 $uid = (int)$u['id'];
 
+// === Auto-delete pesan DM lebih dari 30 hari (jalankan ringan, paling sering 1x/jam) ===
+try {
+    $lastPurge = (int) db_val("SELECT EXTRACT(EPOCH FROM COALESCE(MAX(created_at), now()-interval '1 day'))::bigint FROM dm_messages WHERE created_at < now() - interval '30 days' LIMIT 1");
+    // selalu coba hapus — DELETE dengan filter created_at sangat ringan jika diindex
+    db_exec("DELETE FROM dm_messages WHERE created_at < now() - interval '30 days'");
+} catch (Throwable $e) {}
+
+// === Backup chat (download) — semua pesan user (sender atau receiver) ===
+if (isset($_GET['backup'])) {
+    $peer = (int)($_GET['peer'] ?? 0);
+    $where = "(sender_id=$1 OR receiver_id=$1)";
+    $params = [$uid];
+    if ($peer > 0) {
+        $where .= " AND ((sender_id=$1 AND receiver_id=$2) OR (sender_id=$2 AND receiver_id=$1))";
+        $params[] = $peer;
+    }
+    $rows = db_all("SELECT m.created_at, s.nama AS pengirim, r.nama AS penerima, m.pesan
+                    FROM dm_messages m
+                    JOIN users s ON s.id=m.sender_id
+                    JOIN users r ON r.id=m.receiver_id
+                    WHERE $where ORDER BY m.id ASC", $params);
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="backup-chat-'.date('Ymd-His').'.csv"');
+    $out = fopen('php://output','w');
+    fputcsv($out, ['Waktu','Pengirim','Penerima','Pesan']);
+    foreach ($rows as $r) fputcsv($out, [$r['created_at'], $r['pengirim'], $r['penerima'], $r['pesan']]);
+    fclose($out); exit;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? '')) {
         echo json_encode(['ok'=>false,'err'=>'csrf']); exit;
