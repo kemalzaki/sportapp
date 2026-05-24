@@ -29,6 +29,32 @@ if (isset($_GET['find'])) {
     echo json_encode($rows); exit;
 }
 
+if (isset($_GET['unread'])) {
+    $row = db_one("SELECT COUNT(*) AS c FROM dm_messages WHERE receiver_id=$1 AND read_at IS NULL", [$uid]);
+    echo json_encode(['unread' => (int)($row['c'] ?? 0)]); exit;
+}
+
+if (isset($_GET['threads'])) {
+    $rows = db_all("
+      SELECT u.id, u.nama, u.foto_url,
+        (SELECT pesan FROM dm_messages m
+           WHERE (m.sender_id=u.id AND m.receiver_id=\$1) OR (m.sender_id=\$1 AND m.receiver_id=u.id)
+           ORDER BY m.id DESC LIMIT 1) AS last_msg,
+        (SELECT created_at FROM dm_messages m
+           WHERE (m.sender_id=u.id AND m.receiver_id=\$1) OR (m.sender_id=\$1 AND m.receiver_id=u.id)
+           ORDER BY m.id DESC LIMIT 1) AS last_at,
+        (SELECT COUNT(*) FROM dm_messages m
+           WHERE m.sender_id=u.id AND m.receiver_id=\$1 AND m.read_at IS NULL) AS unread
+      FROM users u
+      WHERE u.id IN (
+        SELECT DISTINCT CASE WHEN sender_id=\$1 THEN receiver_id ELSE sender_id END
+          FROM dm_messages WHERE sender_id=\$1 OR receiver_id=\$1)
+      ORDER BY last_at DESC NULLS LAST
+      LIMIT 30
+    ", [$uid]);
+    echo json_encode(['threads' => $rows]); exit;
+}
+
 $peer  = (int)($_GET['peer']  ?? 0);
 $since = (int)($_GET['since'] ?? 0);
 if ($peer <= 0) { echo json_encode(['messages'=>[]]); exit; }

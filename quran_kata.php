@@ -126,12 +126,32 @@ document.getElementById('hitungForm').addEventListener('submit', async function(
   var box = document.getElementById('hasilHitung');
   if (!q) { box.innerHTML=''; return; }
   box.innerHTML = '<div class="text-muted"><div class="spinner-border spinner-border-sm"></div> Menghitung dari Quran.com…</div>';
+
+  async function safeJson(url){
+    var r = await fetch(url, {headers:{'Accept':'application/json'}});
+    var txt = await r.text();
+    if (!txt) throw new Error('Server mengembalikan respons kosong (HTTP '+r.status+')');
+    try { return JSON.parse(txt); }
+    catch(e){ throw new Error('Respons bukan JSON valid (HTTP '+r.status+')'); }
+  }
+
   try {
-    // Hitungan ayat yang mengandung kata: ambil sampai 286 hasil pertama, total_results lebih akurat
-    var r = await fetch('https://api.quran.com/api/v4/search?q='+encodeURIComponent(q)+'&size=20&language=ar');
-    var j = await r.json();
-    var total = (j.search && j.search.total_results) || 0;
-    var sample = (j.search && j.search.results) || [];
+    // Endpoint search Quran.com kadang mengembalikan body kosong / non-JSON.
+    // Pakai parser aman + fallback ke endpoint alternatif.
+    var j = null, lastErr = null;
+    var urls = [
+      'https://api.quran.com/api/v4/search?q='+encodeURIComponent(q)+'&size=20&language=id',
+      'https://api.quran.com/api/v4/search?q='+encodeURIComponent(q)+'&size=20&language=ar',
+      'https://api.qurancdn.com/api/qdc/search?q='+encodeURIComponent(q)+'&size=20&language=id'
+    ];
+    for (var i=0;i<urls.length;i++){
+      try { j = await safeJson(urls[i]); if (j) break; }
+      catch(e){ lastErr = e; }
+    }
+    if (!j) throw (lastErr || new Error('Tidak ada respons dari server'));
+
+    var total = (j.search && j.search.total_results) || (j.pagination && j.pagination.total_records) || 0;
+    var sample = (j.search && j.search.results) || j.results || [];
     var html = '<div class="alert alert-success py-2 mb-2"><i class="bi bi-check2-circle"></i> Kata <strong style="font-family:Amiri">'+esc(q)+'</strong> terdapat dalam ± <strong>'+total+'</strong> ayat (hasil pencarian Quran.com).</div>';
     if (sample.length){
       html += '<div class="small text-muted mb-1">Contoh ayat:</div><ul class="list-group">';
@@ -140,10 +160,12 @@ document.getElementById('hitungForm').addEventListener('submit', async function(
         html += '<li class="list-group-item"><a href="/quran_surah.php?s='+k[0]+'#a'+k[1]+'" class="text-decoration-none"><span class="badge bg-success me-1">QS '+k[0]+':'+k[1]+'</span></a><span class="text-end d-block" dir="rtl" style="font-family:Amiri;font-size:1.3rem">'+esc(h.text||'')+'</span></li>';
       });
       html += '</ul>';
+    } else if (total === 0) {
+      html += '<div class="small text-muted">Tidak ada contoh ayat yang dikembalikan API.</div>';
     }
     box.innerHTML = html;
   } catch(err){
-    box.innerHTML = '<div class="alert alert-danger small">Gagal menghitung: '+esc(err.message)+'</div>';
+    box.innerHTML = '<div class="alert alert-danger small">Gagal menghitung: '+esc(err.message)+'. Coba lagi beberapa saat, atau periksa koneksi internet.</div>';
   }
 });
 </script>

@@ -11,6 +11,7 @@ send_security_headers(); require_login();
 $u = current_user();
 $s = max(1, min(114, (int)($_GET['s'] ?? 1)));
 $info = $ISLAMI_SURAH[$s];
+$totalAyat = (int)$info[1];
 $pageTitle = 'QS '.$info[0];
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
@@ -44,6 +45,15 @@ $asbabIdx = asbab_indices_for_surah($s);
 $asbabMap = [];
 foreach ($asbabIdx as $ai) $asbabMap[$ai] = asbab_for($s, $ai);
 
+// Pagination & jump-to ayat (read from query, default page 1, 10 per page)
+$perPage = 10;
+$totalPages = max(1, (int)ceil($totalAyat / $perPage));
+$page = max(1, min($totalPages, (int)($_GET['p'] ?? 1)));
+$jumpAyat = isset($_GET['a']) ? max(1, min($totalAyat, (int)$_GET['a'])) : 0;
+if ($jumpAyat > 0) {
+    $page = (int)ceil($jumpAyat / $perPage);
+}
+
 include __DIR__.'/includes/header.php';
 ?>
 <div class="mb-2">
@@ -51,7 +61,7 @@ include __DIR__.'/includes/header.php';
 </div>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="m-0"><i class="bi bi-book text-success"></i> QS <?= htmlspecialchars($info[0]) ?>
-    <small class="text-muted">(<?= $info[1] ?> ayat)</small>
+    <small class="text-muted">(<?= $totalAyat ?> ayat)</small>
     <?= surah_tempat_badge($s) ?>
   </h4>
   <div>
@@ -61,9 +71,34 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
+<!-- Dropdown pemilih ayat -->
+<div class="card shadow-sm mb-3"><div class="card-body py-2">
+  <form method="get" action="/quran_surah.php" class="row g-2 align-items-center">
+    <input type="hidden" name="s" value="<?= $s ?>">
+    <div class="col-auto small text-muted"><i class="bi bi-list-ol"></i> Lompat ke ayat:</div>
+    <div class="col-auto">
+      <select name="a" class="form-select form-select-sm" onchange="this.form.submit()">
+        <?php for ($i=1; $i<=$totalAyat; $i++): ?>
+          <option value="<?= $i ?>" <?= $jumpAyat===$i?'selected':'' ?>>Ayat <?= $i ?></option>
+        <?php endfor; ?>
+      </select>
+    </div>
+    <div class="col-auto small text-muted ms-2">Halaman:</div>
+    <div class="col-auto">
+      <select name="p" class="form-select form-select-sm" onchange="this.form.submit()">
+        <?php for ($pp=1; $pp<=$totalPages; $pp++):
+              $from = ($pp-1)*$perPage + 1; $to = min($totalAyat, $pp*$perPage); ?>
+          <option value="<?= $pp ?>" <?= $page===$pp?'selected':'' ?>>Hal <?= $pp ?> (ayat <?= $from ?>–<?= $to ?>)</option>
+        <?php endfor; ?>
+      </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-sm btn-success" type="submit"><i class="bi bi-arrow-right-circle"></i> Buka</button></div>
+  </form>
+</div></div>
+
 <div class="alert alert-info py-2 small mb-3">
   <i class="bi bi-info-circle"></i> Klik kata Arab untuk lihat <strong>tafsir per-kata (Bahasa Indonesia)</strong>.
-  Tombol <i class="bi bi-lightbulb"></i> menampilkan tafsir <strong>Ibnu Katsir</strong> &amp; <strong>Fi Zhilalil Qur'an</strong>.
+  Tombol <i class="bi bi-lightbulb"></i> menampilkan <strong>Tafsir Ibnu Katsir (Bahasa Indonesia)</strong>.
   Tombol <i class="bi bi-journal-bookmark"></i> menampilkan <strong>Makna Ayat</strong>.
   Ayat dengan ikon <i class="bi bi-journal-text text-warning"></i> memiliki riwayat <strong>Asbabun Nuzul</strong>.
 </div>
@@ -74,38 +109,69 @@ include __DIR__.'/includes/header.php';
     <i class="bi bi-journal-text"></i> Ayat di surah ini yang memiliki Asbabun Nuzul (<?= count($asbabIdx) ?>):
   </div>
   <div class="card-body py-2">
-    <?php foreach ($asbabIdx as $ai): ?>
-      <a href="#a<?= $ai ?>" class="badge bg-warning text-dark text-decoration-none me-1">Ayat <?= $ai ?></a>
+    <?php foreach ($asbabIdx as $ai):
+        $aiPage = (int)ceil($ai/$perPage); ?>
+      <a href="/quran_surah.php?s=<?= $s ?>&a=<?= $ai ?>#a<?= $ai ?>" class="badge bg-warning text-dark text-decoration-none me-1">Ayat <?= $ai ?></a>
     <?php endforeach; ?>
   </div>
 </div>
 <?php endif; ?>
 
+<?php
+// Bangun bar pagination (atas & bawah)
+function render_pager($s, $page, $totalPages){
+  if ($totalPages <= 1) return '';
+  $out = '<nav class="my-2"><ul class="pagination pagination-sm justify-content-center mb-0 flex-wrap">';
+  $prev = max(1, $page-1); $next = min($totalPages, $page+1);
+  $out .= '<li class="page-item '.($page<=1?'disabled':'').'"><a class="page-link" href="?s='.$s.'&p='.$prev.'">«</a></li>';
+  // window 5 halaman
+  $start = max(1, $page-2); $end = min($totalPages, $start+4); $start = max(1, $end-4);
+  if ($start > 1) $out .= '<li class="page-item"><a class="page-link" href="?s='.$s.'&p=1">1</a></li><li class="page-item disabled"><span class="page-link">…</span></li>';
+  for ($i=$start; $i<=$end; $i++){
+    $out .= '<li class="page-item '.($i===$page?'active':'').'"><a class="page-link" href="?s='.$s.'&p='.$i.'">'.$i.'</a></li>';
+  }
+  if ($end < $totalPages) $out .= '<li class="page-item disabled"><span class="page-link">…</span></li><li class="page-item"><a class="page-link" href="?s='.$s.'&p='.$totalPages.'">'.$totalPages.'</a></li>';
+  $out .= '<li class="page-item '.($page>=$totalPages?'disabled':'').'"><a class="page-link" href="?s='.$s.'&p='.$next.'">»</a></li>';
+  $out .= '</ul></nav>';
+  return $out;
+}
+$ayatFrom = ($page-1)*$perPage + 1;
+$ayatTo   = min($totalAyat, $page*$perPage);
+?>
+<?= render_pager($s, $page, $totalPages) ?>
+<div class="text-center small text-muted mb-2">Menampilkan ayat <strong><?= $ayatFrom ?>–<?= $ayatTo ?></strong> dari <?= $totalAyat ?></div>
+
 <div id="ayatList" class="card shadow-sm"><div class="card-body">
   <div class="text-center text-muted py-4">
     <div class="spinner-border spinner-border-sm"></div>
-    Memuat Al-Qur'an, tafsir Ibnu Katsir &amp; Fi Zhilalil Qur'an…
+    Memuat Al-Qur'an &amp; Tafsir Ibnu Katsir (Bahasa Indonesia)…
   </div>
 </div></div>
 
+<?= render_pager($s, $page, $totalPages) ?>
+
 <style>
-.word-arab{display:inline-block;margin:0 .25rem .5rem;padding:.25rem .4rem;border-radius:6px;cursor:pointer;transition:.15s;}
+.word-arab{display:inline-block;margin:0 .25rem .5rem;padding:.25rem .4rem;border-radius:6px;cursor:pointer;transition:.15s;text-align:center;}
 .word-arab:hover{background:rgba(34,197,94,.12);}
 .word-arab .ar{font-family:'Amiri','Scheherazade New',serif;font-size:1.9rem;line-height:1.4;display:block;}
-.word-arab .tr{font-size:.7rem;color:var(--bs-secondary-color,#64748b);display:block;text-align:center;}
+.word-arab .tr{font-size:.72rem;color:var(--bs-secondary-color,#64748b);display:block;text-align:center;max-width:140px;word-wrap:break-word;white-space:normal;}
 .ayat-block{padding:1rem 0;border-bottom:1px solid var(--bs-border-color,#e5e7eb);}
-.tafsir-box,.asbab-box,.makna-box{background:var(--bs-tertiary-bg,#f8fafc);border-left:4px solid #16a34a;padding:.75rem 1rem;border-radius:6px;margin-top:.5rem;display:none;}
+.tafsir-box,.asbab-box,.makna-box{background:var(--bs-tertiary-bg,#f8fafc);border-left:4px solid #16a34a;padding:.85rem 1rem;border-radius:6px;margin-top:.5rem;display:none;}
 .asbab-box{border-left-color:#f59e0b;}
 .makna-box{border-left-color:#0ea5e9;}
 .ayat-block.show-tafsir .tafsir-box,
 .ayat-block.show-asbab .asbab-box,
 .ayat-block.show-makna .makna-box{display:block;}
-.tafsir-tab{font-weight:600;color:#16a34a;margin-top:.5rem;}
+.tafsir-tab{font-weight:600;color:#16a34a;margin-top:.25rem;font-size:.95rem;}
+.tafsir-body{line-height:1.75;font-size:.95rem;text-align:justify;color:var(--bs-body-color);}
+.tafsir-body p{margin:0 0 .65rem 0;}
 </style>
 
 <script>
 (async function(){
   var s = <?= $s ?>;
+  var pageFrom = <?= $ayatFrom ?>;
+  var pageTo   = <?= $ayatTo ?>;
   var bmMap = <?= json_encode($bmMap) ?>;
   var asbabMap = <?= json_encode($asbabMap, JSON_UNESCAPED_UNICODE) ?>;
   var csrf = '<?= csrf_token() ?>';
@@ -113,36 +179,54 @@ include __DIR__.'/includes/header.php';
 
   function esc(t){return (t||'').toString().replace(/[<>&]/g, c=>({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c]));}
   function stripTags(t){return (t||'').toString().replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();}
-  // Ganti kata "Tuhan" dengan nama Arabnya (Rabb / Malik / Ilah) sesuai konteks
   function rabbify(t){
     if(!t) return t;
     return t.toString()
-      // "Tuhan Yang Maha Merajai/Raja" -> Malik
       .replace(/\bTuhan\s+Yang\s+Maha\s+Merajai\b/gi, 'Al-Malik (Tuhan Yang Maha Merajai)')
       .replace(/\bTuhan\s+(?:semesta\s+alam|seluruh\s+alam|sekalian\s+alam)\b/gi, 'Rabb semesta alam')
-      .replace(/\bTuhan(-?ku|-?mu|-?nya|-?mu sekalian|-?mu semua)?\b/g, function(m, suf){
-        suf = suf || '';
-        // Tuhan-ku -> Rabb-ku, Tuhan -> Rabb (default), tetapi dalam konteks penyembahan -> Ilah
-        return 'Rabb' + suf;
-      })
-      // Variasi "tiada Tuhan selain Allah" -> Ilah
+      .replace(/\bTuhan(-?ku|-?mu|-?nya)?\b/g, function(m, suf){ return 'Rabb' + (suf||''); })
       .replace(/tiada\s+Rabb\s+selain/gi, 'tiada Ilah (sesembahan) selain')
       .replace(/tidak\s+ada\s+Rabb\s+selain/gi, 'tidak ada Ilah (sesembahan) selain');
   }
+  // Format tafsir agar rapi: pisahkan paragraf pada baris kosong / titik panjang
+  function formatTafsir(text){
+    text = (text||'').toString().trim();
+    if (!text) return '';
+    // normalisasi spasi
+    text = text.replace(/\r\n/g,'\n').replace(/[ \t]+\n/g,'\n');
+    // pecah paragraf
+    var paras = text.split(/\n{2,}/);
+    if (paras.length < 2) {
+      // fallback: pecah per kalimat jika tidak ada break paragraf
+      paras = text.split(/(?<=[\.\!\?])\s+(?=[A-Z“"'(])/);
+      // gabung tiap 3 kalimat jadi 1 paragraf
+      var grouped = [], buf = [];
+      paras.forEach(function(p,i){ buf.push(p); if (buf.length>=3){ grouped.push(buf.join(' ')); buf=[]; } });
+      if (buf.length) grouped.push(buf.join(' '));
+      paras = grouped;
+    }
+    return paras.map(function(p){ return '<p>'+esc(rabbify(p.trim()))+'</p>'; }).join('');
+  }
 
   async function fetchJSON(url){
-    try { var r = await fetch(url); if(!r.ok) return null; return await r.json(); } catch(e){ return null; }
+    try {
+      var r = await fetch(url);
+      if(!r.ok) return null;
+      var txt = await r.text();
+      if(!txt) return null;
+      try { return JSON.parse(txt); } catch(e){ return null; }
+    } catch(e){ return null; }
   }
 
   try {
     // === Sumber data ===
-    // 1) equran.id v2: ayat Arab + terjemah Indonesia (tanpa audio)
-    // 2) quran.com v4: per-kata + terjemah per-kata Bahasa Indonesia
-    // 3) spa5k/tafsir_api (CDN jsDelivr): Tafsir Ibnu Katsir & Fi Zhilalil Qur'an
+    // 1) equran.id v2: ayat Arab + terjemah Indonesia + tafsir Kemenag (Bahasa Indonesia)
+    // 2) quran.com v4: per-kata + terjemah per-kata Bahasa Indonesia (?language=id)
+    // 3) spa5k/tafsir_api (CDN jsDelivr): Tafsir Ibnu Katsir Bahasa Indonesia
     var [rSurah, rWords] = await Promise.all([
       fetchJSON('https://equran.id/api/v2/surat/' + s),
       fetchJSON('https://api.quran.com/api/v4/verses/by_chapter/' + s +
-            '?words=true&word_fields=text_uthmani,transliteration&word_translation_language=id&per_page=300')
+            '?words=true&word_fields=text_uthmani,transliteration&language=id&per_page=300')
     ]);
 
     var ayatList = (rSurah && rSurah.data && rSurah.data.ayat) || [];
@@ -155,10 +239,12 @@ include __DIR__.'/includes/header.php';
 
     if (!ayatList.length) throw new Error('Data ayat kosong');
 
-    // Render dulu kerangka, tafsir di-lazy per klik
+    // Filter pagination: hanya tampilkan ayat di range halaman aktif
+    var ayatPage = ayatList.filter(function(a){ return a.nomorAyat >= pageFrom && a.nomorAyat <= pageTo; });
+
     var html = '';
-    for (var i=0; i<ayatList.length; i++){
-      var ay = ayatList[i];
+    for (var i=0; i<ayatPage.length; i++){
+      var ay = ayatPage[i];
       var no = ay.nomorAyat;
       var isBm = Object.prototype.hasOwnProperty.call(bmMap, no);
       var hasAsbab = Object.prototype.hasOwnProperty.call(asbabMap, no);
@@ -170,7 +256,10 @@ include __DIR__.'/includes/header.php';
         for (var w=0; w<words.length; w++){
           var ww = words[w];
           var ar = ww.text_uthmani || ww.text || '';
-          var tr = (ww.translation && ww.translation.text) || (ww.transliteration && ww.transliteration.text) || '';
+          // Prioritas: translation Bahasa Indonesia, lalu transliteration
+          var trObj = ww.translation && ww.translation.text ? ww.translation.text : '';
+          var trLit = ww.transliteration && ww.transliteration.text ? ww.transliteration.text : '';
+          var tr = trObj || trLit;
           tr = rabbify(tr);
           perKata += '<span class="word-arab" title="'+esc(tr)+'"><span class="ar">'+esc(ar)+'</span><span class="tr">'+esc(tr)+'</span></span>';
         }
@@ -184,7 +273,7 @@ include __DIR__.'/includes/header.php';
           '<span class="badge bg-success">Ayat '+no+'</span>' +
           '<div class="btn-group btn-group-sm">' +
             '<button type="button" class="btn btn-outline-info btn-sm js-toggle-makna" data-no="'+no+'" title="Makna ayat"><i class="bi bi-journal-bookmark"></i> Makna</button>' +
-            '<button type="button" class="btn btn-outline-success btn-sm js-toggle-tafsir" data-no="'+no+'" title="Tafsir Ibnu Katsir & Fi Zhilal"><i class="bi bi-lightbulb"></i> Tafsir</button>' +
+            '<button type="button" class="btn btn-outline-success btn-sm js-toggle-tafsir" data-no="'+no+'" title="Tafsir Ibnu Katsir (Bahasa Indonesia)"><i class="bi bi-lightbulb"></i> Tafsir</button>' +
             (hasAsbab ? '<button type="button" class="btn btn-warning btn-sm js-toggle-asbab" data-no="'+no+'" title="Asbabun Nuzul"><i class="bi bi-journal-text"></i> Asbab</button>' : '') +
             '<form method="post" style="display:inline"><input type="hidden" name="csrf" value="'+csrf+'"><input type="hidden" name="_action" value="last_read"><input type="hidden" name="ayat" value="'+no+'"><button class="btn btn-outline-primary btn-sm" title="Tandai last read"><i class="bi bi-bookmark-check"></i></button></form>' +
             '<form method="post" style="display:inline"><input type="hidden" name="csrf" value="'+csrf+'"><input type="hidden" name="_action" value="'+(isBm?'unbookmark':'bookmark')+'"><input type="hidden" name="ayat" value="'+no+'"><button class="btn btn-'+(isBm?'warning':'outline-warning')+' btn-sm" title="Bookmark"><i class="bi bi-star'+(isBm?'-fill':'')+'"></i></button></form>' +
@@ -200,29 +289,29 @@ include __DIR__.'/includes/header.php';
     }
     container.innerHTML = html;
 
+    // Cache tafsir Kemenag (id) untuk seluruh surah, dipakai fallback Indonesia
+    var kemenagAll = null;
+    async function getKemenag(no){
+      if (!kemenagAll) {
+        var k = await fetchJSON('https://equran.id/api/v2/tafsir/' + s);
+        kemenagAll = (k && k.data && k.data.tafsir) || [];
+      }
+      var t = kemenagAll.find(function(x){ return x.ayat === no; });
+      return t ? t.teks : '';
+    }
+
     var tafsirCache = {};
     async function loadTafsir(no){
       if (tafsirCache[no]) return tafsirCache[no];
-      // spa5k tafsir_api: id-tafisr-ibn-kathir (terjemahan ID) & ar-tafsir-fi-zilal-quran
-      // (Endpoint Indonesian Ibnu Katsir: id-tafisr-ibn-kathir; Fi Zilal: ar-tafsir-fi-zilal-quran)
+      // Sumber Ibnu Katsir Bahasa Indonesia (spa5k tafsir_api)
       var base = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir';
-      var [ik, fz, ikEn] = await Promise.all([
-        fetchJSON(base + '/id-tafisr-ibn-kathir/' + s + '/' + no + '.json'),
-        fetchJSON(base + '/ar-tafsir-fi-zilal-quran/' + s + '/' + no + '.json'),
-        fetchJSON(base + '/en-tafisr-ibn-kathir/' + s + '/' + no + '.json'),
-      ]);
-      // Kemenag (id) sebagai fallback makna
-      var kemen = await fetchJSON('https://equran.id/api/v2/tafsir/' + s);
-      var kemenText = '';
-      if (kemen && kemen.data && kemen.data.tafsir) {
-        var t = kemen.data.tafsir.find(function(x){ return x.ayat === no; });
-        if (t) kemenText = t.teks;
-      }
+      var ik = await fetchJSON(base + '/id-tafisr-ibn-kathir/' + s + '/' + no + '.json');
+      var ibnuId = (ik && ik.text) || '';
+      // Fallback: Kemenag (Bahasa Indonesia) bila Ibnu Katsir ID belum tersedia untuk ayat ini
+      var kemen = await getKemenag(no);
       tafsirCache[no] = {
-        ibnu_id: (ik && ik.text) || '',
-        ibnu_en: (ikEn && ikEn.text) || '',
-        fizilal: (fz && fz.text) || '',
-        kemenag: kemenText
+        ibnu_id: ibnuId,
+        kemenag: kemen
       };
       return tafsirCache[no];
     }
@@ -231,31 +320,22 @@ include __DIR__.'/includes/header.php';
       var html = '';
       if (d.ibnu_id) {
         html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
-                '<div class="small mt-1" style="white-space:pre-wrap">'+esc(rabbify(stripTags(d.ibnu_id)))+'</div>';
-      } else if (d.ibnu_en) {
-        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (English — terjemahan ID belum tersedia untuk ayat ini)</div>'+
-                '<div class="small mt-1" style="white-space:pre-wrap">'+esc(stripTags(d.ibnu_en))+'</div>';
+                '<div class="tafsir-body mt-2">'+formatTafsir(d.ibnu_id)+'</div>';
+      } else if (d.kemenag) {
+        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
+                '<div class="small text-muted mb-1"><em>Tafsir Ibnu Katsir belum tersedia untuk ayat ini — menampilkan Tafsir Kemenag RI (Bahasa Indonesia) sebagai pengganti.</em></div>'+
+                '<div class="tafsir-body">'+formatTafsir(d.kemenag)+'</div>';
       } else {
-        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir</div>'+
-                '<div class="small text-muted mt-1">Tidak tersedia untuk ayat ini.</div>';
-      }
-      html += '<hr class="my-2">';
-      if (d.fizilal) {
-        html += '<div class="tafsir-tab" style="color:#0ea5e9"><i class="bi bi-book-half"></i> Fi Zhilalil Qur\'an (Sayyid Quthb, teks Arab asli)</div>'+
-                '<div class="small mt-1 text-end" dir="rtl" style="font-family:\'Amiri\',serif;line-height:1.9">'+esc(d.fizilal)+'</div>';
-      } else {
-        html += '<div class="tafsir-tab" style="color:#0ea5e9"><i class="bi bi-book-half"></i> Fi Zhilalil Qur\'an</div>'+
-                '<div class="small text-muted mt-1">Tidak tersedia untuk ayat ini.</div>';
+        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
+                '<div class="small text-muted mt-1">Tafsir belum tersedia untuk ayat ini.</div>';
       }
       return html;
     }
 
     function renderMakna(d, teksIndonesia){
-      // Makna ringkas: prioritas Ibnu Katsir ID -> Kemenag -> Terjemah
       var src = rabbify(d.ibnu_id || d.kemenag || teksIndonesia || '');
       src = stripTags(src);
       if (!src) return '<span class="text-muted">Makna belum tersedia.</span>';
-      // Ambil 2-3 kalimat pertama sebagai ringkasan makna
       var sentences = src.split(/(?<=[\.\!\?])\s+/).slice(0, 3).join(' ');
       if (sentences.length > 600) sentences = sentences.slice(0, 600) + '…';
       return '<span style="white-space:pre-wrap">'+esc(sentences)+'</span>';
@@ -268,7 +348,7 @@ include __DIR__.'/includes/header.php';
         if (block.classList.contains('show-tafsir')) {
           var no = parseInt(block.dataset.no, 10);
           var tafs = block.querySelector('.js-tafsir');
-          tafs.innerHTML = '<span class="text-muted">Memuat tafsir…</span>';
+          tafs.innerHTML = '<span class="text-muted"><div class="spinner-border spinner-border-sm"></div> Memuat tafsir Ibnu Katsir…</span>';
           var d = await loadTafsir(no);
           tafs.innerHTML = renderTafsir(d);
         }

@@ -1,5 +1,6 @@
 </main>
 <?php include __DIR__ . '/bottom_nav.php'; ?>
+<?php include __DIR__ . '/dm_floating.php'; ?>
 <footer class="app-footer text-center text-muted py-3 small">
   <div class="container">&copy; 2026 HapFam SportApp · v4 - By <a href="https://www.yuk-mari.com" target="_blank" rel="noopener" class="text-decoration-none">Yuk-Mari CyberLab</a></div>
 </footer>
