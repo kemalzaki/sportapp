@@ -51,57 +51,36 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
   }
 
-  // Hide preloader once DOM ready
-  const pre = document.getElementById('appPreloader');
-  function hidePreloader(){ if(!pre) return; pre.classList.add('hidden'); setTimeout(()=>{ if(pre && pre.parentNode) pre.remove(); }, 400); }
-  // Skip preloader entirely if flagged (after form submit like login/upload simpan)
-  try {
-    if (sessionStorage.getItem('skipPreloader') === '1') {
-      sessionStorage.removeItem('skipPreloader');
-      if (pre) { pre.style.display='none'; pre.remove(); }
-    } else {
-      setTimeout(hidePreloader, 200);
-    }
-  } catch(e){ setTimeout(hidePreloader, 200); }
+  // ===== Preloader handling (perbaikan: jangan menghalangi halaman yang sudah terbuka) =====
+  function hideAllPreloaders(){
+    document.querySelectorAll('#appPreloader').forEach(function(el){
+      el.classList.add('hidden');
+      el.style.display='none';
+      setTimeout(()=>{ if(el && el.parentNode) el.remove(); }, 200);
+    });
+  }
+  // Sembunyikan segera saat DOM ready / load / pageshow (termasuk BFCache back/forward)
+  hideAllPreloaders();
+  window.addEventListener('load', hideAllPreloaders);
+  window.addEventListener('pageshow', hideAllPreloaders);
+  window.addEventListener('popstate', hideAllPreloaders);
 
-  // Fix preloader stuck on back/forward (BFCache)
-  window.addEventListener('pageshow', function(ev){
-    document.querySelectorAll('#appPreloader').forEach(function(el){ el.classList.add('hidden'); el.style.display='none'; setTimeout(()=>el.remove(),200); });
-  });
-  window.addEventListener('popstate', function(){
-    document.querySelectorAll('#appPreloader').forEach(function(el){ el.classList.add('hidden'); el.style.display='none'; setTimeout(()=>el.remove(),200); });
-  });
-
-  // Show preloader briefly on internal link navigation; auto-hide after 4s as safety
-  document.body.addEventListener('click', function(ev){
-    const a = ev.target.closest('a');
-    if(!a) return;
-    const href = a.getAttribute('href') || '';
-    if(!href || href.startsWith('#') || a.target==='_blank' || a.hasAttribute('download')) return;
-    if(a.hasAttribute('data-no-preloader')) return;
-    try{
-      const u = new URL(href, location.href);
-      if(u.origin !== location.origin) return;
-      const p = document.createElement('div'); p.id='appPreloader'; p.innerHTML='<div class="spinner"></div><div class="lbl">Memuat…</div>';
+  // Tampilkan preloader HANYA saat benar-benar meninggalkan halaman (navigasi sungguhan)
+  window.addEventListener('beforeunload', function(){
+    var p = document.getElementById('appPreloader');
+    if(!p){
+      p = document.createElement('div'); p.id='appPreloader';
+      p.innerHTML='<div class="spinner"></div><div class="lbl">Memuat…</div>';
       document.body.appendChild(p);
-      setTimeout(()=>{ p.classList.add('hidden'); setTimeout(()=>p.remove(),300); }, 4000);
-    }catch(e){}
+    } else {
+      p.classList.remove('hidden'); p.style.display='';
+    }
   });
 
-  // Skip preloader saat submit form yang ditandai data-skip-preloader (login, upload simpan, dll.)
-  document.querySelectorAll('form[data-skip-preloader]').forEach(function(f){
-    f.addEventListener('submit', function(){ try{ sessionStorage.setItem('skipPreloader','1'); }catch(e){} });
-  });
-  // Tampilkan preloader untuk SEMUA form submit (CRUD/login/save) kecuali yang AJAX atau data-skip-preloader.
+  // Untuk form submit yang dicegah (AJAX/preventDefault), pastikan preloader tidak nyangkut
   document.addEventListener('submit', function(ev){
-    var f = ev.target;
-    if(!(f instanceof HTMLFormElement)) return;
-    if(f.hasAttribute('data-ajax') || f.hasAttribute('data-skip-preloader')) return;
-    var p = document.createElement('div'); p.id='appPreloader';
-    p.innerHTML='<div class="spinner"></div><div class="lbl">Memproses…</div>';
-    document.body.appendChild(p);
-    setTimeout(()=>{ p.classList.add('hidden'); setTimeout(()=>p.remove(),300); }, 6000);
-});
+    setTimeout(function(){ if(ev.defaultPrevented) hideAllPreloaders(); }, 50);
+  });
 
 /* === Soft auto-refresh (tanpa reload page) ===
  * Setiap 25 detik, fetch ulang HTML halaman aktif dan replace bagian ber-attribute [data-live].
