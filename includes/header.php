@@ -38,6 +38,7 @@ if ($u) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/app.css">
 <link rel="stylesheet" href="/assets/css/app-v3.css">
+<link rel="stylesheet" href="/assets/css/preloader.css">
 <style>
 .user-with-avatar{display:inline-flex;align-items:center;gap:.4rem;position:relative;}
 .user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
@@ -81,17 +82,12 @@ if ($u) {
     -webkit-overflow-scrolling: touch;
   }
 }
-/* === Preloader === */
-#appPreloader{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;transition:opacity .25s ease;}
-#appPreloader .spinner{width:54px;height:54px;border:5px solid #e2e8f0;border-top-color:#0ea5e9;border-radius:50%;animation:hfspin 1s linear infinite;}
-#appPreloader .lbl{font-weight:600;color:#0f172a;letter-spacing:.02em;}
-#appPreloader.hidden{opacity:0;pointer-events:none;}
-@keyframes hfspin{to{transform:rotate(360deg);}}
+/* preloader styles dipindahkan ke /assets/css/preloader.css */
 #liveRefreshBadge{position:fixed;right:14px;bottom:78px;z-index:1080;display:none;}
 </style>
 </head>
 <body>
-<!-- Global preloader: TIDAK dirender saat halaman dibuka. Hanya disisipkan via JS saat benar-benar navigasi ke halaman lain (beforeunload). -->
+<!-- Global preloader (splash + overlay) di-handle oleh /assets/js/preloader.js -->
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">

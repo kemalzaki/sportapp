@@ -30,6 +30,7 @@
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script src="/assets/js/firebase-config.js"></script>
 <script type="module" src="/assets/js/fcm.js"></script>
+<script src="/assets/js/preloader.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.modal').forEach(function(m) { document.body.appendChild(m); });
@@ -51,36 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
   }
 
-  // ===== Preloader handling =====
-  // Aturan: preloader HANYA tampil sebentar saat user benar-benar navigasi ke halaman lain.
-  // Saat halaman terbuka / load / BFCache back-forward / pageshow -> selalu disembunyikan,
-  // sehingga TIDAK pernah menghalangi halaman yang sudah aktif.
-  function hideAllPreloaders(){
-    document.querySelectorAll('#appPreloader').forEach(function(el){
-      el.classList.add('hidden');
-      el.style.display='none';
-      if(el.parentNode) el.parentNode.removeChild(el);
-    });
-  }
-  // Bersihkan jika ada sisa (mis. dari back/forward cache yang menyimpan node)
-  hideAllPreloaders();
-  window.addEventListener('pageshow', hideAllPreloaders);
-  window.addEventListener('load', hideAllPreloaders);
-  window.addEventListener('popstate', hideAllPreloaders);
-
-  // Tampilkan preloader HANYA saat benar-benar meninggalkan halaman (navigasi sungguhan).
-  // beforeunload tidak terpicu untuk link target=_blank / download / preventDefault / hash-only.
-  window.addEventListener('beforeunload', function(){
-    if(document.getElementById('appPreloader')) return;
-    var p = document.createElement('div');
-    p.id='appPreloader';
-    p.innerHTML='<div class="spinner"></div><div class="lbl">Memuat…</div>';
-    document.body.appendChild(p);
-  });
-  // pagehide: jika navigasi dibatalkan / kembali via BFCache, pastikan bersih
-  window.addEventListener('pagehide', function(e){
-    if(e.persisted) hideAllPreloaders();
-  });
+  // Preloader global ditangani oleh /assets/js/preloader.js
+  // Pengaman: bersihkan sisa overlay lama (#appPreloader) jika ada cache lama
+  document.querySelectorAll('#appPreloader').forEach(function(el){ el.remove(); });
 
 
 /* === Soft auto-refresh (tanpa reload page) ===

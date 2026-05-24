@@ -1,0 +1,143 @@
+/* ==========================================================================
+   HapFam Global Preloader System
+   Native mobile-app feel: splash, route overlay, button loading, shimmer.
+   ========================================================================== */
+
+:root{
+  --hf-pl-bg: rgba(255,255,255,.78);
+  --hf-pl-bg-solid: #ffffff;
+  --hf-pl-accent: #0ea5e9;
+  --hf-pl-accent-2: #6366f1;
+  --hf-pl-text: #0f172a;
+  --hf-pl-muted: #64748b;
+  --hf-pl-ring: #e2e8f0;
+}
+[data-bs-theme="dark"]{
+  --hf-pl-bg: rgba(15,23,42,.78);
+  --hf-pl-bg-solid: #0f172a;
+  --hf-pl-text: #f1f5f9;
+  --hf-pl-muted: #94a3b8;
+  --hf-pl-ring: #1e293b;
+}
+
+/* ---------- Splash (first load) ---------- */
+#hfSplash{
+  position: fixed; inset: 0; z-index: 100000;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 1.1rem;
+  background: var(--hf-pl-bg-solid);
+  opacity: 1; transition: opacity .45s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+#hfSplash.hf-out{ opacity: 0; pointer-events: none; }
+#hfSplash .hf-splash-logo{
+  width: 78px; height: 78px; border-radius: 22px;
+  background: linear-gradient(135deg, var(--hf-pl-accent), var(--hf-pl-accent-2));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size: 2rem;
+  box-shadow: 0 10px 30px -10px color-mix(in oklab, var(--hf-pl-accent) 50%, transparent);
+  animation: hfPulseScale 1.6s ease-in-out infinite;
+}
+#hfSplash .hf-splash-title{
+  font-weight: 800; letter-spacing:.02em; color: var(--hf-pl-text);
+  font-size: 1.05rem;
+}
+#hfSplash .hf-splash-dots{ display:inline-flex; gap:.4rem; }
+#hfSplash .hf-splash-dots span{
+  width:8px; height:8px; border-radius:50%;
+  background: var(--hf-pl-accent);
+  animation: hfBounce 1s infinite ease-in-out both;
+}
+#hfSplash .hf-splash-dots span:nth-child(1){ animation-delay:-.32s; }
+#hfSplash .hf-splash-dots span:nth-child(2){ animation-delay:-.16s; }
+
+/* ---------- Global Overlay (navigation / fetch / action) ---------- */
+#hfOverlay{
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: .85rem;
+  background: var(--hf-pl-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0; transform: scale(1.01);
+  pointer-events: none;            /* default: tidak menutupi halaman */
+  visibility: hidden;
+  transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
+}
+#hfOverlay.hf-show{
+  opacity: 1; transform: scale(1);
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity .22s ease, transform .22s ease, visibility 0s linear 0s;
+}
+#hfOverlay .hf-spinner{
+  width: 52px; height: 52px; position: relative;
+}
+#hfOverlay .hf-spinner::before,
+#hfOverlay .hf-spinner::after{
+  content:""; position:absolute; inset:0; border-radius:50%;
+  border: 4px solid var(--hf-pl-ring);
+}
+#hfOverlay .hf-spinner::after{
+  border-color: transparent;
+  border-top-color: var(--hf-pl-accent);
+  animation: hfSpin .9s linear infinite;
+}
+#hfOverlay .hf-label{
+  font-weight: 600; color: var(--hf-pl-text);
+  font-size: .9rem; letter-spacing:.01em;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  #hfOverlay, #hfSplash, #hfOverlay .hf-spinner::after,
+  #hfSplash .hf-splash-logo, #hfSplash .hf-splash-dots span{
+    animation: none !important; transition: opacity .15s linear !important;
+  }
+}
+
+/* ---------- Button loading state ---------- */
+.hf-btn-loading{
+  position: relative !important;
+  color: transparent !important;
+  pointer-events: none !important;
+  cursor: progress !important;
+}
+.hf-btn-loading::after{
+  content:""; position:absolute; left:50%; top:50%;
+  width: 1.05em; height: 1.05em; margin:-.525em 0 0 -.525em;
+  border-radius:50%;
+  border: 2px solid rgba(255,255,255,.45);
+  border-top-color:#fff;
+  animation: hfSpin .7s linear infinite;
+}
+.btn-outline-primary.hf-btn-loading::after,
+.btn-outline-secondary.hf-btn-loading::after,
+.btn-light.hf-btn-loading::after,
+.btn-outline-light.hf-btn-loading::after{
+  border-color: rgba(14,165,233,.25);
+  border-top-color: var(--hf-pl-accent);
+}
+
+/* ---------- Shimmer utility ---------- */
+.hf-shimmer{
+  background: linear-gradient(90deg,#eef2f7 0%,#f8fafc 50%,#eef2f7 100%);
+  background-size: 200% 100%;
+  animation: hfShimmer 1.3s linear infinite;
+  border-radius: 8px; min-height: 14px;
+}
+[data-bs-theme="dark"] .hf-shimmer{
+  background: linear-gradient(90deg,#1e293b 0%,#273449 50%,#1e293b 100%);
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes hfSpin       { to { transform: rotate(360deg); } }
+@keyframes hfPulseScale { 0%,100% { transform: scale(1); } 50% { transform: scale(.92); } }
+@keyframes hfBounce     { 0%,80%,100% { transform: scale(.6); opacity:.5; } 40% { transform: scale(1); opacity:1; } }
+@keyframes hfShimmer    { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+/* Mobile tweaks */
+@media (max-width: 520px){
+  #hfOverlay .hf-spinner{ width: 44px; height: 44px; }
+  #hfSplash .hf-splash-logo{ width: 68px; height: 68px; border-radius: 18px; }
+}
