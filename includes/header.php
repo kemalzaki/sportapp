@@ -91,8 +91,7 @@ if ($u) {
 </style>
 </head>
 <body>
-<!-- Global preloader -->
-<div id="appPreloader"><div class="spinner"></div><div class="lbl">Memuat HapFam SportApp…</div></div>
+<!-- Global preloader: TIDAK dirender saat halaman dibuka. Hanya disisipkan via JS saat benar-benar navigasi ke halaman lain (beforeunload). -->
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
