@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </form>
             <?php endif; ?>
           </div>
-          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" data-full="<?= htmlspecialchars($pfDisp) ?>" class="rounded mb-2 zoomable d-block" style="max-height:220px;max-width:100%;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'"><?php endif; ?>
+          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" data-full="<?= htmlspecialchars($pfDisp) ?>" class="rounded mb-2 zoomable d-block" style="max-height:160px;max-width:280px;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'"><?php endif; ?>
           <div class="mb-2"><?= nl2br(render_tags_and_mentions(htmlspecialchars($p['caption'] ?? ''))) ?></div>
           <div class="d-flex flex-wrap gap-2 small">
             <?php if($u): ?>
