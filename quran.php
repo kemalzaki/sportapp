@@ -18,6 +18,13 @@ if ($u) {
 include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-book text-success"></i> Al-Qur'an Digital</h4>
+
+<div class="row g-2 mb-3">
+  <div class="col-md-4"><a href="/quran_search.php?mode=ayat" class="btn btn-outline-success w-100"><i class="bi bi-search"></i> Cari Ayat (Arab)</a></div>
+  <div class="col-md-4"><a href="/quran_search.php?mode=terjemah" class="btn btn-outline-primary w-100"><i class="bi bi-translate"></i> Cari Terjemah (Indonesia)</a></div>
+  <div class="col-md-4"><a href="/quran_kata.php" class="btn btn-outline-warning w-100"><i class="bi bi-hash"></i> Jumlah Kata Arab (Rabb, Malik, Diin…)</a></div>
+</div>
+
 <?php if ($lastRead): ?>
   <div class="alert alert-success py-2 small">
     <i class="bi bi-bookmark-check"></i> Terakhir dibaca:
