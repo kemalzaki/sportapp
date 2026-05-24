@@ -27,6 +27,7 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 }
 
+if (!function_exists('current_user')) {
 function current_user() {
     return $_SESSION['user'] ?? null;
 }
@@ -51,6 +52,9 @@ function csrf_check() {
     }
 }
 
+} // end function_exists guard
+
+if (!function_exists('captcha_new')) {
 /* ---------- Captcha sederhana (math) ---------- */
 function captcha_new(): array {
     $a = random_int(1, 9); $b = random_int(1, 9);
@@ -60,3 +64,4 @@ function captcha_new(): array {
 function captcha_check(string $answer): bool {
     return isset($_SESSION['captcha_answer']) && (int)$answer === (int)$_SESSION['captcha_answer'];
 }
+} // end captcha guard
