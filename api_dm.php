@@ -34,6 +34,19 @@ if (isset($_GET['unread'])) {
     echo json_encode(['unread' => (int)($row['c'] ?? 0)]); exit;
 }
 
+if (isset($_GET['status'])) {
+    $pid = (int)$_GET['status'];
+    if ($pid <= 0) { echo json_encode(['online'=>false]); exit; }
+    $row = db_one("SELECT last_seen, EXTRACT(EPOCH FROM last_seen)::bigint AS ts,
+                          (last_seen IS NOT NULL AND last_seen >= NOW() - INTERVAL '2 minutes') AS online
+                   FROM users WHERE id=$1", [$pid]);
+    echo json_encode([
+      'online'        => !empty($row['online']) && $row['online'] !== 'f' && $row['online'] !== false ? true : false,
+      'last_seen'     => $row['last_seen'] ?? null,
+      'last_seen_ts'  => isset($row['ts']) ? (int)$row['ts'] : null,
+    ]); exit;
+}
+
 if (isset($_GET['threads'])) {
     $rows = db_all("
       SELECT u.id, u.nama, u.foto_url,

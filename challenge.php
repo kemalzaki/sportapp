@@ -50,18 +50,50 @@ include __DIR__.'/includes/header.php';
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <h4 class="mb-3"><i class="bi bi-trophy text-warning"></i> Challenge Islami</h4>
 <div class="row g-3">
-<?php foreach ($challenges as $c):
-  $info = $counts[$c[0]] ?? null; ?>
+<?php
+// === Validasi waktu puasa: disable tombol "catat hari ini" jika belum waktunya ===
+function puasa_schedule_info(string $key): array {
+    // weekday: 1=Sen ... 7=Min (ISO)
+    $w = (int)date('N');
+    // Hijri day (mendekati) untuk Ayyamul Bidh / Asyura / Arafah
+    $h = function_exists('masehi_ke_hijriyah') ? masehi_ke_hijriyah() : ['hari'=>0,'bulan'=>0];
+    $hd = (int)($h['hari'] ?? 0); $hm = (int)($h['bulan'] ?? 0);
+    switch ($key) {
+        case 'puasa_seninkamis':
+            return [in_array($w,[1,4],true), 'Puasa Senin/Kamis hanya bisa dicatat hari Senin atau Kamis.'];
+        case 'puasa_ayyamul_bidh':
+            return [in_array($hd,[13,14,15],true), 'Ayyamul Bidh hanya tanggal 13/14/15 Hijriyah.'];
+        case 'puasa_arafah':
+            return [($hm===12 && $hd===9), 'Puasa Arafah hanya 9 Dzulhijjah.'];
+        case 'puasa_asyura':
+            return [($hm===1 && in_array($hd,[9,10],true)), 'Puasa Asyura hanya 9–10 Muharram.'];
+        case 'puasa_syawal':
+            return [($hm===10 && $hd>=2 && $hd<=30), 'Puasa Syawal hanya di bulan Syawal (selain 1 Syawal).'];
+        case 'puasa_ramadhan':
+            return [($hm===9), 'Puasa Ramadhan hanya di bulan Ramadhan.'];
+    }
+    // Default: jika diawali "puasa_" tapi tidak dikenal, tetap aktif
+    return [true, ''];
+}
+foreach ($challenges as $c):
+  $info = $counts[$c[0]] ?? null;
+  [$bisaCatat, $puasaInfo] = (strpos($c[0],'puasa_')===0) ? puasa_schedule_info($c[0]) : [true,''];
+?>
   <div class="col-md-6 col-lg-4"><div class="card h-100 border-<?= $c[4] ?>"><div class="card-body">
     <div class="d-flex align-items-center gap-2 mb-2"><i class="bi <?= $c[3] ?> fs-3 text-<?= $c[4] ?>"></i>
       <h5 class="m-0"><?= htmlspecialchars($c[1]) ?></h5></div>
     <div class="small text-muted mb-2"><?= htmlspecialchars($c[2]) ?></div>
     <div class="small">Total: <strong><?= $info ? (int)$info['n'] : 0 ?>×</strong>
       <?php if($info): ?> · terakhir <?= htmlspecialchars($info['last']) ?><?php endif; ?></div>
+    <?php if (!$bisaCatat): ?>
+      <div class="alert alert-warning py-1 px-2 small mt-2 mb-0"><i class="bi bi-info-circle"></i> <?= htmlspecialchars($puasaInfo) ?></div>
+    <?php endif; ?>
     <?php if ($u): ?>
     <form method="post" class="mt-2"><input type="hidden" name="csrf" value="<?= csrf_token() ?>">
       <input type="hidden" name="_action" value="log"><input type="hidden" name="key" value="<?= $c[0] ?>">
-      <button class="btn btn-<?= $c[4] ?> btn-sm w-100"><i class="bi bi-check2-circle"></i> Catat hari ini</button>
+      <button class="btn btn-<?= $c[4] ?> btn-sm w-100" <?= $bisaCatat ? '' : 'disabled title="Belum waktunya"' ?>>
+        <i class="bi bi-check2-circle"></i> <?= $bisaCatat ? 'Catat hari ini' : 'Belum waktunya' ?>
+      </button>
     </form>
     <?php endif; ?>
   </div></div></div>

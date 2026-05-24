@@ -39,10 +39,26 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $bukti = null;
         if (!empty($_FILES['bukti']['name']) && is_uploaded_file($_FILES['bukti']['tmp_name'])) {
             $ext = strtolower(pathinfo($_FILES['bukti']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['jpg','jpeg','png','pdf'], true) && $_FILES['bukti']['size'] <= 5*1024*1024) {
-                $name = 'donasi_'.time().'_'.bin2hex(random_bytes(4)).'.'.$ext;
-                if (move_uploaded_file($_FILES['bukti']['tmp_name'], $upDir.'/'.$name)) {
-                    $bukti = '/uploads/donasi/'.$name;
+            // Hanya terima gambar (jpg/jpeg/png/webp), bukan PDF
+            if (in_array($ext, ['jpg','jpeg','png','webp'], true) && $_FILES['bukti']['size'] <= 5*1024*1024) {
+                require_once __DIR__.'/config/imagekit.php';
+                global $imageKit;
+                $safe = 'donasi_'.(int)$u['id'].'_'.time().'_'.bin2hex(random_bytes(3)).'.'.$ext;
+                try {
+                    $up = $imageKit->uploadFile([
+                        'file'     => base64_encode(file_get_contents($_FILES['bukti']['tmp_name'])),
+                        'fileName' => $safe,
+                        'folder'   => '/sportapp/donasi/'.date('Y_m'),
+                    ]);
+                    if (empty($up->error) && !empty($up->result->url)) {
+                        $bukti = $up->result->url;
+                    }
+                } catch (Throwable $e) { /* fallback: simpan lokal */ }
+                if (!$bukti) {
+                    $name = $safe;
+                    if (move_uploaded_file($_FILES['bukti']['tmp_name'], $upDir.'/'.$name)) {
+                        $bukti = '/uploads/donasi/'.$name;
+                    }
                 }
             }
         }
@@ -123,8 +139,8 @@ include __DIR__.'/includes/header.php';
       </select></div>
     <div class="col-md-2"><label class="small">No. Referensi</label>
       <input class="form-control" name="no_ref" maxlength="60" placeholder="opsional"></div>
-    <div class="col-md-6"><label class="small">Bukti Transfer (jpg/png/pdf, maks 5MB)</label>
-      <input class="form-control" type="file" name="bukti" accept="image/*,application/pdf"></div>
+    <div class="col-md-6"><label class="small">Bukti Transfer (gambar JPG/PNG/WEBP, maks 5MB) <span class="text-muted">— diunggah ke ImageKit</span></label>
+      <input class="form-control" type="file" name="bukti" accept="image/jpeg,image/png,image/webp"></div>
     <div class="col-md-6"><label class="small">Catatan / Doa</label>
       <input class="form-control" name="catatan" maxlength="500"></div>
     <div class="col-12"><button class="btn btn-success"><i class="bi bi-send"></i> Kirim Konfirmasi Donasi</button></div>

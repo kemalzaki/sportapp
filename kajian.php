@@ -110,8 +110,7 @@ include __DIR__.'/includes/header.php';
     </select></div>
     <div class="col-md-6"><input class="form-control" name="link_web" maxlength="500" placeholder="Link web (https://...)" value="<?= htmlspecialchars($editRow['link_web'] ?? '') ?>"></div>
     <div class="col-md-6"><input class="form-control" name="link_video" maxlength="255" placeholder="Link video (opsional)" value="<?= htmlspecialchars($editRow['link_video'] ?? '') ?>"></div>
-    <div class="col-md-12"><label class="small">File PDF (maks 15MB) <?= !empty($editRow['pdf_path'])?'<span class="text-success">[sudah ada PDF, biarkan kosong agar tidak diganti]</span>':'' ?></label>
-      <input class="form-control" type="file" name="pdf_file" accept="application/pdf"></div>
+    <?php /* Upload PDF dihilangkan sesuai permintaan. Field link_web tetap tersedia. */ ?>
     <div class="col-12"><textarea class="form-control" name="isi" rows="4" placeholder="Ringkasan / catatan kajian..."><?= htmlspecialchars($editRow['isi'] ?? '') ?></textarea></div>
   </div>
   <div class="mt-2">

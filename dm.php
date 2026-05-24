@@ -78,7 +78,7 @@ include __DIR__.'/includes/header.php';
           <?= user_avatar($peer['foto_url'], $peer['nama'], 32) ?>
           <div class="flex-grow-1">
             <strong><?= htmlspecialchars($peer['nama']) ?></strong>
-            <div class="small text-success" id="peerStatus">online</div>
+            <div class="small text-muted" id="peerStatus"><span class="text-secondary">memuat status…</span></div>
           </div>
         </div>
         <div id="dmBox" style="height:55vh;overflow:auto;padding:1rem;background:var(--bs-tertiary-bg,#f8fafc);"></div>
@@ -155,6 +155,30 @@ include __DIR__.'/includes/header.php';
     }).catch(()=>{});
   }
   poll(); setInterval(poll, 3000);
+
+  // Dinamis: status online peer (sama logikanya seperti index.php: last_seen <= 2 menit)
+  var peerStatusEl = document.getElementById('peerStatus');
+  function fmtAgo(sec){
+    if (sec < 60)  return 'baru saja';
+    if (sec < 3600)return Math.floor(sec/60)+' menit lalu';
+    if (sec < 86400)return Math.floor(sec/3600)+' jam lalu';
+    return Math.floor(sec/86400)+' hari lalu';
+  }
+  function pollStatus(){
+    if (!peerStatusEl) return;
+    fetch('/api_dm.php?status='+peerId).then(r=>r.json()).then(function(d){
+      if (!d) return;
+      if (d.online) {
+        peerStatusEl.innerHTML = '<span class="text-success"><i class="bi bi-circle-fill" style="font-size:.55rem"></i> online</span>';
+      } else if (d.last_seen_ts) {
+        var sec = Math.max(0, Math.floor(Date.now()/1000) - d.last_seen_ts);
+        peerStatusEl.innerHTML = '<span class="text-muted">terakhir aktif '+fmtAgo(sec)+'</span>';
+      } else {
+        peerStatusEl.innerHTML = '<span class="text-muted">offline</span>';
+      }
+    }).catch(()=>{});
+  }
+  pollStatus(); setInterval(pollStatus, 30000);
 
   form.addEventListener('submit', function(e){
     e.preventDefault();
