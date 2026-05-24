@@ -40,6 +40,15 @@ include __DIR__.'/includes/header.php';
 <script>
 var SURAH = <?= json_encode(array_map(function($v){return $v[0];}, $ISLAMI_SURAH), JSON_UNESCAPED_UNICODE) ?>;
 function esc(t){return (t||'').toString().replace(/[<>&]/g, c=>({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c]));}
+function rabbify(t){
+  if(!t) return t;
+  return t.toString()
+    .replace(/\bTuhan\s+Yang\s+Maha\s+Merajai\b/gi, 'Al-Malik (Tuhan Yang Maha Merajai)')
+    .replace(/\bTuhan\s+(?:semesta\s+alam|seluruh\s+alam|sekalian\s+alam)\b/gi, 'Rabb semesta alam')
+    .replace(/\bTuhan(-?ku|-?mu|-?nya)?\b/g, function(m, suf){ return 'Rabb' + (suf||''); })
+    .replace(/tiada\s+Rabb\s+selain/gi, 'tiada Ilah (sesembahan) selain')
+    .replace(/tidak\s+ada\s+Rabb\s+selain/gi, 'tidak ada Ilah (sesembahan) selain');
+}
 function hl(text, q){
   if(!q) return esc(text);
   try {
@@ -79,7 +88,7 @@ document.getElementById('searchForm').addEventListener('submit', async function(
       var name = SURAH[sn] || ('Surah '+sn);
       var arab = h.text || '';
       var tr = '';
-      if (h.translations && h.translations.length) tr = h.translations[0].text || '';
+      if (h.translations && h.translations.length) tr = rabbify(h.translations[0].text || '');
 
       html += '<a href="/quran_surah.php?s='+sn+'#a'+an+'" class="list-group-item list-group-item-action">'+
         '<div class="d-flex justify-content-between"><strong>'+esc(name)+' : '+an+'</strong>'+

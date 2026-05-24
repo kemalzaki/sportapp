@@ -141,9 +141,48 @@ function islami_run_migrations(): void {
             created_at TIMESTAMP NOT NULL DEFAULT now(),
             UNIQUE(user_id, challenge_key, tanggal)
         )",
+        // ====== TAMBAHAN: CRUD Doa Harian pribadi ======
+        "CREATE TABLE IF NOT EXISTS doa_user (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            judul VARCHAR(180) NOT NULL,
+            arab TEXT NOT NULL,
+            terjemah TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT now(),
+            updated_at TIMESTAMP
+        )",
+        // ====== TAMBAHAN: CRUD master Challenge Islami (admin) ======
+        "CREATE TABLE IF NOT EXISTS challenge_master (
+            id SERIAL PRIMARY KEY,
+            kunci VARCHAR(40) NOT NULL UNIQUE,
+            judul VARCHAR(180) NOT NULL,
+            deskripsi TEXT,
+            icon VARCHAR(40) NOT NULL DEFAULT 'bi-trophy',
+            warna VARCHAR(20) NOT NULL DEFAULT 'success',
+            aktif SMALLINT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT now()
+        )",
     ];
     foreach ($sqls as $sql) {
         try { @pg_query(db(), $sql); } catch (Throwable $e) {}
     }
+    // Seed challenge_master dari daftar bawaan, hanya jika kosong
+    try {
+        $n = (int) @pg_fetch_result(@pg_query(db(), "SELECT COUNT(*) FROM challenge_master"), 0, 0);
+        if ($n === 0) {
+            $seed = [
+              ['ayat_harian','1 Hari 1 Ayat','Baca minimal 1 ayat Al-Qur\'an setiap hari.','bi-book','success'],
+              ['subuh_walk','Subuh Walk Challenge','Jalan kaki ≥10 menit setelah sholat Subuh.','bi-sunrise','warning'],
+              ['puasa_seninkamis','Puasa Senin-Kamis','Catat puasa sunnah Senin/Kamis hari ini.','bi-droplet-half','info'],
+              ['dzikir_pagi','Dzikir Pagi','Selesaikan rangkaian dzikir pagi.','bi-brightness-high','primary'],
+              ['dzikir_petang','Dzikir Petang','Selesaikan rangkaian dzikir petang.','bi-moon-stars','dark'],
+            ];
+            foreach ($seed as $s) {
+                @pg_query_params(db(),
+                  "INSERT INTO challenge_master(kunci,judul,deskripsi,icon,warna,aktif) VALUES($1,$2,$3,$4,$5,1) ON CONFLICT (kunci) DO NOTHING",
+                  $s);
+            }
+        }
+    } catch (Throwable $e) {}
 }
 islami_run_migrations();

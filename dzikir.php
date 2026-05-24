@@ -41,8 +41,11 @@ include __DIR__.'/includes/header.php';
 <?php foreach ($list as $d): ?>
   <div class="col-md-6"><div class="card h-100"><div class="card-body">
     <div class="fw-semibold text-warning mb-1"><?= htmlspecialchars($d[0]) ?></div>
-    <div class="text-end fs-5" style="font-family:'Amiri',serif"><?= htmlspecialchars($d[1]) ?></div>
-    <div class="small fst-italic mt-2"><?= htmlspecialchars($d[2]) ?></div>
+    <div class="text-end" dir="rtl" style="font-family:'Amiri','Scheherazade New',serif;font-size:1.45rem;line-height:2.1"><?= htmlspecialchars($d[1]) ?></div>
+    <?php if (!empty($d[3])): ?>
+      <div class="small mt-2"><strong class="text-primary">Latin:</strong> <em><?= htmlspecialchars($d[3]) ?></em></div>
+    <?php endif; ?>
+    <div class="small fst-italic mt-2"><strong>Terjemah / Keterangan:</strong> <?= htmlspecialchars($d[2]) ?></div>
   </div></div></div>
 <?php endforeach; ?>
 </div>

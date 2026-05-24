@@ -99,25 +99,62 @@ $ISLAMI_DOA = [
  ['Doa Sehat & Kekuatan','اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي','Ya Allah, sehatkanlah tubuhku, pendengaranku, dan penglihatanku.'],
 ];
 
-// Dzikir pagi singkat
+// Dzikir pagi — [judul, arab lengkap, terjemah/keterangan, transliterasi latin]
 $ISLAMI_DZIKIR_PAGI = [
- ['Ayat Kursi','اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ...','Dibaca 1x. Penjaga dari gangguan setan hingga petang.'],
- ['Tasbih','سُبْحَانَ اللَّهِ وَبِحَمْدِهِ','100x. Menghapus dosa walau sebanyak buih di lautan.'],
- ['Sayyidul Istighfar','اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ...','1x. Penghulu istighfar di pagi hari.'],
- ['Doa Pagi','أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ','1x. Pengakuan bahwa segala kerajaan milik Allah.'],
- ['Hasbiyallah','حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ','7x. Allah mencukupkan dari urusan dunia & akhirat.'],
- ['Surat Al-Ikhlas, Al-Falaq, An-Nas','3x masing-masing','Melindungi dari segala keburukan.'],
+ ['Ayat Kursi',
+  'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ',
+  'Dibaca 1×. Allah, tidak ada sesembahan yang berhak disembah kecuali Dia, Yang Hidup kekal lagi terus-menerus mengurus makhluk-Nya. Penjaga dari gangguan setan hingga petang.',
+  'Allaahu laa ilaaha illaa huwal hayyul qayyuum, laa ta\'khudzuhuu sinatun wa laa naum, lahuu maa fis-samaawaati wa maa fil-ardh…'],
+ ['Tasbih',
+  'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
+  'Dibaca 100×. "Maha Suci Allah, dan dengan memuji-Nya." Menghapus dosa walau sebanyak buih di lautan.',
+  'Subhaanallaahi wa bihamdih.'],
+ ['Sayyidul Istighfar',
+  'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
+  '1×. "Ya Allah, Engkau Rabb-ku, tiada Ilah yang berhak disembah kecuali Engkau. Engkau yang menciptakanku, aku adalah hamba-Mu…" Penghulu istighfar.',
+  'Allaahumma anta rabbii laa ilaaha illaa anta, khalaqtanii wa anaa \'abduka…'],
+ ['Doa Pagi',
+  'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ',
+  '1×. "Kami berada di waktu pagi dan kerajaan hanya milik Allah, segala puji bagi Allah." Pengakuan kerajaan milik Allah.',
+  'Ashbahnaa wa ashbahal mulku lillaah, walhamdu lillaah…'],
+ ['Hasbiyallah',
+  'حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ',
+  '7×. "Cukuplah Allah bagiku, tidak ada Ilah selain Dia. Kepada-Nya aku bertawakkal dan Dia Rabb \'Arsy yang agung." Mencukupkan urusan dunia & akhirat.',
+  'Hasbiyallaahu laa ilaaha illaa huwa, \'alaihi tawakkaltu wa huwa rabbul \'arsyil \'azhiim.'],
+ ['Mu\'awwidzat (Al-Ikhlas, Al-Falaq, An-Nas)',
+  'قُلْ هُوَ اللَّهُ أَحَدٌ ۚ اللَّهُ الصَّمَدُ ۚ لَمْ يَلِدْ وَلَمْ يُولَدْ ۚ وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ ۞ قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۞ قُلْ أَعُوذُ بِرَبِّ النَّاسِ',
+  '3× masing-masing. Pelindung dari segala keburukan makhluk, sihir, dan bisikan setan.',
+  'Qul huwallaahu ahad… Qul a\'uudzu birabbil-falaq… Qul a\'uudzu birabbinnaas…'],
 ];
 
 // Dzikir petang
 $ISLAMI_DZIKIR_PETANG = [
- ['Ayat Kursi','اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ...','Dibaca 1x setelah Ashar.'],
- ['Doa Petang','أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ','1x. Pengakuan kerajaan milik Allah saat petang.'],
- ['Tasbih','سُبْحَانَ اللَّهِ وَبِحَمْدِهِ','100x. Menghapus dosa.'],
- ['Sayyidul Istighfar','اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ...','1x. Penghulu istighfar.'],
- ['Hasbiyallah','حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ','7x.'],
- ['Mu\'awwidzat','Al-Ikhlas + Al-Falaq + An-Nas','3x masing-masing.'],
+ ['Ayat Kursi',
+  'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ',
+  'Dibaca 1× setelah Ashar. Penjaga dari gangguan setan hingga pagi.',
+  'Allaahu laa ilaaha illaa huwal hayyul qayyuum…'],
+ ['Doa Petang',
+  'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ',
+  '1×. "Kami berada di waktu petang dan kerajaan hanya milik Allah, segala puji bagi Allah."',
+  'Amsainaa wa amsal mulku lillaah, walhamdu lillaah…'],
+ ['Tasbih',
+  'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
+  '100×. Menghapus dosa.',
+  'Subhaanallaahi wa bihamdih.'],
+ ['Sayyidul Istighfar',
+  'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
+  '1×. Penghulu istighfar.',
+  'Allaahumma anta rabbii laa ilaaha illaa anta…'],
+ ['Hasbiyallah',
+  'حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ',
+  '7×. Mencukupkan dari urusan dunia & akhirat.',
+  'Hasbiyallaahu laa ilaaha illaa huwa…'],
+ ['Mu\'awwidzat (Al-Ikhlas, Al-Falaq, An-Nas)',
+  'قُلْ هُوَ اللَّهُ أَحَدٌ ۞ قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۞ قُلْ أَعُوذُ بِرَبِّ النَّاسِ',
+  '3× masing-masing. Pelindung dari segala keburukan.',
+  'Qul huwallaahu ahad… Qul a\'uudzu birabbil-falaq… Qul a\'uudzu birabbinnaas…'],
 ];
+
 
 // Pemilihan harian berdasar tanggal (deterministik biar konsisten sehari)
 function islami_pick_today(array $list, string $salt = '') {

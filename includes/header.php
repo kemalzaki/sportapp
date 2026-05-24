@@ -129,6 +129,7 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>
               <li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li>
+              <li><a class="dropdown-item" href="/admin/challenge.php"><i class="bi bi-trophy text-warning"></i> Kelola Challenge Islami</a></li>
               <li><a class="dropdown-item" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>

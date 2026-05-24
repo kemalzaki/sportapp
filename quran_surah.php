@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_data.php';
 require __DIR__.'/includes/islami_helpers.php';
 require __DIR__.'/includes/asbab_nuzul.php';
+require __DIR__.'/includes/surah_meta.php';
 send_security_headers(); require_login();
 $u = current_user();
 $s = max(1, min(114, (int)($_GET['s'] ?? 1)));
@@ -45,14 +46,18 @@ foreach ($asbabIdx as $ai) $asbabMap[$ai] = asbab_for($s, $ai);
 
 include __DIR__.'/includes/header.php';
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="mb-2">
+  <a href="/quran.php" class="btn btn-sm btn-success"><i class="bi bi-arrow-left"></i> Kembali ke Daftar Surat</a>
+</div>
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="m-0"><i class="bi bi-book text-success"></i> QS <?= htmlspecialchars($info[0]) ?>
     <small class="text-muted">(<?= $info[1] ?> ayat)</small>
+    <?= surah_tempat_badge($s) ?>
   </h4>
   <div>
-    <?php if ($s>1): ?><a href="/quran_surah.php?s=<?= $s-1 ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a><?php endif; ?>
-    <a href="/quran.php" class="btn btn-sm btn-outline-success">Daftar</a>
-    <?php if ($s<114): ?><a href="/quran_surah.php?s=<?= $s+1 ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a><?php endif; ?>
+    <?php if ($s>1): ?><a href="/quran_surah.php?s=<?= $s-1 ?>" class="btn btn-sm btn-outline-secondary" title="Surat sebelumnya"><i class="bi bi-chevron-left"></i></a><?php endif; ?>
+    <a href="/quran.php" class="btn btn-sm btn-outline-success"><i class="bi bi-list-ul"></i> Daftar Surat</a>
+    <?php if ($s<114): ?><a href="/quran_surah.php?s=<?= $s+1 ?>" class="btn btn-sm btn-outline-secondary" title="Surat berikutnya"><i class="bi bi-chevron-right"></i></a><?php endif; ?>
   </div>
 </div>
 
@@ -108,6 +113,22 @@ include __DIR__.'/includes/header.php';
 
   function esc(t){return (t||'').toString().replace(/[<>&]/g, c=>({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c]));}
   function stripTags(t){return (t||'').toString().replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();}
+  // Ganti kata "Tuhan" dengan nama Arabnya (Rabb / Malik / Ilah) sesuai konteks
+  function rabbify(t){
+    if(!t) return t;
+    return t.toString()
+      // "Tuhan Yang Maha Merajai/Raja" -> Malik
+      .replace(/\bTuhan\s+Yang\s+Maha\s+Merajai\b/gi, 'Al-Malik (Tuhan Yang Maha Merajai)')
+      .replace(/\bTuhan\s+(?:semesta\s+alam|seluruh\s+alam|sekalian\s+alam)\b/gi, 'Rabb semesta alam')
+      .replace(/\bTuhan(-?ku|-?mu|-?nya|-?mu sekalian|-?mu semua)?\b/g, function(m, suf){
+        suf = suf || '';
+        // Tuhan-ku -> Rabb-ku, Tuhan -> Rabb (default), tetapi dalam konteks penyembahan -> Ilah
+        return 'Rabb' + suf;
+      })
+      // Variasi "tiada Tuhan selain Allah" -> Ilah
+      .replace(/tiada\s+Rabb\s+selain/gi, 'tiada Ilah (sesembahan) selain')
+      .replace(/tidak\s+ada\s+Rabb\s+selain/gi, 'tidak ada Ilah (sesembahan) selain');
+  }
 
   async function fetchJSON(url){
     try { var r = await fetch(url); if(!r.ok) return null; return await r.json(); } catch(e){ return null; }
@@ -150,6 +171,7 @@ include __DIR__.'/includes/header.php';
           var ww = words[w];
           var ar = ww.text_uthmani || ww.text || '';
           var tr = (ww.translation && ww.translation.text) || (ww.transliteration && ww.transliteration.text) || '';
+          tr = rabbify(tr);
           perKata += '<span class="word-arab" title="'+esc(tr)+'"><span class="ar">'+esc(ar)+'</span><span class="tr">'+esc(tr)+'</span></span>';
         }
         perKata += '</div>';
@@ -169,7 +191,7 @@ include __DIR__.'/includes/header.php';
           '</div>' +
         '</div>' +
         perKata +
-        '<div class="small mt-2"><strong>Terjemah:</strong> '+esc(ay.teksIndonesia)+'</div>' +
+        '<div class="small mt-2"><strong>Terjemah:</strong> '+esc(rabbify(ay.teksIndonesia))+'</div>' +
         '<div class="makna-box"><strong><i class="bi bi-journal-bookmark text-info"></i> Makna Ayat:</strong><div class="mt-1 js-makna">Memuat…</div></div>' +
         '<div class="tafsir-box"><div class="js-tafsir">Klik tombol Tafsir untuk memuat.</div></div>' +
         (hasAsbab ? '<div class="asbab-box"><strong><i class="bi bi-journal-text text-warning"></i> Asbabun Nuzul:</strong><p class="mb-0 mt-1" style="white-space:pre-wrap">'+esc(asbabMap[no])+'</p></div>' : '') +
@@ -209,7 +231,7 @@ include __DIR__.'/includes/header.php';
       var html = '';
       if (d.ibnu_id) {
         html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
-                '<div class="small mt-1" style="white-space:pre-wrap">'+esc(stripTags(d.ibnu_id))+'</div>';
+                '<div class="small mt-1" style="white-space:pre-wrap">'+esc(rabbify(stripTags(d.ibnu_id)))+'</div>';
       } else if (d.ibnu_en) {
         html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (English — terjemahan ID belum tersedia untuk ayat ini)</div>'+
                 '<div class="small mt-1" style="white-space:pre-wrap">'+esc(stripTags(d.ibnu_en))+'</div>';
@@ -230,7 +252,7 @@ include __DIR__.'/includes/header.php';
 
     function renderMakna(d, teksIndonesia){
       // Makna ringkas: prioritas Ibnu Katsir ID -> Kemenag -> Terjemah
-      var src = d.ibnu_id || d.kemenag || teksIndonesia || '';
+      var src = rabbify(d.ibnu_id || d.kemenag || teksIndonesia || '');
       src = stripTags(src);
       if (!src) return '<span class="text-muted">Makna belum tersedia.</span>';
       // Ambil 2-3 kalimat pertama sebagai ringkasan makna
