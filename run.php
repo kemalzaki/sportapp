@@ -37,14 +37,21 @@ include __DIR__.'/includes/header.php';
     <div class="list-group list-group-flush">
       <?php if(!$history): ?><div class="p-3 small text-muted">Belum ada sesi lari.</div><?php endif; ?>
       <?php foreach($history as $h): ?>
-        <div class="list-group-item">
-          <div class="d-flex justify-content-between">
-            <strong><?= round(((float)$h['jarak_m'])/1000, 2) ?> km</strong>
-            <span class="small text-muted"><?= htmlspecialchars(date('d M H:i', strtotime($h['mulai_at']))) ?></span>
-          </div>
-          <div class="small text-muted">
-            Durasi: <?= gmdate('i:s', (int)$h['durasi_dtk']) ?> · Kalori: <?= (int)$h['kalori'] ?> ·
-            <span class="badge bg-<?= $h['status']==='aktif'?'warning':'success' ?>-subtle text-<?= $h['status']==='aktif'?'warning':'success' ?>"><?= htmlspecialchars($h['status']) ?></span>
+        <div class="list-group-item" id="run-row-<?= (int)$h['id'] ?>">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong><?= round(((float)$h['jarak_m'])/1000, 2) ?> km</strong>
+              <div class="small text-muted">
+                Durasi: <?= gmdate('i:s', (int)$h['durasi_dtk']) ?> · Kalori: <?= (int)$h['kalori'] ?> ·
+                <span class="badge bg-<?= $h['status']==='aktif'?'warning':'success' ?>-subtle text-<?= $h['status']==='aktif'?'warning':'success' ?>"><?= htmlspecialchars($h['status']) ?></span>
+              </div>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-1">
+              <span class="small text-muted"><?= htmlspecialchars(date('d M H:i', strtotime($h['mulai_at']))) ?></span>
+              <button type="button" class="btn btn-sm btn-link text-danger p-0 run-del-btn" data-id="<?= (int)$h['id'] ?>" title="Hapus riwayat ini">
+                <i class="bi bi-trash"></i> Hapus
+              </button>
+            </div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -126,5 +133,16 @@ include __DIR__.'/includes/header.php';
     fetch('/api_run.php',{method:'POST',body:fd}).then(()=>location.reload());
   });
 })();
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest('.run-del-btn'); if(!b) return;
+  if (!confirm('Hapus riwayat lari ini? Tindakan tidak dapat dibatalkan.')) return;
+  var id = b.getAttribute('data-id');
+  var fd = new FormData(); fd.append('csrf','<?= csrf_token() ?>'); fd.append('_action','delete'); fd.append('session_id', id);
+  b.disabled = true;
+  fetch('/api_run.php', {method:'POST', body:fd}).then(r=>r.json()).then(function(d){
+    if (d && d.ok) { var row = document.getElementById('run-row-'+id); if (row) row.remove(); }
+    else { alert('Gagal menghapus.'); b.disabled = false; }
+  }).catch(function(){ alert('Gagal menghapus.'); b.disabled = false; });
+});
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

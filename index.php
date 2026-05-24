@@ -385,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ?>
       <div class="story-item position-relative" style="cursor:pointer">
         <div onclick='showStory(<?= json_encode([
+          "id"=>(int)$s["id"],
           "nama"=>$s["nama"],"foto"=>$sFotoDisp,"user_foto"=>$s["user_foto"] ?? "",
           "caption"=>$s["caption"] ?? "","created_at"=>$s["created_at"] ?? "",
         ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
@@ -553,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </form>
             <?php endif; ?>
           </div>
-          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" class="img-fluid rounded mb-2 zoomable" style="max-height:400px;" onerror="this.style.display='none'"><?php endif; ?>
+          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" data-full="<?= htmlspecialchars($pfDisp) ?>" class="rounded mb-2 zoomable d-block" style="max-height:220px;max-width:100%;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'"><?php endif; ?>
           <div class="mb-2"><?= nl2br(render_tags_and_mentions(htmlspecialchars($p['caption'] ?? ''))) ?></div>
           <div class="d-flex flex-wrap gap-2 small">
             <?php if($u): ?>
@@ -776,6 +777,11 @@ document.addEventListener('DOMContentLoaded', function(){
       <img id="storyImg" src="" alt="" class="img-fluid mb-2" style="max-height:60vh;border-radius:8px;display:none;">
       <div id="storyCaption" class="text-start"></div>
       <div class="small text-muted mt-2" id="storyTime"></div>
+      <hr>
+      <div class="text-start">
+        <strong class="small"><i class="bi bi-eye"></i> Dilihat oleh <span id="storyViewCount">0</span></strong>
+        <div id="storyViewers" class="mt-2 small" style="max-height:160px;overflow:auto"></div>
+      </div>
     </div>
   </div>
 </div></div>
@@ -810,7 +816,27 @@ function showStory(d){
   if(d.foto){ img.src=d.foto; img.style.display='block'; } else { img.style.display='none'; }
   document.getElementById('storyCaption').textContent=d.caption||'';
   document.getElementById('storyTime').textContent=d.created_at||'';
+  document.getElementById('storyViewCount').textContent='0';
+  document.getElementById('storyViewers').innerHTML='<span class="text-muted">memuat…</span>';
   _stM.show();
+  if (d.id){
+    var fd=new FormData(); fd.append('post_id', d.id);
+    fetch('/api_story_view.php',{method:'POST',body:fd,credentials:'same-origin'})
+      .then(r=>r.json()).then(function(j){
+        if(!j||!j.ok){ document.getElementById('storyViewers').innerHTML='<span class="text-muted">—</span>'; return; }
+        document.getElementById('storyViewCount').textContent = j.total||0;
+        var html = (j.viewers||[]).map(function(v){
+          var ava = v.foto_url ? '<img src="'+v.foto_url+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:6px">' : '';
+          var t = new Date(v.viewed_at);
+          var hari=['Min','Sen','Sel','Rab','Kam','Jum','Sab'][t.getDay()];
+          return '<div class="d-flex align-items-center justify-content-between border-bottom py-1">'+
+                 '<span>'+ava+'<strong>'+(v.nama||'')+'</strong></span>'+
+                 '<small class="text-muted">'+hari+', '+t.toLocaleDateString('id-ID')+' '+t.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+'</small>'+
+                 '</div>';
+        }).join('');
+        document.getElementById('storyViewers').innerHTML = html || '<span class="text-muted">Belum ada yang melihat.</span>';
+      }).catch(()=>{ document.getElementById('storyViewers').innerHTML='<span class="text-muted">—</span>'; });
+  }
 }
 </script>
 
@@ -851,7 +877,7 @@ function showStory(d){
     } catch(e){}
   }
   let _t = null;
-  function startPoll(){ if (_t) return; poll(); _t = setInterval(poll, 60000); }
+  function startPoll(){ if (_t) return; poll(); _t = setInterval(poll, 15000); }
   document.addEventListener('DOMContentLoaded', () => {
     if ('Notification' in window && Notification.permission === 'granted') startPoll();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js').catch(()=>{});

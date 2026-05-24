@@ -18,6 +18,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     if (mb_strlen($pesan) > 2000) $pesan = mb_substr($pesan, 0, 2000);
     if (!db_one("SELECT id FROM users WHERE id=$1", [$to])) { echo json_encode(['ok'=>false,'err'=>'no_user']); exit; }
     db_exec("INSERT INTO dm_messages(sender_id,receiver_id,pesan) VALUES($1,$2,$3)", [$uid,$to,$pesan]);
+    // Push notification (lewat tabel notifications → di-poll & ditampilkan ServiceWorker spt WhatsApp)
+    $judul = '💬 Pesan baru dari ' . ($u['nama'] ?? 'member');
+    $isi   = mb_substr($pesan, 0, 120);
+    @pg_query_params(db(),
+      "INSERT INTO notifications(user_id, jenis, judul, isi, url) VALUES($1,'dm',$2,$3,$4)",
+      [$to, $judul, $isi, '/dm.php?u='.$uid]);
+    echo json_encode(['ok'=>true]); exit;
+}
+
+// Mark semua pesan masuk ke saya sebagai "delivered" (ceklis 2 abu-abu)
+if (isset($_GET['delivered'])) {
+    db_exec("UPDATE dm_messages SET delivered_at=now() WHERE receiver_id=$1 AND delivered_at IS NULL", [$uid]);
     echo json_encode(['ok'=>true]); exit;
 }
 
@@ -72,14 +84,20 @@ $peer  = (int)($_GET['peer']  ?? 0);
 $since = (int)($_GET['since'] ?? 0);
 if ($peer <= 0) { echo json_encode(['messages'=>[]]); exit; }
 
-$rows = db_all("SELECT id, sender_id, receiver_id, pesan, created_at
+// Tandai pesan masuk dari peer ini: delivered + read
+db_exec("UPDATE dm_messages SET delivered_at=COALESCE(delivered_at, now()), read_at=now()
+         WHERE receiver_id=$1 AND sender_id=$2 AND read_at IS NULL",
+    [$uid, $peer]);
+
+$rows = db_all("SELECT id, sender_id, receiver_id, pesan, created_at, delivered_at, read_at
                 FROM dm_messages
                 WHERE id > $1
                   AND ((sender_id=$2 AND receiver_id=$3) OR (sender_id=$3 AND receiver_id=$2))
                 ORDER BY id ASC LIMIT 200", [$since, $uid, $peer]);
 
-// tandai dibaca pesan yang masuk
-db_exec("UPDATE dm_messages SET read_at=now() WHERE receiver_id=$1 AND sender_id=$2 AND read_at IS NULL",
-    [$uid, $peer]);
+// Update status pesan SAYA yang dikirim ke peer (untuk update ceklis di UI sender)
+$statuses = db_all("SELECT id, delivered_at, read_at FROM dm_messages
+                    WHERE sender_id=$1 AND receiver_id=$2
+                    ORDER BY id DESC LIMIT 80", [$uid, $peer]);
 
-echo json_encode(['messages'=>$rows]);
+echo json_encode(['messages'=>$rows, 'statuses'=>$statuses]);

@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_data.php';
 require __DIR__.'/includes/cities_data.php';
 require __DIR__.'/includes/islami_helpers.php';
+require __DIR__.'/includes/shalat_data.php';
 send_security_headers(); require_login();
 $pageTitle = 'Hub Islami';
 $u = current_user();
@@ -76,6 +77,73 @@ include __DIR__.'/includes/header.php';
 
   <div class="col-md-3"><a href="/donasi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart-fill fs-2 text-danger"></i><div class="fw-semibold mt-1">Donasi Yayasan KRB</div></div></a></div>
   <div class="col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
+</div>
+
+<!-- ====== TATA CARA SHALAT (Bacaan + Latin + Arti) ====== -->
+<div class="card shadow-sm mb-3 border-primary">
+  <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-person-arms-up"></i> <strong>TATA CARA SHALAT</strong> — Urutan, Bacaan Arab, Latin & Terjemah</span>
+    <small class="opacity-75">Panduan ringkas; untuk pendalaman, rujuk kitab fiqih</small>
+  </div>
+  <div class="card-body">
+    <div class="accordion" id="accTataCaraShalat">
+      <?php foreach ($SHALAT_TATA_CARA as $i=>$t): ?>
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="hTC<?= $i ?>">
+          <button class="accordion-button <?= $i>0?'collapsed':'' ?>" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#cTC<?= $i ?>" aria-expanded="<?= $i===0?'true':'false' ?>" aria-controls="cTC<?= $i ?>">
+            <strong><?= htmlspecialchars($t['judul']) ?></strong>
+          </button>
+        </h2>
+        <div id="cTC<?= $i ?>" class="accordion-collapse collapse <?= $i===0?'show':'' ?>"
+             aria-labelledby="hTC<?= $i ?>" data-bs-parent="#accTataCaraShalat">
+          <div class="accordion-body">
+            <div class="mb-2 text-end" dir="rtl" lang="ar" style="font-size:1.5rem;line-height:2.2;font-family:'Scheherazade New','Amiri','Times New Roman',serif;"><?= htmlspecialchars($t['arab']) ?></div>
+            <div class="mb-2"><span class="badge bg-primary-subtle text-primary me-1">Latin</span><em><?= htmlspecialchars($t['latin']) ?></em></div>
+            <div class="small"><span class="badge bg-success-subtle text-success me-1">Arti</span><?= htmlspecialchars($t['arti']) ?></div>
+          </div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SHALAT SUNNAH RAWATIB ====== -->
+<div class="card shadow-sm mb-3 border-warning">
+  <div class="card-header bg-warning-subtle text-warning-emphasis d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-stars"></i> <strong>SHALAT SUNNAH RAWATIB</strong> — Sunnah Mengiringi Shalat Fardhu</span>
+    <small class="opacity-75">Muakkad = sangat ditekankan</small>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Shalat Fardhu</th>
+            <th>Qabliyah (Sebelum)</th>
+            <th>Ba‘diyah (Sesudah)</th>
+            <th>Catatan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($SHALAT_RAWATIB as $r): ?>
+            <tr>
+              <td><strong><?= htmlspecialchars($r['waktu']) ?></strong></td>
+              <td><?= htmlspecialchars($r['qabliyah']) ?></td>
+              <td><?= htmlspecialchars($r['badiyah']) ?></td>
+              <td class="small text-muted"><?= htmlspecialchars($r['catatan']) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <div class="p-3 small text-muted border-top">
+      <strong>Ringkasan rawatib muakkad (12 rakaat sehari):</strong>
+      2 sebelum Subuh · 4 sebelum & 2 sesudah Zhuhur · 2 sesudah Maghrib · 2 sesudah Isya.
+      Nabi ﷺ bersabda: "Barangsiapa shalat 12 rakaat dalam sehari semalam, Allah bangunkan baginya rumah di surga." (HR. Muslim)
+    </div>
+  </div>
 </div>
 
 <!-- ====== RUKUN ISLAM ====== -->

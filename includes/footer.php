@@ -92,6 +92,15 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('form[data-skip-preloader]').forEach(function(f){
     f.addEventListener('submit', function(){ try{ sessionStorage.setItem('skipPreloader','1'); }catch(e){} });
   });
+  // Tampilkan preloader untuk SEMUA form submit (CRUD/login/save) kecuali yang AJAX atau data-skip-preloader.
+  document.addEventListener('submit', function(ev){
+    var f = ev.target;
+    if(!(f instanceof HTMLFormElement)) return;
+    if(f.hasAttribute('data-ajax') || f.hasAttribute('data-skip-preloader')) return;
+    var p = document.createElement('div'); p.id='appPreloader';
+    p.innerHTML='<div class="spinner"></div><div class="lbl">Memproses…</div>';
+    document.body.appendChild(p);
+    setTimeout(()=>{ p.classList.add('hidden'); setTimeout(()=>p.remove(),300); }, 6000);
 });
 
 /* === Soft auto-refresh (tanpa reload page) ===
@@ -143,6 +152,61 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 })();
 </script>
+
+<?php if ($u): ?>
+<script>
+/* ===== Global push notification poll (WhatsApp-like) =====
+ * Aktif di semua halaman selama user login & izin notifikasi diberikan.
+ * Sumber: /api_notif_poll.php (termasuk pesan DM baru, event, badge).
+ */
+(function(){
+  if (!('Notification' in window)) return;
+  function showOne(n){
+    var opt = { body: n.isi || '', icon:'/assets/icon-192.png', badge:'/assets/icon-192.png',
+                tag: 'hapfam-'+n.id, data:{ url: n.url || '/' }, vibrate:[120,60,120] };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then(function(reg){ reg.showNotification(n.judul || 'HapFam', opt); }).catch(function(){});
+    } else {
+      try { new Notification(n.judul || 'HapFam', opt); } catch(e){}
+    }
+  }
+  async function tick(){
+    if (Notification.permission !== 'granted') return;
+    try{
+      var r = await fetch('/api_notif_poll.php', { credentials:'same-origin' });
+      if (!r.ok) return;
+      var d = await r.json();
+      (d.items || []).forEach(showOne);
+    }catch(e){}
+  }
+  // Auto-minta izin pertama kali user klik di mana saja (memenuhi syarat user-gesture browser).
+  document.addEventListener('click', function once(){
+    if (Notification.permission === 'default') {
+      try { Notification.requestPermission(); } catch(e){}
+    }
+    document.removeEventListener('click', once, true);
+  }, true);
+  tick(); setInterval(tick, 15000);
+  // Polling ekstra untuk unread badge DM
+  async function tickDm(){
+    try{
+      var r = await fetch('/api_dm.php?unread=1', { credentials:'same-origin' });
+      if (!r.ok) return;
+      var d = await r.json();
+      var lnk = document.querySelector('a[href="/dm.php"]');
+      if (lnk){
+        var b = lnk.querySelector('.dm-unread-badge');
+        if (d.unread > 0){
+          if (!b){ b=document.createElement('span'); b.className='dm-unread-badge badge rounded-pill bg-danger ms-1'; b.style.fontSize='.65rem'; lnk.appendChild(b); }
+          b.textContent = d.unread;
+        } else if (b){ b.remove(); }
+      }
+    }catch(e){}
+  }
+  tickDm(); setInterval(tickDm, 20000);
+})();
+</script>
+<?php endif; ?>
 
 <!-- Lightbox global untuk foto -->
 <div class="modal fade" id="imgLightbox" tabindex="-1" aria-hidden="true">

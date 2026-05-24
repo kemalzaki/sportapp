@@ -40,6 +40,12 @@ $threads = db_all("
 
 include __DIR__.'/includes/header.php';
 ?>
+<style>
+.dm-ticks{font-weight:700;letter-spacing:-1px;margin-left:4px;}
+.dm-ticks.sent{opacity:.85;}
+.dm-ticks.delivered{opacity:.95;}
+.dm-ticks.read{color:#34b7f1 !important;opacity:1;}
+</style>
 <div class="row g-3">
   <div class="col-md-4">
     <div class="card shadow-sm h-100">
@@ -125,12 +131,39 @@ include __DIR__.'/includes/header.php';
 
   <?php if($peer): ?>
   var peerId = <?= (int)$peer['id'] ?>;
+  var myId   = <?= (int)$u['id'] ?>;
   var lastId = 0;
+  var lastDayKey = '';
   var box = document.getElementById('dmBox');
   var form = document.getElementById('dmForm');
 
   function esc(t){return (t||'').replace(/[<>&]/g, c=>({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c]));}
   function fmtTime(s){ var d=new Date(s); return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
+  function dayKey(s){ var d=new Date(s); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+  function fmtDayLabel(s){
+    var d=new Date(s);
+    var today=new Date(); var yest=new Date(); yest.setDate(today.getDate()-1);
+    var hari=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
+    var bln=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'][d.getMonth()];
+    if (dayKey(s)===dayKey(today)) return 'Hari ini · '+hari+', '+d.getDate()+' '+bln+' '+d.getFullYear();
+    if (dayKey(s)===dayKey(yest))  return 'Kemarin · '+hari+', '+d.getDate()+' '+bln+' '+d.getFullYear();
+    return hari+', '+d.getDate()+' '+bln+' '+d.getFullYear();
+  }
+  function tickHtml(m){
+    if (m.sender_id != myId) return '';
+    if (m.read_at)      return ' <span class="dm-ticks read" title="Dibaca">✓✓</span>';
+    if (m.delivered_at) return ' <span class="dm-ticks delivered" title="Terkirim">✓✓</span>';
+    return ' <span class="dm-ticks sent" title="Dikirim">✓</span>';
+  }
+
+  function appendDaySeparator(s){
+    var k = dayKey(s);
+    if (k === lastDayKey) return;
+    lastDayKey = k;
+    box.insertAdjacentHTML('beforeend',
+      '<div class="text-center my-2"><span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-1 rounded-pill" style="font-size:.72rem">'+
+      esc(fmtDayLabel(s))+'</span></div>');
+  }
 
   function render(rows){
     if (!rows.length) return;
@@ -138,25 +171,42 @@ include __DIR__.'/includes/header.php';
     rows.forEach(function(m){
       if (m.id <= lastId) return;
       lastId = Math.max(lastId, m.id);
-      var mine = m.sender_id == <?= (int)$u['id'] ?>;
-      var html = '<div class="d-flex mb-2 '+(mine?'justify-content-end':'')+'">'+
+      appendDaySeparator(m.created_at);
+      var mine = m.sender_id == myId;
+      var html = '<div class="d-flex mb-2 '+(mine?'justify-content-end':'')+'" id="dm-'+m.id+'">'+
         '<div class="p-2 rounded-3 shadow-sm" style="max-width:75%;background:'+(mine?'#0ea5e9':'#fff')+';color:'+(mine?'#fff':'inherit')+'">'+
         '<div>'+esc(m.pesan)+'</div>'+
-        '<div class="small '+(mine?'text-white-50':'text-muted')+'" style="font-size:.7rem">'+fmtTime(m.created_at)+'</div>'+
+        '<div class="small '+(mine?'text-white-50':'text-muted')+'" style="font-size:.7rem">'+fmtTime(m.created_at)+tickHtml(m)+'</div>'+
         '</div></div>';
       box.insertAdjacentHTML('beforeend', html);
     });
     if (atBottom) box.scrollTop = box.scrollHeight;
   }
 
+  function updateStatuses(statuses){
+    if (!statuses || !statuses.length) return;
+    statuses.forEach(function(s){
+      var el = document.querySelector('#dm-'+s.id+' .dm-ticks');
+      if (!el) return;
+      if (s.read_at){ el.textContent='✓✓'; el.className='dm-ticks read'; el.title='Dibaca'; }
+      else if (s.delivered_at){ el.textContent='✓✓'; el.className='dm-ticks delivered'; el.title='Terkirim'; }
+      else { el.textContent='✓'; el.className='dm-ticks sent'; el.title='Dikirim'; }
+    });
+  }
+
   function poll(){
     fetch('/api_dm.php?peer='+peerId+'&since='+lastId).then(r=>r.json()).then(function(d){
       render(d.messages || []);
+      updateStatuses(d.statuses || []);
     }).catch(()=>{});
   }
   poll(); setInterval(poll, 3000);
 
-  // Dinamis: status online peer (sama logikanya seperti index.php: last_seen <= 2 menit)
+  // Tandai pesan masuk sebagai "delivered" agar sender melihat ceklis 2
+  function pingDelivered(){ fetch('/api_dm.php?delivered=1').catch(()=>{}); }
+  pingDelivered(); setInterval(pingDelivered, 8000);
+
+  // Status online peer
   var peerStatusEl = document.getElementById('peerStatus');
   function fmtAgo(sec){
     if (sec < 60)  return 'baru saja';

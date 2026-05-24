@@ -5,6 +5,7 @@ require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/migrations_v7.php';
 require_once __DIR__ . '/migrations_v8.php';
+require_once __DIR__ . '/migrations_v9.php';
 send_security_headers(); enforce_session_timeout();
 $u = current_user();
 if ($u) touch_online();

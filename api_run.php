@@ -44,4 +44,13 @@ if ($a === 'stop') {
     echo json_encode(['ok'=>true]); exit;
 }
 
+if ($a === 'delete') {
+    $sid = (int)($_POST['session_id'] ?? 0);
+    if ($sid > 0) {
+        db_exec("DELETE FROM run_points WHERE session_id=$1", [$sid]);
+        db_exec("DELETE FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid, $uid]);
+    }
+    echo json_encode(['ok'=>true]); exit;
+}
+
 echo json_encode(['ok'=>false]);
