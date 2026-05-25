@@ -1,0 +1,29 @@
+{
+  "name": "hapfam-sportapp-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor Android wrapper for Happy Family SportApp (PHP backend di Render).",
+  "scripts": {
+    "sync": "cap sync android",
+    "add:android": "cap add android",
+    "open:android": "cap open android",
+    "run:android": "cap run android",
+    "build:apk-debug": "cd android && ./gradlew assembleDebug",
+    "build:apk-release": "cd android && ./gradlew assembleRelease",
+    "build:aab-release": "cd android && ./gradlew bundleRelease",
+    "icons": "cap-assets generate --android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/keyboard": "^6.0.2",
+    "@capacitor/network": "^6.0.2",
+    "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/assets": "^3.0.5"
+  }
+}

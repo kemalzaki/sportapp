@@ -31,6 +31,15 @@
 <script src="/assets/js/firebase-config.js"></script>
 <script type="module" src="/assets/js/fcm.js"></script>
 <script src="/assets/js/preloader.js" defer></script>
+<script src="/assets/js/mobile-shell.js" defer></script>
+<script>
+// Register service worker (PWA) — aman dipanggil berulang
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+  });
+}
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.modal').forEach(function(m) { document.body.appendChild(m); });
