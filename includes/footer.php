@@ -31,6 +31,18 @@
 <script src="/assets/js/firebase-config.js"></script>
 <script type="module" src="/assets/js/fcm.js"></script>
 <script>
+/* Safety: hapus preloader apa pun yang ter-render server-side, segera. */
+(function(){
+  function killPreloader(){
+    document.querySelectorAll('#appPreloader').forEach(function(el){ el.remove(); });
+  }
+  killPreloader();
+  document.addEventListener('DOMContentLoaded', killPreloader);
+  window.addEventListener('load', killPreloader);
+  window.addEventListener('pageshow', killPreloader);
+})();
+</script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.modal').forEach(function(m) { document.body.appendChild(m); });
   document.querySelectorAll('textarea[data-wysiwyg]').forEach(function(ta){
