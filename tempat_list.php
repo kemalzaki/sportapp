@@ -106,7 +106,6 @@ include __DIR__.'/includes/header.php';
           </table>
           <div id="tmCatatan" class="small text-muted" style="white-space:pre-wrap"></div>
           <div class="mt-2 d-flex flex-wrap gap-2">
-            <a id="tmMap" target="_blank" rel="noopener" class="btn btn-sm btn-primary"><i class="bi bi-geo-alt-fill"></i> Lihat Peta</a>
             <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
           </div>
         </div>
@@ -137,8 +136,6 @@ function showTempatDetail(d){
   document.getElementById('tmCatatan').textContent = d.catatan || '';
   const wa = document.getElementById('tmWa');
   if (d.wa_link) { wa.href = d.wa_link; wa.classList.remove('d-none'); } else { wa.classList.add('d-none'); }
-  const mp = document.getElementById('tmMap');
-  if (d.maps) { mp.href = d.maps; mp.classList.remove('d-none'); } else { mp.classList.add('d-none'); }
   _tmM.show();
 }
 </script>

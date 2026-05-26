@@ -6,22 +6,6 @@ require_login();
 header('Content-Type: application/json');
 $u = current_user(); $uid = (int)$u['id'];
 
-// === GET route=ID: ambil titik GPS untuk render polyline di peta ===
-if ($_SERVER['REQUEST_METHOD']==='GET' && isset($_GET['route'])) {
-    $sid = (int)$_GET['route'];
-    $own = db_one("SELECT id, jarak_m, durasi_dtk FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid, $uid]);
-    if (!$own) { echo json_encode(['ok'=>false,'err'=>'not_found']); exit; }
-    $pts = db_all("SELECT lat, lng FROM run_points WHERE session_id=$1 ORDER BY id ASC", [$sid]);
-    $dur = (int)$own['durasi_dtk'];
-    echo json_encode([
-        'ok'=>true,
-        'points'=>$pts,
-        'jarak_km'=>number_format(((float)$own['jarak_m'])/1000, 2),
-        'durasi'=>sprintf('%02d:%02d', floor($dur/60), $dur%60),
-    ]);
-    exit;
-}
-
 if ($_SERVER['REQUEST_METHOD']!=='POST') { echo json_encode(['ok'=>false]); exit; }
 if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? '')) { echo json_encode(['ok'=>false,'err'=>'csrf']); exit; }
 $a = $_POST['_action'] ?? '';

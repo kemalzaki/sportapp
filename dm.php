@@ -46,15 +46,6 @@ include __DIR__.'/includes/header.php';
 .dm-ticks.delivered{opacity:.95;}
 .dm-ticks.read{color:#34b7f1 !important;opacity:1;}
 </style>
-<div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 small">
-  <span><i class="bi bi-shield-exclamation"></i>
-    <strong>Auto-Delete 30 hari:</strong> pesan yang lebih dari <strong>30 hari</strong> akan dihapus otomatis demi privasi.
-    Backup chat-mu dulu sebelum tenggat waktu.
-  </span>
-  <a class="btn btn-sm btn-outline-warning" href="/api_dm.php?backup=1<?= $peerId?'&peer='.(int)$peerId:'' ?>">
-    <i class="bi bi-download"></i> Download Backup<?= $peerId ? ' (chat ini)' : ' (semua)' ?>
-  </a>
-</div>
 <div class="row g-3">
   <div class="col-md-4">
     <div class="card shadow-sm h-100">

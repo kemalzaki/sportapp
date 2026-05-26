@@ -30,16 +30,6 @@
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script src="/assets/js/firebase-config.js"></script>
 <script type="module" src="/assets/js/fcm.js"></script>
-<script src="/assets/js/preloader.js" defer></script>
-<script src="/assets/js/mobile-shell.js" defer></script>
-<script>
-// Register service worker (PWA) — aman dipanggil berulang
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/service-worker.js').catch(function(){});
-  });
-}
-</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.modal').forEach(function(m) { document.body.appendChild(m); });
@@ -61,10 +51,36 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
   }
 
-  // Preloader global ditangani oleh /assets/js/preloader.js
-  // Pengaman: bersihkan sisa overlay lama (#appPreloader) jika ada cache lama
-  document.querySelectorAll('#appPreloader').forEach(function(el){ el.remove(); });
+  // ===== Preloader handling (perbaikan: jangan menghalangi halaman yang sudah terbuka) =====
+  function hideAllPreloaders(){
+    document.querySelectorAll('#appPreloader').forEach(function(el){
+      el.classList.add('hidden');
+      el.style.display='none';
+      setTimeout(()=>{ if(el && el.parentNode) el.remove(); }, 200);
+    });
+  }
+  // Sembunyikan segera saat DOM ready / load / pageshow (termasuk BFCache back/forward)
+  hideAllPreloaders();
+  window.addEventListener('load', hideAllPreloaders);
+  window.addEventListener('pageshow', hideAllPreloaders);
+  window.addEventListener('popstate', hideAllPreloaders);
 
+  // Tampilkan preloader HANYA saat benar-benar meninggalkan halaman (navigasi sungguhan)
+  window.addEventListener('beforeunload', function(){
+    var p = document.getElementById('appPreloader');
+    if(!p){
+      p = document.createElement('div'); p.id='appPreloader';
+      p.innerHTML='<div class="spinner"></div><div class="lbl">Memuat…</div>';
+      document.body.appendChild(p);
+    } else {
+      p.classList.remove('hidden'); p.style.display='';
+    }
+  });
+
+  // Untuk form submit yang dicegah (AJAX/preventDefault), pastikan preloader tidak nyangkut
+  document.addEventListener('submit', function(ev){
+    setTimeout(function(){ if(ev.defaultPrevented) hideAllPreloaders(); }, 50);
+  });
 
 /* === Soft auto-refresh (tanpa reload page) ===
  * Setiap 25 detik, fetch ulang HTML halaman aktif dan replace bagian ber-attribute [data-live].

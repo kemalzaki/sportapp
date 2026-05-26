@@ -2,7 +2,7 @@
 /**
  * Koneksi PostgreSQL native (pg_*) — TANPA PDO.
  */
-require_once __DIR__ . '/../includes/auth.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
 
 $DATABASE_URL = getenv('DATABASE_URL');
 if ($DATABASE_URL) {

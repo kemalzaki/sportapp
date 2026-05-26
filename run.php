@@ -48,14 +48,9 @@ include __DIR__.'/includes/header.php';
             </div>
             <div class="d-flex flex-column align-items-end gap-1">
               <span class="small text-muted"><?= htmlspecialchars(date('d M H:i', strtotime($h['mulai_at']))) ?></span>
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-link text-primary p-0 run-route-btn" data-id="<?= (int)$h['id'] ?>" title="Lihat jalur di peta">
-                  <i class="bi bi-map"></i> Lihat Jalur
-                </button>
-                <button type="button" class="btn btn-sm btn-link text-danger p-0 run-del-btn" data-id="<?= (int)$h['id'] ?>" title="Hapus riwayat ini">
-                  <i class="bi bi-trash"></i> Hapus
-                </button>
-              </div>
+              <button type="button" class="btn btn-sm btn-link text-danger p-0 run-del-btn" data-id="<?= (int)$h['id'] ?>" title="Hapus riwayat ini">
+                <i class="bi bi-trash"></i> Hapus
+              </button>
             </div>
           </div>
         </div>
@@ -149,48 +144,5 @@ document.addEventListener('click', function(ev){
     else { alert('Gagal menghapus.'); b.disabled = false; }
   }).catch(function(){ alert('Gagal menghapus.'); b.disabled = false; });
 });
-
-// === Lihat Jalur (riwayat → polyline di peta) ===
-(function(){
-  var modalEl=null, routeMap=null, routeLine=null;
-  function ensureModal(){
-    if (modalEl) return;
-    var html = '<div class="modal fade" id="runRouteModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">'
-      + '<div class="modal-header"><h6 class="modal-title"><i class="bi bi-map"></i> Jalur Lari</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>'
-      + '<div class="modal-body"><div id="runRouteMap" style="height:60vh;border-radius:8px"></div><div id="runRouteInfo" class="small text-muted mt-2"></div></div>'
-      + '</div></div></div>';
-    document.body.insertAdjacentHTML('beforeend', html);
-    modalEl = new bootstrap.Modal(document.getElementById('runRouteModal'));
-    document.getElementById('runRouteModal').addEventListener('shown.bs.modal', function(){
-      if (routeMap) routeMap.invalidateSize();
-    });
-  }
-  document.addEventListener('click', function(ev){
-    var b = ev.target.closest('.run-route-btn'); if(!b) return;
-    var id = b.getAttribute('data-id');
-    ensureModal();
-    document.getElementById('runRouteInfo').textContent = 'Memuat jalur…';
-    modalEl.show();
-    fetch('/api_run.php?route='+encodeURIComponent(id)).then(r=>r.json()).then(function(d){
-      if (!d || !d.ok) { document.getElementById('runRouteInfo').textContent='Gagal memuat jalur.'; return; }
-      var pts = (d.points||[]).map(function(p){return [parseFloat(p.lat), parseFloat(p.lng)];});
-      var mapEl = document.getElementById('runRouteMap');
-      mapEl.innerHTML='';
-      routeMap = L.map(mapEl).setView(pts[0]||[-6.2,106.816666], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(routeMap);
-      if (!pts.length) {
-        document.getElementById('runRouteInfo').textContent='Tidak ada titik GPS pada sesi ini.';
-        return;
-      }
-      routeLine = L.polyline(pts, {color:'#dc2626', weight:5}).addTo(routeMap);
-      L.marker(pts[0]).bindPopup('Start').addTo(routeMap);
-      L.marker(pts[pts.length-1]).bindPopup('Finish').addTo(routeMap);
-      routeMap.fitBounds(routeLine.getBounds(), {padding:[20,20]});
-      document.getElementById('runRouteInfo').innerHTML =
-        '<strong>'+(d.jarak_km||'0.00')+' km</strong> · Durasi '+(d.durasi||'00:00')+' · '+pts.length+' titik GPS';
-      setTimeout(function(){ routeMap.invalidateSize(); }, 200);
-    }).catch(function(){ document.getElementById('runRouteInfo').textContent='Gagal memuat jalur.'; });
-  });
-})();
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

@@ -21,13 +21,8 @@ if ($u) {
 <html lang="id" data-bs-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#0f172a">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SportApp">
-<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0ea5e9">
 <title><?= htmlspecialchars(($pageTitle ?? 'HapFam SportApp') . ' · HapFam SportApp') ?></title>
 <link rel="manifest" href="/manifest.php">
 <link rel="apple-touch-icon" href="/assets/icon-192.png">
@@ -43,8 +38,6 @@ if ($u) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/app.css">
 <link rel="stylesheet" href="/assets/css/app-v3.css">
-<link rel="stylesheet" href="/assets/css/preloader.css">
-<link rel="stylesheet" href="/assets/css/mobile-shell.css">
 <style>
 .user-with-avatar{display:inline-flex;align-items:center;gap:.4rem;position:relative;}
 .user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
@@ -88,12 +81,18 @@ if ($u) {
     -webkit-overflow-scrolling: touch;
   }
 }
-/* preloader styles dipindahkan ke /assets/css/preloader.css */
+/* === Preloader === */
+#appPreloader{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;transition:opacity .25s ease;}
+#appPreloader .spinner{width:54px;height:54px;border:5px solid #e2e8f0;border-top-color:#0ea5e9;border-radius:50%;animation:hfspin 1s linear infinite;}
+#appPreloader .lbl{font-weight:600;color:#0f172a;letter-spacing:.02em;}
+#appPreloader.hidden{opacity:0;pointer-events:none;}
+@keyframes hfspin{to{transform:rotate(360deg);}}
 #liveRefreshBadge{position:fixed;right:14px;bottom:78px;z-index:1080;display:none;}
 </style>
 </head>
 <body>
-<!-- Global preloader (splash + overlay) di-handle oleh /assets/js/preloader.js -->
+<!-- Global preloader -->
+<div id="appPreloader"><div class="spinner"></div><div class="lbl">Memuat HapFam SportApp…</div></div>
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
