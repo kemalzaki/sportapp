@@ -31,15 +31,113 @@
 <script src="/assets/js/firebase-config.js"></script>
 <script type="module" src="/assets/js/fcm.js"></script>
 <script>
-/* Safety: hapus preloader apa pun yang ter-render server-side, segera. */
+/* Pastikan preloader fullscreen lama tidak pernah tampil. */
 (function(){
-  function killPreloader(){
-    document.querySelectorAll('#appPreloader').forEach(function(el){ el.remove(); });
-  }
+  function killPreloader(){ document.querySelectorAll('#appPreloader').forEach(function(el){ el.remove(); }); }
   killPreloader();
   document.addEventListener('DOMContentLoaded', killPreloader);
   window.addEventListener('load', killPreloader);
   window.addEventListener('pageshow', killPreloader);
+})();
+</script>
+<!-- Top progress preloader (tampil tipis di atas, tidak menutupi konten) -->
+<div id="appTopLoader"></div>
+<div id="appCornerSpinner"></div>
+<script>
+/* ===== Global Top Preloader =====
+ * Tipis di atas layar + spinner kecil di pojok. Tampil di semua halaman saat:
+ *   - navigasi (klik link, back/forward)
+ *   - form submit (CRUD)
+ *   - fetch/XHR berlangsung
+ * Tidak menutupi konten halaman yang sudah terbuka.
+ */
+(function(){
+  var bar = document.getElementById('appTopLoader');
+  var spn = document.getElementById('appCornerSpinner');
+  var pending = 0, timer = null, width = 0;
+  function start(){
+    pending++;
+    if (bar){ bar.classList.add('active'); }
+    if (spn){ spn.classList.add('active'); }
+    if (timer) return;
+    width = 8; if (bar) bar.style.width = width+'%';
+    timer = setInterval(function(){
+      // naik perlahan, tidak pernah mencapai 100% sampai done()
+      var inc = width < 60 ? 4 : (width < 85 ? 1.2 : 0.3);
+      width = Math.min(92, width + inc);
+      if (bar) bar.style.width = width+'%';
+    }, 220);
+  }
+  function done(force){
+    if (!force) pending = Math.max(0, pending - 1);
+    if (pending > 0) return;
+    if (timer){ clearInterval(timer); timer = null; }
+    if (bar){
+      bar.style.width = '100%';
+      setTimeout(function(){
+        bar.classList.remove('active');
+        setTimeout(function(){ bar.style.width='0'; }, 350);
+      }, 180);
+    }
+    if (spn){ spn.classList.remove('active'); }
+  }
+  window.HFLoader = { start: start, done: done, reset: function(){ pending=0; done(true); } };
+
+  // Pastikan sembunyi saat halaman ready / kembali dari BFCache
+  function hideAll(){ window.HFLoader.reset(); }
+  if (document.readyState === 'complete') hideAll();
+  document.addEventListener('DOMContentLoaded', hideAll);
+  window.addEventListener('load', hideAll);
+  window.addEventListener('pageshow', hideAll);
+  window.addEventListener('popstate', function(){ start(); setTimeout(done, 600); });
+
+  // Klik link internal → tampilkan loader (akan otomatis hilang saat halaman baru load)
+  document.addEventListener('click', function(ev){
+    var a = ev.target.closest && ev.target.closest('a');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (!href || href.charAt(0) === '#') return;
+    if (a.target === '_blank' || a.hasAttribute('download')) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button === 1) return;
+    if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+    try {
+      var u = new URL(a.href, location.href);
+      if (u.origin !== location.origin) return;
+    } catch(e){ return; }
+    start();
+  }, true);
+
+  // Form submit (CRUD)
+  document.addEventListener('submit', function(ev){
+    start();
+    setTimeout(function(){ if (ev.defaultPrevented) done(); }, 50);
+  }, true);
+
+  // Saat benar-benar navigasi keluar
+  window.addEventListener('beforeunload', function(){ start(); });
+
+  // Bungkus fetch & XHR agar request AJAX juga menampilkan progress
+  if (window.fetch){
+    var _f = window.fetch;
+    window.fetch = function(){
+      start();
+      var p = _f.apply(this, arguments);
+      p.then(function(){ done(); }, function(){ done(); });
+      return p;
+    };
+  }
+  if (window.XMLHttpRequest){
+    var _open = XMLHttpRequest.prototype.open;
+    var _send = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(){ this.__hfTrack = true; return _open.apply(this, arguments); };
+    XMLHttpRequest.prototype.send = function(){
+      if (this.__hfTrack){
+        start();
+        this.addEventListener('loadend', function(){ done(); });
+      }
+      return _send.apply(this, arguments);
+    };
+  }
 })();
 </script>
 <script>
@@ -63,36 +161,6 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
   }
 
-  // ===== Preloader handling (perbaikan: jangan menghalangi halaman yang sudah terbuka) =====
-  function hideAllPreloaders(){
-    document.querySelectorAll('#appPreloader').forEach(function(el){
-      el.classList.add('hidden');
-      el.style.display='none';
-      setTimeout(()=>{ if(el && el.parentNode) el.remove(); }, 200);
-    });
-  }
-  // Sembunyikan segera saat DOM ready / load / pageshow (termasuk BFCache back/forward)
-  hideAllPreloaders();
-  window.addEventListener('load', hideAllPreloaders);
-  window.addEventListener('pageshow', hideAllPreloaders);
-  window.addEventListener('popstate', hideAllPreloaders);
-
-  // Tampilkan preloader HANYA saat benar-benar meninggalkan halaman (navigasi sungguhan)
-  window.addEventListener('beforeunload', function(){
-    var p = document.getElementById('appPreloader');
-    if(!p){
-      p = document.createElement('div'); p.id='appPreloader';
-      p.innerHTML='<div class="spinner"></div><div class="lbl">Memuat…</div>';
-      document.body.appendChild(p);
-    } else {
-      p.classList.remove('hidden'); p.style.display='';
-    }
-  });
-
-  // Untuk form submit yang dicegah (AJAX/preventDefault), pastikan preloader tidak nyangkut
-  document.addEventListener('submit', function(ev){
-    setTimeout(function(){ if(ev.defaultPrevented) hideAllPreloaders(); }, 50);
-  });
 
 /* === Soft auto-refresh (tanpa reload page) ===
  * Setiap 25 detik, fetch ulang HTML halaman aktif dan replace bagian ber-attribute [data-live].

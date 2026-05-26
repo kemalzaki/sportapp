@@ -81,12 +81,14 @@ if ($u) {
     -webkit-overflow-scrolling: touch;
   }
 }
-/* === Preloader === */
-#appPreloader{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;transition:opacity .25s ease;}
-#appPreloader .spinner{width:54px;height:54px;border:5px solid #e2e8f0;border-top-color:#0ea5e9;border-radius:50%;animation:hfspin 1s linear infinite;}
-#appPreloader .lbl{font-weight:600;color:#0f172a;letter-spacing:.02em;}
-#appPreloader.hidden{opacity:0;pointer-events:none;}
+/* === Preloader (top progress bar, tidak menutupi halaman) === */
+#appTopLoader{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#0ea5e9,#6366f1,#22c55e);z-index:99999;box-shadow:0 0 8px rgba(14,165,233,.6);transition:width .25s ease,opacity .35s ease;opacity:0;pointer-events:none;border-radius:0 2px 2px 0;}
+#appTopLoader.active{opacity:1;}
+#appCornerSpinner{position:fixed;top:10px;right:14px;width:22px;height:22px;border:3px solid rgba(14,165,233,.25);border-top-color:#0ea5e9;border-radius:50%;animation:hfspin .8s linear infinite;z-index:99999;display:none;pointer-events:none;}
+#appCornerSpinner.active{display:block;}
 @keyframes hfspin{to{transform:rotate(360deg);}}
+/* Legacy fullscreen preloader: dimatikan agar tidak menutupi konten */
+#appPreloader{display:none !important;}
 #liveRefreshBadge{position:fixed;right:14px;bottom:78px;z-index:1080;display:none;}
 </style>
 </head>
