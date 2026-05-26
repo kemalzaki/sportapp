@@ -170,14 +170,20 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   const LIVE_INTERVAL = 25000;
   let busy=false;
-  async function softRefresh(){
-    if(busy || document.hidden) return;
+  async function softRefresh(opts){
+    opts = opts || {};
+    if((busy && !opts.force) || (document.hidden && !opts.force)) return;
     busy=true;
     try{
-      const r=await fetch(location.pathname+location.search, {headers:{'X-Soft-Refresh':'1'}, credentials:'same-origin'});
-      if(!r.ok) return;
-      const html=await r.text();
-      const doc=new DOMParser().parseFromString(html,'text/html');
+      let doc;
+      if(opts.html){
+        doc=new DOMParser().parseFromString(opts.html,'text/html');
+      } else {
+        const r=await fetch(location.pathname+location.search, {headers:{'X-Soft-Refresh':'1'}, credentials:'same-origin', cache:'no-store'});
+        if(!r.ok) return;
+        const html=await r.text();
+        doc=new DOMParser().parseFromString(html,'text/html');
+      }
       let changed=false;
       const liveNodes = document.querySelectorAll('[data-live]');
       liveNodes.forEach(node=>{
@@ -187,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
           node.innerHTML=fresh.innerHTML; changed=true;
         }
       });
-      // Fallback: jika halaman tidak punya [data-live], refresh isi <main>
       if(liveNodes.length===0){
         const m1=document.querySelector('main'); const m2=doc.querySelector('main');
         if(m1 && m2 && m1.innerHTML !== m2.innerHTML){ m1.innerHTML=m2.innerHTML; changed=true; }
@@ -202,14 +207,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.querySelector('[data-live]')) setInterval(softRefresh, LIVE_INTERVAL);
   window.softRefresh = softRefresh;
 
-  // Tombol "Refresh" generik: <button data-soft-refresh> → trigger soft refresh tanpa reload
   document.addEventListener('click', function(ev){
     const b=ev.target.closest('[data-soft-refresh]');
     if(!b) return;
     ev.preventDefault();
-    softRefresh();
+    softRefresh({force:true});
   });
 })();
+
 </script>
 
 <?php if ($u): ?>
@@ -361,6 +366,8 @@ document.addEventListener('submit', async function(ev){
   const f = ev.target;
   if(!(f instanceof HTMLFormElement)) return;
   if(!f.hasAttribute('data-ajax')) return;
+  // Hormati onsubmit yang sudah preventDefault (mis. confirm() dibatalkan)
+  if(ev.defaultPrevented) return;
   ev.preventDefault();
   const btn = f.querySelector('button[type=submit],button:not([type])');
   if(btn) btn.disabled = true;
@@ -369,12 +376,19 @@ document.addEventListener('submit', async function(ev){
     const fd = new FormData(f);
     const r = await fetch(f.action || location.pathname+location.search, {
       method: (f.method||'POST').toUpperCase(),
-      body: fd, credentials:'same-origin', headers:{'X-Requested-With':'fetch'}
+      body: fd, credentials:'same-origin',
+      headers:{'X-Requested-With':'fetch','X-Soft-Refresh':'1'},
+      cache:'no-store'
     });
     if(r.ok || r.redirected){
-      if(typeof window.softRefresh==='function') await window.softRefresh();
+      // Reuse body dari response (sudah halaman terbaru setelah redirect) → lebih cepat & pasti up-to-date
+      let html = null;
+      try { html = await r.text(); } catch(_) {}
+      if(typeof window.softRefresh==='function'){
+        await window.softRefresh(html ? {html, force:true} : {force:true});
+      }
       // Bersihkan input teks pesan/komentar
-      f.querySelectorAll('input[name="pesan"],input[name="isi"],textarea[name="caption"]').forEach(i=>{ i.value=''; });
+      f.querySelectorAll('input[name="pesan"],input[name="isi"],textarea[name="caption"],textarea[name="pesan"],textarea[name="isi"]').forEach(i=>{ i.value=''; });
       // Tutup modal bila ada
       const md = f.closest('.modal');
       if(md){ const inst = bootstrap.Modal.getInstance(md); if(inst) inst.hide(); }
@@ -388,6 +402,34 @@ document.addEventListener('submit', async function(ev){
     hideMiniLoader();
   }
 });
+
+/* Auto-tandai semua <form method=post> di dalam region [data-live] sebagai data-ajax,
+ * sehingga aksi CRUD (komentar, hapus, like, chat, dll) langsung me-refresh tanpa reload. */
+(function(){
+  function tag(){
+    document.querySelectorAll('[data-live] form').forEach(function(f){
+      if(f.hasAttribute('data-ajax')) return;
+      if(f.hasAttribute('data-no-ajax')) return;
+      var m = (f.getAttribute('method')||'').toLowerCase();
+      if(m !== 'post') return;
+      // Skip form upload file ke endpoint lain (mis. upload story dgn aksi khusus) jika sudah punya action eksternal beda host
+      f.setAttribute('data-ajax','');
+    });
+  }
+  tag();
+  document.addEventListener('DOMContentLoaded', tag);
+  // Re-tag setelah softRefresh mengganti innerHTML
+  var _origSR = window.softRefresh;
+  if(typeof _origSR === 'function'){
+    window.softRefresh = async function(opts){
+      var r = await _origSR(opts);
+      tag();
+      return r;
+    };
+  }
+})();
+
+
 
 /* ===== Generic tabel pagination + sorting global =====
  * - Pagination: <table data-paginate="N">.
