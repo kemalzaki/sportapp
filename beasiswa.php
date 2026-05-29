@@ -45,10 +45,10 @@ $BEASISWA = [
 
 $filtered = $level==='all' ? $BEASISWA : array_values(array_filter($BEASISWA, fn($x)=>$x['lvl']===$level));
 
-// Berita terkini beasiswa (dari endpoint edukasi)
-$news = ip_fetch_json('https://api-berita-indonesia.vercel.app/cnn/teknologi/', 900); // fallback aman; banyak provider tdk punya kategori "edukasi"
+// Berita terkini beasiswa (filter dari RSS Antara — kategori edukasi/tekno).
+// Catatan: api-berita-indonesia.vercel.app sudah tidak aktif, diganti RSS Antara.
+$posts = ip_fetch_rss('https://www.antaranews.com/rss/tekno', 900);
 $beasiswaNews = [];
-$posts = $news['data']['posts'] ?? [];
 foreach ($posts as $p) {
     $t = mb_strtolower(($p['title'] ?? '').' '.($p['description'] ?? ''));
     if (str_contains($t, 'beasiswa') || str_contains($t, 'scholarship')) $beasiswaNews[] = $p;

@@ -7,27 +7,25 @@ require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Berita Terkini';
 
-// Kategori → endpoint api-berita-indonesia (CNN)
+// Sumber baru: RSS Antara News (gratis, tanpa API key, stabil).
+// Sebelumnya pakai api-berita-indonesia.vercel.app (CNN) yang sudah tidak aktif.
 $KATEGORI = [
-  'politik'   => ['label'=>'Politik',   'icon'=>'bi-bank',     'ep'=>'nasional'],
-  'ekonomi'   => ['label'=>'Ekonomi',   'icon'=>'bi-cash-coin','ep'=>'ekonomi'],
-  'olahraga'  => ['label'=>'Olahraga',  'icon'=>'bi-trophy',   'ep'=>'olahraga'],
-  'teknologi' => ['label'=>'Teknologi', 'icon'=>'bi-cpu',      'ep'=>'teknologi'],
+  'politik'   => ['label'=>'Politik',   'icon'=>'bi-bank',     'rss'=>'https://www.antaranews.com/rss/politik'],
+  'ekonomi'   => ['label'=>'Ekonomi',   'icon'=>'bi-cash-coin','rss'=>'https://www.antaranews.com/rss/ekonomi'],
+  'olahraga'  => ['label'=>'Olahraga',  'icon'=>'bi-trophy',   'rss'=>'https://www.antaranews.com/rss/olahraga'],
+  'teknologi' => ['label'=>'Teknologi', 'icon'=>'bi-cpu',      'rss'=>'https://www.antaranews.com/rss/tekno'],
 ];
 $cat = $_GET['cat'] ?? 'politik';
 if (!isset($KATEGORI[$cat])) $cat = 'politik';
 
-$ep = $KATEGORI[$cat]['ep'];
-$url = "https://api-berita-indonesia.vercel.app/cnn/{$ep}/";
-$data = ip_fetch_json($url, 600);
-$posts = $data['data']['posts'] ?? [];
+$posts = ip_fetch_rss($KATEGORI[$cat]['rss'], 600);
 
 include __DIR__.'/includes/header.php'; ?>
 
 <?php ip_card_open('Berita Terkini', 'bi-newspaper'); ?>
 
 <p class="text-muted small mb-3">
-  Sumber: CNN Indonesia via <code>api-berita-indonesia.vercel.app</code> (gratis, tanpa API key).
+  Sumber: <strong>Antara News</strong> (RSS resmi <code>antaranews.com</code>) — gratis tanpa API key.
   Hasil di-cache 10 menit di server.
 </p>
 
@@ -48,12 +46,13 @@ include __DIR__.'/includes/header.php'; ?>
 <?php else: ?>
   <div class="row g-3">
     <?php foreach(array_slice($posts, 0, 18) as $p):
-      $img = $p['thumbnail'] ?? ($p['image'] ?? '');
+      $img = $p['thumbnail'] ?? '';
       $title = $p['title'] ?? '-';
       $desc  = $p['description'] ?? '';
       $link  = $p['link'] ?? '#';
       $date  = $p['pubDate'] ?? '';
-      $dateTxt = $date ? date('d M Y · H:i', strtotime($date)) : '';
+      $ts = $date ? strtotime($date) : 0;
+      $dateTxt = $ts ? date('d M Y · H:i', $ts) : '';
     ?>
       <div class="col-md-6 col-lg-4">
         <div class="card h-100 shadow-sm">

@@ -10,19 +10,26 @@ $pageTitle = 'Ensiklopedia Hadist';
 
 // =========================================================
 //  Sumber tambahan: API api.hadith.gading.dev (Bukhari & Muslim)
-//  Daftar nomor di bawah dipilih agar relevan dengan tema
-//  "Perjuangan" dan "Olahraga". Hasil di-cache 7 hari ke file.
+//  Daftar nomor di bawah dipilih agar relevan dengan tema.
+//  Tema: Perjuangan, Olahraga, Akhir Zaman, Politik (kepemimpinan),
+//        Ekonomi/Bisnis (jual-beli, riba, harta).
 // =========================================================
 $HADITH_API_MAP = [
   'Sahih Bukhari' => [
     'slug' => 'bukhari',
-    'perjuangan' => [2787,2790,2792,2810,2811,2823,2827,2831,2832,2834,2835,2836,2841,5641,6114,6116,6117,2945,2966,3026],
-    'olahraga'   => [2868,2869,2870,2899,2900,2902,2906,2912,2913,5190,6037,6038,6039,2898,2901],
+    'perjuangan'  => [2787,2790,2792,2810,2811,2823,2827,2831,2832,2834,2835,2836,2841,5641,6114,6116,6117,2945,2966,3026],
+    'olahraga'    => [2868,2869,2870,2899,2900,2902,2906,2912,2913,5190,6037,6038,6039,2898,2901],
+    'akhir_zaman' => [85,1036,3608,6037,6506,7062,7063,7066,7067,7068,7069,7115,7116,7121,7122,7136],
+    'politik'     => [7137,7138,7140,7142,7143,7144,7145,7146,7147,7148,7149,7150,7151,7152,7163,7176],
+    'ekonomi'     => [2068,2079,2082,2083,2086,2087,2088,2110,2114,2125,2138,2145,2146,2236,2240,2266,2079],
   ],
   'Sahih Muslim' => [
     'slug' => 'muslim',
-    'perjuangan' => [1876,1877,1878,1880,1885,1886,1888,1903,1904,1905,1910,1913,2664,2865,1037,1051],
-    'olahraga'   => [1917,1919,1920,1922,1918],
+    'perjuangan'  => [1876,1877,1878,1880,1885,1886,1888,1903,1904,1905,1910,1913,2664,2865,1037,1051],
+    'olahraga'    => [1917,1919,1920,1922,1918],
+    'akhir_zaman' => [2901,2902,2904,2906,2907,2923,2937,2940,2942,2947,2949,2952,2953,157,2880],
+    'politik'     => [1709,1715,1825,1827,1828,1830,1835,1836,1837,1844,1846,1851,1854,1855],
+    'ekonomi'     => [1511,1513,1514,1515,1518,1519,1532,1533,1564,1584,1587,1593,1594,1595,1605],
   ],
 ];
 
@@ -63,6 +70,22 @@ function hadist_fetch_api(string $kitab, string $tema, array $map): array {
     return $out;
 }
 
+$ALL_TEMA = ['perjuangan','olahraga','akhir_zaman','politik','ekonomi'];
+$TEMA_LABEL = [
+  'perjuangan' => 'Perjuangan',
+  'olahraga'   => 'Olahraga',
+  'akhir_zaman'=> 'Akhir Zaman',
+  'politik'    => 'Politik / Kepemimpinan',
+  'ekonomi'    => 'Ekonomi / Bisnis',
+];
+$TEMA_COLOR = [
+  'perjuangan' => 'danger',
+  'olahraga'   => 'primary',
+  'akhir_zaman'=> 'dark',
+  'politik'    => 'warning',
+  'ekonomi'    => 'success',
+];
+
 $tema   = $_GET['tema']  ?? 'semua';
 $kitab  = $_GET['kitab'] ?? 'semua';
 $q      = trim($_GET['q'] ?? '');
@@ -72,7 +95,7 @@ $perPage= 10;
 // Gabungkan dataset lokal + API per kombinasi (kitab, tema)
 $all = $HADITHS;
 $kitabList = ($kitab === 'semua') ? ['Sahih Bukhari','Sahih Muslim'] : [$kitab];
-$temaList  = ($tema  === 'semua') ? ['perjuangan','olahraga']        : [$tema];
+$temaList  = ($tema  === 'semua') ? $ALL_TEMA                         : [$tema];
 foreach ($kitabList as $k) {
     foreach ($temaList as $t) {
         foreach (hadist_fetch_api($k, $t, $HADITH_API_MAP) as $h) $all[] = $h;
@@ -99,7 +122,6 @@ $data = array_values(array_filter($dedup, function($h) use ($tema,$kitab,$q){
     return true;
 }));
 
-// Urutkan: kitab, lalu nomor asc
 usort($data, function($a,$b){
     $c = strcmp($a['kitab'] ?? '', $b['kitab'] ?? '');
     if ($c !== 0) return $c;
@@ -114,13 +136,15 @@ $pageData = array_slice($data, ($page-1)*$perPage, $perPage);
 include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-book-half text-success"></i> Ensiklopedia Hadist</h4>
-<p class="text-muted small">Koleksi hadits dari <strong>Sahih Bukhari</strong> &amp; <strong>Sahih Muslim</strong> bertema <em>Perjuangan</em> dan <em>Olahraga</em>. Sumber: koleksi internal + <code>api.hadith.gading.dev</code>.</p>
+<p class="text-muted small">Koleksi hadits dari <strong>Sahih Bukhari</strong> &amp; <strong>Sahih Muslim</strong> bertema
+<em>Perjuangan</em>, <em>Olahraga</em>, <em>Akhir Zaman</em>, <em>Politik</em>, dan <em>Ekonomi/Bisnis</em>. Sumber: koleksi internal + <code>api.hadith.gading.dev</code>.</p>
 
 <form class="row g-2 mb-3" method="get">
   <div class="col-md-3"><select name="tema" class="form-select" onchange="this.form.submit()">
     <option value="semua" <?= $tema==='semua'?'selected':'' ?>>Semua tema</option>
-    <option value="perjuangan" <?= $tema==='perjuangan'?'selected':'' ?>>Perjuangan</option>
-    <option value="olahraga"   <?= $tema==='olahraga'?'selected':'' ?>>Olahraga</option>
+    <?php foreach ($TEMA_LABEL as $tk=>$tl): ?>
+      <option value="<?= $tk ?>" <?= $tema===$tk?'selected':'' ?>><?= htmlspecialchars($tl) ?></option>
+    <?php endforeach; ?>
   </select></div>
   <div class="col-md-3"><select name="kitab" class="form-select" onchange="this.form.submit()">
     <option value="semua" <?= $kitab==='semua'?'selected':'' ?>>Semua kitab</option>
@@ -134,13 +158,15 @@ include __DIR__.'/includes/header.php';
 <div class="small text-muted mb-2"><?= $total ?> hadits · halaman <?= $page ?> / <?= $totalPages ?></div>
 
 <?php foreach ($pageData as $h):
-  $temaColor = ($h['tema'] ?? '') === 'olahraga' ? 'primary' : 'danger';
+  $tk = $h['tema'] ?? '';
+  $temaColor = $TEMA_COLOR[$tk] ?? 'secondary';
+  $temaLab   = $TEMA_LABEL[$tk] ?? ($tk ?: '-');
   $no = (int)($h['no'] ?? 0); ?>
   <div class="card mb-3 shadow-sm border-start border-4 border-<?= $temaColor ?>">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
         <div>
-          <span class="badge bg-<?= $temaColor ?> text-uppercase me-1"><?= htmlspecialchars($h['tema'] ?? '-') ?></span>
+          <span class="badge bg-<?= $temaColor ?> text-uppercase me-1"><?= htmlspecialchars($temaLab) ?></span>
           <strong><?= htmlspecialchars($h['kitab'] ?? '-') ?></strong>
           <span class="badge bg-dark ms-1">No. <?= $no ?: '—' ?></span>
         </div>

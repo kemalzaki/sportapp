@@ -403,12 +403,23 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
     </div>
     <div class="col-6 col-md-3">
-      <a href="/sejarah_nabi.php" class="text-decoration-none">
+      <a href="/buku.php" class="text-decoration-none">
         <div class="card h-100 shadow-sm border-0">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-book fs-4"></i></div>
-            <div class="fw-semibold">Sejarah Nabi</div>
-            <div class="small text-muted">25 Nabi & Rasul</div>
+            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journals fs-4"></i></div>
+            <div class="fw-semibold">Koleksi Buku Terbaru</div>
+            <div class="small text-muted">Banyak kategori · Toko Bandung</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/kalistenik.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-person-arms-up fs-4"></i></div>
+            <div class="fw-semibold">Paket Bugar Kalistenik</div>
+            <div class="small text-muted">Push-up, pull-up, plank, dll</div>
           </div>
         </div>
       </a>

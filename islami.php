@@ -77,6 +77,7 @@ include __DIR__.'/includes/header.php';
 
   <div class="col-md-3"><a href="/donasi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart-fill fs-2 text-danger"></i><div class="fw-semibold mt-1">Donasi Yayasan KRB</div></div></a></div>
   <div class="col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
+  <div class="col-md-3"><a href="/sejarah_nabi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-warning"></i><div class="fw-semibold mt-1">Sejarah Nabi &amp; Rasul</div><div class="small text-muted">25 Nabi &amp; Rasul</div></div></a></div>
 </div>
 
 <!-- ====== TATA CARA SHALAT (Bacaan + Latin + Arti) ====== -->

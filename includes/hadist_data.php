@@ -98,4 +98,94 @@ $HADITHS = [
     'id'    => 'Tidak boleh ada lomba (berhadiah) kecuali dalam (memanah dengan) anak panah, (berlomba) unta, atau (berlomba) kuda.',
     'perawi'=> 'Abu Hurairah ra.',
   ],
+
+  // ===== AKHIR ZAMAN =====
+  [
+    'kitab' => 'Sahih Bukhari', 'no' => 7121,
+    'tema'  => 'akhir_zaman',
+    'arab'  => 'لَا تَقُومُ السَّاعَةُ حَتَّى يُبْعَثَ دَجَّالُونَ كَذَّابُونَ قَرِيبٌ مِنْ ثَلَاثِينَ، كُلُّهُمْ يَزْعُمُ أَنَّهُ رَسُولُ اللَّهِ',
+    'id'    => 'Tidak akan tegak hari kiamat hingga muncul sekitar tiga puluh dajjal pendusta, masing-masing mengaku sebagai utusan Allah.',
+    'perawi'=> 'Abu Hurairah ra.',
+  ],
+  [
+    'kitab' => 'Sahih Muslim', 'no' => 2937,
+    'tema'  => 'akhir_zaman',
+    'arab'  => 'مَا بَيْنَ خَلْقِ آدَمَ إِلَى قِيَامِ السَّاعَةِ خَلْقٌ أَكْبَرُ مِنَ الدَّجَّالِ',
+    'id'    => 'Tidak ada satu makhluk pun antara penciptaan Adam hingga tegaknya kiamat yang lebih besar (fitnahnya) daripada Dajjal.',
+    'perawi'=> 'Hisyam bin \'Amir ra.',
+  ],
+  [
+    'kitab' => 'Sahih Bukhari', 'no' => 6506,
+    'tema'  => 'akhir_zaman',
+    'arab'  => 'لَا تَقُومُ السَّاعَةُ حَتَّى يَكْثُرَ الْهَرْجُ، قَالُوا: وَمَا الْهَرْجُ يَا رَسُولَ اللَّهِ؟ قَالَ: الْقَتْلُ الْقَتْلُ',
+    'id'    => 'Tidak akan tegak hari kiamat hingga banyak terjadi al-harj. Para sahabat bertanya: Apa al-harj itu wahai Rasulullah? Beliau menjawab: Pembunuhan, pembunuhan.',
+    'perawi'=> 'Abu Hurairah ra.',
+  ],
+  [
+    'kitab' => 'Sahih Muslim', 'no' => 2947,
+    'tema'  => 'akhir_zaman',
+    'arab'  => 'لَا تَقُومُ السَّاعَةُ حَتَّى تَخْرُجَ نَارٌ مِنْ أَرْضِ الْحِجَازِ تُضِيءُ أَعْنَاقَ الْإِبِلِ بِبُصْرَى',
+    'id'    => 'Tidak akan tegak kiamat sampai keluar api dari bumi Hijaz yang menerangi leher-leher unta di Bushra.',
+    'perawi'=> 'Abu Hurairah ra.',
+  ],
+
+  // ===== POLITIK / KEPEMIMPINAN =====
+  [
+    'kitab' => 'Sahih Bukhari', 'no' => 7138,
+    'tema'  => 'politik',
+    'arab'  => 'كُلُّكُمْ رَاعٍ وَكُلُّكُمْ مَسْئُولٌ عَنْ رَعِيَّتِهِ، فَالْإِمَامُ رَاعٍ وَمَسْئُولٌ عَنْ رَعِيَّتِهِ',
+    'id'    => 'Setiap kalian adalah pemimpin dan setiap kalian akan dimintai pertanggungjawaban atas yang dipimpinnya. Seorang imam (pemimpin) adalah pemimpin dan akan dimintai pertanggungjawaban atas rakyatnya.',
+    'perawi'=> 'Abdullah bin Umar ra.',
+  ],
+  [
+    'kitab' => 'Sahih Muslim', 'no' => 1709,
+    'tema'  => 'politik',
+    'arab'  => 'مَنْ خَرَجَ مِنَ الطَّاعَةِ وَفَارَقَ الْجَمَاعَةَ فَمَاتَ، مَاتَ مِيتَةً جَاهِلِيَّةً',
+    'id'    => 'Barang siapa keluar dari ketaatan (kepada pemimpin yang sah) dan memisahkan diri dari jamaah lalu mati, maka ia mati dalam keadaan jahiliyah.',
+    'perawi'=> 'Abu Hurairah ra.',
+  ],
+  [
+    'kitab' => 'Sahih Bukhari', 'no' => 7150,
+    'tema'  => 'politik',
+    'arab'  => 'مَا مِنْ عَبْدٍ يَسْتَرْعِيهِ اللَّهُ رَعِيَّةً يَمُوتُ يَوْمَ يَمُوتُ وَهُوَ غَاشٌّ لِرَعِيَّتِهِ إِلَّا حَرَّمَ اللَّهُ عَلَيْهِ الْجَنَّةَ',
+    'id'    => 'Tidaklah seorang hamba yang Allah berikan amanah memimpin rakyat, ia mati pada hari ia mati dalam keadaan menipu rakyatnya, kecuali Allah haramkan baginya surga.',
+    'perawi'=> 'Ma\'qil bin Yasar ra.',
+  ],
+  [
+    'kitab' => 'Sahih Muslim', 'no' => 1825,
+    'tema'  => 'politik',
+    'arab'  => 'إِنَّا وَاللَّهِ لَا نُوَلِّي عَلَى هَذَا الْعَمَلِ أَحَدًا سَأَلَهُ، وَلَا أَحَدًا حَرَصَ عَلَيْهِ',
+    'id'    => 'Demi Allah, kami tidak akan mengangkat untuk tugas (kepemimpinan) ini orang yang memintanya, dan tidak pula orang yang berambisi terhadapnya.',
+    'perawi'=> 'Abu Musa al-Asy\'ari ra.',
+  ],
+
+  // ===== EKONOMI / BISNIS =====
+  [
+    'kitab' => 'Sahih Bukhari', 'no' => 2079,
+    'tema'  => 'ekonomi',
+    'arab'  => 'الْبَيِّعَانِ بِالْخِيَارِ مَا لَمْ يَتَفَرَّقَا، فَإِنْ صَدَقَا وَبَيَّنَا بُورِكَ لَهُمَا فِي بَيْعِهِمَا، وَإِنْ كَتَمَا وَكَذَبَا مُحِقَتْ بَرَكَةُ بَيْعِهِمَا',
+    'id'    => 'Dua orang yang berjual-beli memiliki hak khiyar (memilih) selama keduanya belum berpisah. Jika keduanya jujur dan menjelaskan (kondisi barang), diberkahi jual-beli mereka. Jika keduanya menyembunyikan dan berdusta, dihapuslah keberkahan jual-beli mereka.',
+    'perawi'=> 'Hakim bin Hizam ra.',
+  ],
+  [
+    'kitab' => 'Sahih Muslim', 'no' => 1532,
+    'tema'  => 'ekonomi',
+    'arab'  => 'مَنْ غَشَّ فَلَيْسَ مِنِّي',
+    'id'    => 'Barang siapa menipu (dalam jual-beli) maka ia bukan termasuk golonganku.',
+    'perawi'=> 'Abu Hurairah ra.',
+  ],
+  [
+    'kitab' => 'Sahih Muslim', 'no' => 1598,
+    'tema'  => 'ekonomi',
+    'arab'  => 'لَعَنَ رَسُولُ اللَّهِ ﷺ آكِلَ الرِّبَا وَمُوكِلَهُ وَكَاتِبَهُ وَشَاهِدَيْهِ، وَقَالَ: هُمْ سَوَاءٌ',
+    'id'    => 'Rasulullah ﷺ melaknat pemakan riba, pemberinya, penulisnya, dan dua orang saksinya. Beliau bersabda: Mereka semuanya sama (dalam dosa).',
+    'perawi'=> 'Jabir bin Abdullah ra.',
+  ],
+  [
+    'kitab' => 'Sahih Bukhari', 'no' => 2068,
+    'tema'  => 'ekonomi',
+    'arab'  => 'التَّاجِرُ الصَّدُوقُ الْأَمِينُ مَعَ النَّبِيِّينَ وَالصِّدِّيقِينَ وَالشُّهَدَاءِ',
+    'id'    => 'Pedagang yang jujur dan terpercaya akan bersama para nabi, shiddiqin, dan syuhada (di akhirat).',
+    'perawi'=> 'Abu Sa\'id al-Khudri ra.',
+  ],
 ];
