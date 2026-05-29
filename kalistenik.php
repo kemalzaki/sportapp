@@ -7,27 +7,136 @@ require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Paket Bugar Kalistenik';
 
-// Katalog gerakan kalistenik
+// Katalog gerakan kalistenik + URL gambar (Wikimedia Commons, gratis & stabil)
+// + langkah detail untuk modal "Lihat Gerakan"
 $GERAKAN = [
-  'push_up'    => ['nama'=>'Push-up',       'icon'=>'bi-arrow-down-up','target'=>'Dada, trisep, bahu','tips'=>'Tubuh lurus dari kepala ke tumit, siku ±45°.'],
-  'pull_up'    => ['nama'=>'Pull-up',       'icon'=>'bi-arrow-up',     'target'=>'Punggung, bisep',    'tips'=>'Gantung penuh, tarik hingga dagu melewati bar.'],
-  'squat'      => ['nama'=>'Squat',         'icon'=>'bi-arrows-vertical','target'=>'Paha, bokong',    'tips'=>'Lutut sejajar ujung kaki, punggung netral.'],
-  'lunge'      => ['nama'=>'Lunge',         'icon'=>'bi-shoe-prints',  'target'=>'Paha, glutes',       'tips'=>'Langkah panjang, lutut depan 90°.'],
-  'plank'      => ['nama'=>'Plank',         'icon'=>'bi-dash-lg',      'target'=>'Core (perut)',       'tips'=>'Tahan posisi lurus, jangan turunkan pinggul.'],
-  'dip'        => ['nama'=>'Dip',           'icon'=>'bi-arrow-down',   'target'=>'Trisep, dada bawah', 'tips'=>'Pakai 2 kursi/bar paralel; turunkan badan terkontrol.'],
-  'burpee'     => ['nama'=>'Burpee',        'icon'=>'bi-lightning',    'target'=>'Full body + kardio', 'tips'=>'Squat → plank → push-up → lompat.'],
-  'mountain'   => ['nama'=>'Mountain Climber','icon'=>'bi-speedometer','target'=>'Core + kardio',     'tips'=>'Posisi plank, lari di tempat dengan lutut ke dada.'],
-  'jumping'    => ['nama'=>'Jumping Jack',  'icon'=>'bi-arrows-fullscreen','target'=>'Pemanasan, kardio','tips'=>'Lompat sambil buka-tutup kaki dan tangan.'],
-  'leg_raise'  => ['nama'=>'Leg Raise',     'icon'=>'bi-arrow-up-short','target'=>'Perut bawah',       'tips'=>'Berbaring, angkat kaki lurus 90°, turunkan perlahan.'],
+  'push_up'    => [
+    'nama'=>'Push-up','icon'=>'bi-arrow-down-up','target'=>'Dada, trisep, bahu',
+    'tips'=>'Tubuh lurus dari kepala ke tumit, siku ±45°.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Push-ups.jpg/640px-Push-ups.jpg',
+    'langkah'=>[
+      'Posisi plank tinggi: tangan selebar bahu, kaki rapat, tubuh lurus.',
+      'Turunkan dada hingga ±5 cm dari lantai, siku ±45° dari tubuh.',
+      'Dorong kembali ke atas dengan kuat tanpa mengunci siku.',
+      'Jaga inti perut & glutes aktif agar pinggul tidak turun.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+push+up+benar',
+  ],
+  'pull_up'    => [
+    'nama'=>'Pull-up','icon'=>'bi-arrow-up','target'=>'Punggung, bisep',
+    'tips'=>'Gantung penuh, tarik hingga dagu melewati bar.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Pull-ups.jpg/640px-Pull-ups.jpg',
+    'langkah'=>[
+      'Gantung pada bar, telapak menghadap ke depan, lebar bahu.',
+      'Tarik bahu ke bawah-belakang, lalu tarik tubuh hingga dagu melewati bar.',
+      'Turunkan secara terkontrol hingga lengan lurus penuh.',
+      'Hindari mengayun; gunakan band elastis jika belum kuat.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+pull+up+pemula',
+  ],
+  'squat'      => [
+    'nama'=>'Squat','icon'=>'bi-arrows-vertical','target'=>'Paha, bokong',
+    'tips'=>'Lutut sejajar ujung kaki, punggung netral.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Bodyweight_squat.jpg/640px-Bodyweight_squat.jpg',
+    'langkah'=>[
+      'Berdiri kaki selebar bahu, ujung kaki sedikit keluar.',
+      'Tekuk lutut & pinggul bersamaan seperti hendak duduk.',
+      'Turun sampai paha sejajar lantai (atau senyaman mungkin).',
+      'Dorong kembali berdiri dengan tumit menapak penuh.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+squat+benar',
+  ],
+  'lunge'      => [
+    'nama'=>'Lunge','icon'=>'bi-shoe-prints','target'=>'Paha, glutes',
+    'tips'=>'Langkah panjang, lutut depan 90°.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Forward-lunge-1.png/640px-Forward-lunge-1.png',
+    'langkah'=>[
+      'Langkahkan satu kaki ke depan cukup panjang.',
+      'Turunkan pinggul sampai kedua lutut ±90°.',
+      'Lutut depan tegak lurus pergelangan kaki, tidak melewati ujung jari.',
+      'Dorong tumit depan untuk kembali berdiri. Ulangi sisi lain.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+lunge+benar',
+  ],
+  'plank'      => [
+    'nama'=>'Plank','icon'=>'bi-dash-lg','target'=>'Core (perut)',
+    'tips'=>'Tahan posisi lurus, jangan turunkan pinggul.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Plank.jpg/640px-Plank.jpg',
+    'langkah'=>[
+      'Tumpuan siku tepat di bawah bahu, lengan bawah menempel matras.',
+      'Tubuh lurus satu garis dari kepala–pinggul–tumit.',
+      'Kencangkan perut & glutes, tarik pusar ke arah tulang belakang.',
+      'Tahan sambil bernapas normal. Hindari pinggul turun atau naik.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+plank+benar',
+  ],
+  'dip'        => [
+    'nama'=>'Dip','icon'=>'bi-arrow-down','target'=>'Trisep, dada bawah',
+    'tips'=>'Pakai 2 kursi/bar paralel; turunkan badan terkontrol.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Bench_dips.jpg/640px-Bench_dips.jpg',
+    'langkah'=>[
+      'Letakkan tangan di tepi kursi/bench di belakang Anda.',
+      'Luruskan lengan, kaki ditekuk (atau lurus untuk versi sulit).',
+      'Tekuk siku ke belakang sampai ±90°, jangan turun terlalu dalam.',
+      'Dorong kembali ke atas tanpa mengunci siku.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+tricep+dip',
+  ],
+  'burpee'     => [
+    'nama'=>'Burpee','icon'=>'bi-lightning','target'=>'Full body + kardio',
+    'tips'=>'Squat → plank → push-up → lompat.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Burpee.gif/320px-Burpee.gif',
+    'langkah'=>[
+      'Berdiri tegak, turun ke posisi squat dan letakkan tangan di lantai.',
+      'Lompat kedua kaki ke belakang menjadi posisi plank.',
+      'Lakukan satu push-up (opsional untuk pemula).',
+      'Lompat kedua kaki kembali ke tangan, lalu lompat ke atas dengan tangan terangkat.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+burpee+benar',
+  ],
+  'mountain'   => [
+    'nama'=>'Mountain Climber','icon'=>'bi-speedometer','target'=>'Core + kardio',
+    'tips'=>'Posisi plank, lari di tempat dengan lutut ke dada.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Mountain-climber-1.png/640px-Mountain-climber-1.png',
+    'langkah'=>[
+      'Mulai dari posisi plank tinggi dengan tubuh lurus.',
+      'Tarik lutut kanan ke arah dada dengan cepat, lalu kembalikan.',
+      'Bergantian dengan lutut kiri seperti berlari di tempat.',
+      'Jaga pinggul tetap rendah dan inti aktif.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+mountain+climber',
+  ],
+  'jumping'    => [
+    'nama'=>'Jumping Jack','icon'=>'bi-arrows-fullscreen','target'=>'Pemanasan, kardio',
+    'tips'=>'Lompat sambil buka-tutup kaki dan tangan.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Jumping-jack-1.png/640px-Jumping-jack-1.png',
+    'langkah'=>[
+      'Berdiri tegak, tangan di samping, kaki rapat.',
+      'Lompat sambil membuka kaki selebar bahu dan angkat tangan ke atas.',
+      'Lompat kembali ke posisi awal.',
+      'Lakukan dengan irama stabil, mendarat dengan lembut.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+jumping+jack',
+  ],
+  'leg_raise'  => [
+    'nama'=>'Leg Raise','icon'=>'bi-arrow-up-short','target'=>'Perut bawah',
+    'tips'=>'Berbaring, angkat kaki lurus 90°, turunkan perlahan.',
+    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Lying-leg-raise-1.png/640px-Lying-leg-raise-1.png',
+    'langkah'=>[
+      'Berbaring telentang, kaki lurus, tangan di samping atau di bawah pinggul.',
+      'Angkat kedua kaki lurus hingga 90° terhadap lantai.',
+      'Turunkan perlahan tanpa menyentuh lantai (jaga tegangan perut).',
+      'Hindari mengangkat punggung bawah; kencangkan inti.',
+    ],
+    'yt'=>'https://www.youtube.com/results?search_query=cara+leg+raise',
+  ],
 ];
 
 // Paket per level
 $PAKET = [
   'pemula' => [
-    'label' => 'Pemula',
-    'durasi'=> '20 menit · 3x / minggu',
-    'desc'  => 'Cocok untuk yang baru mulai berolahraga atau setelah lama vakum.',
-    'badge' => 'success',
+    'label' => 'Pemula','durasi'=> '20 menit · 3x / minggu',
+    'desc'  => 'Cocok untuk yang baru mulai berolahraga atau setelah lama vakum.','badge' => 'success',
     'sesi'  => [
       ['gerakan'=>'jumping',  'set'=>2, 'rep'=>'30 detik',     'rest'=>'30 detik'],
       ['gerakan'=>'squat',    'set'=>3, 'rep'=>'10 reps',      'rest'=>'45 detik'],
@@ -37,10 +146,8 @@ $PAKET = [
     ],
   ],
   'menengah' => [
-    'label' => 'Menengah',
-    'durasi'=> '30 menit · 4x / minggu',
-    'desc'  => 'Sudah terbiasa olahraga ringan; siap meningkatkan volume dan intensitas.',
-    'badge' => 'warning',
+    'label' => 'Menengah','durasi'=> '30 menit · 4x / minggu',
+    'desc'  => 'Sudah terbiasa olahraga ringan; siap meningkatkan volume dan intensitas.','badge' => 'warning',
     'sesi'  => [
       ['gerakan'=>'jumping',  'set'=>2, 'rep'=>'45 detik',     'rest'=>'20 detik'],
       ['gerakan'=>'push_up',  'set'=>4, 'rep'=>'12 reps',      'rest'=>'45 detik'],
@@ -52,10 +159,8 @@ $PAKET = [
     ],
   ],
   'lanjutan' => [
-    'label' => 'Lanjutan',
-    'durasi'=> '45 menit · 5x / minggu',
-    'desc'  => 'Untuk yang sudah rutin berlatih dan ingin mengejar kekuatan + daya tahan.',
-    'badge' => 'danger',
+    'label' => 'Lanjutan','durasi'=> '45 menit · 5x / minggu',
+    'desc'  => 'Untuk yang sudah rutin berlatih dan ingin mengejar kekuatan + daya tahan.','badge' => 'danger',
     'sesi'  => [
       ['gerakan'=>'burpee',   'set'=>3, 'rep'=>'15 reps',      'rest'=>'60 detik'],
       ['gerakan'=>'pull_up',  'set'=>4, 'rep'=>'6–8 reps',     'rest'=>'90 detik'],
@@ -74,6 +179,15 @@ if (!isset($PAKET[$level])) $level = 'pemula';
 $cur = $PAKET[$level];
 
 include __DIR__.'/includes/header.php'; ?>
+
+<link rel="stylesheet" href="assets/css/sport-islami.css">
+
+<div class="hero-sport-islami mb-3" style="background-image:linear-gradient(135deg, rgba(15,98,72,.88), rgba(7,59,76,.88)), url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&q=70');">
+  <div class="hero-overlay">
+    <h1 class="h4 mb-1"><i class="bi bi-person-arms-up"></i> Paket Bugar Kalistenik</h1>
+    <p class="small mb-0 opacity-85">Latihan beban tubuh sendiri — sehat lahir, kuat batin.</p>
+  </div>
+</div>
 
 <?php ip_card_open('Paket Bugar Kalistenik', 'bi-person-arms-up'); ?>
 
@@ -103,12 +217,13 @@ include __DIR__.'/includes/header.php'; ?>
       <table class="table table-sm align-middle">
         <thead class="table-light">
           <tr>
-            <th>#</th><th>Gerakan</th><th>Target</th><th>Set</th><th>Repetisi/Durasi</th><th>Istirahat</th>
+            <th>#</th><th>Gerakan</th><th>Target</th><th>Set</th><th>Repetisi/Durasi</th><th>Istirahat</th><th></th>
           </tr>
         </thead>
         <tbody>
         <?php foreach($cur['sesi'] as $i=>$s):
-          $g = $GERAKAN[$s['gerakan']] ?? ['nama'=>$s['gerakan'],'icon'=>'bi-dash','target'=>'-','tips'=>''];
+          $gk = $s['gerakan'];
+          $g = $GERAKAN[$gk] ?? ['nama'=>$gk,'icon'=>'bi-dash','target'=>'-','tips'=>'','img'=>'','langkah'=>[],'yt'=>''];
         ?>
           <tr>
             <td><?= $i+1 ?></td>
@@ -117,6 +232,11 @@ include __DIR__.'/includes/header.php'; ?>
             <td><?= (int)$s['set'] ?></td>
             <td><?= htmlspecialchars($s['rep']) ?></td>
             <td class="text-muted"><?= htmlspecialchars($s['rest']) ?></td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-<?= $cur['badge'] ?> btn-lihat-gerakan" data-key="<?= htmlspecialchars($gk) ?>">
+                <i class="bi bi-eye"></i> Lihat Gerakan
+              </button>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -125,17 +245,27 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </div>
 
-<!-- Panduan tiap gerakan -->
+<!-- Panduan tiap gerakan (kartu dengan gambar) -->
 <div class="card shadow-sm mb-3">
   <div class="card-header"><i class="bi bi-info-circle text-primary"></i> <strong>Panduan Gerakan</strong></div>
   <div class="card-body">
     <div class="row g-3">
-      <?php foreach($GERAKAN as $g): ?>
+      <?php foreach($GERAKAN as $key=>$g): ?>
         <div class="col-md-6 col-lg-4">
-          <div class="border rounded p-3 h-100">
-            <div class="fw-semibold mb-1"><i class="bi <?= $g['icon'] ?> text-primary"></i> <?= htmlspecialchars($g['nama']) ?></div>
-            <div class="small text-muted mb-1"><i class="bi bi-bullseye"></i> <?= htmlspecialchars($g['target']) ?></div>
-            <div class="small"><?= htmlspecialchars($g['tips']) ?></div>
+          <div class="border rounded h-100 overflow-hidden gerakan-card">
+            <?php if (!empty($g['img'])): ?>
+              <img src="<?= htmlspecialchars($g['img']) ?>" alt="<?= htmlspecialchars($g['nama']) ?>" loading="lazy"
+                   class="w-100" style="height:160px;object-fit:cover;background:#f4f4f4;"
+                   onerror="this.style.display='none'">
+            <?php endif; ?>
+            <div class="p-3">
+              <div class="fw-semibold mb-1"><i class="bi <?= $g['icon'] ?> text-primary"></i> <?= htmlspecialchars($g['nama']) ?></div>
+              <div class="small text-muted mb-1"><i class="bi bi-bullseye"></i> <?= htmlspecialchars($g['target']) ?></div>
+              <div class="small mb-2"><?= htmlspecialchars($g['tips']) ?></div>
+              <button type="button" class="btn btn-sm btn-primary btn-lihat-gerakan" data-key="<?= htmlspecialchars($key) ?>">
+                <i class="bi bi-play-circle"></i> Lihat Gerakan
+              </button>
+            </div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -148,6 +278,59 @@ include __DIR__.'/includes/header.php'; ?>
   <strong>Tips:</strong> minum air cukup, jaga form di atas jumlah repetisi, dan istirahat 1 hari penuh tiap minggu untuk pemulihan otot.
   Hentikan latihan jika terasa nyeri tajam — konsultasikan ke dokter bila ragu.
 </div>
+
+<!-- Modal "Lihat Gerakan" -->
+<div class="modal fade" id="modalGerakan" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mgTitle"><i class="bi bi-person-arms-up"></i> Gerakan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <img id="mgImg" src="" alt="" class="img-fluid rounded mb-3 d-none" style="width:100%;max-height:360px;object-fit:cover;background:#f4f4f4;">
+        <div class="mb-2"><span class="badge bg-primary-subtle text-primary"><i class="bi bi-bullseye"></i> Target: <span id="mgTarget">-</span></span></div>
+        <h6 class="mt-3">Langkah-langkah:</h6>
+        <ol id="mgLangkah" class="ps-3"></ol>
+        <div class="alert alert-warning small mb-0">
+          <i class="bi bi-shield-exclamation"></i>
+          <strong>Tips form:</strong> <span id="mgTips">-</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="mgYT" href="#" target="_blank" rel="noopener" class="btn btn-outline-danger">
+          <i class="bi bi-youtube"></i> Cari Video Tutorial
+        </a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.__GERAKAN__ = <?= json_encode($GERAKAN, JSON_UNESCAPED_UNICODE) ?>;
+(function(){
+  const el = document.getElementById('modalGerakan');
+  if (!el || typeof bootstrap === 'undefined') return;
+  const modal = new bootstrap.Modal(el);
+  document.querySelectorAll('.btn-lihat-gerakan').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const key = this.getAttribute('data-key');
+      const g = window.__GERAKAN__[key];
+      if (!g) return;
+      document.getElementById('mgTitle').innerHTML = '<i class="bi '+(g.icon||'bi-person-arms-up')+'"></i> '+ g.nama;
+      document.getElementById('mgTarget').textContent = g.target || '-';
+      document.getElementById('mgTips').textContent   = g.tips   || '-';
+      const ol = document.getElementById('mgLangkah'); ol.innerHTML='';
+      (g.langkah||[]).forEach(s=>{ const li=document.createElement('li'); li.textContent=s; ol.appendChild(li); });
+      const img = document.getElementById('mgImg');
+      if (g.img) { img.src=g.img; img.classList.remove('d-none'); } else { img.classList.add('d-none'); img.src=''; }
+      document.getElementById('mgYT').href = g.yt || '#';
+      modal.show();
+    });
+  });
+})();
+</script>
 
 <?php include __DIR__.'/includes/bottom_nav.php'; ?>
 <?php include __DIR__.'/includes/footer.php'; ?>
