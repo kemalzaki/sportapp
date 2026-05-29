@@ -117,9 +117,16 @@ if (!function_exists('ip_fetch_rss')) {
 
 if (!function_exists('ip_card_open')) {
     function ip_card_open(string $title, string $icon = 'bi-newspaper', string $back = '/index.php'): void {
+        echo '<div class="ip-card mb-4">';
         echo '<div class="d-flex align-items-center justify-content-between mb-3">';
         echo '<h1 class="h4 mb-0"><i class="bi '.htmlspecialchars($icon).' text-primary"></i> '.htmlspecialchars($title).'</h1>';
         echo '<a href="'.htmlspecialchars($back).'" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Beranda</a>';
+        echo '</div>';
+    }
+}
+
+if (!function_exists('ip_card_close')) {
+    function ip_card_close(): void {
         echo '</div>';
     }
 }

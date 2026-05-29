@@ -5,59 +5,53 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
-$pageTitle = 'Koleksi Buku Terbaru';
+$pageTitle = 'Koleksi Buku Terbaru (Indonesia)';
 
 /**
- * REVISI: pindah dari Google Books API (sering rate-limit / kosong dari server
- * tanpa API key) ke OpenLibrary API yang gratis & stabil.
- *  - Endpoint: https://openlibrary.org/subjects/<subject>.json?limit=24&published_in=YYYY-YYYY
- *  - Cover:    https://covers.openlibrary.org/b/id/<cover_id>-M.jpg
+ * REVISI: hanya menampilkan buku berbahasa Indonesia.
+ * Sumber: OpenLibrary search.json dengan filter language=ind.
+ *  - Endpoint: https://openlibrary.org/search.json?subject=<sub>&language=ind&limit=24&sort=new
+ *  - Cover:    https://covers.openlibrary.org/b/id/<cover_i>-M.jpg
  */
-$thnAkhir  = (int)date('Y');
-$thnAwal   = $thnAkhir - 5;
-$range     = $thnAwal.'-'.$thnAkhir;
-
 $KATEGORI = [
-  'baru'      => ['label'=>'Terbaru',          'icon'=>'bi-stars',          'subject'=>'fiction'],
+  'baru'      => ['label'=>'Terbaru',          'icon'=>'bi-stars',          'subject'=>'indonesian'],
   'islami'    => ['label'=>'Islami',           'icon'=>'bi-book-half',      'subject'=>'islam'],
   'bisnis'    => ['label'=>'Bisnis & Ekonomi', 'icon'=>'bi-graph-up-arrow', 'subject'=>'business'],
   'teknologi' => ['label'=>'Teknologi',        'icon'=>'bi-cpu',            'subject'=>'technology'],
   'kesehatan' => ['label'=>'Kesehatan',        'icon'=>'bi-heart-pulse',    'subject'=>'health'],
   'anak'      => ['label'=>'Anak',             'icon'=>'bi-emoji-smile',    'subject'=>'juvenile_fiction'],
   'sejarah'   => ['label'=>'Sejarah',          'icon'=>'bi-hourglass-split','subject'=>'history'],
-  'sastra'    => ['label'=>'Sastra & Novel',   'icon'=>'bi-feather',        'subject'=>'novel'],
+  'sastra'    => ['label'=>'Sastra & Novel',   'icon'=>'bi-feather',        'subject'=>'indonesian fiction'],
 ];
 $cat = $_GET['cat'] ?? 'baru';
 if (!isset($KATEGORI[$cat])) $cat = 'baru';
 $subject = $KATEGORI[$cat]['subject'];
 
-// 1) Coba endpoint subject dengan filter tahun
-$url1 = 'https://openlibrary.org/subjects/'.rawurlencode($subject).'.json?limit=24&published_in='.$range;
-$data = ip_fetch_json($url1, 1800);
-$items = $data['works'] ?? [];
+// Hanya buku berbahasa Indonesia (language=ind = ISO 639-2 untuk Bahasa Indonesia).
+$base = 'https://openlibrary.org/search.json?language=ind&limit=24&sort=new&subject='.rawurlencode($subject);
+$data = ip_fetch_json($base, 1800);
+$docs = $data['docs'] ?? [];
 
-// 2) Fallback: tanpa filter tahun
-if (!$items) {
-  $url2 = 'https://openlibrary.org/subjects/'.rawurlencode($subject).'.json?limit=24';
-  $data = ip_fetch_json($url2, 1800);
-  $items = $data['works'] ?? [];
+// Fallback jika subject terlalu sempit: cari tanpa subject, hanya language=ind
+if (!$docs) {
+  $base2 = 'https://openlibrary.org/search.json?language=ind&limit=24&sort=new&q='.rawurlencode($KATEGORI[$cat]['label']);
+  $data = ip_fetch_json($base2, 1800);
+  $docs = $data['docs'] ?? [];
 }
 
-// 3) Fallback terakhir: search.json
-if (!$items) {
-  $url3 = 'https://openlibrary.org/search.json?subject='.rawurlencode($subject).'&limit=24&sort=new';
-  $data = ip_fetch_json($url3, 1800);
-  $docs = $data['docs'] ?? [];
-  foreach ($docs as $d) {
-    $items[] = [
-      'title'        => $d['title'] ?? '-',
-      'authors'      => array_map(fn($n)=>['name'=>$n], $d['author_name'] ?? []),
-      'cover_id'     => $d['cover_i'] ?? null,
-      'key'          => $d['key'] ?? '',
-      'first_publish_year' => $d['first_publish_year'] ?? '',
-      'subject'      => $d['subject'] ?? [],
-    ];
-  }
+$items = [];
+foreach ($docs as $d) {
+  // Pastikan benar-benar berbahasa Indonesia
+  $langs = $d['language'] ?? [];
+  if (is_array($langs) && $langs && !in_array('ind', $langs, true)) continue;
+  $items[] = [
+    'title'              => $d['title'] ?? '-',
+    'authors'            => array_map(fn($n)=>['name'=>$n], $d['author_name'] ?? []),
+    'cover_id'           => $d['cover_i'] ?? null,
+    'key'                => $d['key'] ?? '',
+    'first_publish_year' => $d['first_publish_year'] ?? '',
+    'subject'            => $d['subject'] ?? [],
+  ];
 }
 
 // Daftar toko buku di Bandung (kurasi internal)
@@ -77,15 +71,15 @@ include __DIR__.'/includes/header.php'; ?>
 
 <div class="hero-sport-islami mb-3" style="background-image:linear-gradient(135deg, rgba(13,71,99,.85), rgba(20,108,99,.85)), url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1200&q=70');">
   <div class="hero-overlay">
-    <h1 class="h4 mb-1"><i class="bi bi-journals"></i> Koleksi Buku Terbaru</h1>
-    <p class="small mb-0 opacity-85">Pilihan buku dari berbagai kategori — temukan bacaan terbaikmu.</p>
+    <h1 class="h4 mb-1"><i class="bi bi-journals"></i> Koleksi Buku Berbahasa Indonesia</h1>
+    <p class="small mb-0 opacity-85">Hanya buku berbahasa Indonesia dari berbagai kategori.</p>
   </div>
 </div>
 
-<?php ip_card_open('Koleksi Buku Terbaru di Pasaran', 'bi-journals'); ?>
+<?php ip_card_open('Koleksi Buku Indonesia di Pasaran', 'bi-journals'); ?>
 
 <p class="text-muted small mb-3">
-  Sumber: <strong>Open Library</strong> (gratis, tanpa API key, oleh Internet Archive).
+  Sumber: <strong>Open Library</strong> (gratis, tanpa API key, oleh Internet Archive) — difilter <code>language=ind</code>.
   Daftar toko buku di Bandung adalah kurasi internal aplikasi. Hasil di-cache 30 menit di server.
 </p>
 

@@ -428,6 +428,91 @@ document.addEventListener('DOMContentLoaded', () => {
 </section>
 <!-- ============ /Info & Wawasan ============ -->
 
+<!-- ============ TV Streaming Online (revisi 29 Mei 2026) ============ -->
+<section class="mb-3">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h2 class="h5 mb-0"><i class="bi bi-tv text-danger"></i> Nonton Streaming TV Online</h2>
+    <small class="text-muted">Live dari YouTube resmi</small>
+  </div>
+  <p class="small text-muted mb-2">
+    Pilih kanal untuk menonton siaran live 24 jam dari channel YouTube resmi stasiun TV nasional.
+    Gratis &amp; tanpa registrasi. Sumber: YouTube embed live_stream.
+  </p>
+  <?php
+    $TV_CHANNELS = [
+      ['nama'=>'CNN Indonesia', 'cid'=>'UCS9uYHO2yh1ix1RUnpkX4hw', 'icon'=>'bi-broadcast', 'cat'=>'Berita'],
+      ['nama'=>'Kompas TV',     'cid'=>'UC5BMQOsLB8DvjsyjvAvogaQ', 'icon'=>'bi-broadcast', 'cat'=>'Berita'],
+      ['nama'=>'Metro TV',      'cid'=>'UCXoUWnEuIOcW9ziHTd1NNZw', 'icon'=>'bi-broadcast', 'cat'=>'Berita'],
+      ['nama'=>'tvOneNews',     'cid'=>'UCVbCgYiSeKj4DYNb-UqXBpw', 'icon'=>'bi-broadcast', 'cat'=>'Berita'],
+      ['nama'=>'iNews',         'cid'=>'UCq0bspXEwOmKxC-MAtl4VuQ', 'icon'=>'bi-broadcast', 'cat'=>'Berita'],
+      ['nama'=>'BeritaSatu',    'cid'=>'UCY1mlMhxJZGMHvybtgtmHHA', 'icon'=>'bi-broadcast', 'cat'=>'Berita'],
+    ];
+  ?>
+  <div class="row g-2">
+    <?php foreach($TV_CHANNELS as $tv): ?>
+      <div class="col-6 col-md-4 col-lg-2">
+        <button type="button" class="btn btn-light w-100 h-100 text-start border tv-channel-btn shadow-sm"
+                data-name="<?= htmlspecialchars($tv['nama']) ?>"
+                data-cid="<?= htmlspecialchars($tv['cid']) ?>">
+          <div class="d-flex align-items-center gap-2">
+            <span class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width:36px;height:36px;flex:0 0 36px;">
+              <i class="bi <?= htmlspecialchars($tv['icon']) ?>"></i>
+            </span>
+            <span>
+              <span class="d-block fw-semibold small"><?= htmlspecialchars($tv['nama']) ?></span>
+              <span class="d-block text-muted" style="font-size:.72rem;"><?= htmlspecialchars($tv['cat']) ?> · Live</span>
+            </span>
+          </div>
+        </button>
+      </div>
+    <?php endforeach; ?>
+  </div>
+
+  <!-- Player area -->
+  <div id="tvPlayerWrap" class="mt-3 d-none">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div><i class="bi bi-broadcast text-danger"></i> <strong>Sedang menonton:</strong> <span id="tvNowName">-</span></div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="tvStopBtn"><i class="bi bi-x-lg"></i> Tutup</button>
+      </div>
+      <div class="ratio ratio-16x9">
+        <iframe id="tvFrame" src="" title="TV Live" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>
+      </div>
+      <div class="card-footer small text-muted">
+        <i class="bi bi-info-circle"></i> Jika siaran tidak muncul, channel mungkin sedang tidak menayangkan live stream.
+        <a id="tvOpenYT" href="#" target="_blank" rel="noopener" class="ms-1">Buka di YouTube ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var wrap = document.getElementById('tvPlayerWrap');
+  var frame = document.getElementById('tvFrame');
+  var nameEl = document.getElementById('tvNowName');
+  var ytLink = document.getElementById('tvOpenYT');
+  document.querySelectorAll('.tv-channel-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var cid = this.getAttribute('data-cid');
+      var nm  = this.getAttribute('data-name');
+      if (!cid) return;
+      frame.src = 'https://www.youtube.com/embed/live_stream?channel=' + encodeURIComponent(cid) + '&autoplay=1';
+      nameEl.textContent = nm;
+      ytLink.href = 'https://www.youtube.com/channel/' + encodeURIComponent(cid) + '/live';
+      wrap.classList.remove('d-none');
+      wrap.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+  var stop = document.getElementById('tvStopBtn');
+  if (stop) stop.addEventListener('click', function(){
+    frame.src = '';
+    wrap.classList.add('d-none');
+  });
+})();
+</script>
+<!-- ============ /TV Streaming Online ============ -->
+
+
 
 
 

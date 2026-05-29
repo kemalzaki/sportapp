@@ -122,26 +122,35 @@ include __DIR__.'/includes/header.php'; ?>
 </div>
 
 <script>
-(function(){
-  const modalEl = document.getElementById('modalBerita');
-  if (!modalEl || typeof bootstrap === 'undefined') return;
-  const modal = new bootstrap.Modal(modalEl);
-  document.querySelectorAll('.berita-trigger, img[data-berita]').forEach(el=>{
+window.addEventListener('load', function(){
+  var modalEl = document.getElementById('modalBerita');
+  if (!modalEl || typeof bootstrap === 'undefined') {
+    // fallback: buka tab baru jika bootstrap belum siap
+    document.querySelectorAll('.berita-trigger, img[data-berita]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.preventDefault();
+        try { var d = JSON.parse(this.getAttribute('data-berita')); if (d && d.link) window.open(d.link, '_blank'); } catch(_){}
+      });
+    });
+    return;
+  }
+  var modal = new bootstrap.Modal(modalEl);
+  document.querySelectorAll('.berita-trigger, img[data-berita]').forEach(function(el){
     el.addEventListener('click', function(e){
       e.preventDefault();
-      let data; try { data = JSON.parse(this.getAttribute('data-berita')); } catch(_) { return; }
+      var data; try { data = JSON.parse(this.getAttribute('data-berita')); } catch(_) { return; }
       document.getElementById('mbTitle').textContent = data.title || 'Berita';
       document.getElementById('mbCat').textContent   = data.cat   || '-';
       document.getElementById('mbDate').textContent  = data.date  || '-';
       document.getElementById('mbDesc').innerHTML    = data.desc  || '<em class="text-muted">Tidak ada ringkasan.</em>';
       document.getElementById('mbLink').href         = data.link  || '#';
-      const imgEl = document.getElementById('mbImg');
+      var imgEl = document.getElementById('mbImg');
       if (data.img) { imgEl.src = data.img; imgEl.classList.remove('d-none'); }
       else { imgEl.classList.add('d-none'); imgEl.src=''; }
       modal.show();
     });
   });
-})();
+});
 </script>
 
 <?php include __DIR__.'/includes/bottom_nav.php'; ?>

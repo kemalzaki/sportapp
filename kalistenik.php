@@ -7,13 +7,13 @@ require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Paket Bugar Kalistenik';
 
-// Katalog gerakan kalistenik + URL gambar (Wikimedia Commons, gratis & stabil)
+// Katalog gerakan kalistenik + ilustrasi muslimah berhijab (asset lokal)
 // + langkah detail untuk modal "Lihat Gerakan"
 $GERAKAN = [
   'push_up'    => [
     'nama'=>'Push-up','icon'=>'bi-arrow-down-up','target'=>'Dada, trisep, bahu',
     'tips'=>'Tubuh lurus dari kepala ke tumit, siku ±45°.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Push-ups.jpg/640px-Push-ups.jpg',
+    'img'=>'assets/img/kalistenik/push_up.jpg',
     'langkah'=>[
       'Posisi plank tinggi: tangan selebar bahu, kaki rapat, tubuh lurus.',
       'Turunkan dada hingga ±5 cm dari lantai, siku ±45° dari tubuh.',
@@ -25,7 +25,7 @@ $GERAKAN = [
   'pull_up'    => [
     'nama'=>'Pull-up','icon'=>'bi-arrow-up','target'=>'Punggung, bisep',
     'tips'=>'Gantung penuh, tarik hingga dagu melewati bar.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Pull-ups.jpg/640px-Pull-ups.jpg',
+    'img'=>'assets/img/kalistenik/pull_up.jpg',
     'langkah'=>[
       'Gantung pada bar, telapak menghadap ke depan, lebar bahu.',
       'Tarik bahu ke bawah-belakang, lalu tarik tubuh hingga dagu melewati bar.',
@@ -37,7 +37,7 @@ $GERAKAN = [
   'squat'      => [
     'nama'=>'Squat','icon'=>'bi-arrows-vertical','target'=>'Paha, bokong',
     'tips'=>'Lutut sejajar ujung kaki, punggung netral.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Bodyweight_squat.jpg/640px-Bodyweight_squat.jpg',
+    'img'=>'assets/img/kalistenik/squat.jpg',
     'langkah'=>[
       'Berdiri kaki selebar bahu, ujung kaki sedikit keluar.',
       'Tekuk lutut & pinggul bersamaan seperti hendak duduk.',
@@ -49,7 +49,7 @@ $GERAKAN = [
   'lunge'      => [
     'nama'=>'Lunge','icon'=>'bi-shoe-prints','target'=>'Paha, glutes',
     'tips'=>'Langkah panjang, lutut depan 90°.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Forward-lunge-1.png/640px-Forward-lunge-1.png',
+    'img'=>'assets/img/kalistenik/lunge.jpg',
     'langkah'=>[
       'Langkahkan satu kaki ke depan cukup panjang.',
       'Turunkan pinggul sampai kedua lutut ±90°.',
@@ -61,7 +61,7 @@ $GERAKAN = [
   'plank'      => [
     'nama'=>'Plank','icon'=>'bi-dash-lg','target'=>'Core (perut)',
     'tips'=>'Tahan posisi lurus, jangan turunkan pinggul.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Plank.jpg/640px-Plank.jpg',
+    'img'=>'assets/img/kalistenik/plank.jpg',
     'langkah'=>[
       'Tumpuan siku tepat di bawah bahu, lengan bawah menempel matras.',
       'Tubuh lurus satu garis dari kepala–pinggul–tumit.',
@@ -73,7 +73,7 @@ $GERAKAN = [
   'dip'        => [
     'nama'=>'Dip','icon'=>'bi-arrow-down','target'=>'Trisep, dada bawah',
     'tips'=>'Pakai 2 kursi/bar paralel; turunkan badan terkontrol.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Bench_dips.jpg/640px-Bench_dips.jpg',
+    'img'=>'assets/img/kalistenik/dip.jpg',
     'langkah'=>[
       'Letakkan tangan di tepi kursi/bench di belakang Anda.',
       'Luruskan lengan, kaki ditekuk (atau lurus untuk versi sulit).',
@@ -85,7 +85,7 @@ $GERAKAN = [
   'burpee'     => [
     'nama'=>'Burpee','icon'=>'bi-lightning','target'=>'Full body + kardio',
     'tips'=>'Squat → plank → push-up → lompat.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Burpee.gif/320px-Burpee.gif',
+    'img'=>'assets/img/kalistenik/burpee.jpg',
     'langkah'=>[
       'Berdiri tegak, turun ke posisi squat dan letakkan tangan di lantai.',
       'Lompat kedua kaki ke belakang menjadi posisi plank.',
@@ -97,7 +97,7 @@ $GERAKAN = [
   'mountain'   => [
     'nama'=>'Mountain Climber','icon'=>'bi-speedometer','target'=>'Core + kardio',
     'tips'=>'Posisi plank, lari di tempat dengan lutut ke dada.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Mountain-climber-1.png/640px-Mountain-climber-1.png',
+    'img'=>'assets/img/kalistenik/mountain.jpg',
     'langkah'=>[
       'Mulai dari posisi plank tinggi dengan tubuh lurus.',
       'Tarik lutut kanan ke arah dada dengan cepat, lalu kembalikan.',
@@ -109,7 +109,7 @@ $GERAKAN = [
   'jumping'    => [
     'nama'=>'Jumping Jack','icon'=>'bi-arrows-fullscreen','target'=>'Pemanasan, kardio',
     'tips'=>'Lompat sambil buka-tutup kaki dan tangan.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Jumping-jack-1.png/640px-Jumping-jack-1.png',
+    'img'=>'assets/img/kalistenik/jumping.jpg',
     'langkah'=>[
       'Berdiri tegak, tangan di samping, kaki rapat.',
       'Lompat sambil membuka kaki selebar bahu dan angkat tangan ke atas.',
@@ -121,7 +121,7 @@ $GERAKAN = [
   'leg_raise'  => [
     'nama'=>'Leg Raise','icon'=>'bi-arrow-up-short','target'=>'Perut bawah',
     'tips'=>'Berbaring, angkat kaki lurus 90°, turunkan perlahan.',
-    'img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Lying-leg-raise-1.png/640px-Lying-leg-raise-1.png',
+    'img'=>'assets/img/kalistenik/leg_raise.jpg',
     'langkah'=>[
       'Berbaring telentang, kaki lurus, tangan di samping atau di bawah pinggul.',
       'Angkat kedua kaki lurus hingga 90° terhadap lantai.',
@@ -182,7 +182,7 @@ include __DIR__.'/includes/header.php'; ?>
 
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
-<div class="hero-sport-islami mb-3" style="background-image:linear-gradient(135deg, rgba(15,98,72,.88), rgba(7,59,76,.88)), url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&q=70');">
+<div class="hero-sport-islami mb-3" style="background-image:linear-gradient(135deg, rgba(15,98,72,.78), rgba(7,59,76,.78)), url('assets/img/kalistenik/hero.jpg');background-size:cover;background-position:center;">
   <div class="hero-overlay">
     <h1 class="h4 mb-1"><i class="bi bi-person-arms-up"></i> Paket Bugar Kalistenik</h1>
     <p class="small mb-0 opacity-85">Latihan beban tubuh sendiri — sehat lahir, kuat batin.</p>
@@ -309,27 +309,27 @@ include __DIR__.'/includes/header.php'; ?>
 
 <script>
 window.__GERAKAN__ = <?= json_encode($GERAKAN, JSON_UNESCAPED_UNICODE) ?>;
-(function(){
-  const el = document.getElementById('modalGerakan');
+window.addEventListener('load', function(){
+  var el = document.getElementById('modalGerakan');
   if (!el || typeof bootstrap === 'undefined') return;
-  const modal = new bootstrap.Modal(el);
-  document.querySelectorAll('.btn-lihat-gerakan').forEach(btn=>{
+  var modal = new bootstrap.Modal(el);
+  document.querySelectorAll('.btn-lihat-gerakan').forEach(function(btn){
     btn.addEventListener('click', function(){
-      const key = this.getAttribute('data-key');
-      const g = window.__GERAKAN__[key];
+      var key = this.getAttribute('data-key');
+      var g = window.__GERAKAN__[key];
       if (!g) return;
       document.getElementById('mgTitle').innerHTML = '<i class="bi '+(g.icon||'bi-person-arms-up')+'"></i> '+ g.nama;
       document.getElementById('mgTarget').textContent = g.target || '-';
       document.getElementById('mgTips').textContent   = g.tips   || '-';
-      const ol = document.getElementById('mgLangkah'); ol.innerHTML='';
-      (g.langkah||[]).forEach(s=>{ const li=document.createElement('li'); li.textContent=s; ol.appendChild(li); });
-      const img = document.getElementById('mgImg');
+      var ol = document.getElementById('mgLangkah'); ol.innerHTML='';
+      (g.langkah||[]).forEach(function(s){ var li=document.createElement('li'); li.textContent=s; ol.appendChild(li); });
+      var img = document.getElementById('mgImg');
       if (g.img) { img.src=g.img; img.classList.remove('d-none'); } else { img.classList.add('d-none'); img.src=''; }
       document.getElementById('mgYT').href = g.yt || '#';
       modal.show();
     });
   });
-})();
+});
 </script>
 
 <?php include __DIR__.'/includes/bottom_nav.php'; ?>
