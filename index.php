@@ -362,6 +362,63 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<!-- ============ Info & Wawasan (revisi 29 Mei 2026) ============ -->
+<section class="mb-3">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h2 class="h5 mb-0"><i class="bi bi-compass text-primary"></i> Info & Wawasan</h2>
+    <small class="text-muted">Data dari API publik & kurasi</small>
+  </div>
+  <div class="row g-2">
+    <div class="col-6 col-md-3">
+      <a href="/berita.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-newspaper fs-4"></i></div>
+            <div class="fw-semibold">Berita Terkini</div>
+            <div class="small text-muted">Politik · Ekonomi · Olahraga · Teknologi</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/beasiswa.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-mortarboard fs-4"></i></div>
+            <div class="fw-semibold">Info Beasiswa</div>
+            <div class="small text-muted">S1 · S2 · S3</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/kesehatan.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-heart-pulse fs-4"></i></div>
+            <div class="fw-semibold">Kesehatan</div>
+            <div class="small text-muted">Penyakit umum & herbal</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/sejarah_nabi.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-book fs-4"></i></div>
+            <div class="fw-semibold">Sejarah Nabi</div>
+            <div class="small text-muted">25 Nabi & Rasul</div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+<!-- ============ /Info & Wawasan ============ -->
+
+
+
 
 
 <?php if($u): ?>
