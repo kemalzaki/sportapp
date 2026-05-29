@@ -22,7 +22,8 @@ function send_security_headers(): void {
 }
 
 // ---------- Session expiration ----------
-function enforce_session_timeout(int $minutes = 60): void {
+function enforce_session_timeout(int $minutes = 43200): void {
+    // Default 30 hari — member tetap login bila terus membuka aplikasi.
     if (!isset($_SESSION['user'])) return;
     $now = time();
     if (isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity'] > $minutes * 60)) {

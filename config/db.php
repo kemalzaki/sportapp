@@ -2,7 +2,32 @@
 /**
  * Koneksi PostgreSQL native (pg_*) — TANPA PDO.
  */
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    // === Member tetap login (cookie persistent 30 hari) ===
+    $_cp = session_get_cookie_params();
+    @ini_set('session.gc_maxlifetime', 60*60*24*30);
+    @ini_set('session.cookie_lifetime', 60*60*24*30);
+    session_set_cookie_params([
+        'lifetime' => 60*60*24*30,
+        'path'     => '/',
+        'domain'   => $_cp['domain'] ?? '',
+        'secure'   => !empty($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+    // Perpanjang cookie tiap request agar tidak expired di tengah pemakaian
+    if (!empty($_COOKIE[session_name()])) {
+        setcookie(session_name(), session_id(), [
+            'expires'  => time() + 60*60*24*30,
+            'path'     => '/',
+            'domain'   => $_cp['domain'] ?? '',
+            'secure'   => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
+}
 
 $DATABASE_URL = getenv('DATABASE_URL');
 if ($DATABASE_URL) {
@@ -89,4 +114,7 @@ try {
     @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION");
     // === Forum chat: kolom updated_at untuk fitur edit pesan ===
     @pg_query(db(), "ALTER TABLE chat_forum ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP");
+    // === Quick absen event ===
+    @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS status VARCHAR(12)");
+    @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS keterangan TEXT");
 } catch (Throwable $e) { /* ignore */ }

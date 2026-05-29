@@ -106,8 +106,12 @@ include __DIR__.'/includes/header.php';
           </table>
           <div id="tmCatatan" class="small text-muted" style="white-space:pre-wrap"></div>
           <div class="mt-2 d-flex flex-wrap gap-2">
+            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-primary d-none">
+              <i class="bi bi-geo-alt-fill"></i> Lihat di Google Maps
+            </a>
             <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
           </div>
+          <div id="tmKoord" class="small text-muted mt-1"></div>
         </div>
       </div>
     </div>
@@ -136,6 +140,12 @@ function showTempatDetail(d){
   document.getElementById('tmCatatan').textContent = d.catatan || '';
   const wa = document.getElementById('tmWa');
   if (d.wa_link) { wa.href = d.wa_link; wa.classList.remove('d-none'); } else { wa.classList.add('d-none'); }
+  // Tombol Google Maps berdasarkan koordinat lat/lng
+  const mapsBtn = document.getElementById('tmMaps');
+  if (d.maps) { mapsBtn.href = d.maps; mapsBtn.classList.remove('d-none'); } else { mapsBtn.classList.add('d-none'); }
+  const kd = document.getElementById('tmKoord');
+  if (d.lat && d.lng) { kd.innerHTML = '<i class="bi bi-pin-map"></i> Koordinat: '+Number(d.lat).toFixed(6)+', '+Number(d.lng).toFixed(6); }
+  else { kd.innerHTML = ''; }
   _tmM.show();
 }
 </script>

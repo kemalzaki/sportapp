@@ -117,6 +117,34 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 }
             } catch (Throwable $e) {}
         }
+    } elseif ($a === 'quick_absen') {
+        // Quick check-in dari Jadwal Terdekat — terintegrasi dengan absensi.php
+        $jid = (int)($_POST['jadwal_id'] ?? 0);
+        $st  = $_POST['status'] ?? 'hadir';
+        if (!in_array($st, ['hadir','izin','sakit'], true)) $st = 'hadir';
+        if ($jid) {
+            try {
+                db_exec("DELETE FROM absensi WHERE jadwal_id=$1 AND user_id=$2", [$jid, (int)$u['id']]);
+                db_exec("INSERT INTO absensi(jadwal_id,user_id,hadir,status,keterangan,metode,checkin_at)
+                         VALUES($1,$2,$3,$4,$5,'quick',now())",
+                    [$jid, (int)$u['id'], $st==='hadir'?1:0, $st, $_POST['keterangan'] ?? '']);
+            } catch (Throwable $e) {}
+        }
+    } elseif ($a === 'quick_event_absen') {
+        // Quick check-in dari Event Terdekat — terintegrasi dengan event.php
+        $eid = (int)($_POST['event_id'] ?? 0);
+        $st  = $_POST['status'] ?? 'hadir';
+        if (!in_array($st, ['hadir','izin','sakit'], true)) $st = 'hadir';
+        if ($eid) {
+            try {
+                $exists = db_val("SELECT id FROM event_peserta WHERE event_id=$1 AND user_id=$2", [$eid, (int)$u['id']]);
+                if ($exists) {
+                    db_exec("UPDATE event_peserta SET status=$1 WHERE id=$2", [$st, (int)$exists]);
+                } else {
+                    db_exec("INSERT INTO event_peserta(event_id,user_id,status) VALUES($1,$2,$3)", [$eid, (int)$u['id'], $st]);
+                }
+            } catch (Throwable $e) {}
+        }
     }
     header('Location: /index.php#feed'); exit;
 }
@@ -259,6 +287,38 @@ $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
                     FROM qr_tokens q JOIN jadwal j ON j.id=q.jadwal_id
                     WHERE q.valid_until > now() AND q.valid_from <= now()
                     ORDER BY q.id DESC LIMIT 3");
+
+// === Event Terdekat (untuk index.php) — diambil dari submit event admin ===
+$eventTerdekat = [];
+$myEventStatus = [];
+try {
+    $eventTerdekat = db_all(
+        "SELECT e.id, e.nama, e.jenis, e.tipe, e.tanggal_mulai, e.tanggal_selesai, e.jam_mulai, e.lokasi, e.status,
+                (SELECT COUNT(*) FROM event_peserta p WHERE p.event_id=e.id) AS jml
+         FROM event e
+         WHERE COALESCE(e.tanggal_selesai, e.tanggal_mulai) >= CURRENT_DATE
+         ORDER BY e.tanggal_mulai ASC LIMIT 5"
+    );
+    if ($u && $eventTerdekat) {
+        $eids = array_map(fn($e)=>(int)$e['id'], $eventTerdekat);
+        $myRows = db_all("SELECT event_id, status FROM event_peserta WHERE user_id=$1 AND event_id = ANY($2::int[])",
+            [(int)$u['id'], '{'.implode(',',$eids).'}']);
+        foreach ($myRows as $r) $myEventStatus[(int)$r['event_id']] = $r['status'];
+    }
+} catch (Throwable $e) { $eventTerdekat = []; }
+
+// Status absen-saya per jadwal terdekat (untuk highlight tombol quick absen)
+$myAbsenByJadwal = [];
+if ($u && !empty($_jids)) {
+    try {
+        $rs = db_all("SELECT jadwal_id, status, hadir FROM absensi WHERE user_id=$1 AND jadwal_id = ANY($2::int[])",
+            [(int)$u['id'], '{'.implode(',',$_jids).'}']);
+        foreach ($rs as $r) {
+            $st = $r['status'] ?: ((int)$r['hadir']===1?'hadir':'absen');
+            $myAbsenByJadwal[(int)$r['jadwal_id']] = $st;
+        }
+    } catch (Throwable $e) {}
+}
 
 include __DIR__.'/includes/header.php'; ?>
 
@@ -456,10 +516,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <?php endif; ?>
 
+    <?php if (!empty($eventTerdekat)): ?>
+    <div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-trophy text-warning me-1"></i> Event Terdekat</span>
+      <a href="/event.php" class="small text-decoration-none">Lihat semua &raquo;</a>
+    </div>
+      <div data-live="event_terdekat">
+      <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
+        <thead><tr><th>Tanggal</th><th>Nama Event</th><th>Jenis</th><th>Lokasi</th><th class="text-end">Aksi</th></tr></thead><tbody>
+        <?php foreach($eventTerdekat as $ev):
+          $eid=(int)$ev['id']; $myS = $myEventStatus[$eid] ?? null;
+        ?>
+          <tr>
+            <td data-label="Tanggal"><?= htmlspecialchars($ev['tanggal_mulai']) ?><?php if(!empty($ev['jam_mulai'])): ?> <span class="text-muted small"><?= htmlspecialchars(substr($ev['jam_mulai'],0,5)) ?></span><?php endif; ?></td>
+            <td data-label="Nama"><a class="text-decoration-none fw-semibold" href="/event.php?id=<?= $eid ?>"><?= htmlspecialchars($ev['nama']) ?></a>
+              <div class="small text-muted"><i class="bi bi-people"></i> <?= (int)$ev['jml'] ?> peserta</div></td>
+            <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($ev['jenis'] ?: ($ev['tipe']??'-')) ?></span></td>
+            <td data-label="Lokasi"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($ev['lokasi'] ?: '-') ?></td>
+            <td data-label="Aksi" class="text-end">
+              <?php if($u):
+                $mk = function($st,$cls,$label,$icon) use($myS,$eid){
+                  $active = $myS===$st ? '' : '-outline';
+                  echo '<form method="post" class="d-inline" data-ajax data-ajax-label="Menyimpan...">'
+                     . '<input type="hidden" name="csrf" value="'.csrf_token().'">'
+                     . '<input type="hidden" name="_action" value="quick_event_absen">'
+                     . '<input type="hidden" name="event_id" value="'.$eid.'">'
+                     . '<input type="hidden" name="status" value="'.$st.'">'
+                     . '<button class="btn btn-sm btn'.$active.'-'.$cls.' me-1" title="'.$label.'"><i class="bi bi-'.$icon.'"></i> '.$label.'</button>'
+                     . '</form>';
+                };
+                $mk('hadir','success','Hadir','check2-circle');
+                $mk('izin','info','Izin','envelope-paper');
+                $mk('sakit','secondary','Sakit','bandaid');
+                if($myS): ?><div class="small text-muted mt-1">Status: <b><?= htmlspecialchars(strtoupper($myS)) ?></b></div><?php endif;
+              else: ?><a href="/login.php" class="small">Login untuk daftar</a><?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody></table></div>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
       <div data-live="jadwal">
-      <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="10">
-        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th class="text-end">Absen</th></tr></thead><tbody>
+      <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
+        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th>Absensi Saya</th><th class="text-end">Absen</th></tr></thead><tbody>
         <?php foreach($jadwalTerdekat as $j):
           $jid=(int)$j['id']; $absList = $absByJadwal[$jid] ?? [];
           $cnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
@@ -479,6 +581,25 @@ document.addEventListener('DOMContentLoaded', () => {
               <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($maps) ?>" title="Lihat di Google Maps"><i class="bi bi-google"></i> Lokasi</a>
             </td>
             <td data-label="Koord"><a class="text-decoration-none" href="/user.php?id=<?= (int)$j['koordinator_id'] ?>"><?= user_name_with_avatar($j['koord_foto'] ?? null, $j['koordinator'] ?? '-', false, 24) ?></a></td>
+            <td data-label="Absensi Saya">
+              <?php if($u):
+                $myS = $myAbsenByJadwal[$jid] ?? null;
+                $btnDef = function($st,$cls,$label,$icon) use($myS,$jid){
+                  $active = $myS===$st ? '' : '-outline';
+                  echo '<form method="post" class="d-inline" data-ajax data-ajax-label="Menyimpan absen...">'
+                     . '<input type="hidden" name="csrf" value="'.csrf_token().'">'
+                     . '<input type="hidden" name="_action" value="quick_absen">'
+                     . '<input type="hidden" name="jadwal_id" value="'.$jid.'">'
+                     . '<input type="hidden" name="status" value="'.$st.'">'
+                     . '<button class="btn btn-sm btn'.$active.'-'.$cls.' me-1" title="'.$label.'"><i class="bi bi-'.$icon.'"></i> '.$label.'</button>'
+                     . '</form>';
+                };
+                $btnDef('hadir','success','Hadir','check2-circle');
+                $btnDef('izin','info','Izin','envelope-paper');
+                $btnDef('sakit','secondary','Sakit','bandaid');
+                if($myS): ?><div class="small text-muted mt-1">Status saya: <b><?= htmlspecialchars(strtoupper($myS)) ?></b></div><?php endif;
+              else: ?><a href="/login.php" class="small">Login untuk absen</a><?php endif; ?>
+            </td>
             <td data-label="Absen" class="text-end small">
               <span class="badge bg-success-subtle text-success" title="Hadir">H <?= $cnt['hadir'] ?></span>
               <?php if($cnt['telat']): ?><span class="badge bg-warning-subtle text-warning" title="Telat">T <?= $cnt['telat'] ?></span><?php endif; ?>
@@ -488,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
           </tr>
           <tr class="collapse" id="jdetail<?= $jid ?>">
-            <td colspan="7" class="bg-light">
+            <td colspan="8" class="bg-light">
               <?php if(!$absList): ?>
                 <div class="text-muted small">Belum ada data absensi untuk sesi ini.</div>
               <?php else: ?>

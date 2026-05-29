@@ -50,9 +50,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 $rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id ORDER BY tanggal DESC");
 $admins = db_all("SELECT id,nama FROM users WHERE role='admin' ORDER BY nama");
-$jenisList = array_column(db_all("SELECT nama FROM jenis_olahraga ORDER BY nama"), 'nama');
-if (!$jenisList) $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya'];
-$tempatList = db_all("SELECT id,nama FROM tempat ORDER BY nama");
+$jenisRows = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
+$jenisList = array_column($jenisRows, 'nama');
+if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya']; $jenisRows = []; }
+$tempatList = db_all("SELECT id,nama,jenis_id FROM tempat ORDER BY nama");
+include __DIR__.'/../includes/header.php'; ?>
 include __DIR__.'/../includes/header.php'; ?>
 
 <h2 class="mb-3"><i class="bi bi-calendar-event text-primary"></i> Manajemen Jadwal</h2>
@@ -189,5 +191,43 @@ include __DIR__.'/../includes/header.php'; ?>
   </div>
 </div>
 <?php endforeach; ?>
+
+<script>
+/* ===== Filter Tempat berdasarkan Jenis Olahraga =====
+ * Tempat hanya muncul jika jenis_id-nya cocok dengan jenis terpilih. */
+(function(){
+  const JENIS = <?= json_encode(array_map(function($r){ return ['id'=>(int)$r['id'],'nama'=>$r['nama']]; }, $jenisRows ?? []), JSON_UNESCAPED_UNICODE) ?>;
+  const TEMPAT = <?= json_encode(array_map(function($t){ return ['id'=>(int)$t['id'],'nama'=>$t['nama'],'jenis_id'=>$t['jenis_id']?(int)$t['jenis_id']:null]; }, $tempatList), JSON_UNESCAPED_UNICODE) ?>;
+  const NAME2ID = {}; JENIS.forEach(j => { NAME2ID[j.nama.toLowerCase()] = j.id; });
+
+  function rebuildTempatOptions(jenisSel, tempatSel){
+    const cur = tempatSel.value;
+    const jenisName = (jenisSel.value || '').toLowerCase();
+    const jid = NAME2ID[jenisName] || null;
+    const placeholder = tempatSel.querySelector('option[value=""]');
+    tempatSel.innerHTML = '';
+    if (placeholder) tempatSel.appendChild(placeholder);
+    else { const o=document.createElement('option'); o.value=''; o.textContent='— Pilih Tempat —'; tempatSel.appendChild(o); }
+    TEMPAT.forEach(t=>{
+      if (jid && t.jenis_id && t.jenis_id !== jid) return; // skip yang tidak cocok
+      const o=document.createElement('option'); o.value=t.id; o.textContent = t.nama + (t.jenis_id?'':' (umum)');
+      if (String(t.id)===String(cur)) o.selected = true;
+      tempatSel.appendChild(o);
+    });
+  }
+  function wire(scope){
+    scope.querySelectorAll('select[name="jenis"]').forEach(js=>{
+      const form = js.closest('form'); if(!form) return;
+      const ts = form.querySelector('select[name="tempat_id"]'); if(!ts) return;
+      if (js.dataset.jenisFilterInit) return; js.dataset.jenisFilterInit='1';
+      js.addEventListener('change', ()=>rebuildTempatOptions(js, ts));
+      rebuildTempatOptions(js, ts);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', ()=>wire(document));
+  // Edit modal dirender saat sudah ada di DOM, jadi cukup re-wire saat dibuka.
+  document.addEventListener('shown.bs.modal', (ev)=>wire(ev.target));
+})();
+</script>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

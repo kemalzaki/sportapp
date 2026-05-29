@@ -118,7 +118,7 @@ include __DIR__.'/includes/header.php';
 
   <div class="col-lg-7">
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 text-primary"></i> Riwayat Sesi</div>
-    <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="10">
+    <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
       <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
       <tbody>
       <?php foreach($riwayat as $r): ?>
@@ -137,7 +137,7 @@ include __DIR__.'/includes/header.php';
 
     <!-- Riwayat aktivitas publik (semua member) -->
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-globe text-primary"></i> Riwayat Aktivitas Publik</div>
-    <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
+    <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="5">
       <thead><tr><th>Tanggal</th><th>Member</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Bukti</th></tr></thead>
       <tbody>
         <?php foreach($publicActs as $a): ?>
@@ -161,7 +161,7 @@ include __DIR__.'/includes/header.php';
 
     <?php if($u): ?>
     <div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-primary"></i> Riwayat Aktifitas Saya</div>
-    <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
+    <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="5">
       <thead><tr><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Kalori</th><th>Bukti</th></tr></thead>
       <tbody>
         <?php foreach($myActs as $a): ?>
@@ -242,7 +242,7 @@ function showSesi(id, focus){
   html+=`<h6 class="mb-2"><i class="bi bi-people"></i> Daftar Anggota Hadir</h6>`;
   const hadir = (d.anggota||[]).filter(a=>a.hadir==1);
   if(hadir.length){
-    html+=`<div class="table-responsive"><table class="table table-sm align-middle" data-paginate="10"><thead><tr><th>Nama</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>`;
+    html+=`<div class="table-responsive"><table class="table table-sm align-middle" data-paginate="5"><thead><tr><th>Nama</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>`;
     d.anggota.forEach(a=>{
       const ava=a.foto_url?`<img src="${a.foto_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover" class="me-1">`:'';
       const st=a.hadir==1?'<span class="badge bg-success">Hadir</span>':'<span class="badge bg-secondary">Tidak hadir</span>';

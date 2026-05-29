@@ -215,6 +215,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 })();
 
+}); /* FIX: close DOMContentLoaded handler opened on line 144 (WYSIWYG + soft-refresh) */
+
 </script>
 
 <?php if ($u): ?>
