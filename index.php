@@ -205,41 +205,44 @@ if ($u) {
   );
 }
 
-// === Kabari Kawan: HANYA tampil untuk PIC/koordinator.
-// PIC = user yang menjadi pic_admin_id dari minimal 1 member.
-// Daftar yang ditampilkan = member-member di bawah PIC tersebut.
+// === Kabari Member (Koordinator PIC):
+// Tampil untuk admin/PIC. Daftar = SEMUA user yang pic_admin_id = id admin yang login
+// (sesuai pengaturan di /admin/members.php). WA diambil dari kolom 'wa' (yg
+// dipakai admin/members.php) dengan fallback ke 'nomor_wa'. Member tanpa WA tetap
+// ditampilkan namun tombol WhatsApp dinonaktifkan, sehingga PIC sadar siapa yang
+// belum punya nomor.
 $kabariKawan = [];
 $jadwalDekat1 = null;
 $isPicAdmin = false;
 if ($u) {
-  // Jadwal terdekat (1 item) untuk pesan WA
+  // Jadwal terdekat (1 item) untuk template pesan WA
   $jadwalDekat1 = db_one(
     "SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.jam_selesai
      FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1"
   );
   $isPic = (int) db_val("SELECT COUNT(*) FROM users WHERE pic_admin_id=$1", [(int)$u['id']]);
-  // REVISI: Admin selalu bisa melihat daftar member yang menjadikan dia sebagai PIC.
-  // Nomor WhatsApp diambil dari kolom 'nomor_wa' jika ada, jika tidak ambil dari kolom 'wa'
-  // (kolom WA pada manajemen member). Dengan begitu data WA member tetap muncul untuk PIC.
   $isPicAdmin = ($u['role'] === 'admin') || ($isPic > 0);
   if ($isPicAdmin) {
+    // Ambil SEMUA member yang ditunjuk dengan admin ini sebagai PIC.
+    // Tidak memfilter role agar admin sub-PIC pun ikut muncul; tidak memfilter WA
+    // agar member tanpa nomor tetap terlihat (badge "belum ada WA").
     $kabariKawan = db_all(
-      "SELECT id, nama, foto_url, COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) AS nomor_wa
+      "SELECT id, nama, foto_url,
+              COALESCE(NULLIF(wa,''), NULLIF(nomor_wa,'')) AS nomor_wa
        FROM users
        WHERE pic_admin_id = $1
-         AND role = 'member'
-         AND COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) IS NOT NULL
-       ORDER BY nama LIMIT 100",
+       ORDER BY nama LIMIT 200",
       [(int)$u['id']]
     );
-    // Fallback admin: jika belum ada member ber-PIC, tampilkan semua member dengan nomor WA
+    // Fallback admin: jika belum ada member yang ditunjuk sebagai PIC-nya,
+    // tampilkan semua member sebagai daftar awal supaya PIC bisa menghubungi.
     if ($u['role'] === 'admin' && !$kabariKawan) {
       $kabariKawan = db_all(
-        "SELECT id, nama, foto_url, COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) AS nomor_wa
+        "SELECT id, nama, foto_url,
+                COALESCE(NULLIF(wa,''), NULLIF(nomor_wa,'')) AS nomor_wa
          FROM users
          WHERE role = 'member'
-           AND COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) IS NOT NULL
-         ORDER BY nama LIMIT 100"
+         ORDER BY nama LIMIT 200"
       );
     }
   }
@@ -367,32 +370,48 @@ document.addEventListener('DOMContentLoaded', () => {
 </button>
 <?php endif; ?>
 
-<?php if($u && $kabariKawan && $jadwalDekat1):
-  $jamTxt = $jadwalDekat1['jam_mulai'] ? (' pukul '.substr($jadwalDekat1['jam_mulai'],0,5).(($jadwalDekat1['jam_selesai'])?('-'.substr($jadwalDekat1['jam_selesai'],0,5)):'')) : '';
-  $msgTpl = "Halo Kawan! Jangan lupa ada jadwal *".$jadwalDekat1['jenis']."* tanggal ".date('d M Y', strtotime($jadwalDekat1['tanggal'])).$jamTxt." di ".$jadwalDekat1['tempat'].". Yuk ikutan! — dari ".$u['nama'];
+<?php if($u && $kabariKawan):
+  if ($jadwalDekat1) {
+    $jamTxt = $jadwalDekat1['jam_mulai'] ? (' pukul '.substr($jadwalDekat1['jam_mulai'],0,5).(($jadwalDekat1['jam_selesai'])?('-'.substr($jadwalDekat1['jam_selesai'],0,5)):'')) : '';
+    $msgTpl = "Halo Kawan! Jangan lupa ada jadwal *".$jadwalDekat1['jenis']."* tanggal ".date('d M Y', strtotime($jadwalDekat1['tanggal'])).$jamTxt." di ".$jadwalDekat1['tempat'].". Yuk ikutan! — dari ".$u['nama'];
+    $headerJadwal = '<small class="text-muted">Jadwal terdekat: '.date('d M', strtotime($jadwalDekat1['tanggal'])).' · '.htmlspecialchars($jadwalDekat1['jenis']).'</small>';
+  } else {
+    $msgTpl = "Halo Kawan! Pengingat dari koordinator olahraga kita ya, tetap jaga kebugaran. — dari ".$u['nama'];
+    $headerJadwal = '<small class="text-muted">Belum ada jadwal terdekat</small>';
+  }
 ?>
 <div class="card shadow-sm mb-3">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span><i class="bi bi-megaphone text-warning"></i> Kabari Member (Koordinator PIC)</span>
-    <small class="text-muted">Jadwal terdekat: <?= date('d M', strtotime($jadwalDekat1['tanggal'])) ?> · <?= htmlspecialchars($jadwalDekat1['jenis']) ?></small>
+    <?= $headerJadwal ?>
   </div>
   <div class="card-body">
-    <p class="small text-muted mb-2">Sebagai PIC, klik WhatsApp untuk mengabari setiap member di bawah koordinasi kamu tentang jadwal terdekat.</p>
+    <p class="small text-muted mb-2">Sebagai PIC, klik WhatsApp untuk mengabari setiap member di bawah koordinasi kamu. Daftar diambil dari pengaturan PIC di halaman <em>Admin → Members</em>.</p>
     <div class="row g-2">
       <?php foreach($kabariKawan as $k):
-        $wa = preg_replace('/^0/','62', preg_replace('/\D+/','', $k['nomor_wa']));
-        $waUrl = 'https://wa.me/'.$wa.'?text='.rawurlencode($msgTpl);
+        $rawWa = preg_replace('/\D+/','', $k['nomor_wa'] ?? '');
+        $hasWa = $rawWa !== '';
+        $wa = $hasWa ? preg_replace('/^0/','62', $rawWa) : '';
+        $waUrl = $hasWa ? 'https://wa.me/'.$wa.'?text='.rawurlencode($msgTpl) : '#';
       ?>
         <div class="col-md-6 col-lg-4">
           <div class="border rounded p-2 d-flex align-items-center gap-2">
             <?= user_avatar($k['foto_url'] ?? null, $k['nama'], 32) ?>
             <div class="flex-grow-1 small">
               <div class="fw-semibold text-truncate"><?= htmlspecialchars($k['nama']) ?></div>
-              <div class="text-muted text-truncate">📱 <?= htmlspecialchars($k['nomor_wa']) ?></div>
+              <?php if ($hasWa): ?>
+                <div class="text-muted text-truncate">📱 <?= htmlspecialchars($k['nomor_wa']) ?></div>
+              <?php else: ?>
+                <div class="text-danger text-truncate"><i class="bi bi-exclamation-triangle"></i> Belum ada nomor WA</div>
+              <?php endif; ?>
             </div>
-            <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success">
-              <i class="bi bi-whatsapp"></i>
-            </a>
+            <?php if ($hasWa): ?>
+              <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success" title="Kirim WhatsApp">
+                <i class="bi bi-whatsapp"></i>
+              </a>
+            <?php else: ?>
+              <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Tidak ada nomor WA"><i class="bi bi-whatsapp"></i></button>
+            <?php endif; ?>
           </div>
         </div>
       <?php endforeach; ?>
