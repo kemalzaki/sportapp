@@ -1,0 +1,69 @@
+/* desktop-fix.css — REVISI: cegah horizontal scrolling di tampilan desktop/laptop
+ * Include via <link rel="stylesheet" href="/assets/css/desktop-fix.css"> di header.php
+ * (atau di-load otomatis kalau sudah ditambahkan di header).
+ */
+
+/* Cegah elemen apapun menembus viewport ke kanan */
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw;
+}
+
+/* Hindari container Bootstrap meluap karena padding negatif row */
+.container, .container-fluid, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Gambar / video / iframe responsif */
+img, video, iframe, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Tabel besar tetap bisa di-scroll horizontal HANYA di dalam wrapper-nya */
+.table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Pre / code panjang tidak menembus layar */
+pre, code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Modal lebar tetap fit di desktop */
+.modal-dialog {
+  max-width: min(100%, 1140px);
+}
+
+/* Swipe row (story / event) tidak boleh mendorong layout induk */
+.swipe-row, .story-strip {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Form panjang tidak meluap */
+.form-control, .form-select, textarea, input {
+  max-width: 100%;
+}
+
+/* Navbar: kalau tombol/menu terlalu banyak, biarkan wrap, jangan dorong horizontal */
+.navbar-nav { flex-wrap: wrap; }
+
+/* DM floating panel: pada desktop kecil pastikan tidak melebar lebih dari viewport */
+#fbDmPanel, #fbDmChat {
+  max-width: calc(100vw - 24px);
+}
+
+/* Hindari elemen dengan posisi fixed meluap */
+[class*="position-fixed"], .fixed-top, .fixed-bottom, .bottom-nav {
+  max-width: 100vw;
+}
+
+/* Kartu / card body: pastikan word-break untuk konten panjang */
+.card-body { word-wrap: break-word; overflow-wrap: anywhere; }

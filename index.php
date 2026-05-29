@@ -210,6 +210,7 @@ if ($u) {
 // Daftar yang ditampilkan = member-member di bawah PIC tersebut.
 $kabariKawan = [];
 $jadwalDekat1 = null;
+$isPicAdmin = false;
 if ($u) {
   // Jadwal terdekat (1 item) untuk pesan WA
   $jadwalDekat1 = db_one(
@@ -217,7 +218,9 @@ if ($u) {
      FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1"
   );
   $isPic = (int) db_val("SELECT COUNT(*) FROM users WHERE pic_admin_id=$1", [(int)$u['id']]);
-  if ($isPic > 0) {
+  // REVISI: Admin selalu bisa melihat daftar member PIC-nya (atau fallback semua member kalau belum ada)
+  $isPicAdmin = ($u['role'] === 'admin') || ($isPic > 0);
+  if ($isPicAdmin) {
     $kabariKawan = db_all(
       "SELECT id, nama, foto_url, nomor_wa FROM users
        WHERE pic_admin_id = $1
@@ -226,6 +229,14 @@ if ($u) {
        ORDER BY nama LIMIT 100",
       [(int)$u['id']]
     );
+    // Fallback admin: jika belum ada member ber-PIC, tampilkan semua member dengan nomor WA
+    if ($u['role'] === 'admin' && !$kabariKawan) {
+      $kabariKawan = db_all(
+        "SELECT id, nama, foto_url, nomor_wa FROM users
+         WHERE role = 'member' AND nomor_wa IS NOT NULL AND nomor_wa <> ''
+         ORDER BY nama LIMIT 100"
+      );
+    }
   }
 }
 

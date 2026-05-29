@@ -52,6 +52,10 @@ $__onDmPage = (basename($__self) === 'dm.php');
 #fbDmChat .msg .bub{max-width:78%;padding:6px 10px;border-radius:12px;font-size:.88rem;line-height:1.35;background:#fff;border:1px solid #e2e8f0;color:#0f172a;word-wrap:break-word;}
 #fbDmChat .msg.mine .bub{background:#0ea5e9;color:#fff;border-color:#0ea5e9;}
 #fbDmChat .msg .tm{display:block;font-size:.65rem;opacity:.7;margin-top:2px;}
+#fbDmChat .dm-ticks{font-weight:700;margin-left:4px;}
+#fbDmChat .dm-ticks.sent,#fbDmChat .dm-ticks.delivered{color:#cbd5e1;}
+#fbDmChat .dm-ticks.read{color:#25d366;}
+#fbDmChat .msg.mine .dm-ticks.sent,#fbDmChat .msg.mine .dm-ticks.delivered{color:#e2e8f0;}
 #fbDmChat form{display:flex;gap:6px;padding:8px;border-top:1px solid #e2e8f0;background:#fff;}
 #fbDmChat form input{flex:1;border:1px solid #cbd5e1;border-radius:18px;padding:6px 12px;font-size:.88rem;}
 #fbDmChat form button{border:0;background:#0ea5e9;color:#fff;border-radius:50%;width:34px;height:34px;cursor:pointer;}
@@ -197,14 +201,29 @@ $__onDmPage = (basename($__self) === 'dm.php');
     fetch('/api_dm.php?peer='+currentPeer+'&since='+lastId, {credentials:'same-origin'}).then(function(r){return r.text();}).then(function(txt){
       var d; try{ d = JSON.parse(txt); }catch(e){ return; }
       var rows = (d && d.messages) || [];
+      var statuses = (d && d.statuses) || [];
       if (lastId === 0) chatBody.innerHTML = '';
       var atBottom = (chatBody.scrollTop + chatBody.clientHeight) >= (chatBody.scrollHeight - 60);
       rows.forEach(function(m){
         if (m.id <= lastId) return;
         lastId = Math.max(lastId, parseInt(m.id,10));
         var mine = parseInt(m.sender_id,10) === MY_ID;
-        var html = '<div class="msg '+(mine?'mine':'')+'"><div class="bub">'+esc(m.pesan)+'<span class="tm">'+fmtTime(m.created_at)+'</span></div></div>';
+        var ticks = '';
+        if (mine) {
+          if (m.read_at)        ticks = ' <span class="dm-ticks read" data-msg="'+m.id+'" title="Dibaca">✓✓</span>';
+          else if (m.delivered_at) ticks = ' <span class="dm-ticks delivered" data-msg="'+m.id+'" title="Terkirim">✓✓</span>';
+          else                  ticks = ' <span class="dm-ticks sent" data-msg="'+m.id+'" title="Dikirim">✓</span>';
+        }
+        var html = '<div class="msg '+(mine?'mine':'')+'" data-id="'+m.id+'"><div class="bub">'+esc(m.pesan)+'<span class="tm">'+fmtTime(m.created_at)+ticks+'</span></div></div>';
         chatBody.insertAdjacentHTML('beforeend', html);
+      });
+      // Update tick statuses pesan saya (yang sudah ditampilkan sebelumnya)
+      statuses.forEach(function(s){
+        var el = chatBody.querySelector('.dm-ticks[data-msg="'+s.id+'"]');
+        if (!el) return;
+        if (s.read_at){ el.textContent='✓✓'; el.className='dm-ticks read'; el.title='Dibaca'; el.dataset.msg=s.id; }
+        else if (s.delivered_at){ el.textContent='✓✓'; el.className='dm-ticks delivered'; el.title='Terkirim'; el.dataset.msg=s.id; }
+        else { el.textContent='✓'; el.className='dm-ticks sent'; el.title='Dikirim'; el.dataset.msg=s.id; }
       });
       if (atBottom) chatBody.scrollTop = chatBody.scrollHeight;
     }).catch(function(){});

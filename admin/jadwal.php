@@ -54,7 +54,8 @@ $jenisRows = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 $jenisList = array_column($jenisRows, 'nama');
 if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya']; $jenisRows = []; }
 $tempatList = db_all("SELECT id,nama,jenis_id FROM tempat ORDER BY nama");
-include __DIR__.'/../includes/header.php'; ?>
+require_once __DIR__.'/../includes/header.php';
+?>
 
 <h2 class="mb-3"><i class="bi bi-calendar-event text-primary"></i> Manajemen Jadwal</h2>
 
