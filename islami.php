@@ -139,8 +139,8 @@ include __DIR__.'/includes/header.php';
       </table>
     </div>
     <div class="p-3 small text-muted border-top">
-      <strong>Ringkasan rawatib muakkad (12 rakaat sehari):</strong>
-      2 sebelum Subuh · 4 sebelum & 2 sesudah Zhuhur · 2 sesudah Maghrib · 2 sesudah Isya.
+      <strong>Ringkasan rawatib muakkad:</strong>
+      2 sebelum Subuh · 4 sebelum & 2 sesudah Zhuhur.
       Nabi ﷺ bersabda: "Barangsiapa shalat 12 rakaat dalam sehari semalam, Allah bangunkan baginya rumah di surga." (HR. Muslim)
     </div>
   </div>

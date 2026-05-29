@@ -20,9 +20,9 @@ $SHALAT_TATA_CARA = [
   ],
   [
     'judul' => '3. Doa Iftitah',
-    'arab'  => 'سُبْحَانَكَ اللَّهُمَّ وَبِحَمْدِكَ وَتَبَارَكَ اسْمُكَ وَتَعَالَى جَدُّكَ وَلَا إِلَهَ غَيْرُكَ',
-    'latin' => 'Subhānaka Allāhumma wa bihamdika, wa tabārakasmuka, wa ta‘ālā jadduka, wa lā ilāha ghairuka.',
-    'arti'  => 'Maha Suci Engkau ya Allah, segala puji bagi-Mu, Maha Berkah nama-Mu, Maha Tinggi keagungan-Mu, dan tiada Ilah selain Engkau.',
+    'arab'  => 'اللَّهُ أَكْبَرُ كَبِيرًا، وَالْحَمْدُ لِلَّهِ كَثِيرًا، وَسُبْحَانَ اللَّهِ بُكْرَةً وَأَصِيلًا. إِنِّي وَجَّهْتُ وَجْهِيَ لِلَّذِي فَطَرَ السَّمَاوَاتِ وَالْأَرْضَ حَنِيفًا مُسْلِمًا وَمَا أَنَا مِنَ الْمُشْرِكِينَ. إِنَّ صَلَاتِي وَنُسُكِي وَمَحْيَايَ وَمَمَاتِي لِلَّهِ رَبِّ الْعَالَمِينَ. لَا شَرِيكَ لَهُ وَبِذَلِكَ أُمِرْتُ وَأَنَا مِنَ الْمُسْلِمِينَ',
+    'latin' => 'Allāhu akbar kabīrā, wal-hamdu lillāhi katsīrā, wa subhānallāhi bukratan wa ashīlā. Innī wajjahtu wajhiya lilladzī fatharas-samāwāti wal-ardha hanīfan musliman wa mā ana minal-musyrikīn. Inna shalātī wa nusukī wa mahyāya wa mamātī lillāhi rabbil-‘ālamīn. Lā syarīka lahu wa bidzālika umirtu wa ana minal-muslimīn.',
+    'arti'  => 'Allah Maha Besar dengan sebesar-besarnya. Segala puji yang banyak bagi Allah. Maha Suci Allah pada waktu pagi dan petang. Sungguh aku hadapkan wajahku kepada Dzat yang menciptakan langit dan bumi dalam keadaan lurus lagi berserah diri, dan aku bukanlah termasuk orang-orang musyrik. Sesungguhnya shalatku, ibadahku, hidupku, dan matiku hanyalah untuk Allah, Tuhan semesta alam. Tiada sekutu bagi-Nya. Dengan itulah aku diperintahkan, dan aku termasuk orang-orang yang berserah diri (muslim).',
   ],
   [
     'judul' => '4. Al-Fatihah',
@@ -84,6 +84,6 @@ $SHALAT_RAWATIB = [
   ['waktu'=>'Subuh',   'qabliyah'=>'2 rakaat (muakkad — sangat ditekankan)', 'badiyah'=>'—',                                              'catatan'=>'Sabda Nabi ﷺ: "Dua rakaat fajar lebih baik daripada dunia dan seisinya." (HR. Muslim)'],
   ['waktu'=>'Zhuhur',  'qabliyah'=>'2 atau 4 rakaat (muakkad)',              'badiyah'=>'2 rakaat (muakkad), bisa ditambah 2 rakaat',     'catatan'=>'Total muakkad sekitar Zhuhur: 4 sebelum + 2 sesudah.'],
   ['waktu'=>'Ashar',   'qabliyah'=>'2 atau 4 rakaat (ghairu muakkad)',       'badiyah'=>'—',                                              'catatan'=>'Sunnah ringan sebelum Ashar; tidak ada rawatib sesudahnya.'],
-  ['waktu'=>'Maghrib', 'qabliyah'=>'2 rakaat ringan (ghairu muakkad)',       'badiyah'=>'2 rakaat (muakkad)',                            'catatan'=>'Rawatib ba‘diyah Maghrib paling dianjurkan.'],
-  ['waktu'=>'Isya',    'qabliyah'=>'2 rakaat (ghairu muakkad)',              'badiyah'=>'2 rakaat (muakkad)',                            'catatan'=>'Ditutup dengan Witir 1/3 rakaat sebagai penutup malam.'],
+  ['waktu'=>'Maghrib', 'qabliyah'=>'2 rakaat ringan (ghairu muakkad)',       'badiyah'=>'—',                                              'catatan'=>'Setelah Maghrib langsung ke wirid/dzikir; rawatib ba‘diyah Maghrib tidak ditampilkan pada panduan ini.'],
+  ['waktu'=>'Isya',    'qabliyah'=>'2 rakaat (ghairu muakkad)',              'badiyah'=>'—',                                              'catatan'=>'Ditutup dengan Witir 1/3 rakaat sebagai penutup malam.'],
 ];

@@ -63,6 +63,52 @@ include __DIR__.'/includes/header.php';
           </div>
           <input type="text" id="kKeterangan" class="form-control form-control-sm mt-2" placeholder="Keterangan tambahan (opsional)">
         </div>
+
+        <!-- ====== HORMON GAIRAH SEKSUAL (anak muda / belum menikah) ====== -->
+        <div class="col-12 mt-3 border-top pt-3">
+          <label class="form-label small fw-semibold text-danger">
+            <i class="bi bi-fire"></i> Indikator Hormon Gairah Seksual (anjuran sunnah bagi yang belum menikah)
+          </label>
+          <p class="small text-muted mb-2">
+            Centang kondisi yang kamu alami akhir-akhir ini. Skor ini bersifat estimasi perilaku/psikologis untuk membantu evaluasi diri,
+            <strong>bukan pemeriksaan medis</strong>. Rekomendasi mengacu hadist:
+            <em>"Wahai para pemuda, siapa di antara kalian yang mampu menikah maka menikahlah… dan siapa yang belum mampu, hendaklah ia berpuasa, karena puasa itu perisai (peredam syahwat) baginya."</em> (HR. Bukhari &amp; Muslim).
+          </p>
+          <div class="row g-2 small">
+            <div class="col-md-4"><label class="small fw-semibold">Status pernikahan</label>
+              <select id="hStatus" class="form-select form-select-sm">
+                <option value="belum">Belum menikah</option>
+                <option value="sudah">Sudah menikah</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="small fw-semibold">Frekuensi olahraga / pekan</label>
+              <select id="hOlahraga" class="form-select form-select-sm">
+                <option value="0">Hampir tidak pernah</option>
+                <option value="1">1–2x</option>
+                <option value="2" selected>3–4x</option>
+                <option value="3">5x atau lebih</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="small fw-semibold">Puasa sunnah / pekan</label>
+              <select id="hShaum" class="form-select form-select-sm">
+                <option value="0" selected>Tidak ada</option>
+                <option value="1">1 hari (Senin/Kamis)</option>
+                <option value="2">2 hari (Senin &amp; Kamis)</option>
+                <option value="3">Lebih sering</option>
+              </select>
+            </div>
+          </div>
+          <div class="row g-1 small mt-1">
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h1" value="3"><label class="form-check-label" for="h1">Pikiran tentang hal seksual muncul hampir setiap hari</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h2" value="3"><label class="form-check-label" for="h2">Mimpi basah lebih dari 1x dalam seminggu</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h3" value="2"><label class="form-check-label" for="h3">Sulit menahan pandangan terhadap lawan jenis</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h4" value="2"><label class="form-check-label" for="h4">Mudah marah / gelisah / cepat tersulut emosi</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h5" value="3"><label class="form-check-label" for="h5">Sulit tidur karena dorongan / fantasi</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h6" value="3"><label class="form-check-label" for="h6">Sering terpapar konten dewasa / pornografi</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h7" value="2"><label class="form-check-label" for="h7">Konsumsi kafein/energi tinggi / kurang tidur</label></div></div>
+            <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h8" value="2"><label class="form-check-label" for="h8">Banyak waktu luang / sering sendirian</label></div></div>
+          </div>
+        </div>
         <div class="col-12 d-flex gap-2 mt-2">
           <button class="btn btn-primary"><i class="bi bi-calculator"></i> Hitung Skor Sehat</button>
           <button type="reset" class="btn btn-outline-secondary">Reset</button>
@@ -156,6 +202,57 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
   }
   if (keterangan) kesimpulan += '<div class="small text-muted mt-1"><i class="bi bi-pencil"></i> Catatan Anda: '+keterangan.replace(/[<>&]/g,'')+'</div>';
 
+  // ===== Kalkulasi Hormon Gairah Seksual =====
+  // Skor mentah: jumlah nilai checkbox yang dicentang (maks ~20).
+  // Modifier: usia muda (15–29) menaikkan skor, olahraga rutin & puasa sunnah menurunkan skor.
+  let hSkor = 0;
+  document.querySelectorAll('.k-hormon:checked').forEach(c => hSkor += (+c.value || 0));
+  const hStatus  = document.getElementById('hStatus').value;
+  const hOlahraga = +document.getElementById('hOlahraga').value;
+  const hShaum   = +document.getElementById('hShaum').value;
+  if (umur >= 15 && umur <= 24) hSkor += 4;
+  else if (umur >= 25 && umur <= 29) hSkor += 2;
+  else if (umur >= 30 && umur <= 39) hSkor += 1;
+  if (jk === 'L') hSkor += 1; // testosteron laki-laki cenderung lebih tinggi
+  hSkor -= hOlahraga; // tiap level olahraga -1
+  hSkor -= hShaum;    // tiap level shaum -1
+  if (hSkor < 0) hSkor = 0;
+  // Normalisasi ke 0–100
+  const hMax = 25; // estimasi skor maksimum praktis
+  const hPersen = Math.min(100, Math.round((hSkor / hMax) * 100));
+
+  let hLevel, hCol, hRekom;
+  if (hStatus === 'sudah') {
+    hLevel = 'Tidak relevan (sudah menikah)';
+    hCol = 'success';
+    hRekom = 'Salurkan dengan jalan yang halal bersama pasangan. Tetap jaga olahraga rutin dan pola tidur agar hormon stabil.';
+  } else if (hPersen < 35) {
+    hLevel = 'Aman / terkendali';
+    hCol = 'success';
+    hRekom = 'Hormonmu masih dalam tahap aman, belum mencapai titik maksimal. Pertahankan olahraga, tidur cukup, dan jaga pandangan.';
+  } else if (hPersen < 65) {
+    hLevel = 'Mulai meningkat';
+    hCol = 'warning';
+    hRekom = 'Mulai naik. Perbanyak olahraga (kardio 3–5x/pekan), kurangi paparan konten dewasa, dan biasakan tidur cukup. Sebagai tambahan, mulai latih puasa Senin–Kamis.';
+  } else if (hPersen < 85) {
+    hLevel = 'Berlebih';
+    hCol = 'danger';
+    hRekom = 'Hormon cenderung berlebih. <strong>Sangat dianjurkan berpuasa sunnah (Senin–Kamis / Daud)</strong> sebagai perisai sesuai hadist, dibarengi olahraga rutin, menjaga pandangan, dan menjauhi pemicu (konten dewasa, waktu luang sendirian).';
+  } else {
+    hLevel = 'Sangat berlebih (titik maksimal)';
+    hCol = 'danger';
+    hRekom = 'Berada di titik maksimal. <strong>Wajib mengambil langkah serius: rutinkan shaum (Senin–Kamis atau Daud), olahraga harian, batasi gadget, perbanyak ibadah malam, dan jika sudah mampu — segera menikah</strong> sesuai anjuran Nabi ﷺ.';
+  }
+
+  const hormonHtml = `
+    <div class="card card-stat border-${hCol}"><div class="card-body">
+      <div class="stat-label"><i class="bi bi-fire text-${hCol}"></i> Indeks Hormon Gairah Seksual</div>
+      <div class="stat-value text-${hCol}">${hPersen}/100 <small class="text-muted">(${hLevel})</small></div>
+      <div class="progress mt-1" style="height:8px"><div class="progress-bar bg-${hCol}" style="width:${hPersen}%"></div></div>
+      <div class="small mt-2"><strong>Rekomendasi sunnah:</strong> ${hRekom}</div>
+      <div class="small text-muted mt-1"><em>Catatan: indikator ini estimasi perilaku, bukan pengukuran kadar testosteron secara medis.</em></div>
+    </div></div>`;
+
   document.getElementById('kHasil').innerHTML = `
     <div class="row g-2">
       <div class="col-6"><div class="card card-stat"><div class="card-body"><div class="stat-label">BMI</div><div class="stat-value">${bmi.toFixed(1)} <small class="text-${col}">(${cat})</small></div></div></div></div>
@@ -163,6 +260,7 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
       <div class="col-6"><div class="card card-stat"><div class="card-body"><div class="stat-label">Berat Ideal</div><div class="stat-value">${ideal?ideal.toFixed(1)+' kg':'—'}</div></div></div></div>
       <div class="col-6"><div class="card card-stat"><div class="card-body"><div class="stat-label">BMR (kalori/hari)</div><div class="stat-value">${bmr?Math.round(bmr):'—'}</div></div></div></div>
       <div class="col-12"><div class="alert alert-${col} mb-0 small"><i class="bi bi-lightbulb"></i> ${tip}</div></div>
+      <div class="col-12">${hormonHtml}</div>
       <div class="col-12"><h6 class="mt-2 mb-1"><i class="bi bi-clipboard2-heart text-danger"></i> Kesimpulan Riwayat Penyakit</h6>${kesimpulan}</div>
     </div>`;
 });

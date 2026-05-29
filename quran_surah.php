@@ -220,7 +220,7 @@ $ayatTo   = min($totalAyat, $page*$perPage);
 
   try {
     // === Sumber data ===
-    // 1) equran.id v2: ayat Arab + terjemah Indonesia + tafsir Kemenag (Bahasa Indonesia)
+    // 1) equran.id v2: ayat Arab + terjemah Indonesia (TIDAK dipakai untuk tafsir)
     // 2) quran.com v4: per-kata + terjemah per-kata Bahasa Indonesia (?language=id)
     // 3) spa5k/tafsir_api (CDN jsDelivr): Tafsir Ibnu Katsir Bahasa Indonesia
     var [rSurah, rWords] = await Promise.all([
@@ -289,51 +289,34 @@ $ayatTo   = min($totalAyat, $page*$perPage);
     }
     container.innerHTML = html;
 
-    // Cache tafsir Kemenag (id) untuk seluruh surah, dipakai fallback Indonesia
-    var kemenagAll = null;
-    async function getKemenag(no){
-      if (!kemenagAll) {
-        var k = await fetchJSON('https://equran.id/api/v2/tafsir/' + s);
-        kemenagAll = (k && k.data && k.data.tafsir) || [];
-      }
-      var t = kemenagAll.find(function(x){ return x.ayat === no; });
-      return t ? t.teks : '';
-    }
-
+    // REVISI: hanya pakai Tafsir Ibnu Katsir (Bahasa Indonesia) dari spa5k/tafsir_api.
+    // Tafsir Kemenag tidak digunakan lagi.
     var tafsirCache = {};
     async function loadTafsir(no){
       if (tafsirCache[no]) return tafsirCache[no];
-      // Sumber Ibnu Katsir Bahasa Indonesia (spa5k tafsir_api)
       var base = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir';
+      // Endpoint utama: id-tafisr-ibn-kathir (ejaan asli repo spa5k)
       var ik = await fetchJSON(base + '/id-tafisr-ibn-kathir/' + s + '/' + no + '.json');
-      var ibnuId = (ik && ik.text) || '';
-      // Fallback: Kemenag (Bahasa Indonesia) bila Ibnu Katsir ID belum tersedia untuk ayat ini
-      var kemen = await getKemenag(no);
-      tafsirCache[no] = {
-        ibnu_id: ibnuId,
-        kemenag: kemen
-      };
+      // Fallback ejaan alternatif kalau endpoint utama gagal
+      if (!ik || !ik.text) {
+        ik = await fetchJSON(base + '/id-tafsir-ibn-kathir/' + s + '/' + no + '.json');
+      }
+      tafsirCache[no] = { ibnu_id: (ik && ik.text) || '' };
       return tafsirCache[no];
     }
 
     function renderTafsir(d){
-      var html = '';
+      var html = '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>';
       if (d.ibnu_id) {
-        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
-                '<div class="tafsir-body mt-2">'+formatTafsir(d.ibnu_id)+'</div>';
-      } else if (d.kemenag) {
-        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
-                '<div class="small text-muted mb-1"><em>Tafsir Ibnu Katsir belum tersedia untuk ayat ini — menampilkan Tafsir Kemenag RI (Bahasa Indonesia) sebagai pengganti.</em></div>'+
-                '<div class="tafsir-body">'+formatTafsir(d.kemenag)+'</div>';
+        html += '<div class="tafsir-body mt-2">'+formatTafsir(d.ibnu_id)+'</div>';
       } else {
-        html += '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>'+
-                '<div class="small text-muted mt-1">Tafsir belum tersedia untuk ayat ini.</div>';
+        html += '<div class="small text-muted mt-1">Tafsir Ibnu Katsir belum tersedia untuk ayat ini.</div>';
       }
       return html;
     }
 
     function renderMakna(d, teksIndonesia){
-      var src = rabbify(d.ibnu_id || d.kemenag || teksIndonesia || '');
+      var src = rabbify(d.ibnu_id || teksIndonesia || '');
       src = stripTags(src);
       if (!src) return '<span class="text-muted">Makna belum tersedia.</span>';
       var sentences = src.split(/(?<=[\.\!\?])\s+/).slice(0, 3).join(' ');

@@ -218,22 +218,27 @@ if ($u) {
      FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1"
   );
   $isPic = (int) db_val("SELECT COUNT(*) FROM users WHERE pic_admin_id=$1", [(int)$u['id']]);
-  // REVISI: Admin selalu bisa melihat daftar member PIC-nya (atau fallback semua member kalau belum ada)
+  // REVISI: Admin selalu bisa melihat daftar member yang menjadikan dia sebagai PIC.
+  // Nomor WhatsApp diambil dari kolom 'nomor_wa' jika ada, jika tidak ambil dari kolom 'wa'
+  // (kolom WA pada manajemen member). Dengan begitu data WA member tetap muncul untuk PIC.
   $isPicAdmin = ($u['role'] === 'admin') || ($isPic > 0);
   if ($isPicAdmin) {
     $kabariKawan = db_all(
-      "SELECT id, nama, foto_url, nomor_wa FROM users
+      "SELECT id, nama, foto_url, COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) AS nomor_wa
+       FROM users
        WHERE pic_admin_id = $1
          AND role = 'member'
-         AND nomor_wa IS NOT NULL AND nomor_wa <> ''
+         AND COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) IS NOT NULL
        ORDER BY nama LIMIT 100",
       [(int)$u['id']]
     );
     // Fallback admin: jika belum ada member ber-PIC, tampilkan semua member dengan nomor WA
     if ($u['role'] === 'admin' && !$kabariKawan) {
       $kabariKawan = db_all(
-        "SELECT id, nama, foto_url, nomor_wa FROM users
-         WHERE role = 'member' AND nomor_wa IS NOT NULL AND nomor_wa <> ''
+        "SELECT id, nama, foto_url, COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) AS nomor_wa
+         FROM users
+         WHERE role = 'member'
+           AND COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) IS NOT NULL
          ORDER BY nama LIMIT 100"
       );
     }
