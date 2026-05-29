@@ -424,14 +424,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <!-- FITUR BARU: Video Terbaru (Berita & Podcast) -->
+    <!-- FITUR BARU: Video Terbaru (Berita IPTV Indonesia) -->
     <div class="col-6 col-md-3">
       <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#videoTerbaruModal">
         <div class="card h-100 shadow-sm border-0">
           <div class="card-body text-center">
             <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-collection-play fs-4"></i></div>
             <div class="fw-semibold">Video Terbaru</div>
-            <div class="small text-muted">Berita &amp; Podcast · YouTube</div>
+            <div class="small text-muted">Berita IPTV · Indonesia</div>
           </div>
         </div>
       </a>
@@ -440,38 +440,24 @@ document.addEventListener('DOMContentLoaded', () => {
 </section>
 <!-- ============ /Info & Wawasan ============ -->
 
-<!-- ============ Modal: Video Terbaru (Berita IPTV & Podcast YT) ============ -->
+<!-- ============ Modal: Video Terbaru (Berita IPTV — Indonesia) ============ -->
 <?php
-  // === Podcast: YouTube uploads playlist (UU + sisa channel ID) ===
-  $PODCAST_SOURCES = [
-    ['nama'=>'Deddy Corbuzier',        'cid'=>'UCFK1Aj1HpyOpDfeOlPnVRRA'],
-    ['nama'=>'Endgame (Gita Wirjawan)','cid'=>'UCx0_M61F81Nfb-BRXE-SeVA'],
-    ['nama'=>'Total Politik',          'cid'=>'UCcQTuRUg-mZmKjyKwI9SXLA'],
-    ['nama'=>'Thirty Days of Lunch',   'cid'=>'UCAR7crj_88_Tn02FJZ8NvOQ'],
-    ['nama'=>'Raditya Dika',           'cid'=>'UCq5XCxhgcSCKr_8c7jHHgxg'],
-    ['nama'=>'Vindes',                 'cid'=>'UC-A1vmpzs5KK_OhCqXEHnUw'],
-  ];
-  if (!function_exists('vt_uploads_id')) {
-    function vt_uploads_id($cid){ return (strpos($cid,'UC')===0) ? ('UU'.substr($cid,2)) : $cid; }
-  }
-
-  // === Berita: IPTV stream dari iptv-org/iptv (kategori news) ===
-  // Sumber playlist publik: https://iptv-org.github.io/iptv/categories/news.m3u
+  // === Berita: IPTV stream dari iptv-org/iptv (Indonesia saja) ===
+  // Sumber playlist publik: https://iptv-org.github.io/iptv/countries/id.m3u
   // Cache 6 jam ke sys temp dir agar tidak fetch tiap request.
   if (!function_exists('iptv_fetch_news')) {
     function iptv_fetch_news() {
-      $cacheFile = sys_get_temp_dir().'/iptv_news_cache.json';
+      $cacheFile = sys_get_temp_dir().'/iptv_id_cache.json';
       if (is_file($cacheFile) && (time()-filemtime($cacheFile) < 21600)) {
         $j = json_decode(@file_get_contents($cacheFile), true);
         if (is_array($j) && count($j)) return $j;
       }
-      $url = 'https://iptv-org.github.io/iptv/categories/news.m3u';
+      $url = 'https://iptv-org.github.io/iptv/countries/id.m3u';
       $ctx = stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0'],'ssl'=>['verify_peer'=>false,'verify_peer_name'=>false]]);
       $raw = @file_get_contents($url, false, $ctx);
       $items = [];
       if ($raw) {
-        $lines = preg_split('/?
-/', $raw);
+        $lines = preg_split('/\r?\n/', $raw);
         $cur = null;
         foreach ($lines as $ln) {
           if (strpos($ln, '#EXTINF') === 0) {
@@ -492,42 +478,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   $IPTV_NEWS = iptv_fetch_news();
-  // Urutkan: channel Indonesia / English dulu, batasi 60 untuk performa UI.
-  usort($IPTV_NEWS, function($a,$b){
-    $sa = (stripos($a['grup'],'News')!==false?0:1);
-    $sb = (stripos($b['grup'],'News')!==false?0:1);
-    if ($sa!==$sb) return $sa-$sb;
-    return strcasecmp($a['nama'],$b['nama']);
-  });
-  $IPTV_NEWS = array_slice($IPTV_NEWS, 0, 60);
+  // Urutkan alfabetis berdasarkan nama channel, batasi 80 untuk performa UI.
+  usort($IPTV_NEWS, function($a,$b){ return strcasecmp($a['nama'],$b['nama']); });
+  $IPTV_NEWS = array_slice($IPTV_NEWS, 0, 80);
 ?>
 <div class="modal fade" id="videoTerbaruModal" tabindex="-1" aria-labelledby="videoTerbaruLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="videoTerbaruLabel"><i class="bi bi-collection-play text-danger"></i> Video Terbaru — Berita (IPTV) &amp; Podcast</h5>
+        <h5 class="modal-title" id="videoTerbaruLabel"><i class="bi bi-collection-play text-danger"></i> Video Terbaru — Berita IPTV (Indonesia)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
-        <ul class="nav nav-pills mb-3" id="vtTab" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="vt-berita-tab" data-bs-toggle="pill" data-bs-target="#vt-berita" type="button" role="tab">
-              <i class="bi bi-newspaper"></i> Berita (IPTV)
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="vt-podcast-tab" data-bs-toggle="pill" data-bs-target="#vt-podcast" type="button" role="tab">
-              <i class="bi bi-mic"></i> Podcast Terbaru
-            </button>
-          </li>
-        </ul>
-
         <div class="tab-content">
           <!-- ===== Berita (IPTV) ===== -->
-          <div class="tab-pane fade show active" id="vt-berita" role="tabpanel">
+          <div id="vt-berita">
             <?php if (empty($IPTV_NEWS)): ?>
               <div class="alert alert-warning small mb-2">
-                Gagal memuat daftar channel IPTV. Pastikan server bisa mengakses
+                Gagal memuat daftar channel IPTV Indonesia. Pastikan server bisa mengakses
                 <code>iptv-org.github.io</code>. Coba muat ulang halaman.
               </div>
             <?php else: ?>
@@ -547,41 +515,16 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <p class="small text-muted mt-2 mb-0">
                 <i class="bi bi-info-circle"></i> Sedang menonton: <strong id="iptvNow"><?= htmlspecialchars($IPTV_NEWS[0]['nama']) ?></strong>.
-                Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a> (kategori <em>news</em>).
+                Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a> (negara <em>Indonesia</em>).
                 Beberapa stream mungkin offline / geo-block.
               </p>
             <?php endif; ?>
           </div>
 
-          <!-- ===== Podcast (YouTube uploads playlist) ===== -->
-          <div class="tab-pane fade" id="vt-podcast" role="tabpanel">
-            <div class="d-flex flex-wrap gap-2 mb-3">
-              <?php foreach ($PODCAST_SOURCES as $i => $src): ?>
-                <button type="button"
-                        class="btn btn-sm <?= $i===0?'btn-danger':'btn-outline-secondary' ?> vt-src-btn"
-                        data-target="vt-frame-podcast"
-                        data-pid="<?= htmlspecialchars(vt_uploads_id($src['cid'])) ?>"
-                        data-group="vt-grp-podcast">
-                  <?= htmlspecialchars($src['nama']) ?>
-                </button>
-              <?php endforeach; ?>
-            </div>
-            <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
-              <iframe id="vt-frame-podcast"
-                      src="https://www.youtube-nocookie.com/embed/videoseries?list=<?= htmlspecialchars(vt_uploads_id($PODCAST_SOURCES[0]['cid'])) ?>&autoplay=0&modestbranding=1&rel=0"
-                      title="Podcast terbaru"
-                      allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                      referrerpolicy="strict-origin-when-cross-origin"
-                      allowfullscreen loading="lazy"></iframe>
-            </div>
-            <p class="small text-muted mt-2 mb-0">
-              <i class="bi bi-info-circle"></i> Daftar putar menampilkan unggahan terbaru dari channel. Tekan tombol untuk pindah sumber.
-            </p>
-          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <span class="small text-muted me-auto">Berita: IPTV (iptv-org) · Podcast: YouTube uploads playlist</span>
+        <span class="small text-muted me-auto">Berita: IPTV (iptv-org) — channel Indonesia</span>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
       </div>
     </div>
@@ -591,25 +534,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script>
 (function(){
-  // ---- Podcast YouTube switcher ----
-  document.querySelectorAll('.vt-src-btn').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var pid    = this.getAttribute('data-pid');
-      var target = document.getElementById(this.getAttribute('data-target'));
-      var group  = this.getAttribute('data-group');
-      if (!target || !pid) return;
-      target.src = 'https://www.youtube-nocookie.com/embed/videoseries?list='
-                 + encodeURIComponent(pid)
-                 + '&autoplay=1&mute=1&modestbranding=1&rel=0';
-      document.querySelectorAll('.vt-src-btn').forEach(function(b){
-        if (b.getAttribute('data-group') === group) {
-          b.classList.remove('btn-danger'); b.classList.add('btn-outline-secondary');
-        }
-      });
-      this.classList.remove('btn-outline-secondary'); this.classList.add('btn-danger');
-    });
-  });
-
   // ---- IPTV HLS player ----
   var video = document.getElementById('iptvPlayer');
   var nowEl = document.getElementById('iptvNow');
@@ -655,9 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     modal.addEventListener('hidden.bs.modal', function(){
-      // Stop podcast iframe
-      var f = document.getElementById('vt-frame-podcast');
-      if (f) { var s = f.src; f.src = ''; f.src = s.replace('autoplay=1','autoplay=0'); }
       // Stop HLS
       if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
       if (video) { try { video.pause(); video.removeAttribute('src'); video.load(); } catch(e){} }
@@ -668,37 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <!-- ============ /Modal Video Terbaru ============ -->
 
-<!-- ============ TV Streaming Online (revisi 30 Mei 2026 — single channel) ============ -->
-<section class="mb-3">
-  <div class="d-flex align-items-center justify-content-between mb-2">
-    <h2 class="h5 mb-0"><i class="bi bi-tv text-danger"></i> Nonton Streaming Live</h2>
-    <small class="text-muted">Live dari YouTube</small>
-  </div>
-  <p class="small text-muted mb-2">
-    Siaran live langsung dari channel YouTube resmi. Klik tombol unmute di player jika suara mati.
-  </p>
-  <?php $LIVE_CID = 'UC4R8DWoMoI7CAwX8_LjQHig'; ?>
-  <div class="card shadow-sm">
-    <div class="ratio ratio-16x9 bg-dark">
-      <iframe id="liveYTFrame"
-              src="https://www.youtube-nocookie.com/embed/live_stream?channel=<?= htmlspecialchars($LIVE_CID) ?>&autoplay=1&mute=1&playsinline=1&modestbranding=1&rel=0"
-              title="Siaran Live"
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              referrerpolicy="strict-origin-when-cross-origin"
-              allowfullscreen loading="lazy"></iframe>
-    </div>
-    <div class="card-footer small text-muted d-flex flex-wrap gap-2 align-items-center">
-      <span><i class="bi bi-info-circle"></i> Jika layar gelap, channel mungkin sedang offline.</span>
-      <a href="https://www.youtube.com/channel/<?= htmlspecialchars($LIVE_CID) ?>/live" target="_blank" rel="noopener" class="ms-auto btn btn-sm btn-outline-danger"><i class="bi bi-youtube"></i> Buka Live di YouTube</a>
-    </div>
-  </div>
-</section>
-<!-- ============ /TV Streaming Online ============ -->
-
-
-
-
-
+<!-- Section "Nonton Streaming Live" dihapus sesuai revisi. -->
 
 <?php if($u): ?>
 <button id="btnEnableNotif" class="btn btn-sm btn-outline-primary mb-3" type="button">
