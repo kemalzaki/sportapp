@@ -13,10 +13,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='edit') {
         $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
         $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
+        $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
         db_exec("UPDATE tempat SET nama=$1, alamat=$2, harga_lapang=$3, harga_per_jam=$4,
                    harga_tiket=$5, harga_parkir=$6, status_booking=$7, catatan=$8,
-                   pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13
-                 WHERE id=$14",
+                   pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13, tampil_booking=$14
+                 WHERE id=$15",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -24,13 +25,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null,
-             $lat, $lng,
+             $lat, $lng, $tampil,
              (int)$_POST['id']]);
+    } elseif ($a==='toggle_booking') {
+        db_exec("UPDATE tempat SET tampil_booking = NOT tampil_booking WHERE id=$1", [(int)$_POST['id']]);
     } else {
         $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
         $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
-        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+        $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
+        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -38,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null,
-             $lat, $lng]);
+             $lat, $lng, $tampil]);
     }
     header('Location: tempat.php'); exit;
 }
@@ -113,7 +117,11 @@ include __DIR__.'/../includes/header.php'; ?>
       <select class="form-select" name="status_booking">
         <?php foreach($statuses as $s): ?><option><?= $s ?></option><?php endforeach; ?>
       </select></div>
-    <div class="col-md-9"><label class="form-label small fw-semibold">Catatan</label><input class="form-control" name="catatan" placeholder="cth: butuh DP, jam buka, dll"></div>
+    <div class="col-md-6"><label class="form-label small fw-semibold">Catatan</label><input class="form-control" name="catatan" placeholder="cth: butuh DP, jam buka, dll"></div>
+    <div class="col-md-3 d-flex align-items-end"><div class="form-check">
+      <input class="form-check-input" type="checkbox" name="tampil_booking" id="newTampil" value="1">
+      <label class="form-check-label small fw-semibold" for="newTampil"><i class="bi bi-calendar2-check text-primary"></i> Tampilkan di Booking</label>
+    </div></div>
 
     <!-- Lat/Lng + Map Picker -->
     <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Latitude</label>
@@ -224,6 +232,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <th class="text-end"><?= sort_link('harga_tiket','Tiket',$sort,$dir) ?></th>
     <th class="text-end"><?= sort_link('harga_parkir','Parkir',$sort,$dir) ?></th>
     <th><?= sort_link('status','Status',$sort,$dir) ?></th>
+    <th class="text-center">Booking</th>
     <th class="text-end">Aksi</th>
   </tr></thead><tbody>
   <?php foreach($rows as $i=>$r):
@@ -253,6 +262,15 @@ document.addEventListener('DOMContentLoaded', function(){
         <?php $st=$r['status_booking']; $cls=$st==='tersedia'?'success':($st==='booked'?'warning':'secondary'); ?>
         <span class="badge bg-<?= $cls ?>"><?= htmlspecialchars($st) ?></span>
       </td>
+      <td class="text-center">
+        <?php $tampil = ($r['tampil_booking']==='t' || $r['tampil_booking']===true || $r['tampil_booking']==='1'); ?>
+        <form method="post" class="d-inline">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="toggle_booking"><input type="hidden" name="id" value="<?= $r['id'] ?>">
+          <button class="btn btn-sm <?= $tampil?'btn-success':'btn-outline-secondary' ?>" title="<?= $tampil?'Tampil di Booking (klik untuk sembunyikan)':'Disembunyikan (klik untuk tampilkan)' ?>">
+            <i class="bi bi-<?= $tampil?'calendar2-check':'calendar2-x' ?>"></i> <?= $tampil?'Ya':'Tidak' ?>
+          </button>
+        </form>
+      </td>
       <td class="text-end text-nowrap">
         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tpE<?= $r['id'] ?>"><i class="bi bi-pencil"></i></button>
         <form method="post" class="d-inline" onsubmit="return confirm('Hapus tempat ini?')">
@@ -261,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </form>
       </td>
     </tr>
-  <?php endforeach; if(!$rows): ?><tr><td colspan="12" class="text-center text-muted py-3">Tidak ada tempat sesuai filter.</td></tr><?php endif; ?>
+  <?php endforeach; if(!$rows): ?><tr><td colspan="13" class="text-center text-muted py-3">Tidak ada tempat sesuai filter.</td></tr><?php endif; ?>
   </tbody></table></div></div>
 
 <?php foreach($rows as $r): ?>
@@ -292,7 +310,12 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="col-md-3"><label class="form-label small fw-semibold">Harga / Jam</label><input type="number" step="0.01" min="0" class="form-control" name="harga_per_jam" value="<?= htmlspecialchars($r['harga_per_jam']) ?>"></div>
       <div class="col-md-3"><label class="form-label small fw-semibold">Harga Tiket</label><input type="number" step="0.01" min="0" class="form-control" name="harga_tiket" value="<?= htmlspecialchars($r['harga_tiket'] ?? 0) ?>"></div>
       <div class="col-md-3"><label class="form-label small fw-semibold">Harga Parkir</label><input type="number" step="0.01" min="0" class="form-control" name="harga_parkir" value="<?= htmlspecialchars($r['harga_parkir'] ?? 0) ?>"></div>
-      <div class="col-12"><label class="form-label small fw-semibold">Catatan</label><textarea class="form-control" name="catatan" rows="2"><?= htmlspecialchars($r['catatan'] ?? '') ?></textarea></div>
+      <div class="col-md-8"><label class="form-label small fw-semibold">Catatan</label><textarea class="form-control" name="catatan" rows="2"><?= htmlspecialchars($r['catatan'] ?? '') ?></textarea></div>
+      <div class="col-md-4 d-flex align-items-end"><div class="form-check">
+        <?php $tampilE = ($r['tampil_booking']==='t' || $r['tampil_booking']===true || $r['tampil_booking']==='1'); ?>
+        <input class="form-check-input" type="checkbox" name="tampil_booking" id="editTampil<?= (int)$r['id'] ?>" value="1" <?= $tampilE?'checked':'' ?>>
+        <label class="form-check-label small fw-semibold" for="editTampil<?= (int)$r['id'] ?>"><i class="bi bi-calendar2-check text-primary"></i> Tampilkan di Booking</label>
+      </div></div>
 
       <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Latitude</label>
         <input class="form-control" name="lat" id="editLat<?= (int)$r['id'] ?>" value="<?= htmlspecialchars($r['lat'] ?? '') ?>" inputmode="decimal"></div>

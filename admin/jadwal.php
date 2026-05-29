@@ -55,7 +55,6 @@ $jenisList = array_column($jenisRows, 'nama');
 if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya']; $jenisRows = []; }
 $tempatList = db_all("SELECT id,nama,jenis_id FROM tempat ORDER BY nama");
 include __DIR__.'/../includes/header.php'; ?>
-include __DIR__.'/../includes/header.php'; ?>
 
 <h2 class="mb-3"><i class="bi bi-calendar-event text-primary"></i> Manajemen Jadwal</h2>
 
@@ -93,7 +92,7 @@ include __DIR__.'/../includes/header.php'; ?>
   </form>
 </div></div>
 
-<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
+<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0" data-paginate="5">
   <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jam</th><th>Bulan</th><th>W</th><th>Jenis</th><th>Tempat</th><th>Durasi</th><th>Koordinator</th><th class="text-end">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $i=>$r): ?>

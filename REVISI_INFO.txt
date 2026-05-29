@@ -1,0 +1,28 @@
+SPORTAPP — ARSIP REVISI (hanya halaman yang diubah)
+====================================================
+
+File di dalam zip ini (timpa file lama di proyek Anda dengan path yang sama):
+
+  upload.php          -> (1) Aktivitas Saya: pagination per 5 data
+  tempat.php          -> (2) Booking hanya menampilkan tempat yang ditandai "Tampil di Booking"
+  admin/tempat.php    -> (2) CRUD + tombol toggle "Tampil di Booking" (default: Badminton, Futsal, Biliar)
+  kalkulator.php      -> (3) Kesimpulan riwayat penyakit terdeteksi dari input/keluhan user
+  run.php             -> (4) Tombol "Lihat Rute" + peta riwayat rute
+  api_run.php         -> (4) Endpoint GET ?route=<id> untuk mengambil titik rute
+  dm.php              -> (5) Klik nama/foto user membuka profil (user.php) & (6) ceklis ala WhatsApp
+  admin/jadwal.php    -> (7) Tabel jadwal pagination per 5 data (+ perbaikan include ganda)
+  admin/qr_show.php   -> (8) Hapus QR Aktif
+  config/db.php       -> migrasi otomatis kolom tempat.tampil_booking
+  sportapp.sql        -> dump database + kolom baru (data lama TIDAK dihapus)
+
+PERUBAHAN POSTGRESQL YANG DIPERLUKAN
+------------------------------------
+Hanya 1 kolom baru. Sudah otomatis dibuat oleh config/db.php saat aplikasi diakses,
+DAN sudah ditambahkan di akhir sportapp.sql. Jika ingin jalankan manual:
+
+  ALTER TABLE tempat ADD COLUMN IF NOT EXISTS tampil_booking BOOLEAN NOT NULL DEFAULT false;
+  UPDATE tempat SET tampil_booking = true
+   WHERE jenis_id IN (SELECT id FROM jenis_olahraga WHERE nama IN ('Badminton','Futsal','Biliar','Biliard'));
+
+Catatan: ceklis WhatsApp (dm.php) memakai kolom delivered_at & read_at yang sudah ada
+di tabel dm_messages, jadi tidak perlu perubahan DB tambahan.

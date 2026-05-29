@@ -48,6 +48,9 @@ include __DIR__.'/includes/header.php';
             </div>
             <div class="d-flex flex-column align-items-end gap-1">
               <span class="small text-muted"><?= htmlspecialchars(date('d M H:i', strtotime($h['mulai_at']))) ?></span>
+              <button type="button" class="btn btn-sm btn-link p-0 run-route-btn" data-id="<?= (int)$h['id'] ?>" title="Lihat riwayat rute">
+                <i class="bi bi-map"></i> Lihat Rute
+              </button>
               <button type="button" class="btn btn-sm btn-link text-danger p-0 run-del-btn" data-id="<?= (int)$h['id'] ?>" title="Hapus riwayat ini">
                 <i class="bi bi-trash"></i> Hapus
               </button>
@@ -56,6 +59,23 @@ include __DIR__.'/includes/header.php';
         </div>
       <?php endforeach; ?>
     </div></div>
+  </div>
+</div>
+
+<!-- Modal Riwayat Rute -->
+<div class="modal fade" id="routeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-map text-danger"></i> Riwayat Rute Lari</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="routeInfo" class="small text-muted mb-2"></div>
+        <div id="routeMap" style="height:380px;border-radius:10px;border:1px solid #e5e7eb"></div>
+        <div id="routeEmpty" class="alert alert-info small mt-2 d-none mb-0">Tidak ada titik rute tersimpan untuk sesi ini.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -143,6 +163,43 @@ document.addEventListener('click', function(ev){
     if (d && d.ok) { var row = document.getElementById('run-row-'+id); if (row) row.remove(); }
     else { alert('Gagal menghapus.'); b.disabled = false; }
   }).catch(function(){ alert('Gagal menghapus.'); b.disabled = false; });
+});
+
+// ===== Lihat riwayat rute =====
+var routeModal=null, routeMapObj=null;
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest('.run-route-btn'); if(!b) return;
+  var id = b.getAttribute('data-id');
+  if (!routeModal) routeModal = new bootstrap.Modal(document.getElementById('routeModal'));
+  document.getElementById('routeInfo').textContent = 'Memuat rute…';
+  document.getElementById('routeEmpty').classList.add('d-none');
+  routeModal.show();
+  fetch('/api_run.php?route='+encodeURIComponent(id)).then(r=>r.json()).then(function(d){
+    setTimeout(function(){
+      if (!routeMapObj){
+        routeMapObj = L.map('routeMap').setView([-6.2,106.816666], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(routeMapObj);
+      }
+      routeMapObj.invalidateSize();
+      if (routeMapObj._routeLayer) { routeMapObj.removeLayer(routeMapObj._routeLayer); routeMapObj._routeLayer=null; }
+      if (!d || !d.ok || !d.points || !d.points.length){
+        document.getElementById('routeInfo').textContent = '';
+        document.getElementById('routeEmpty').classList.remove('d-none');
+        return;
+      }
+      var s = d.session || {};
+      document.getElementById('routeInfo').innerHTML =
+        '<strong>'+(((+s.jarak_m||0)/1000).toFixed(2))+' km</strong> · Durasi '+
+        (function(t){t=+s.durasi_dtk||0;var m=Math.floor(t/60),ss=t%60;return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;})()+
+        ' · '+(+s.kalori||0)+' kkal';
+      var grp = L.featureGroup();
+      var poly = L.polyline(d.points, {color:'#dc2626', weight:5}).addTo(grp);
+      L.marker(d.points[0]).bindTooltip('Start').addTo(grp);
+      L.marker(d.points[d.points.length-1]).bindTooltip('Finish').addTo(grp);
+      grp.addTo(routeMapObj); routeMapObj._routeLayer = grp;
+      routeMapObj.fitBounds(poly.getBounds(), {padding:[20,20]});
+    }, 200);
+  }).catch(function(){ document.getElementById('routeInfo').textContent='Gagal memuat rute.'; });
 });
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

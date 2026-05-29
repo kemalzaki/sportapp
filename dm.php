@@ -42,9 +42,11 @@ include __DIR__.'/includes/header.php';
 ?>
 <style>
 .dm-ticks{font-weight:700;letter-spacing:-1px;margin-left:4px;}
-.dm-ticks.sent{opacity:.85;}
-.dm-ticks.delivered{opacity:.95;}
-.dm-ticks.read{color:#34b7f1 !important;opacity:1;}
+.dm-ticks.sent{color:#9aa0a6 !important;opacity:1;}      /* ✓ abu — terkirim ke server, belum sampai */
+.dm-ticks.delivered{color:#9aa0a6 !important;opacity:1;} /* ✓✓ abu — sampai, belum dibaca */
+.dm-ticks.read{color:#25d366 !important;opacity:1;}      /* ✓✓ hijau — sudah dibaca (WhatsApp style) */
+.dm-peer-link{color:inherit;text-decoration:none;}
+.dm-peer-link:hover{text-decoration:underline;}
 </style>
 <div class="row g-3">
   <div class="col-md-4">
@@ -81,11 +83,14 @@ include __DIR__.'/includes/header.php';
     <?php else: ?>
       <div class="card shadow-sm h-100">
         <div class="card-header d-flex align-items-center gap-2">
-          <?= user_avatar($peer['foto_url'], $peer['nama'], 32) ?>
+          <a href="/user.php?id=<?= (int)$peer['id'] ?>" class="dm-peer-link"><?= user_avatar($peer['foto_url'], $peer['nama'], 32) ?></a>
           <div class="flex-grow-1">
-            <strong><?= htmlspecialchars($peer['nama']) ?></strong>
+            <a href="/user.php?id=<?= (int)$peer['id'] ?>" class="dm-peer-link" title="Lihat profil <?= htmlspecialchars($peer['nama']) ?>">
+              <strong><?= htmlspecialchars($peer['nama']) ?></strong>
+            </a>
             <div class="small text-muted" id="peerStatus"><span class="text-secondary">memuat status…</span></div>
           </div>
+          <a href="/user.php?id=<?= (int)$peer['id'] ?>" class="btn btn-sm btn-outline-primary" title="Lihat profil"><i class="bi bi-person-circle"></i></a>
         </div>
         <div id="dmBox" style="height:55vh;overflow:auto;padding:1rem;background:var(--bs-tertiary-bg,#f8fafc);"></div>
         <div class="card-footer">

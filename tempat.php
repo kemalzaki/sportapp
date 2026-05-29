@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header('Location: tempat.php'); exit;
 }
 
-$tempats = db_all("SELECT * FROM tempat ORDER BY nama");
+// Hanya tempat yang ditandai "tampil di booking" (default: Badminton, Futsal, Biliar)
+$tempats = db_all("SELECT * FROM tempat WHERE tampil_booking = true ORDER BY nama");
 $selected = (int)($_GET['tempat'] ?? ($tempats[0]['id'] ?? 0));
 $month = $_GET['m'] ?? date('Y-m');
 $first = strtotime("$month-01"); $daysIn = (int) date('t', $first); $startDow = (int) date('w', $first);

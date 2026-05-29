@@ -117,4 +117,12 @@ try {
     // === Quick absen event ===
     @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS status VARCHAR(12)");
     @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS keterangan TEXT");
+    // === Kontrol tempat yang tampil di halaman Booking Lapangan ===
+    $cekTampil = @pg_query(db(), "SELECT 1 FROM information_schema.columns WHERE table_name='tempat' AND column_name='tampil_booking'");
+    if ($cekTampil !== false && pg_num_rows($cekTampil) === 0) {
+        @pg_query(db(), "ALTER TABLE tempat ADD COLUMN tampil_booking BOOLEAN NOT NULL DEFAULT false");
+        // Default: tampilkan hanya jenis Badminton, Futsal, Biliar/Biliard
+        @pg_query(db(), "UPDATE tempat SET tampil_booking = true
+                         WHERE jenis_id IN (SELECT id FROM jenis_olahraga WHERE nama IN ('Badminton','Futsal','Biliar','Biliard'))");
+    }
 } catch (Throwable $e) { /* ignore */ }
