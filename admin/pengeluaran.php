@@ -6,7 +6,7 @@ require_role('admin');
 $pageTitle = 'Rekap Pengeluaran Kegiatan';
 
 /**
- * Revisi #8: upload bukti pengeluaran ke ImageKit.
+ * Revisi 1 Jun 2026 #8: upload bukti pengeluaran ke ImageKit.
  * Return ['url'=>, 'fileId'=>] atau null.
  */
 function peng_upload_imagekit($fileField, $namaPrefix) {
@@ -41,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $catatan   = trim($_POST['catatan'] ?? '');
     $bukti     = substr(trim($_POST['bukti_url'] ?? ''),0,500);
 
-    // === Revisi #8: kalau ada upload file, push ke ImageKit dan ganti URL bukti ===
     $upl = peng_upload_imagekit('bukti_file', $judul ?: 'bukti');
     if ($upl) { $bukti = $upl['url']; }
 
@@ -51,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           [$jadwal_id,$tanggal,$kategori?:null,$judul,$jumlah,$catatan?:null,$bukti?:null,(int)current_user()['id']]);
     } elseif ($a==='edit') {
         $id=(int)$_POST['id'];
-        // jika tidak ada upload baru & URL kosong → pertahankan bukti lama
         if (!$upl && $bukti==='') {
             $cur = db_one("SELECT bukti_url FROM pengeluaran_kegiatan WHERE id=$1",[$id]);
             $bukti = $cur['bukti_url'] ?? null;
@@ -61,23 +59,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='delete') {
         db_exec("DELETE FROM pengeluaran_kegiatan WHERE id=$1", [(int)$_POST['id']]);
     }
-    header('Location: pengeluaran.php'.(isset($_GET['jadwal_id'])?'?jadwal_id='.(int)$_GET['jadwal_id']:'')); exit;
+    $qs = [];
+    if (isset($_GET['jadwal_id'])) $qs['jadwal_id'] = (int)$_GET['jadwal_id'];
+    if (isset($_GET['page']))      $qs['page']      = (int)$_GET['page'];
+    header('Location: pengeluaran.php'.($qs?('?'.http_build_query($qs)):'')); exit;
 }
 
 $filterJadwal = (int)($_GET['jadwal_id'] ?? 0);
 $where = ''; $params = [];
 if ($filterJadwal) { $where = "WHERE p.jadwal_id=$1"; $params=[$filterJadwal]; }
+
+// ===== Revisi 1 Jun 2026 (Lanjutan) #1: pagination 5 entri =====
+$PER_PAGE = 5;
+$totalRows = (int) db_val("SELECT COUNT(*) FROM pengeluaran_kegiatan p $where", $params);
+$totalPage = max(1, (int)ceil($totalRows / $PER_PAGE));
+$page = max(1, (int)($_GET['page'] ?? 1));
+if ($page > $totalPage) $page = $totalPage;
+$offset = ($page-1) * $PER_PAGE;
+
 $rows = db_all("SELECT p.*, j.tanggal AS j_tgl, j.jenis AS j_jenis, j.tempat AS j_tempat, u.nama AS pencatat
                 FROM pengeluaran_kegiatan p
                 LEFT JOIN jadwal j ON j.id=p.jadwal_id
                 LEFT JOIN users u ON u.id=p.created_by
-                $where ORDER BY p.tanggal DESC, p.id DESC", $params);
-$total = 0; foreach($rows as $r) $total += (int)$r['jumlah'];
+                $where ORDER BY p.tanggal DESC, p.id DESC
+                LIMIT $PER_PAGE OFFSET $offset", $params);
+
+// Total agregat seluruh (bukan hanya halaman aktif) — supaya rekap akurat
+$totalAgg = (int) db_val("SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran_kegiatan p $where", $params);
+
 $jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal ORDER BY tanggal DESC LIMIT 200");
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</h2>
-<p class="text-muted small">Revisi 1 Jun 2026: bukti pengeluaran kini disimpan ke <strong>ImageKit</strong> (folder <code>/sportapp/pengeluaran/&lt;tahun&gt;/&lt;bulan&gt;/</code>). URL bukti pada tabel langsung mengarah ke file di ImageKit.</p>
+<p class="text-muted small">Revisi 1 Jun 2026: bukti pengeluaran kini disimpan ke <strong>ImageKit</strong>. Pembaruan terbaru: tombol <em>Edit</em> di setiap baris dan pagination 5 entri per halaman.</p>
 
 <form method="get" class="mb-3 d-flex gap-2 align-items-end">
   <div><label class="small">Filter Jadwal</label>
@@ -90,7 +104,7 @@ include __DIR__.'/../includes/header.php';
       <?php endforeach; ?>
     </select>
   </div>
-  <div class="ms-auto small text-muted">Total: <strong class="text-danger">Rp <?= number_format($total,0,',','.') ?></strong> · <?= count($rows) ?> entri</div>
+  <div class="ms-auto small text-muted">Total: <strong class="text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></strong> · <?= $totalRows ?> entri</div>
 </form>
 
 <div class="card mb-3"><div class="card-header"><i class="bi bi-plus-circle"></i> Tambah Pengeluaran</div>
@@ -119,7 +133,6 @@ include __DIR__.'/../includes/header.php';
       <input class="form-control form-control-sm" name="catatan"></div>
     <div class="col-md-3"><label class="small">URL Bukti (opsional, jika sudah punya)</label>
       <input class="form-control form-control-sm" name="bukti_url" placeholder="https://ik.imagekit.io/..."></div>
-    <!-- Revisi #8: upload file → ImageKit -->
     <div class="col-md-3"><label class="small">Atau Upload Bukti ke ImageKit</label>
       <input type="file" class="form-control form-control-sm" name="bukti_file" accept="image/*,application/pdf">
       <div class="form-text small">JPG/PNG/WEBP/PDF, maks 8 MB.</div></div>
@@ -128,7 +141,7 @@ include __DIR__.'/../includes/header.php';
 </div></div>
 
 <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
-  <thead><tr><th>Tgl</th><th>Jadwal</th><th>Kategori</th><th>Judul</th><th class="text-end">Jumlah</th><th>Catatan</th><th>Bukti (ImageKit)</th><th>Pencatat</th><th class="text-end">Aksi</th></tr></thead>
+  <thead><tr><th>Tgl</th><th>Jadwal</th><th>Kategori</th><th>Judul</th><th class="text-end">Jumlah</th><th>Catatan</th><th>Bukti (ImageKit)</th><th>Pencatat</th><th class="text-end" style="min-width:130px">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $r): ?>
     <tr>
@@ -157,6 +170,17 @@ include __DIR__.'/../includes/header.php';
       </td>
       <td class="small"><?= htmlspecialchars($r['pencatat'] ?? '-') ?></td>
       <td class="text-end">
+        <button type="button" class="btn btn-sm btn-outline-primary btn-edit-peng"
+                data-id="<?= (int)$r['id'] ?>"
+                data-jadwal_id="<?= (int)($r['jadwal_id'] ?? 0) ?>"
+                data-tanggal="<?= htmlspecialchars($r['tanggal']) ?>"
+                data-kategori="<?= htmlspecialchars($r['kategori'] ?? '') ?>"
+                data-judul="<?= htmlspecialchars($r['judul']) ?>"
+                data-jumlah="<?= (int)$r['jumlah'] ?>"
+                data-catatan="<?= htmlspecialchars($r['catatan'] ?? '') ?>"
+                data-bukti_url="<?= htmlspecialchars($r['bukti_url'] ?? '') ?>">
+          <i class="bi bi-pencil"></i>
+        </button>
         <form method="post" class="d-inline" onsubmit="return confirm('Hapus pengeluaran ini?')">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
           <input type="hidden" name="_action" value="delete">
@@ -168,8 +192,92 @@ include __DIR__.'/../includes/header.php';
   <?php endforeach; if(!$rows): ?><tr><td colspan="9" class="text-center text-muted small">Belum ada pengeluaran.</td></tr><?php endif; ?>
   </tbody>
   <?php if($rows): ?>
-  <tfoot><tr class="table-light"><th colspan="4" class="text-end">Total</th><th class="text-end text-danger">Rp <?= number_format($total,0,',','.') ?></th><th colspan="4"></th></tr></tfoot>
+  <tfoot><tr class="table-light"><th colspan="4" class="text-end">Total (semua halaman)</th><th class="text-end text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></th><th colspan="4"></th></tr></tfoot>
   <?php endif; ?>
 </table></div></div>
+
+<?php if ($totalPage > 1):
+  $pq = function($p) use ($filterJadwal) {
+      $a = ['page'=>$p];
+      if ($filterJadwal) $a['jadwal_id'] = $filterJadwal;
+      return '?'.http_build_query($a);
+  };
+?>
+<nav class="mt-3"><ul class="pagination pagination-sm justify-content-center mb-1">
+  <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="<?= $pq(max(1,$page-1)) ?>">«</a></li>
+  <?php for($p=1;$p<=$totalPage;$p++): ?>
+    <li class="page-item <?= $p===$page?'active':'' ?>"><a class="page-link" href="<?= $pq($p) ?>"><?= $p ?></a></li>
+  <?php endfor; ?>
+  <li class="page-item <?= $page>=$totalPage?'disabled':'' ?>"><a class="page-link" href="<?= $pq(min($totalPage,$page+1)) ?>">»</a></li>
+</ul></nav>
+<div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $totalRows ?> entri · 5 per halaman</div>
+<?php endif; ?>
+
+<!-- ===== Modal Edit Pengeluaran ===== -->
+<div class="modal fade" id="editPengModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="edit">
+        <input type="hidden" name="id" id="ep_id">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Pengeluaran</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-2">
+          <div class="col-md-6"><label class="small">Jadwal Olahraga (relasi)</label>
+            <select class="form-select form-select-sm" name="jadwal_id" id="ep_jadwal_id">
+              <option value="0">-- Tidak terkait jadwal --</option>
+              <?php foreach($jadwalList as $j): ?>
+                <option value="<?= (int)$j['id'] ?>">
+                  <?= date('d M Y',strtotime($j['tanggal'])) ?> · <?= htmlspecialchars($j['jenis']) ?> @ <?= htmlspecialchars($j['tempat']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select></div>
+          <div class="col-md-3"><label class="small">Tanggal</label>
+            <input type="date" class="form-control form-control-sm" name="tanggal" id="ep_tanggal" required></div>
+          <div class="col-md-3"><label class="small">Jumlah (Rp)</label>
+            <input type="number" class="form-control form-control-sm" name="jumlah" id="ep_jumlah" min="0" step="1000" required></div>
+          <div class="col-md-4"><label class="small">Kategori</label>
+            <input class="form-control form-control-sm" name="kategori" id="ep_kategori"></div>
+          <div class="col-md-8"><label class="small">Judul</label>
+            <input class="form-control form-control-sm" name="judul" id="ep_judul" required></div>
+          <div class="col-12"><label class="small">Catatan</label>
+            <input class="form-control form-control-sm" name="catatan" id="ep_catatan"></div>
+          <div class="col-md-6"><label class="small">URL Bukti (ImageKit)</label>
+            <input class="form-control form-control-sm" name="bukti_url" id="ep_bukti_url" placeholder="https://ik.imagekit.io/..."></div>
+          <div class="col-md-6"><label class="small">Atau Upload Ulang Bukti</label>
+            <input type="file" class="form-control form-control-sm" name="bukti_file" accept="image/*,application/pdf">
+            <div class="form-text small">Kosongkan jika tidak ingin mengganti bukti.</div></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var modalEl = document.getElementById('editPengModal');
+  var modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+  document.querySelectorAll('.btn-edit-peng').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.getElementById('ep_id').value         = this.dataset.id || '';
+      document.getElementById('ep_jadwal_id').value  = this.dataset.jadwal_id || '0';
+      document.getElementById('ep_tanggal').value    = this.dataset.tanggal || '';
+      document.getElementById('ep_kategori').value   = this.dataset.kategori || '';
+      document.getElementById('ep_judul').value      = this.dataset.judul || '';
+      document.getElementById('ep_jumlah').value     = this.dataset.jumlah || '0';
+      document.getElementById('ep_catatan').value    = this.dataset.catatan || '';
+      document.getElementById('ep_bukti_url').value  = this.dataset.bukti_url || '';
+      if (modal) modal.show();
+    });
+  });
+})();
+</script>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

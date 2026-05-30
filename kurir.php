@@ -26,42 +26,86 @@ $avail = db_all("SELECT * FROM jajanan_pesanan WHERE kurir_user_id IS NULL AND s
 $mine  = db_all("SELECT * FROM jajanan_pesanan WHERE kurir_user_id=$1 AND status IN ('diproses','diantar') ORDER BY created_at ASC",[(int)$u['id']]);
 $hist  = db_all("SELECT * FROM jajanan_pesanan WHERE kurir_user_id=$1 AND status IN ('selesai','batal') ORDER BY updated_at DESC LIMIT 20",[(int)$u['id']]);
 
+/** Link Google Maps dari pasangan lat/lng */
+function jjn_maps_link_ll($lat, $lng){
+    if ($lat===null || $lng===null || $lat==='' || $lng==='') return '';
+    return 'https://www.google.com/maps?q='.((float)$lat).','.((float)$lng);
+}
+/** Link maps untuk pemesan */
+function jjn_maps_pemesan($r){
+    return jjn_maps_link_ll($r['pickup_lat'] ?? null, $r['pickup_lng'] ?? null);
+}
 /**
- * Revisi #5: link Google Maps dari pickup_lat / pickup_lng pesanan.
+ * Revisi 1 Jun 2026 (Lanjutan) #6: ambil lokasi pedagang dari item pesanan.
+ * Pakai lat/lng pertama yang tersedia di tabel jajanan (kolom lat/lng yang ditambahkan
+ * pada migrasi 1 Jun 2026).
+ * Return ['lat'=>..,'lng'=>..,'nama'=>..] atau null.
  */
-function jjn_maps_link($r){
-    if (empty($r['pickup_lat']) || empty($r['pickup_lng'])) return '';
-    $lat = (float)$r['pickup_lat']; $lng = (float)$r['pickup_lng'];
-    return 'https://www.google.com/maps?q='.$lat.','.$lng;
+function jjn_pedagang_loc($pesanan_id){
+    $row = db_one(
+        "SELECT j.lat, j.lng, j.nama
+         FROM jajanan_pesanan_item i
+         JOIN jajanan j ON j.id = i.jajanan_id
+         WHERE i.pesanan_id = $1
+           AND j.lat IS NOT NULL AND j.lng IS NOT NULL
+         ORDER BY i.id ASC LIMIT 1",
+        [(int)$pesanan_id]
+    );
+    if (!$row) return null;
+    return ['lat'=>(float)$row['lat'],'lng'=>(float)$row['lng'],'nama'=>$row['nama']];
+}
+
+/** Render dua badge Maps (Pemesan & Pedagang) yang konsisten dipakai di semua card */
+function jjn_render_maps_block($r){
+    $mp = jjn_maps_pemesan($r);
+    $ped = jjn_pedagang_loc((int)$r['id']);
+    $mpe = $ped ? jjn_maps_link_ll($ped['lat'],$ped['lng']) : '';
+    ob_start(); ?>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      <?php if ($mp): ?>
+        <a href="<?= htmlspecialchars($mp) ?>" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-geo-alt-fill"></i> Maps Pemesan
+        </a>
+      <?php else: ?>
+        <span class="badge text-bg-light"><i class="bi bi-geo"></i> Maps Pemesan: -</span>
+      <?php endif; ?>
+
+      <?php if ($mpe): ?>
+        <a href="<?= htmlspecialchars($mpe) ?>" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline-warning" title="<?= htmlspecialchars($ped['nama']) ?>">
+          <i class="bi bi-shop"></i> Maps Pedagang
+        </a>
+      <?php else: ?>
+        <span class="badge text-bg-light" title="Tambahkan lat/lng pada produk di CRUD Jajanan">
+          <i class="bi bi-shop"></i> Maps Pedagang: -
+        </span>
+      <?php endif; ?>
+    </div>
+    <?php
+    return ob_get_clean();
 }
 
 include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-scooter text-warning"></i> Kurir Jajanan</h4>
-<p class="text-muted small">Sebagai member terdaftar, kamu bisa mengambil order pengantaran jajanan dari masyarakat umum. Lokasi pemesan tampil sebagai link Google Maps (klik untuk navigasi).</p>
+<p class="text-muted small">
+  Sebagai member terdaftar, kamu bisa mengambil order pengantaran jajanan. Tiap pesanan menampilkan
+  dua link Google Maps: <strong>Maps Pemesan</strong> (lokasi tujuan antar) dan
+  <strong>Maps Pedagang</strong> (lokasi pengambilan jajanan dari pedagang).
+</p>
 
 <h6 class="mt-3"><i class="bi bi-inbox"></i> Order Tersedia (<?= count($avail) ?>)</h6>
 <div class="row g-2">
 <?php foreach($avail as $r):
-  $items = db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$r['id']]);
-  $maps = jjn_maps_link($r); ?>
+  $items = db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$r['id']]); ?>
   <div class="col-md-6">
     <div class="card border-warning"><div class="card-body">
       <div class="d-flex justify-content-between"><strong><?= htmlspecialchars($r['kode']) ?></strong>
         <span class="badge bg-success">Rp <?= number_format((int)$r['total'],0,',','.') ?></span></div>
       <div class="small mt-1"><i class="bi bi-person"></i> <?= htmlspecialchars($r['nama_pemesan']) ?> · <a href="https://wa.me/<?= preg_replace('/\D/','',$r['no_wa']) ?>" target="_blank"><i class="bi bi-whatsapp text-success"></i> <?= htmlspecialchars($r['no_wa']) ?></a></div>
       <div class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> <?= nl2br(htmlspecialchars($r['alamat'])) ?></div>
-      <?php if ($maps): ?>
-        <div class="small mt-1">
-          <i class="bi bi-map text-danger"></i>
-          <a href="<?= htmlspecialchars($maps) ?>" target="_blank" rel="noopener" class="fw-semibold">
-            Buka Lokasi di Google Maps
-          </a>
-          <span class="text-muted">(<?= htmlspecialchars($r['pickup_lat']) ?>, <?= htmlspecialchars($r['pickup_lng']) ?>)</span>
-        </div>
-      <?php else: ?>
-        <div class="small text-muted mt-1"><i class="bi bi-geo"></i> Lat/Lng tidak tersedia</div>
-      <?php endif; ?>
+      <?= jjn_render_maps_block($r) ?>
       <ul class="small mt-2 mb-2"><?php foreach($items as $it): ?><li><?= (int)$it['qty'] ?>× <?= htmlspecialchars($it['nama']) ?></li><?php endforeach; ?></ul>
       <form method="post"><input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="take"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
@@ -75,22 +119,14 @@ include __DIR__.'/includes/header.php';
 <h6 class="mt-4"><i class="bi bi-truck"></i> Order Saya Aktif (<?= count($mine) ?>)</h6>
 <div class="row g-2">
 <?php foreach($mine as $r):
-  $items = db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$r['id']]);
-  $maps = jjn_maps_link($r); ?>
+  $items = db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$r['id']]); ?>
   <div class="col-md-6">
     <div class="card border-info"><div class="card-body">
       <div class="d-flex justify-content-between"><strong><?= htmlspecialchars($r['kode']) ?></strong>
         <span class="badge bg-info"><?= htmlspecialchars($r['status']) ?></span></div>
       <div class="small mt-1"><?= htmlspecialchars($r['nama_pemesan']) ?> · <a href="https://wa.me/<?= preg_replace('/\D/','',$r['no_wa']) ?>" target="_blank"><i class="bi bi-whatsapp text-success"></i> <?= htmlspecialchars($r['no_wa']) ?></a></div>
       <div class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> <?= nl2br(htmlspecialchars($r['alamat'])) ?></div>
-      <?php if ($maps): ?>
-        <div class="small mt-1">
-          <i class="bi bi-map text-danger"></i>
-          <a href="<?= htmlspecialchars($maps) ?>" target="_blank" rel="noopener" class="fw-semibold">
-            Navigasi di Google Maps
-          </a>
-        </div>
-      <?php endif; ?>
+      <?= jjn_render_maps_block($r) ?>
       <ul class="small mt-2 mb-2"><?php foreach($items as $it): ?><li><?= (int)$it['qty'] ?>× <?= htmlspecialchars($it['nama']) ?></li><?php endforeach; ?></ul>
       <div class="d-flex gap-1">
         <?php if($r['status']==='diproses'): ?>

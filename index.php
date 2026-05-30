@@ -614,6 +614,14 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="modal-body">
         <div class="tab-content">
+          <!-- ===== Revisi 1 Jun 2026 (Lanjutan) #2: IPTV hanya bisa diputar di tampilan DESKTOP ===== -->
+          <div id="iptvMobileNotice" class="alert alert-warning small mb-3 d-none">
+            <i class="bi bi-laptop"></i>
+            <strong>IPTV hanya tersedia di tampilan desktop.</strong>
+            Pemutar IPTV dinonaktifkan pada perangkat seluler / aplikasi Android
+            karena keterbatasan codec HLS &amp; mixed-content di WebView.
+            Silakan buka halaman ini dari komputer/laptop (Chrome/Edge/Firefox) untuk menonton.
+          </div>
           <!-- ===== Berita (IPTV) ===== -->
           <div id="vt-berita">
             <?php if (empty($IPTV_NEWS)): ?>
@@ -622,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <code>iptv-org.github.io</code>. Coba muat ulang halaman.
               </div>
             <?php else: ?>
-              <div class="d-flex flex-wrap gap-2 mb-3" style="max-height:180px; overflow-y:auto;">
+              <div id="iptvChannelList" class="d-flex flex-wrap gap-2 mb-3" style="max-height:180px; overflow-y:auto;">
                 <?php foreach ($IPTV_NEWS as $i => $ch): ?>
                   <button type="button"
                           class="btn btn-sm <?= $i===0?'btn-danger':'btn-outline-secondary' ?> iptv-src-btn"
@@ -633,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   </button>
                 <?php endforeach; ?>
               </div>
-              <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+              <div id="iptvPlayerWrap" class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
                 <video id="iptvPlayer" controls autoplay muted playsinline></video>
               </div>
               <p class="small text-muted mt-2 mb-0">
@@ -658,10 +666,29 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 (function(){
   // ---- IPTV HLS player ----
+  // ===== Revisi 1 Jun 2026 (Lanjutan) #2: gate desktop-only =====
+  // IPTV hanya boleh diputar di tampilan DESKTOP. Di handphone / WebView Android
+  // (Capacitor APK), pemutar dinonaktifkan dan tampilkan notice.
+  var ua = (navigator.userAgent || '').toLowerCase();
+  var isMobileUA = /android|iphone|ipad|ipod|mobile|capacitor|wv\)/.test(ua);
+  var isCapacitor = !!(window.Capacitor || window.cordova);
+  var isNarrow = window.matchMedia && window.matchMedia('(max-width: 991.98px)').matches;
+  var IPTV_DESKTOP_ONLY = isMobileUA || isCapacitor || isNarrow;
+
+  var notice  = document.getElementById('iptvMobileNotice');
+  var playerWrap = document.getElementById('iptvPlayerWrap');
+  var chanList   = document.getElementById('iptvChannelList');
+  if (IPTV_DESKTOP_ONLY) {
+    if (notice)     notice.classList.remove('d-none');
+    if (playerWrap) playerWrap.classList.add('d-none');
+    if (chanList)   chanList.classList.add('d-none');
+  }
+
   var video = document.getElementById('iptvPlayer');
   var nowEl = document.getElementById('iptvNow');
   var hls = null;
   function loadStream(url, name){
+    if (IPTV_DESKTOP_ONLY) return; // mobile/in-app: jangan putar
     if (!video) return;
     if (nowEl && name) nowEl.textContent = name;
     if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
@@ -704,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
   var loaded = false;
   if (modal) {
     modal.addEventListener('shown.bs.modal', function(){
+      if (IPTV_DESKTOP_ONLY) return; // skip autoplay di mobile
       if (!loaded && firstBtn) {
         loadStream(firstBtn.getAttribute('data-url'), firstBtn.getAttribute('data-name'));
         loaded = true;

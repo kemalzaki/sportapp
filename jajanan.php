@@ -5,20 +5,39 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers();
 $pageTitle = 'Pesan Jajan';
-$u = current_user(); // boleh null (guest)
+$u = current_user();
 
-// ===== Konfigurasi nomor WA admin Firdam (revisi 1 Jun 2026) =====
-// Selaras dengan register.php (sumber tunggal: env ADMIN_WA_FIRDAM)
 $ADMIN_WA_FIRDAM = getenv('ADMIN_WA_FIRDAM') ?: '6281386369207';
 
-$ONGKIR_DEFAULT = 5000;
-$PER_PAGE       = 5; // revisi #4: 5 produk per halaman
+// ===== Konfigurasi ongkir berbasis jarak (revisi 1 Jun 2026 - Lanjutan #3) =====
+// Patokan: pusat kampus UIN Sunan Gunung Djati Bandung
+$UIN_LAT = -6.926263;
+$UIN_LNG = 107.717553;
+$UIN_R_REKOM_KM = 1.5;   // jarak rekomendasi pengantaran (revisi #5)
+$UIN_R_MAX_KM   = 3.0;   // jarak maksimum yang masih bisa dilayani
+$ONGKIR_BASE    = 3000;  // ongkir dasar (0 km)
+$ONGKIR_PER_KM  = 2000;  // tambahan per km
+$ONGKIR_FALLBACK = 5000; // kalau pemesan tidak share lokasi
+
+$PER_PAGE       = 5;
+
+/** Hitung jarak Haversine (meter) */
+function jjn_haversine($lat1,$lng1,$lat2,$lng2){
+    $R=6371000; $toRad=M_PI/180;
+    $dLat=($lat2-$lat1)*$toRad; $dLng=($lng2-$lng1)*$toRad;
+    $s=sin($dLat/2)**2 + cos($lat1*$toRad)*cos($lat2*$toRad)*sin($dLng/2)**2;
+    return 2*$R*asin(sqrt($s));
+}
+/** Hitung ongkir dari jarak (meter) ke UIN */
+function jjn_ongkir_from_dist_m($dist_m, $base, $perKm){
+    $km = $dist_m / 1000.0;
+    return (int) round($base + $km * $perKm);
+}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
 
-    // ===== Revisi #2: form pengecekan status pesanan via nama pemesan =====
     if ($a === 'cek_status') {
         $nm = trim($_POST['cek_nama'] ?? '');
         header('Location: /jajanan.php?cek_nama='.urlencode($nm).'#cek-status'); exit;
@@ -29,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $no_wa  = substr(preg_replace('/[^0-9+]/','', $_POST['no_wa'] ?? ''),0,25);
         $alamat = substr(trim($_POST['alamat'] ?? ''),0,500);
         $catat  = substr(trim($_POST['catatan'] ?? ''),0,500);
-        $items  = $_POST['qty'] ?? []; // [jajanan_id => qty]
+        $items  = $_POST['qty'] ?? [];
         if ($nama==='' || $no_wa==='' || $alamat==='') {
             $_SESSION['flash_err'] = 'Nama, nomor WA, dan alamat wajib diisi.';
             header('Location: /jajanan.php'); exit;
@@ -49,22 +68,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $_SESSION['flash_err'] = 'Pilih minimal 1 jajanan dengan jumlah > 0.';
             header('Location: /jajanan.php'); exit;
         }
-        $ongkir = $ONGKIR_DEFAULT;
-        $total = $sub + $ongkir;
-        $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
+
         $plat = isset($_POST['pickup_lat']) && $_POST['pickup_lat']!=='' ? (float)$_POST['pickup_lat'] : null;
         $plng = isset($_POST['pickup_lng']) && $_POST['pickup_lng']!=='' ? (float)$_POST['pickup_lng'] : null;
+
+        // ===== Revisi #3: ongkir dihitung dari jarak UIN <-> pemesan =====
         if ($plat !== null && $plng !== null) {
-            $UIN_LAT = -6.926263; $UIN_LNG = 107.717553; $UIN_R = 1500.0;
-            $R=6371000; $toRad = M_PI/180;
-            $dLat = ($UIN_LAT-$plat)*$toRad; $dLng = ($UIN_LNG-$plng)*$toRad;
-            $s = sin($dLat/2)**2 + cos($plat*$toRad)*cos($UIN_LAT*$toRad)*sin($dLng/2)**2;
-            $dist = 2*$R*asin(sqrt($s));
-            if ($dist > $UIN_R) {
-                $_SESSION['flash_err'] = "Lokasi diluar jangkauan kampus UIN SGD Bandung (".round($dist/1000,2)." km dari pusat kampus). Pesanan dibatalkan.";
+            $dist = jjn_haversine($UIN_LAT,$UIN_LNG,$plat,$plng);
+            if ($dist/1000 > $UIN_R_MAX_KM) {
+                $_SESSION['flash_err'] = "Lokasi diluar jangkauan layanan (".round($dist/1000,2)." km > ".$UIN_R_MAX_KM." km dari UIN SGD Bandung). Pesanan dibatalkan.";
                 header('Location: /jajanan.php'); exit;
             }
+            $ongkir = jjn_ongkir_from_dist_m($dist, $ONGKIR_BASE, $ONGKIR_PER_KM);
+        } else {
+            $ongkir = $ONGKIR_FALLBACK;
         }
+        $total = $sub + $ongkir;
+
+        $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
         db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,'cod','baru',$9,$10)",
           [$kode,$nama,$no_wa,$alamat,$catat?:null,$sub,$ongkir,$total,$plat,$plng]);
@@ -74,19 +95,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
               [$pid,(int)$pi['j']['id'],$pi['j']['nama'],(int)$pi['j']['harga'],(int)$pi['qty']]);
             db_exec("UPDATE jajanan SET stok = GREATEST(0, stok - $1) WHERE id=$2",[(int)$pi['qty'],(int)$pi['j']['id']]);
         }
-        $_SESSION['flash'] = "Pesanan berhasil dibuat dengan kode $kode. Total Rp ".number_format($total,0,',','.').". Notifikasi WhatsApp ke admin Firdam akan dibuka otomatis.";
-        // notify=1 => JS auto-open wa.me admin Firdam (revisi #1)
+        $_SESSION['flash'] = "Pesanan berhasil dibuat dengan kode $kode. Total Rp ".number_format($total,0,',','.')." (ongkir Rp ".number_format($ongkir,0,',','.').").";
         header('Location: /jajanan.php?kode='.$kode.'&notify=1'); exit;
     }
 }
 
-// ===== Daftar kategori (revisi #3) =====
 $katAll = db_all("SELECT COALESCE(NULLIF(TRIM(kategori),''),'Lainnya') AS kat, COUNT(*) AS n
                   FROM jajanan WHERE aktif=true AND stok>0
                   GROUP BY 1 ORDER BY 1");
 $katPilih = trim($_GET['kat'] ?? '');
 
-// ===== Pagination (revisi #4) =====
 $page = max(1,(int)($_GET['page'] ?? 1));
 $where = "WHERE aktif=true AND stok>0";
 $params = [];
@@ -106,7 +124,6 @@ $notify  = !empty($_GET['notify']);
 $myOrder = $kode ? db_one("SELECT * FROM jajanan_pesanan WHERE kode=$1",[$kode]) : null;
 $myItems = $myOrder ? db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$myOrder['id']]) : [];
 
-// ===== Revisi #2: pengecekan status pesanan via nama pemesan =====
 $cekNama = trim($_GET['cek_nama'] ?? '');
 $cekHasil = [];
 if ($cekNama !== '') {
@@ -119,7 +136,6 @@ if ($cekNama !== '') {
     );
 }
 
-// ===== Pesan WA notifikasi admin (revisi #1) =====
 $waAdminLink = '';
 if ($myOrder && $notify) {
     $lines = [];
@@ -154,11 +170,22 @@ include __DIR__.'/includes/header.php';
   <p class="mb-0 small opacity-90">Mirip Gojek: pesan jajanan favorit, kurir adalah member komunitas kami. Tanpa perlu login.</p>
 </div>
 
+<!-- ===== Revisi #5: keterangan jarak rekomendasi ===== -->
+<div class="alert alert-info py-2 small mb-3">
+  <i class="bi bi-info-circle-fill"></i>
+  <strong>Jarak yang direkomendasikan:</strong> maksimal ±<?= $UIN_R_REKOM_KM ?> km dari pusat kampus
+  <strong>UIN Sunan Gunung Djati Bandung</strong> (titik patokan: <?= $UIN_LAT ?>, <?= $UIN_LNG ?>).
+  Pengantaran masih bisa dilakukan hingga <?= $UIN_R_MAX_KM ?> km, namun di luar jangkauan rekomendasi
+  ongkir bertambah sesuai jarak. <br>
+  <strong>Ongkir:</strong> Rp <?= number_format($ONGKIR_BASE,0,',','.') ?> dasar + Rp <?= number_format($ONGKIR_PER_KM,0,',','.') ?>/km
+  (dihitung otomatis dari titik lokasi yang kamu pilih).
+</div>
+
 <?php if ($myOrder): ?>
 <div class="card border-success mb-3"><div class="card-header bg-success text-white">
   <i class="bi bi-check2-circle"></i> Pesanan Berhasil: <?= htmlspecialchars($myOrder['kode']) ?>
 </div><div class="card-body">
-  <div class="small">Status: <span class="badge bg-info"><?= htmlspecialchars($myOrder['status']) ?></span> · Total: <strong>Rp <?= number_format((int)$myOrder['total'],0,',','.') ?></strong></div>
+  <div class="small">Status: <span class="badge bg-info"><?= htmlspecialchars($myOrder['status']) ?></span> · Total: <strong>Rp <?= number_format((int)$myOrder['total'],0,',','.') ?></strong> · Ongkir: Rp <?= number_format((int)$myOrder['ongkir'],0,',','.') ?></div>
   <ul class="small mb-0 mt-2">
     <?php foreach($myItems as $it): ?><li><?= (int)$it['qty'] ?>× <?= htmlspecialchars($it['nama']) ?> — Rp <?= number_format((int)$it['harga']*(int)$it['qty'],0,',','.') ?></li><?php endforeach; ?>
   </ul>
@@ -167,12 +194,10 @@ include __DIR__.'/includes/header.php';
        class="btn btn-success btn-sm mt-2">
       <i class="bi bi-whatsapp"></i> Kirim Notifikasi WA ke Admin Firdam
     </a>
-    <div class="small text-muted mt-1">Jika tab WhatsApp tidak terbuka otomatis, klik tombol di atas.</div>
   <?php endif; ?>
 </div></div>
 <?php endif; ?>
 
-<!-- ===== Revisi #2: Form cek status pesanan ===== -->
 <div class="card mb-3" id="cek-status">
   <div class="card-header bg-light"><i class="bi bi-search"></i> Cek Status Pesanan Saya</div>
   <div class="card-body">
@@ -216,7 +241,6 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
-<!-- ===== Revisi #3: Filter kategori ===== -->
 <?php if ($katAll): ?>
 <div class="mb-2 d-flex flex-wrap gap-1 align-items-center">
   <span class="small text-muted me-1"><i class="bi bi-tags"></i> Kategori:</span>
@@ -234,14 +258,13 @@ include __DIR__.'/includes/header.php';
 <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
 <input type="hidden" name="_action" value="order">
 
-<div class="row g-2">
+<div class="row g-2" id="jjnGrid">
 <?php foreach($rows as $r): ?>
   <div class="col-md-4 col-6">
     <div class="card h-100 shadow-sm">
       <?php if(!empty($r['foto_url'])): ?><img src="<?= htmlspecialchars($r['foto_url']) ?>" class="card-img-top" style="height:130px;object-fit:cover"><?php else: ?>
         <div class="bg-light text-center py-4"><i class="bi bi-bag fs-1 text-muted"></i></div><?php endif; ?>
       <div class="card-body p-2">
-        <!-- revisi #7: badge kategori per item -->
         <?php if(!empty($r['kategori'])): ?>
           <span class="badge bg-success-subtle text-success mb-1"><i class="bi bi-tag-fill"></i> <?= htmlspecialchars($r['kategori']) ?></span>
         <?php endif; ?>
@@ -250,7 +273,7 @@ include __DIR__.'/includes/header.php';
         <?php if(!empty($r['deskripsi'])): ?><div class="text-muted" style="font-size:.72rem"><?= htmlspecialchars($r['deskripsi']) ?></div><?php endif; ?>
         <div class="d-flex align-items-center gap-1 mt-2">
           <button type="button" class="btn btn-sm btn-outline-secondary qty-btn" data-delta="-1" data-id="<?= (int)$r['id'] ?>">−</button>
-          <input type="number" min="0" max="<?= (int)$r['stok'] ?>" value="0" name="qty[<?= (int)$r['id'] ?>]" data-harga="<?= (int)$r['harga'] ?>"
+          <input type="number" min="0" max="<?= (int)$r['stok'] ?>" value="0" name="qty[<?= (int)$r['id'] ?>]" data-harga="<?= (int)$r['harga'] ?>" data-nama="<?= htmlspecialchars($r['nama']) ?>"
                  id="q<?= (int)$r['id'] ?>" class="form-control form-control-sm text-center qty-input" style="width:60px">
           <button type="button" class="btn btn-sm btn-outline-secondary qty-btn" data-delta="1" data-id="<?= (int)$r['id'] ?>">+</button>
           <span class="small text-muted ms-auto">stok <?= (int)$r['stok'] ?></span>
@@ -263,7 +286,6 @@ include __DIR__.'/includes/header.php';
 
 <?php if(!$rows): ?><p class="text-muted small mt-2">Belum ada jajanan tersedia di kategori ini.</p><?php endif; ?>
 
-<!-- ===== Revisi #4: Pagination 5 per halaman ===== -->
 <?php if ($totalPage > 1):
     $qs = function($p) use ($katPilih) {
         $a = ['page'=>$p];
@@ -279,7 +301,11 @@ include __DIR__.'/includes/header.php';
   <li class="page-item <?= $page>=$totalPage?'disabled':'' ?>"><a class="page-link" href="<?= $qs(min($totalPage,$page+1)) ?>">»</a></li>
 </ul></nav>
 <div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $totalProduk ?> produk · 5 per halaman</div>
+<div class="text-center small text-muted mb-2" id="hiddenCartInfo"></div>
 <?php endif; ?>
+
+<!-- Container untuk hidden input qty produk yang dipilih di halaman lain (revisi #4) -->
+<div id="hiddenCartHolder" style="display:none"></div>
 
 <div class="card mt-3 shadow-sm" id="checkoutCard">
   <div class="card-header"><i class="bi bi-cart-check"></i> Data Pengantaran</div>
@@ -306,57 +332,142 @@ include __DIR__.'/includes/header.php';
           </div>
           <div id="locWarn" class="alert alert-danger small mt-2 mb-0 d-none">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <strong>Lokasi diluar jangkauan kampus UIN SGD Bandung.</strong>
-            Pengantaran hanya dilayani di sekitar kampus (radius ± 1,5 km dari pusat kampus).
+            <strong>Lokasi diluar jangkauan layanan.</strong>
+            Maksimum <?= $UIN_R_MAX_KM ?> km dari pusat kampus UIN SGD Bandung.
           </div>
-          <div id="locOk" class="alert alert-success small mt-2 mb-0 d-none">
-            <i class="bi bi-check-circle-fill"></i> Lokasi berada di dalam radius kampus UIN SGD Bandung.
-          </div>
+          <div id="locOk" class="alert alert-success small mt-2 mb-0 d-none"></div>
         </div>
       </div>
     </div>
     <div class="mt-3 p-2 bg-light rounded">
       <div class="d-flex justify-content-between small"><span>Subtotal</span><strong id="sumSub">Rp 0</strong></div>
-      <div class="d-flex justify-content-between small"><span>Ongkir (flat)</span><strong>Rp <?= number_format($ONGKIR_DEFAULT,0,',','.') ?></strong></div>
+      <div class="d-flex justify-content-between small">
+        <span>Ongkir <span id="sumOngkirNote" class="text-muted">(perkiraan flat)</span></span>
+        <strong id="sumOngkir">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong>
+      </div>
       <hr class="my-1">
-      <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar (COD)</span><strong class="text-success" id="sumTot">Rp <?= number_format($ONGKIR_DEFAULT,0,',','.') ?></strong></div>
+      <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar (COD)</span><strong class="text-success" id="sumTot">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong></div>
     </div>
     <button class="btn btn-success w-100 mt-3" id="btnSubmitOrder"><i class="bi bi-send-check"></i> Pesan Sekarang</button>
-    <div class="small text-muted mt-2 text-center">Pembayaran COD (bayar saat barang diantar oleh kurir member kami). Setelah klik, WhatsApp ke admin Firdam akan otomatis terbuka untuk notifikasi pesanan.</div>
+    <div class="small text-muted mt-2 text-center">Pembayaran COD. Setelah klik, WhatsApp ke admin Firdam akan otomatis terbuka untuk notifikasi pesanan.</div>
   </div>
 </div>
 </form>
 
 <script>
 (function(){
-  const ONGKIR = <?= (int)$ONGKIR_DEFAULT ?>;
-  function recalc(){
-    let sub=0;
-    document.querySelectorAll('.qty-input').forEach(i=>{
-      const q = Math.max(0,parseInt(i.value||'0',10));
-      const h = parseInt(i.dataset.harga||'0',10);
-      sub += q*h;
-    });
-    document.getElementById('sumSub').textContent = 'Rp '+sub.toLocaleString('id-ID');
-    document.getElementById('sumTot').textContent = 'Rp '+(sub+ONGKIR).toLocaleString('id-ID');
-  }
-  document.querySelectorAll('.qty-btn').forEach(b=>b.addEventListener('click',function(){
-    const id=this.dataset.id, d=parseInt(this.dataset.delta,10);
-    const el=document.getElementById('q'+id);
-    let v = Math.max(0,(parseInt(el.value||'0',10))+d);
-    const max = parseInt(el.max||'999',10); if(v>max) v=max;
-    el.value=v; recalc();
-  }));
-  document.querySelectorAll('.qty-input').forEach(i=>i.addEventListener('input',recalc));
+  // ===== Konfigurasi sinkron dengan PHP =====
+  var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>, rekom_km: <?= $UIN_R_REKOM_KM ?>, max_km: <?= $UIN_R_MAX_KM ?>};
+  var ONGKIR_BASE     = <?= (int)$ONGKIR_BASE ?>;
+  var ONGKIR_PER_KM   = <?= (int)$ONGKIR_PER_KM ?>;
+  var ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
 
-  var UIN = {lat: -6.926263, lng: 107.717553, radius_m: 1500};
+  var STORE_KEY = 'jjn_cart_v1';
+  function loadCart(){ try { return JSON.parse(sessionStorage.getItem(STORE_KEY)||'{}'); } catch(e){ return {}; } }
+  function saveCart(c){ try { sessionStorage.setItem(STORE_KEY, JSON.stringify(c)); } catch(e){} }
+  // Cart structure: { "<jid>": { qty: N, harga: N, nama: "..." } }
+  var cart = loadCart();
+
+  // ===== Restore qty yang sudah ada di cart pada produk yang tampil di halaman ini =====
+  document.querySelectorAll('.qty-input').forEach(function(inp){
+    var jid = inp.name.replace(/\D/g,'');
+    if (cart[jid] && cart[jid].qty > 0) {
+      inp.value = Math.min(cart[jid].qty, parseInt(inp.max||'999',10));
+    }
+  });
+
+  // ===== Build hidden inputs untuk item di cart yang TIDAK tampil di halaman ini =====
+  // (revisi #4: Total Bayar/COD tidak hilang saat pindah halaman pagination)
+  function rebuildHiddenCart(){
+    var holder = document.getElementById('hiddenCartHolder');
+    holder.innerHTML = '';
+    var info = [];
+    Object.keys(cart).forEach(function(jid){
+      var ent = cart[jid];
+      if (!ent || ent.qty<=0) return;
+      var visible = document.getElementById('q'+jid);
+      if (visible) return; // sudah tampil sebagai input visible
+      var h = document.createElement('input');
+      h.type='hidden';
+      h.name='qty['+jid+']';
+      h.value=ent.qty;
+      h.dataset.harga = ent.harga;
+      h.dataset.nama  = ent.nama || '';
+      h.className = 'qty-hidden';
+      holder.appendChild(h);
+      info.push(ent.qty+'× '+(ent.nama||('#'+jid)));
+    });
+    var el = document.getElementById('hiddenCartInfo');
+    if (el) {
+      el.textContent = info.length
+        ? ('Di keranjang dari halaman lain: '+info.join(', '))
+        : '';
+    }
+  }
+
   function haversine(a,b){
     var R=6371000, toRad=Math.PI/180;
     var dLat=(b.lat-a.lat)*toRad, dLng=(b.lng-a.lng)*toRad;
     var s=Math.sin(dLat/2)**2 + Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)**2;
     return 2*R*Math.asin(Math.sqrt(s));
   }
+  var currentDistKm = null;
   var locValid = null;
+
+  function fmtRp(n){ return 'Rp '+Math.round(n).toLocaleString('id-ID'); }
+  function calcOngkir(){
+    if (currentDistKm !== null) {
+      return Math.round(ONGKIR_BASE + currentDistKm*ONGKIR_PER_KM);
+    }
+    return ONGKIR_FALLBACK;
+  }
+  function recalc(){
+    var sub=0;
+    // input visible
+    document.querySelectorAll('.qty-input').forEach(function(i){
+      var jid = i.name.replace(/\D/g,'');
+      var q   = Math.max(0,parseInt(i.value||'0',10));
+      var h   = parseInt(i.dataset.harga||'0',10);
+      var nm  = i.dataset.nama || '';
+      if (q>0) { cart[jid] = {qty:q, harga:h, nama:nm}; }
+      else if (cart[jid]) { delete cart[jid]; }
+      sub += q*h;
+    });
+    saveCart(cart);
+    rebuildHiddenCart();
+    // tambah dari hidden (item halaman lain)
+    document.querySelectorAll('.qty-hidden').forEach(function(i){
+      var q = parseInt(i.value||'0',10);
+      var h = parseInt(i.dataset.harga||'0',10);
+      sub += q*h;
+    });
+    var ongkir = calcOngkir();
+    document.getElementById('sumSub').textContent    = fmtRp(sub);
+    document.getElementById('sumOngkir').textContent = fmtRp(ongkir);
+    document.getElementById('sumTot').textContent    = fmtRp(sub+ongkir);
+    var note = document.getElementById('sumOngkirNote');
+    if (note) {
+      note.textContent = (currentDistKm!==null)
+        ? '('+currentDistKm.toFixed(2)+' km × Rp '+ONGKIR_PER_KM.toLocaleString('id-ID')+'/km + dasar)'
+        : '(perkiraan flat — share lokasi untuk hitung akurat)';
+    }
+  }
+
+  document.querySelectorAll('.qty-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      var id=this.dataset.id, d=parseInt(this.dataset.delta,10);
+      var el=document.getElementById('q'+id);
+      var v = Math.max(0,(parseInt(el.value||'0',10))+d);
+      var max = parseInt(el.max||'999',10); if(v>max) v=max;
+      el.value=v; recalc();
+    });
+  });
+  document.querySelectorAll('.qty-input').forEach(function(i){ i.addEventListener('input',recalc); });
+
+  // Inisialisasi
+  rebuildHiddenCart();
+  recalc();
+
   var btn = document.getElementById('btnDetectLoc');
   if (btn) btn.addEventListener('click', function(){
     if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
@@ -366,34 +477,47 @@ include __DIR__.'/includes/header.php';
       var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
       document.getElementById('pickup_lat').value = lat.toFixed(6);
       document.getElementById('pickup_lng').value = lng.toFixed(6);
-      var dist = haversine({lat:lat,lng:lng}, UIN);
-      document.getElementById('locCoords').innerHTML = '<strong>Lat:</strong> '+lat.toFixed(6)+' · <strong>Lng:</strong> '+lng.toFixed(6)+' · akurasi '+Math.round(acc)+' m · jarak ke kampus: '+(dist/1000).toFixed(2)+' km';
+      var distM = haversine({lat:lat,lng:lng}, UIN);
+      var distKm = distM/1000;
+      currentDistKm = distKm;
+      document.getElementById('locCoords').innerHTML =
+        '<strong>Lat:</strong> '+lat.toFixed(6)+' · <strong>Lng:</strong> '+lng.toFixed(6)+
+        ' · jarak ke UIN: <strong>'+distKm.toFixed(2)+' km</strong>';
       var warn = document.getElementById('locWarn'), ok = document.getElementById('locOk');
-      if (dist > UIN.radius_m) {
-        warn.classList.remove('d-none'); ok.classList.add('d-none'); locValid = false;
+      warn.classList.add('d-none'); ok.classList.add('d-none');
+      if (distKm > UIN.max_km) {
+        warn.classList.remove('d-none'); locValid = false;
+      } else if (distKm > UIN.rekom_km) {
+        ok.classList.remove('d-none'); locValid = true;
+        ok.classList.remove('alert-success'); ok.classList.add('alert-warning');
+        ok.innerHTML = '<i class="bi bi-exclamation-circle"></i> Di luar jarak rekomendasi ('+UIN.rekom_km+' km) tapi masih dilayani. Ongkir disesuaikan jarak.';
       } else {
-        ok.classList.remove('d-none'); warn.classList.add('d-none'); locValid = true;
+        ok.classList.remove('d-none'); locValid = true;
+        ok.classList.remove('alert-warning'); ok.classList.add('alert-success');
+        ok.innerHTML = '<i class="bi bi-check-circle-fill"></i> Lokasi berada di dalam jarak rekomendasi (≤ '+UIN.rekom_km+' km).';
       }
+      recalc();
       btn.disabled = false; btn.innerHTML = orig;
     }, function(err){
       alert('Gagal membaca lokasi: '+err.message);
       btn.disabled = false; btn.innerHTML = orig;
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
+
   var form = document.getElementById('jjnForm');
   if (form) form.addEventListener('submit', function(e){
     if (locValid === false) {
       e.preventDefault();
-      alert('Lokasi diluar jangkauan kampus UIN SGD Bandung. Pesanan tidak bisa dilanjutkan.');
+      alert('Lokasi diluar jangkauan layanan (maks '+UIN.max_km+' km dari UIN SGD Bandung).');
+      return;
     }
+    // Kosongkan keranjang sessionStorage sesudah submit sukses (akan reload halaman)
+    try { sessionStorage.removeItem(STORE_KEY); } catch(e){}
   });
 
-  // ===== Revisi #1: auto-open WhatsApp admin Firdam setelah pesanan sukses =====
   var waBtn = document.getElementById('waAdminBtn');
   if (waBtn) {
-    setTimeout(function(){
-      try { window.open(waBtn.href, '_blank'); } catch(e){}
-    }, 600);
+    setTimeout(function(){ try { window.open(waBtn.href, '_blank'); } catch(e){} }, 600);
   }
 })();
 </script>
