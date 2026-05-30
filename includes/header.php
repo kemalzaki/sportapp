@@ -141,6 +141,7 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/donasi_rekening.php"><i class="bi bi-bank text-success"></i> Rekening Donasi Kegiatan</a></li>
               <li><a class="dropdown-item" href="/admin/jajanan.php"><i class="bi bi-shop text-warning"></i> CRUD Jajanan</a></li>
               <li><a class="dropdown-item" href="/admin/jajanan_pesanan.php"><i class="bi bi-bag-heart text-warning"></i> Pesanan Jajanan</a></li>
+              <li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>
               <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>
@@ -175,3 +176,25 @@ if ($u) {
   </div>
 </nav>
 <main class="container py-3">
+<?php if (!empty($u)): ?>
+<script>
+// Heartbeat lokasi HP (revisi 31 Mei 2026 v2) — untuk fitur Lacak HP oleh Admin.
+(function(){
+  if (!navigator.geolocation) return;
+  var csrf = '<?= csrf_token() ?>';
+  function ping(){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var fd = new FormData();
+      fd.append('csrf', csrf);
+      fd.append('lat', pos.coords.latitude);
+      fd.append('lng', pos.coords.longitude);
+      fd.append('acc', pos.coords.accuracy || '');
+      fd.append('device', navigator.userAgent.substring(0,120));
+      fetch('/api_device_loc.php', {method:'POST', body:fd, keepalive:true}).catch(function(){});
+    }, function(){}, {enableHighAccuracy:false, timeout:20000, maximumAge:60000});
+  }
+  setTimeout(ping, 5000);          // ping pertama 5 dtk setelah load
+  setInterval(ping, 2*60*1000);    // lalu tiap 2 menit
+})();
+</script>
+<?php endif; ?>

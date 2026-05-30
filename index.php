@@ -1070,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
 
+<?php if ($u && in_array($u['role'] ?? '', ['member','admin'], true)): ?>
     <div class="card shadow-sm"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
      <div class="card-body" data-live="feed">
       <?php foreach($feed as $p): ?>
@@ -1137,6 +1138,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       <?php endforeach; if(!$feed): ?><p class="text-muted small text-center mb-0">Belum ada postingan.</p><?php endif; ?>
     </div></div>
+<?php else: ?>
+    <div class="card shadow-sm"><div class="card-body text-center text-muted small py-4">
+      <i class="bi bi-lock fs-3 d-block mb-2"></i>
+      <strong>Social Feed</strong> hanya bisa ditampilkan untuk <strong>member / admin terdaftar</strong>.
+      <div class="mt-2"><a href="/login.php" class="btn btn-sm btn-primary">Login</a> <a href="/register.php" class="btn btn-sm btn-outline-primary">Daftar</a></div>
+    </div></div>
+<?php endif; ?>
   </div>
 
   <div class="col-lg-5">

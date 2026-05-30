@@ -5,6 +5,31 @@ require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle = 'CRUD Jajanan';
 
+/**
+ * Helper upload foto jajanan ke ImageKit.
+ * Mengembalikan ['url'=>..., 'fileId'=>...] atau null jika gagal/tidak ada file.
+ */
+function jjn_upload_imagekit($fileField, $namaPrefix) {
+    if (empty($_FILES[$fileField]['name']) || !is_uploaded_file($_FILES[$fileField]['tmp_name'])) return null;
+    $ext = strtolower(pathinfo($_FILES[$fileField]['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) return null;
+    if (filesize($_FILES[$fileField]['tmp_name']) > 5*1024*1024) return null; // 5MB cap
+    require_once __DIR__.'/../config/imagekit.php';
+    global $imageKit;
+    $safe = preg_replace('/[^a-z0-9]/i','_', $namaPrefix ?: 'jajanan') . '-' . time() . '-' . bin2hex(random_bytes(3)) . '.' . $ext;
+    try {
+        $resp = $imageKit->uploadFile([
+            'file'     => base64_encode(file_get_contents($_FILES[$fileField]['tmp_name'])),
+            'fileName' => $safe,
+            'folder'   => '/sportapp/jajanan/' . date('Y/m'),
+        ]);
+        if (!$resp->error && !empty($resp->result->url)) {
+            return ['url'=>$resp->result->url, 'fileId'=>$resp->result->fileId ?? null];
+        }
+    } catch (Throwable $e) { /* swallow */ }
+    return null;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -14,31 +39,40 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $stok = max(0,(int)($_POST['stok'] ?? 0));
     $kat  = substr(trim($_POST['kategori'] ?? ''),0,60);
     $foto = substr(trim($_POST['foto_url'] ?? ''),0,500);
+    $fotoFileId = null;
     $aktif= !empty($_POST['aktif']);
 
-    // upload lokal opsional
-    if (!empty($_FILES['foto']['name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
-        $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg','jpeg','png','webp'], true)) {
-            $dir = __DIR__.'/../uploads/jajanan';
-            if (!is_dir($dir)) @mkdir($dir,0775,true);
-            $safe = 'jjn_'.time().'_'.bin2hex(random_bytes(3)).'.'.$ext;
-            if (move_uploaded_file($_FILES['foto']['tmp_name'], $dir.'/'.$safe)) $foto = '/uploads/jajanan/'.$safe;
-        }
-    }
+    // === Revisi 31 Mei 2026: simpan & arahkan foto ke ImageKit (bukan lagi /uploads lokal) ===
+    $upl = jjn_upload_imagekit('foto', $nama);
+    if ($upl) { $foto = $upl['url']; $fotoFileId = $upl['fileId']; }
 
     if ($a==='add' && $nama!=='') {
-        db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,kategori,aktif) VALUES($1,$2,$3,$4,$5,$6,$7)",
-          [$nama,$des?:null,$harga,$stok,$foto?:null,$kat?:null,$aktif?'t':'f']);
+        db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+          [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f']);
     } elseif ($a==='edit') {
         $id=(int)$_POST['id'];
-        if ($foto==='') {
-            $cur = db_one("SELECT foto_url FROM jajanan WHERE id=$1",[$id]); $foto = $cur['foto_url'] ?? null;
+        $cur = db_one("SELECT foto_url, foto_file_id FROM jajanan WHERE id=$1",[$id]);
+        if (!$upl && $foto==='') {
+            // tidak ada upload baru & input URL kosong → pertahankan foto lama
+            $foto = $cur['foto_url'] ?? null;
+            $fotoFileId = $cur['foto_file_id'] ?? null;
+        } elseif ($upl) {
+            // hapus file ImageKit lama jika ada
+            if (!empty($cur['foto_file_id'])) {
+                require_once __DIR__.'/../config/imagekit.php'; global $imageKit;
+                try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
+            }
         }
-        db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,kategori=$6,aktif=$7 WHERE id=$8",
-          [$nama,$des?:null,$harga,$stok,$foto?:null,$kat?:null,$aktif?'t':'f',$id]);
+        db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8 WHERE id=$9",
+          [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$id]);
     } elseif ($a==='delete') {
-        db_exec("DELETE FROM jajanan WHERE id=$1",[(int)$_POST['id']]);
+        $id = (int)$_POST['id'];
+        $cur = db_one("SELECT foto_file_id FROM jajanan WHERE id=$1",[$id]);
+        if (!empty($cur['foto_file_id'])) {
+            require_once __DIR__.'/../config/imagekit.php'; global $imageKit;
+            try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
+        }
+        db_exec("DELETE FROM jajanan WHERE id=$1",[$id]);
     }
     header('Location: jajanan.php'); exit;
 }
@@ -46,7 +80,8 @@ $rows = db_all("SELECT * FROM jajanan ORDER BY aktif DESC, nama");
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-shop text-warning"></i> CRUD Jajanan (Gojek-style)</h2>
-<p class="text-muted small">Jajanan yang aktif akan tampil di <a href="/jajanan.php">halaman pesan jajan</a> untuk umum/guest.</p>
+<p class="text-muted small">Jajanan yang aktif akan tampil di <a href="/jajanan.php">halaman pesan jajan</a> untuk umum/guest.
+Foto otomatis di-upload &amp; disimpan ke <strong>ImageKit</strong> (folder <code>/sportapp/jajanan/&lt;tahun&gt;/&lt;bulan&gt;/</code>).</p>
 
 <div class="card mb-3"><div class="card-header"><i class="bi bi-plus-circle"></i> Tambah Jajanan</div>
 <div class="card-body">
@@ -59,9 +94,9 @@ include __DIR__.'/../includes/header.php';
     <div class="col-md-2"><label class="small">Kategori</label><input class="form-control form-control-sm" name="kategori" placeholder="Minuman/Makanan/Snack"></div>
     <div class="col-md-2 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="aktif" id="ak2" checked><label class="form-check-label small" for="ak2">Aktif</label></div></div>
     <div class="col-md-8"><label class="small">Deskripsi</label><textarea class="form-control form-control-sm" name="deskripsi" rows="2"></textarea></div>
-    <div class="col-md-2"><label class="small">URL Foto</label><input class="form-control form-control-sm" name="foto_url" placeholder="https://..."></div>
-    <div class="col-md-2"><label class="small">atau Upload</label><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"></div>
-    <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
+    <div class="col-md-2"><label class="small">URL Foto (opsional)</label><input class="form-control form-control-sm" name="foto_url" placeholder="https://..."></div>
+    <div class="col-md-2"><label class="small">Upload ke ImageKit</label><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"></div>
+    <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-cloud-upload"></i> Simpan &amp; Upload</button></div>
   </form>
 </div></div>
 
@@ -81,11 +116,11 @@ include __DIR__.'/../includes/header.php';
           <div class="col-12"><input class="form-control form-control-sm" name="kategori" value="<?= htmlspecialchars($r['kategori'] ?? '') ?>"></div>
           <div class="col-12"><textarea class="form-control form-control-sm" name="deskripsi" rows="2"><?= htmlspecialchars($r['deskripsi'] ?? '') ?></textarea></div>
           <div class="col-12"><input class="form-control form-control-sm" name="foto_url" value="<?= htmlspecialchars($r['foto_url'] ?? '') ?>" placeholder="URL foto"></div>
-          <div class="col-12"><input type="file" class="form-control form-control-sm" name="foto"></div>
+          <div class="col-12"><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"><div class="form-text small">Pilih file → tergantikan di ImageKit.</div></div>
           <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="aktif" id="a<?= $r['id'] ?>" <?= ($r['aktif']==='t'||$r['aktif']===true)?'checked':'' ?>><label class="form-check-label small" for="a<?= $r['id'] ?>">Aktif</label></div></div>
           <div class="col-6 text-end"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-check2"></i> Simpan</button></div>
         </form>
-        <form method="post" class="mt-1" onsubmit="return confirm('Hapus jajanan ini?')">
+        <form method="post" class="mt-1" onsubmit="return confirm('Hapus jajanan ini? Foto di ImageKit juga akan dihapus.')">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
           <input type="hidden" name="_action" value="delete">
           <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">

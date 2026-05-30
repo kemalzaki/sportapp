@@ -40,9 +40,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $ongkir = $ONGKIR_DEFAULT;
         $total = $sub + $ongkir;
         $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
-        db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,'cod','baru')",
-          [$kode,$nama,$no_wa,$alamat,$catat?:null,$sub,$ongkir,$total]);
+        $plat = isset($_POST['pickup_lat']) && $_POST['pickup_lat']!=='' ? (float)$_POST['pickup_lat'] : null;
+        $plng = isset($_POST['pickup_lng']) && $_POST['pickup_lng']!=='' ? (float)$_POST['pickup_lng'] : null;
+        // Validasi server-side radius UIN SGD (fallback bila JS dilewati)
+        if ($plat !== null && $plng !== null) {
+            $UIN_LAT = -6.926263; $UIN_LNG = 107.717553; $UIN_R = 1500.0;
+            $R=6371000; $toRad = M_PI/180;
+            $dLat = ($UIN_LAT-$plat)*$toRad; $dLng = ($UIN_LNG-$plng)*$toRad;
+            $s = sin($dLat/2)**2 + cos($plat*$toRad)*cos($UIN_LAT*$toRad)*sin($dLng/2)**2;
+            $dist = 2*$R*asin(sqrt($s));
+            if ($dist > $UIN_R) {
+                $_SESSION['flash_err'] = "Lokasi diluar jangkauan kampus UIN SGD Bandung (".round($dist/1000,2)." km dari pusat kampus). Pesanan dibatalkan.";
+                header('Location: /jajanan.php'); exit;
+            }
+        }
+        db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,'cod','baru',$9,$10)",
+          [$kode,$nama,$no_wa,$alamat,$catat?:null,$sub,$ongkir,$total,$plat,$plng]);
         $pid = (int) db_val("SELECT id FROM jajanan_pesanan WHERE kode=$1",[$kode]);
         foreach ($pickedItems as $pi) {
             db_exec("INSERT INTO jajanan_pesanan_item(pesanan_id,jajanan_id,nama,harga,qty) VALUES($1,$2,$3,$4,$5)",
@@ -127,6 +141,28 @@ include __DIR__.'/includes/header.php';
         <input class="form-control form-control-sm" name="catatan" placeholder="cth: gerbang biru, pagar besi"></div>
       <div class="col-12"><label class="small">Alamat Lengkap Pengantaran</label>
         <textarea class="form-control form-control-sm" name="alamat" rows="2" required></textarea></div>
+
+      <!-- ===== Deteksi Lokasi Saya (revisi 31 Mei 2026) ===== -->
+      <div class="col-12">
+        <div class="border rounded p-2 bg-light-subtle">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" id="btnDetectLoc" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-geo-alt-fill"></i> Deteksi Lokasi Saya
+            </button>
+            <span id="locCoords" class="small text-muted">Lat/Lng belum terdeteksi</span>
+            <input type="hidden" name="pickup_lat" id="pickup_lat">
+            <input type="hidden" name="pickup_lng" id="pickup_lng">
+          </div>
+          <div id="locWarn" class="alert alert-danger small mt-2 mb-0 d-none">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Lokasi diluar jangkauan kampus UIN SGD Bandung.</strong>
+            Pengantaran hanya dilayani di sekitar kampus (radius ± 1,5 km dari pusat kampus).
+          </div>
+          <div id="locOk" class="alert alert-success small mt-2 mb-0 d-none">
+            <i class="bi bi-check-circle-fill"></i> Lokasi berada di dalam radius kampus UIN SGD Bandung.
+          </div>
+        </div>
+      </div>
     </div>
     <div class="mt-3 p-2 bg-light rounded">
       <div class="d-flex justify-content-between small"><span>Subtotal</span><strong id="sumSub">Rp 0</strong></div>
@@ -134,7 +170,7 @@ include __DIR__.'/includes/header.php';
       <hr class="my-1">
       <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar (COD)</span><strong class="text-success" id="sumTot">Rp <?= number_format($ONGKIR_DEFAULT,0,',','.') ?></strong></div>
     </div>
-    <button class="btn btn-success w-100 mt-3"><i class="bi bi-send-check"></i> Pesan Sekarang</button>
+    <button class="btn btn-success w-100 mt-3" id="btnSubmitOrder"><i class="bi bi-send-check"></i> Pesan Sekarang</button>
     <div class="small text-muted mt-2 text-center">Pembayaran COD (bayar saat barang diantar oleh kurir member kami).</div>
   </div>
 </div>
@@ -161,6 +197,48 @@ include __DIR__.'/includes/header.php';
     el.value=v; recalc();
   }));
   document.querySelectorAll('.qty-input').forEach(i=>i.addEventListener('input',recalc));
+
+  // ===== Deteksi Lokasi & validasi radius kampus UIN SGD Bandung (revisi 31 Mei 2026) =====
+  // Pusat kampus 1 UIN SGD Bandung (Cipadung): -6.926263, 107.717553. Radius 1500 m.
+  var UIN = {lat: -6.926263, lng: 107.717553, radius_m: 1500};
+  function haversine(a,b){
+    var R=6371000, toRad=Math.PI/180;
+    var dLat=(b.lat-a.lat)*toRad, dLng=(b.lng-a.lng)*toRad;
+    var s=Math.sin(dLat/2)**2 + Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+  var locValid = null; // null=belum dicek, true=dalam radius, false=luar
+  var btn = document.getElementById('btnDetectLoc');
+  if (btn) btn.addEventListener('click', function(){
+    if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
+    btn.disabled = true; var orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mendeteksi…';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
+      document.getElementById('pickup_lat').value = lat.toFixed(6);
+      document.getElementById('pickup_lng').value = lng.toFixed(6);
+      var dist = haversine({lat:lat,lng:lng}, UIN);
+      document.getElementById('locCoords').innerHTML = '<strong>Lat:</strong> '+lat.toFixed(6)+' · <strong>Lng:</strong> '+lng.toFixed(6)+' · akurasi '+Math.round(acc)+' m · jarak ke kampus: '+(dist/1000).toFixed(2)+' km';
+      var warn = document.getElementById('locWarn'), ok = document.getElementById('locOk');
+      if (dist > UIN.radius_m) {
+        warn.classList.remove('d-none'); ok.classList.add('d-none'); locValid = false;
+      } else {
+        ok.classList.remove('d-none'); warn.classList.add('d-none'); locValid = true;
+      }
+      btn.disabled = false; btn.innerHTML = orig;
+    }, function(err){
+      alert('Gagal membaca lokasi: '+err.message);
+      btn.disabled = false; btn.innerHTML = orig;
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+  });
+  // Cegah submit kalau sudah dideteksi & ternyata diluar radius
+  var form = document.getElementById('jjnForm');
+  if (form) form.addEventListener('submit', function(e){
+    if (locValid === false) {
+      e.preventDefault();
+      alert('Lokasi diluar jangkauan kampus UIN SGD Bandung. Pesanan tidak bisa dilanjutkan.');
+    }
+  });
 })();
 </script>
 

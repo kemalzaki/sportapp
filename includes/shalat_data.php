@@ -84,6 +84,38 @@ $SHALAT_RAWATIB = [
   ['waktu'=>'Subuh',   'qabliyah'=>'2 rakaat (muakkad — sangat ditekankan)', 'badiyah'=>'—',                                              'catatan'=>'Sabda Nabi ﷺ: "Dua rakaat fajar lebih baik daripada dunia dan seisinya." (HR. Muslim)'],
   ['waktu'=>'Zhuhur',  'qabliyah'=>'2 atau 4 rakaat (muakkad)',              'badiyah'=>'2 rakaat (muakkad), bisa ditambah 2 rakaat',     'catatan'=>'Total muakkad sekitar Zhuhur: 4 sebelum + 2 sesudah.'],
   ['waktu'=>'Ashar',   'qabliyah'=>'2 atau 4 rakaat (ghairu muakkad)',       'badiyah'=>'—',                                              'catatan'=>'Sunnah ringan sebelum Ashar; tidak ada rawatib sesudahnya.'],
-  ['waktu'=>'Maghrib', 'qabliyah'=>'2 rakaat ringan (ghairu muakkad)',       'badiyah'=>'—',                                              'catatan'=>'Setelah Maghrib langsung ke wirid/dzikir; rawatib ba‘diyah Maghrib tidak ditampilkan pada panduan ini.'],
-  ['waktu'=>'Isya',    'qabliyah'=>'2 rakaat (ghairu muakkad)',              'badiyah'=>'—',                                              'catatan'=>'Ditutup dengan Witir 1/3 rakaat sebagai penutup malam.'],
+  ['waktu'=>'Maghrib', 'qabliyah'=>'—',                                      'badiyah'=>'2 rakaat (muakkad) — ba‘diyah Maghrib',          'catatan'=>'Rawatib muakkad ba‘diyah Maghrib: 2 rakaat sesudah Maghrib (HR. Bukhari–Muslim).'],
+  ['waktu'=>'Isya',    'qabliyah'=>'—',                                      'badiyah'=>'2 rakaat (muakkad) — ba‘diyah Isya',             'catatan'=>'Rawatib muakkad ba‘diyah Isya: 2 rakaat sesudah Isya; ditutup dengan Witir sebagai penutup malam.'],
+];
+
+// ===== Shalat Sunnah Lainnya (Duha & Tahajud) — revisi 31 Mei 2026 =====
+$SHALAT_SUNNAH_LAIN = [
+  [
+    'nama'    => 'Shalat Duha',
+    'waktu'   => 'Setelah matahari terbit setinggi tombak (± 15–20 menit setelah syuruq) sampai sebelum zawal (± 10–15 menit sebelum Zhuhur).',
+    'rakaat'  => 'Minimal 2 rakaat, umumnya 4 rakaat, paling utama 8 rakaat, maksimal 12 rakaat (dikerjakan 2 rakaat–2 rakaat dengan salam).',
+    'tata_cara' => [
+      'Niat shalat Duha 2 rakaat karena Allah Ta‘ala.',
+      'Rakaat 1: Al-Fatihah + surat pendek (disunnahkan Asy-Syams).',
+      'Rakaat 2: Al-Fatihah + surat pendek (disunnahkan Adh-Dhuha).',
+      'Salam, lalu boleh diulang 2 rakaat berikutnya.',
+    ],
+    'doa'     => 'اللّٰهُمَّ إِنَّ الضُّحَاءَ ضُحَاؤُكَ، وَالْبَهَاءَ بَهَاؤُكَ، وَالْجَمَالَ جَمَالُكَ، وَالْقُوَّةَ قُوَّتُكَ، وَالْقُدْرَةَ قُدْرَتُكَ، وَالْعِصْمَةَ عِصْمَتُكَ. اللّٰهُمَّ إِنْ كَانَ رِزْقِيْ فِي السَّمَاءِ فَأَنْزِلْهُ، وَإِنْ كَانَ فِي الْأَرْضِ فَأَخْرِجْهُ، وَإِنْ كَانَ مُعَسَّرًا فَيَسِّرْهُ، وَإِنْ كَانَ حَرَامًا فَطَهِّرْهُ، وَإِنْ كَانَ بَعِيْدًا فَقَرِّبْهُ، بِحَقِّ ضُحَائِكَ وَبَهَائِكَ وَجَمَالِكَ وَقُوَّتِكَ وَقُدْرَتِكَ، آتِنِيْ مَا آتَيْتَ عِبَادَكَ الصَّالِحِيْنَ.',
+    'fadhilah' => 'Sebagai sedekah seluruh ruas tubuh tiap pagi (HR. Muslim) dan dibukakan pintu rezeki.',
+  ],
+  [
+    'nama'    => 'Shalat Tahajud',
+    'waktu'   => 'Sepertiga malam terakhir adalah waktu paling utama (setelah tidur, sebelum masuk Subuh). Boleh juga awal/tengah malam selama setelah tidur.',
+    'rakaat'  => 'Minimal 2 rakaat, tidak ada batasan maksimal. Dikerjakan 2 rakaat–2 rakaat dengan salam, ditutup dengan Witir (1, 3, 5, 7, 9, atau 11 rakaat).',
+    'tata_cara' => [
+      'Bangun di sepertiga malam terakhir, berwudhu dengan sempurna.',
+      'Niat shalat Tahajud 2 rakaat karena Allah Ta‘ala.',
+      'Rakaat 1: Al-Fatihah + surat panjang/pilihan (mis. Al-Insan, As-Sajdah).',
+      'Rakaat 2: Al-Fatihah + surat pilihan, salam.',
+      'Ulangi 2 rakaat berikutnya sesuai kemampuan, lalu tutup dengan Witir.',
+      'Perbanyak istighfar & doa di sujud dan setelah salam.',
+    ],
+    'doa'     => 'اللّٰهُمَّ لَكَ الْحَمْدُ أَنْتَ نُوْرُ السَّمٰوَاتِ وَالْأَرْضِ وَمَنْ فِيْهِنَّ، وَلَكَ الْحَمْدُ أَنْتَ قَيِّمُ السَّمٰوَاتِ وَالْأَرْضِ وَمَنْ فِيْهِنَّ، وَلَكَ الْحَمْدُ أَنْتَ الْحَقُّ، وَوَعْدُكَ الْحَقُّ، وَلِقَاؤُكَ حَقٌّ، وَقَوْلُكَ حَقٌّ، وَالْجَنَّةُ حَقٌّ، وَالنَّارُ حَقٌّ، وَالنَّبِيُّوْنَ حَقٌّ، وَمُحَمَّدٌ ﷺ حَقٌّ، وَالسَّاعَةُ حَقٌّ.',
+    'fadhilah' => 'Sebaik-baik shalat setelah fardhu (HR. Muslim). Allah turun ke langit dunia mengabulkan doa hamba di sepertiga malam terakhir (HR. Bukhari–Muslim).',
+  ],
 ];

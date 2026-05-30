@@ -172,10 +172,44 @@ include __DIR__.'/includes/header.php';
       </table>
     </div>
     <div class="p-3 small text-muted border-top">
-      <strong>Ringkasan rawatib muakkad:</strong>
-      2 sebelum Subuh · 4 sebelum & 2 sesudah Zhuhur.
+      <strong>Ringkasan rawatib muakkad (12 rakaat):</strong>
+      2 sebelum Subuh · 4 sebelum Zhuhur · 2 sesudah Zhuhur · 2 sesudah Maghrib · 2 sesudah Isya.
       Nabi ﷺ bersabda: "Barangsiapa shalat 12 rakaat dalam sehari semalam, Allah bangunkan baginya rumah di surga." (HR. Muslim)
     </div>
+  </div>
+</div>
+
+<!-- ====== SHALAT SUNNAH LAINNYA: DUHA & TAHAJUD (revisi 31 Mei 2026) ====== -->
+<?php if (!empty($SHALAT_SUNNAH_LAIN)): ?>
+<div class="card shadow-sm mb-3 border-info">
+  <div class="card-header bg-info-subtle text-info-emphasis d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-sun"></i> <strong>SHALAT SUNNAH DUHA &amp; TAHAJUD</strong></span>
+    <small class="opacity-75">Penambah pahala &amp; pintu rezeki</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <?php foreach ($SHALAT_SUNNAH_LAIN as $sh): ?>
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100 bg-light-subtle">
+          <h6 class="fw-bold text-info-emphasis mb-2"><i class="bi bi-moon-stars"></i> <?= htmlspecialchars($sh['nama']) ?></h6>
+          <div class="small mb-2"><strong>Waktu:</strong> <?= htmlspecialchars($sh['waktu']) ?></div>
+          <div class="small mb-2"><strong>Jumlah Rakaat:</strong> <?= htmlspecialchars($sh['rakaat']) ?></div>
+          <div class="small mb-2"><strong>Tata Cara:</strong>
+            <ol class="mb-1 ps-3">
+              <?php foreach ($sh['tata_cara'] as $tc): ?><li><?= htmlspecialchars($tc) ?></li><?php endforeach; ?>
+            </ol>
+          </div>
+          <div class="small mb-2"><strong>Doa Setelah Shalat:</strong>
+            <div class="p-2 bg-white border rounded mt-1" style="font-family:'Scheherazade New','Amiri',serif;font-size:1.1rem;line-height:1.9;direction:rtl;text-align:right"><?= htmlspecialchars($sh['doa']) ?></div>
+          </div>
+          <div class="small text-muted"><strong>Fadhilah:</strong> <?= htmlspecialchars($sh['fadhilah']) ?></div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
   </div>
 </div>
 
