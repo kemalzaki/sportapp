@@ -194,6 +194,9 @@ try {
 
     // === Revisi 31 Mei 2026 v2: kolom & tabel tambahan ===
     @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS foto_file_id VARCHAR(120)");
+    // === Revisi 1 Jun 2026: lat/lng lokasi jajanan ===
+    @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS lat NUMERIC(10,6)");
+    @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS lng NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lat NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lng NUMERIC(10,6)");
 

@@ -7,11 +7,23 @@ send_security_headers();
 $pageTitle = 'Pesan Jajan';
 $u = current_user(); // boleh null (guest)
 
+// ===== Konfigurasi nomor WA admin Firdam (revisi 1 Jun 2026) =====
+// Selaras dengan register.php (sumber tunggal: env ADMIN_WA_FIRDAM)
+$ADMIN_WA_FIRDAM = getenv('ADMIN_WA_FIRDAM') ?: '6281386369207';
+
 $ONGKIR_DEFAULT = 5000;
+$PER_PAGE       = 5; // revisi #4: 5 produk per halaman
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
+
+    // ===== Revisi #2: form pengecekan status pesanan via nama pemesan =====
+    if ($a === 'cek_status') {
+        $nm = trim($_POST['cek_nama'] ?? '');
+        header('Location: /jajanan.php?cek_nama='.urlencode($nm).'#cek-status'); exit;
+    }
+
     if ($a === 'order') {
         $nama   = substr(trim($_POST['nama'] ?? ''),0,120);
         $no_wa  = substr(preg_replace('/[^0-9+]/','', $_POST['no_wa'] ?? ''),0,25);
@@ -42,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
         $plat = isset($_POST['pickup_lat']) && $_POST['pickup_lat']!=='' ? (float)$_POST['pickup_lat'] : null;
         $plng = isset($_POST['pickup_lng']) && $_POST['pickup_lng']!=='' ? (float)$_POST['pickup_lng'] : null;
-        // Validasi server-side radius UIN SGD (fallback bila JS dilewati)
         if ($plat !== null && $plng !== null) {
             $UIN_LAT = -6.926263; $UIN_LNG = 107.717553; $UIN_R = 1500.0;
             $R=6371000; $toRad = M_PI/180;
@@ -61,20 +72,77 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         foreach ($pickedItems as $pi) {
             db_exec("INSERT INTO jajanan_pesanan_item(pesanan_id,jajanan_id,nama,harga,qty) VALUES($1,$2,$3,$4,$5)",
               [$pid,(int)$pi['j']['id'],$pi['j']['nama'],(int)$pi['j']['harga'],(int)$pi['qty']]);
-            // kurangi stok
             db_exec("UPDATE jajanan SET stok = GREATEST(0, stok - $1) WHERE id=$2",[(int)$pi['qty'],(int)$pi['j']['id']]);
         }
-        $_SESSION['flash'] = "Pesanan berhasil dibuat dengan kode $kode. Total Rp ".number_format($total,0,',','.').". Admin akan menghubungi Anda lewat WhatsApp.";
-        header('Location: /jajanan.php?kode='.$kode); exit;
+        $_SESSION['flash'] = "Pesanan berhasil dibuat dengan kode $kode. Total Rp ".number_format($total,0,',','.').". Notifikasi WhatsApp ke admin Firdam akan dibuka otomatis.";
+        // notify=1 => JS auto-open wa.me admin Firdam (revisi #1)
+        header('Location: /jajanan.php?kode='.$kode.'&notify=1'); exit;
     }
 }
 
-$rows = db_all("SELECT * FROM jajanan WHERE aktif=true AND stok>0 ORDER BY kategori NULLS LAST, nama");
-$kategoriList = [];
-foreach($rows as $r){ $k = $r['kategori'] ?? 'Lainnya'; $kategoriList[$k][] = $r; }
-$kode = $_GET['kode'] ?? '';
+// ===== Daftar kategori (revisi #3) =====
+$katAll = db_all("SELECT COALESCE(NULLIF(TRIM(kategori),''),'Lainnya') AS kat, COUNT(*) AS n
+                  FROM jajanan WHERE aktif=true AND stok>0
+                  GROUP BY 1 ORDER BY 1");
+$katPilih = trim($_GET['kat'] ?? '');
+
+// ===== Pagination (revisi #4) =====
+$page = max(1,(int)($_GET['page'] ?? 1));
+$where = "WHERE aktif=true AND stok>0";
+$params = [];
+if ($katPilih !== '' && $katPilih !== 'Semua') {
+    $where .= " AND COALESCE(NULLIF(TRIM(kategori),''),'Lainnya') = $1";
+    $params[] = $katPilih;
+}
+$totalProduk = (int) db_val("SELECT COUNT(*) FROM jajanan $where", $params);
+$totalPage   = max(1,(int)ceil($totalProduk / $PER_PAGE));
+if ($page > $totalPage) $page = $totalPage;
+$offset = ($page-1) * $PER_PAGE;
+$rows = db_all("SELECT * FROM jajanan $where ORDER BY kategori NULLS LAST, nama
+                LIMIT $PER_PAGE OFFSET $offset", $params);
+
+$kode    = $_GET['kode'] ?? '';
+$notify  = !empty($_GET['notify']);
 $myOrder = $kode ? db_one("SELECT * FROM jajanan_pesanan WHERE kode=$1",[$kode]) : null;
 $myItems = $myOrder ? db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$myOrder['id']]) : [];
+
+// ===== Revisi #2: pengecekan status pesanan via nama pemesan =====
+$cekNama = trim($_GET['cek_nama'] ?? '');
+$cekHasil = [];
+if ($cekNama !== '') {
+    $cekHasil = db_all(
+        "SELECT id,kode,nama_pemesan,no_wa,total,status,created_at,updated_at
+         FROM jajanan_pesanan
+         WHERE LOWER(nama_pemesan) LIKE LOWER($1)
+         ORDER BY created_at DESC LIMIT 20",
+        ['%'.$cekNama.'%']
+    );
+}
+
+// ===== Pesan WA notifikasi admin (revisi #1) =====
+$waAdminLink = '';
+if ($myOrder && $notify) {
+    $lines = [];
+    $lines[] = "🔔 *Pesanan Baru Pesan Jajan*";
+    $lines[] = "Kode: *".$myOrder['kode']."*";
+    $lines[] = "Nama: ".$myOrder['nama_pemesan'];
+    $lines[] = "WA Pemesan: ".$myOrder['no_wa'];
+    $lines[] = "Alamat: ".$myOrder['alamat'];
+    if (!empty($myOrder['catatan'])) $lines[] = "Catatan: ".$myOrder['catatan'];
+    $lines[] = "";
+    foreach ($myItems as $it) {
+        $lines[] = "• ".(int)$it['qty']."× ".$it['nama']." — Rp ".number_format((int)$it['harga']*(int)$it['qty'],0,',','.');
+    }
+    $lines[] = "";
+    $lines[] = "Subtotal: Rp ".number_format((int)$myOrder['subtotal'],0,',','.');
+    $lines[] = "Ongkir : Rp ".number_format((int)$myOrder['ongkir'],0,',','.');
+    $lines[] = "*Total  : Rp ".number_format((int)$myOrder['total'],0,',','.')."* (COD)";
+    if (!empty($myOrder['pickup_lat']) && !empty($myOrder['pickup_lng'])) {
+        $lines[] = "Lokasi: https://www.google.com/maps?q=".$myOrder['pickup_lat'].",".$myOrder['pickup_lng'];
+    }
+    $waAdminLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM)
+                  .'?text='.rawurlencode(implode("\n",$lines));
+}
 
 include __DIR__.'/includes/header.php';
 ?>
@@ -94,22 +162,89 @@ include __DIR__.'/includes/header.php';
   <ul class="small mb-0 mt-2">
     <?php foreach($myItems as $it): ?><li><?= (int)$it['qty'] ?>× <?= htmlspecialchars($it['nama']) ?> — Rp <?= number_format((int)$it['harga']*(int)$it['qty'],0,',','.') ?></li><?php endforeach; ?>
   </ul>
+  <?php if ($waAdminLink): ?>
+    <a id="waAdminBtn" href="<?= htmlspecialchars($waAdminLink) ?>" target="_blank" rel="noopener"
+       class="btn btn-success btn-sm mt-2">
+      <i class="bi bi-whatsapp"></i> Kirim Notifikasi WA ke Admin Firdam
+    </a>
+    <div class="small text-muted mt-1">Jika tab WhatsApp tidak terbuka otomatis, klik tombol di atas.</div>
+  <?php endif; ?>
 </div></div>
+<?php endif; ?>
+
+<!-- ===== Revisi #2: Form cek status pesanan ===== -->
+<div class="card mb-3" id="cek-status">
+  <div class="card-header bg-light"><i class="bi bi-search"></i> Cek Status Pesanan Saya</div>
+  <div class="card-body">
+    <form method="post" class="row g-2 align-items-end">
+      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+      <input type="hidden" name="_action" value="cek_status">
+      <div class="col-md-8">
+        <label class="small">Nama Pemesan</label>
+        <input class="form-control form-control-sm" name="cek_nama" required
+               value="<?= htmlspecialchars($cekNama) ?>"
+               placeholder="Masukkan nama yang dipakai saat memesan">
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-sm btn-primary w-100"><i class="bi bi-search"></i> Cek Pesanan</button>
+      </div>
+    </form>
+    <?php if ($cekNama !== ''): ?>
+      <hr>
+      <?php if (!$cekHasil): ?>
+        <div class="small text-muted">Tidak ditemukan pesanan atas nama <strong><?= htmlspecialchars($cekNama) ?></strong>.</div>
+      <?php else: ?>
+        <div class="table-responsive">
+          <table class="table table-sm small align-middle mb-0">
+            <thead><tr><th>Kode</th><th>Nama</th><th>Total</th><th>Status</th><th>Tgl</th><th></th></tr></thead>
+            <tbody>
+            <?php foreach($cekHasil as $r): ?>
+              <tr>
+                <td><strong><?= htmlspecialchars($r['kode']) ?></strong></td>
+                <td><?= htmlspecialchars($r['nama_pemesan']) ?></td>
+                <td>Rp <?= number_format((int)$r['total'],0,',','.') ?></td>
+                <td><span class="badge bg-info"><?= htmlspecialchars($r['status']) ?></span></td>
+                <td><?= htmlspecialchars(date('d M Y H:i', strtotime($r['created_at']))) ?></td>
+                <td><a class="btn btn-sm btn-outline-secondary" href="/jajanan.php?kode=<?= urlencode($r['kode']) ?>">Detail</a></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- ===== Revisi #3: Filter kategori ===== -->
+<?php if ($katAll): ?>
+<div class="mb-2 d-flex flex-wrap gap-1 align-items-center">
+  <span class="small text-muted me-1"><i class="bi bi-tags"></i> Kategori:</span>
+  <a href="/jajanan.php" class="btn btn-sm <?= $katPilih===''?'btn-success':'btn-outline-success' ?>">Semua</a>
+  <?php foreach($katAll as $k): ?>
+    <a href="/jajanan.php?kat=<?= urlencode($k['kat']) ?>"
+       class="btn btn-sm <?= $katPilih===$k['kat']?'btn-success':'btn-outline-success' ?>">
+       <?= htmlspecialchars($k['kat']) ?> <span class="badge bg-light text-success ms-1"><?= (int)$k['n'] ?></span>
+    </a>
+  <?php endforeach; ?>
+</div>
 <?php endif; ?>
 
 <form method="post" id="jjnForm">
 <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
 <input type="hidden" name="_action" value="order">
 
-<?php foreach($kategoriList as $kat=>$items): ?>
-<h5 class="mt-3"><i class="bi bi-tag"></i> <?= htmlspecialchars($kat) ?></h5>
 <div class="row g-2">
-<?php foreach($items as $r): ?>
+<?php foreach($rows as $r): ?>
   <div class="col-md-4 col-6">
     <div class="card h-100 shadow-sm">
       <?php if(!empty($r['foto_url'])): ?><img src="<?= htmlspecialchars($r['foto_url']) ?>" class="card-img-top" style="height:130px;object-fit:cover"><?php else: ?>
         <div class="bg-light text-center py-4"><i class="bi bi-bag fs-1 text-muted"></i></div><?php endif; ?>
       <div class="card-body p-2">
+        <!-- revisi #7: badge kategori per item -->
+        <?php if(!empty($r['kategori'])): ?>
+          <span class="badge bg-success-subtle text-success mb-1"><i class="bi bi-tag-fill"></i> <?= htmlspecialchars($r['kategori']) ?></span>
+        <?php endif; ?>
         <div class="fw-semibold small"><?= htmlspecialchars($r['nama']) ?></div>
         <div class="text-success small fw-bold">Rp <?= number_format((int)$r['harga'],0,',','.') ?></div>
         <?php if(!empty($r['deskripsi'])): ?><div class="text-muted" style="font-size:.72rem"><?= htmlspecialchars($r['deskripsi']) ?></div><?php endif; ?>
@@ -125,9 +260,26 @@ include __DIR__.'/includes/header.php';
   </div>
 <?php endforeach; ?>
 </div>
-<?php endforeach; ?>
 
-<?php if(!$rows): ?><p class="text-muted small">Belum ada jajanan tersedia. Silakan cek lagi nanti.</p><?php endif; ?>
+<?php if(!$rows): ?><p class="text-muted small mt-2">Belum ada jajanan tersedia di kategori ini.</p><?php endif; ?>
+
+<!-- ===== Revisi #4: Pagination 5 per halaman ===== -->
+<?php if ($totalPage > 1):
+    $qs = function($p) use ($katPilih) {
+        $a = ['page'=>$p];
+        if ($katPilih!=='') $a['kat']=$katPilih;
+        return '?'.http_build_query($a);
+    };
+?>
+<nav class="mt-3"><ul class="pagination pagination-sm justify-content-center mb-1">
+  <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="<?= $qs(max(1,$page-1)) ?>">«</a></li>
+  <?php for($p=1;$p<=$totalPage;$p++): ?>
+    <li class="page-item <?= $p===$page?'active':'' ?>"><a class="page-link" href="<?= $qs($p) ?>"><?= $p ?></a></li>
+  <?php endfor; ?>
+  <li class="page-item <?= $page>=$totalPage?'disabled':'' ?>"><a class="page-link" href="<?= $qs(min($totalPage,$page+1)) ?>">»</a></li>
+</ul></nav>
+<div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $totalProduk ?> produk · 5 per halaman</div>
+<?php endif; ?>
 
 <div class="card mt-3 shadow-sm" id="checkoutCard">
   <div class="card-header"><i class="bi bi-cart-check"></i> Data Pengantaran</div>
@@ -142,7 +294,6 @@ include __DIR__.'/includes/header.php';
       <div class="col-12"><label class="small">Alamat Lengkap Pengantaran</label>
         <textarea class="form-control form-control-sm" name="alamat" rows="2" required></textarea></div>
 
-      <!-- ===== Deteksi Lokasi Saya (revisi 31 Mei 2026) ===== -->
       <div class="col-12">
         <div class="border rounded p-2 bg-light-subtle">
           <div class="d-flex flex-wrap align-items-center gap-2">
@@ -171,7 +322,7 @@ include __DIR__.'/includes/header.php';
       <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar (COD)</span><strong class="text-success" id="sumTot">Rp <?= number_format($ONGKIR_DEFAULT,0,',','.') ?></strong></div>
     </div>
     <button class="btn btn-success w-100 mt-3" id="btnSubmitOrder"><i class="bi bi-send-check"></i> Pesan Sekarang</button>
-    <div class="small text-muted mt-2 text-center">Pembayaran COD (bayar saat barang diantar oleh kurir member kami).</div>
+    <div class="small text-muted mt-2 text-center">Pembayaran COD (bayar saat barang diantar oleh kurir member kami). Setelah klik, WhatsApp ke admin Firdam akan otomatis terbuka untuk notifikasi pesanan.</div>
   </div>
 </div>
 </form>
@@ -198,8 +349,6 @@ include __DIR__.'/includes/header.php';
   }));
   document.querySelectorAll('.qty-input').forEach(i=>i.addEventListener('input',recalc));
 
-  // ===== Deteksi Lokasi & validasi radius kampus UIN SGD Bandung (revisi 31 Mei 2026) =====
-  // Pusat kampus 1 UIN SGD Bandung (Cipadung): -6.926263, 107.717553. Radius 1500 m.
   var UIN = {lat: -6.926263, lng: 107.717553, radius_m: 1500};
   function haversine(a,b){
     var R=6371000, toRad=Math.PI/180;
@@ -207,7 +356,7 @@ include __DIR__.'/includes/header.php';
     var s=Math.sin(dLat/2)**2 + Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)**2;
     return 2*R*Math.asin(Math.sqrt(s));
   }
-  var locValid = null; // null=belum dicek, true=dalam radius, false=luar
+  var locValid = null;
   var btn = document.getElementById('btnDetectLoc');
   if (btn) btn.addEventListener('click', function(){
     if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
@@ -231,7 +380,6 @@ include __DIR__.'/includes/header.php';
       btn.disabled = false; btn.innerHTML = orig;
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
-  // Cegah submit kalau sudah dideteksi & ternyata diluar radius
   var form = document.getElementById('jjnForm');
   if (form) form.addEventListener('submit', function(e){
     if (locValid === false) {
@@ -239,6 +387,14 @@ include __DIR__.'/includes/header.php';
       alert('Lokasi diluar jangkauan kampus UIN SGD Bandung. Pesanan tidak bisa dilanjutkan.');
     }
   });
+
+  // ===== Revisi #1: auto-open WhatsApp admin Firdam setelah pesanan sukses =====
+  var waBtn = document.getElementById('waAdminBtn');
+  if (waBtn) {
+    setTimeout(function(){
+      try { window.open(waBtn.href, '_blank'); } catch(e){}
+    }, 600);
+  }
 })();
 </script>
 

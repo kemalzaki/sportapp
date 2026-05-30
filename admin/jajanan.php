@@ -30,6 +30,14 @@ function jjn_upload_imagekit($fileField, $namaPrefix) {
     return null;
 }
 
+// Helper validasi lat/lng (revisi #6)
+function jjn_parse_latlng($v, $min, $max) {
+    if ($v === null || $v === '') return null;
+    $f = (float)str_replace(',', '.', trim($v));
+    if ($f < $min || $f > $max) return null;
+    return $f;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -41,30 +49,31 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $foto = substr(trim($_POST['foto_url'] ?? ''),0,500);
     $fotoFileId = null;
     $aktif= !empty($_POST['aktif']);
+    // === Revisi #6: lat/lng lokasi jajanan ===
+    $lat  = jjn_parse_latlng($_POST['lat'] ?? '', -90, 90);
+    $lng  = jjn_parse_latlng($_POST['lng'] ?? '', -180, 180);
 
-    // === Revisi 31 Mei 2026: simpan & arahkan foto ke ImageKit (bukan lagi /uploads lokal) ===
     $upl = jjn_upload_imagekit('foto', $nama);
     if ($upl) { $foto = $upl['url']; $fotoFileId = $upl['fileId']; }
 
     if ($a==='add' && $nama!=='') {
-        db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-          [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f']);
+        db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+          [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng]);
     } elseif ($a==='edit') {
         $id=(int)$_POST['id'];
         $cur = db_one("SELECT foto_url, foto_file_id FROM jajanan WHERE id=$1",[$id]);
         if (!$upl && $foto==='') {
-            // tidak ada upload baru & input URL kosong → pertahankan foto lama
             $foto = $cur['foto_url'] ?? null;
             $fotoFileId = $cur['foto_file_id'] ?? null;
         } elseif ($upl) {
-            // hapus file ImageKit lama jika ada
             if (!empty($cur['foto_file_id'])) {
                 require_once __DIR__.'/../config/imagekit.php'; global $imageKit;
                 try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
             }
         }
-        db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8 WHERE id=$9",
-          [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$id]);
+        db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10 WHERE id=$11",
+          [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$id]);
     } elseif ($a==='delete') {
         $id = (int)$_POST['id'];
         $cur = db_one("SELECT foto_file_id FROM jajanan WHERE id=$1",[$id]);
@@ -81,7 +90,7 @@ include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-shop text-warning"></i> CRUD Jajanan (Gojek-style)</h2>
 <p class="text-muted small">Jajanan yang aktif akan tampil di <a href="/jajanan.php">halaman pesan jajan</a> untuk umum/guest.
-Foto otomatis di-upload &amp; disimpan ke <strong>ImageKit</strong> (folder <code>/sportapp/jajanan/&lt;tahun&gt;/&lt;bulan&gt;/</code>).</p>
+Foto otomatis di-upload &amp; disimpan ke <strong>ImageKit</strong>. Lokasi (lat/lng) opsional — bila diisi akan dipakai untuk peta &amp; perhitungan jarak.</p>
 
 <div class="card mb-3"><div class="card-header"><i class="bi bi-plus-circle"></i> Tambah Jajanan</div>
 <div class="card-body">
@@ -96,6 +105,9 @@ Foto otomatis di-upload &amp; disimpan ke <strong>ImageKit</strong> (folder <cod
     <div class="col-md-8"><label class="small">Deskripsi</label><textarea class="form-control form-control-sm" name="deskripsi" rows="2"></textarea></div>
     <div class="col-md-2"><label class="small">URL Foto (opsional)</label><input class="form-control form-control-sm" name="foto_url" placeholder="https://..."></div>
     <div class="col-md-2"><label class="small">Upload ke ImageKit</label><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"></div>
+    <!-- Revisi #6: lat/lng -->
+    <div class="col-md-3"><label class="small">Lat lokasi jajanan</label><input class="form-control form-control-sm" name="lat" placeholder="-6.926263" inputmode="decimal"></div>
+    <div class="col-md-3"><label class="small">Lng lokasi jajanan</label><input class="form-control form-control-sm" name="lng" placeholder="107.717553" inputmode="decimal"></div>
     <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-cloud-upload"></i> Simpan &amp; Upload</button></div>
   </form>
 </div></div>
@@ -113,10 +125,20 @@ Foto otomatis di-upload &amp; disimpan ke <strong>ImageKit</strong> (folder <cod
           <div class="col-12"><input class="form-control form-control-sm" name="nama" value="<?= htmlspecialchars($r['nama']) ?>"></div>
           <div class="col-6"><input type="number" class="form-control form-control-sm" name="harga" value="<?= (int)$r['harga'] ?>"></div>
           <div class="col-6"><input type="number" class="form-control form-control-sm" name="stok" value="<?= (int)$r['stok'] ?>"></div>
-          <div class="col-12"><input class="form-control form-control-sm" name="kategori" value="<?= htmlspecialchars($r['kategori'] ?? '') ?>"></div>
+          <div class="col-12"><input class="form-control form-control-sm" name="kategori" value="<?= htmlspecialchars($r['kategori'] ?? '') ?>" placeholder="Kategori"></div>
           <div class="col-12"><textarea class="form-control form-control-sm" name="deskripsi" rows="2"><?= htmlspecialchars($r['deskripsi'] ?? '') ?></textarea></div>
           <div class="col-12"><input class="form-control form-control-sm" name="foto_url" value="<?= htmlspecialchars($r['foto_url'] ?? '') ?>" placeholder="URL foto"></div>
           <div class="col-12"><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"><div class="form-text small">Pilih file → tergantikan di ImageKit.</div></div>
+          <!-- Revisi #6: lat/lng per item -->
+          <div class="col-6"><input class="form-control form-control-sm" name="lat" value="<?= htmlspecialchars(isset($r['lat'])?(string)$r['lat']:'') ?>" placeholder="Lat" inputmode="decimal"></div>
+          <div class="col-6"><input class="form-control form-control-sm" name="lng" value="<?= htmlspecialchars(isset($r['lng'])?(string)$r['lng']:'') ?>" placeholder="Lng" inputmode="decimal"></div>
+          <?php if(!empty($r['lat']) && !empty($r['lng'])): ?>
+            <div class="col-12 small">
+              <a href="https://www.google.com/maps?q=<?= htmlspecialchars($r['lat']) ?>,<?= htmlspecialchars($r['lng']) ?>" target="_blank" rel="noopener">
+                <i class="bi bi-geo-alt-fill text-danger"></i> Lihat lokasi di Google Maps
+              </a>
+            </div>
+          <?php endif; ?>
           <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="aktif" id="a<?= $r['id'] ?>" <?= ($r['aktif']==='t'||$r['aktif']===true)?'checked':'' ?>><label class="form-check-label small" for="a<?= $r['id'] ?>">Aktif</label></div></div>
           <div class="col-6 text-end"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-check2"></i> Simpan</button></div>
         </form>
