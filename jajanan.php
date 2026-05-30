@@ -398,6 +398,21 @@ include __DIR__.'/includes/header.php';
 <?php endif; ?>
 
 <!-- ===== Modal Pemesanan (Gojek-style) ===== -->
+<style>
+/* Pastikan modal body bisa scroll di HP agar tombol submit terlihat */
+#pesanModal .modal-body {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 150px);
+}
+@media (max-width: 576px) {
+  #pesanModal .modal-body {
+    max-height: calc(100vh - 130px);
+  }
+}
+.modal-fullscreen-sm-down .modal-content {
+  max-height: 100vh !important;
+}
+</style>
 <div class="modal fade" id="pesanModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">

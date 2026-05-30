@@ -220,6 +220,21 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
 </div>
 
 <!-- ===== Modal Edit ===== -->
+<style>
+/* Pastikan modal body bisa scroll di HP agar tombol submit terlihat */
+#editModal .modal-body {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 150px);
+}
+@media (max-width: 768px) {
+  #editModal .modal-body {
+    max-height: calc(100vh - 130px);
+  }
+}
+.modal-fullscreen-md-down .modal-content {
+  max-height: 100vh !important;
+}
+</style>
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-md-down">
     <div class="modal-content">
