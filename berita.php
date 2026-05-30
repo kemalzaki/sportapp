@@ -9,10 +9,9 @@ $pageTitle = 'Berita Terkini 2026';
 
 /**
  * REVISI 31 Mei 2026:
- *  - Gabung beberapa sumber RSS Indonesia (CNN Indonesia, Detik, Kompas, Antara)
- *    karena CNN/Detik/Kompas update lebih cepat & ringkasan lebih kaya gambar.
- *  - Hanya menampilkan berita TAHUN 2026 (filter berdasarkan pubDate).
- *  - Diurutkan dari yang paling baru.
+ *  - Pagination per 5 berita
+ *  - Fitur pencarian (judul / ringkasan / sumber)
+ *  - Tetap hanya menampilkan berita TAHUN 2026
  */
 $KATEGORI = [
   'politik' => [
@@ -55,6 +54,10 @@ $KATEGORI = [
 $cat = $_GET['cat'] ?? 'politik';
 if (!isset($KATEGORI[$cat])) $cat = 'politik';
 
+$q   = trim((string)($_GET['q'] ?? ''));
+$page = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 5;
+
 // Gabungkan semua sumber untuk kategori terpilih.
 $allPosts = [];
 foreach ($KATEGORI[$cat]['rss'] as $sumber => $url) {
@@ -65,7 +68,7 @@ foreach ($KATEGORI[$cat]['rss'] as $sumber => $url) {
     }
 }
 
-// Filter HANYA tahun 2026, lalu urutkan terbaru → lama.
+// Filter HANYA tahun 2026, urutkan terbaru → lama.
 $TAHUN_FILTER = 2026;
 $posts = [];
 foreach ($allPosts as $p) {
@@ -75,7 +78,7 @@ foreach ($allPosts as $p) {
     $p['_ts'] = $ts;
     $posts[] = $p;
 }
-// dedup berdasarkan judul (sumber berbeda kadang berita sama).
+// Dedup berdasarkan judul (lintas sumber).
 $seen = []; $uniq = [];
 foreach ($posts as $p) {
     $k = mb_strtolower(preg_replace('/\s+/u', ' ', trim($p['title'])));
@@ -83,7 +86,31 @@ foreach ($posts as $p) {
     $seen[$k] = 1; $uniq[] = $p;
 }
 $posts = $uniq;
+
+// Filter pencarian (judul / deskripsi / sumber).
+if ($q !== '') {
+    $needle = mb_strtolower($q);
+    $posts = array_values(array_filter($posts, function($p) use ($needle) {
+        $hay = mb_strtolower(($p['title'] ?? '').' '.strip_tags($p['description'] ?? '').' '.($p['sumber'] ?? ''));
+        return mb_strpos($hay, $needle) !== false;
+    }));
+}
+
 usort($posts, function($a,$b){ return $b['_ts'] <=> $a['_ts']; });
+
+// Pagination.
+$total = count($posts);
+$totalPages = max(1, (int)ceil($total / $perPage));
+if ($page > $totalPages) $page = $totalPages;
+$offset = ($page - 1) * $perPage;
+$pagePosts = array_slice($posts, $offset, $perPage);
+
+// Helper URL pagination.
+$buildUrl = function(array $over = []) use ($cat, $q, $page) {
+    $params = array_merge(['cat'=>$cat, 'q'=>$q, 'page'=>$page], $over);
+    $params = array_filter($params, fn($v) => $v !== '' && $v !== null);
+    return '?'.http_build_query($params);
+};
 
 include __DIR__.'/includes/header.php'; ?>
 
@@ -101,26 +128,45 @@ include __DIR__.'/includes/header.php'; ?>
 
 <p class="text-muted small mb-3">
   Sumber: <strong>CNN Indonesia</strong>, <strong>Detik</strong>, <strong>Kompas</strong>, <strong>Antara</strong> (RSS resmi) — gratis tanpa API key.
-  Klik judul atau tombol <em>Baca</em> untuk membuka isi berita dalam popup.
 </p>
 
 <ul class="nav nav-pills flex-nowrap overflow-auto mb-3 gap-2" style="white-space:nowrap;">
   <?php foreach($KATEGORI as $k=>$v): ?>
     <li class="nav-item">
-      <a class="nav-link <?= $k===$cat?'active':'' ?>" href="?cat=<?= $k ?>">
+      <a class="nav-link <?= $k===$cat?'active':'' ?>" href="?cat=<?= $k ?><?= $q!==''?'&q='.urlencode($q):'' ?>">
         <i class="bi <?= $v['icon'] ?>"></i> <?= $v['label'] ?>
       </a>
     </li>
   <?php endforeach; ?>
 </ul>
 
+<!-- Form pencarian -->
+<form method="get" class="mb-3" role="search">
+  <input type="hidden" name="cat" value="<?= htmlspecialchars($cat) ?>">
+  <div class="input-group">
+    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+    <input type="text" class="form-control" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Cari judul / sumber berita...">
+    <button class="btn btn-primary" type="submit">Cari</button>
+    <?php if ($q !== ''): ?>
+      <a class="btn btn-outline-secondary" href="?cat=<?= htmlspecialchars($cat) ?>">Reset</a>
+    <?php endif; ?>
+  </div>
+  <?php if ($q !== ''): ?>
+    <div class="form-text mt-1"><i class="bi bi-info-circle"></i> Menampilkan hasil pencarian untuk <strong>"<?= htmlspecialchars($q) ?>"</strong> — <?= $total ?> berita ditemukan.</div>
+  <?php endif; ?>
+</form>
+
 <?php if (!$posts): ?>
   <div class="alert alert-warning">
-    <i class="bi bi-wifi-off"></i> Belum ada berita tahun <?= $TAHUN_FILTER ?> untuk kategori ini, atau server tidak dapat menghubungi sumber RSS. Coba muat ulang dalam beberapa saat.
+    <i class="bi bi-wifi-off"></i> <?= $q !== '' ? 'Tidak ada berita yang cocok dengan pencarian kamu.' : 'Belum ada berita tahun '.$TAHUN_FILTER.' untuk kategori ini, atau server tidak dapat menghubungi sumber RSS.' ?>
   </div>
 <?php else: ?>
+  <div class="d-flex justify-content-between align-items-center small text-muted mb-2">
+    <span>Menampilkan <strong><?= $offset+1 ?>–<?= min($offset+$perPage, $total) ?></strong> dari <strong><?= $total ?></strong> berita</span>
+    <span>Halaman <?= $page ?> / <?= $totalPages ?></span>
+  </div>
   <div class="row g-3">
-    <?php foreach(array_slice($posts, 0, 30) as $i=>$p):
+    <?php foreach($pagePosts as $p):
       $img = $p['thumbnail'] ?? '';
       $title = $p['title'] ?? '-';
       $desc  = $p['description'] ?? '';
@@ -159,6 +205,34 @@ include __DIR__.'/includes/header.php'; ?>
       </div>
     <?php endforeach; ?>
   </div>
+
+  <!-- Pagination nav -->
+  <nav class="mt-4" aria-label="Navigasi halaman berita">
+    <ul class="pagination justify-content-center flex-wrap">
+      <li class="page-item <?= $page<=1?'disabled':'' ?>">
+        <a class="page-link" href="<?= $page<=1?'#':$buildUrl(['page'=>$page-1]) ?>">&laquo; Sebelumnya</a>
+      </li>
+      <?php
+        $start = max(1, $page-2);
+        $end   = min($totalPages, $page+2);
+        if ($start > 1) {
+            echo '<li class="page-item"><a class="page-link" href="'.htmlspecialchars($buildUrl(['page'=>1])).'">1</a></li>';
+            if ($start > 2) echo '<li class="page-item disabled"><span class="page-link">…</span></li>';
+        }
+        for ($i=$start; $i<=$end; $i++) {
+            $active = $i===$page ? ' active' : '';
+            echo '<li class="page-item'.$active.'"><a class="page-link" href="'.htmlspecialchars($buildUrl(['page'=>$i])).'">'.$i.'</a></li>';
+        }
+        if ($end < $totalPages) {
+            if ($end < $totalPages-1) echo '<li class="page-item disabled"><span class="page-link">…</span></li>';
+            echo '<li class="page-item"><a class="page-link" href="'.htmlspecialchars($buildUrl(['page'=>$totalPages])).'">'.$totalPages.'</a></li>';
+        }
+      ?>
+      <li class="page-item <?= $page>=$totalPages?'disabled':'' ?>">
+        <a class="page-link" href="<?= $page>=$totalPages?'#':$buildUrl(['page'=>$page+1]) ?>">Berikutnya &raquo;</a>
+      </li>
+    </ul>
+  </nav>
 <?php endif; ?>
 
 <!-- Modal popup berita -->

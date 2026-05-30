@@ -153,6 +153,33 @@ $totalSesi    = (int) db_val("SELECT COUNT(*) FROM jadwal");
 $totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1");
 $totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
 
+// ====== REVISI 31 Mei 2026: Total Visitor ======
+// Tabel auto-create (tidak menghapus data lama). Lihat catatan SQL di README.
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS site_visitors (
+        id BIGSERIAL PRIMARY KEY,
+        ip VARCHAR(64),
+        user_agent TEXT,
+        path VARCHAR(255),
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_site_visitors_created_at ON site_visitors(created_at)");
+    // Throttle 1 jam per IP supaya tidak inflasi.
+    $visitorIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $recent = db_val("SELECT 1 FROM site_visitors WHERE ip=$1 AND created_at > now() - interval '1 hour' LIMIT 1", [$visitorIp]);
+    if (!$recent) {
+        db_exec("INSERT INTO site_visitors(ip,user_agent,path) VALUES($1,$2,$3)", [
+            $visitorIp,
+            substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 500),
+            substr((string)($_SERVER['REQUEST_URI'] ?? '/'), 0, 255),
+        ]);
+    }
+    $totalVisitor = (int) db_val("SELECT COUNT(*) FROM site_visitors");
+    $visitorHariIni = (int) db_val("SELECT COUNT(*) FROM site_visitors WHERE created_at::date = CURRENT_DATE");
+} catch (Throwable $e) {
+    $totalVisitor = 0; $visitorHariIni = 0;
+}
+
 $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama,
                           tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama
                           FROM jadwal j
@@ -376,6 +403,18 @@ document.addEventListener('DOMContentLoaded', () => {
     <h2 class="h5 mb-0"><i class="bi bi-grid text-primary"></i> Pilih topik</h2>
     <small class="text-muted">Data dari API publik &amp; kurasi</small>
   </div>
+  <?php if (!$u): ?>
+    <!-- REVISI 31 Mei 2026: Pilih topik hanya bisa diakses setelah login -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center py-5">
+        <div class="mb-3" style="font-size:2.5rem"><i class="bi bi-lock-fill text-primary"></i></div>
+        <h3 class="h5 mb-2">Login dulu untuk melihat topik</h3>
+        <p class="text-muted small mb-3">Berita 2026, Beasiswa, Kesehatan, Buku, Kalistenik, Artikel Olahraga, dan Video IPTV hanya bisa dibuka oleh member yang sudah login.</p>
+        <a href="/login.php" class="btn btn-primary"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+        <a href="/register.php" class="btn btn-outline-primary ms-1"><i class="bi bi-person-plus"></i> Daftar</a>
+      </div>
+    </div>
+  <?php else: ?>
   <div class="row g-2">
     <div class="col-6 col-md-3">
       <a href="/berita.php" class="text-decoration-none">
@@ -457,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
     </div>
   </div>
+  <?php endif; ?>
 </section>
 <!-- ============ /Info & Wawasan ============ -->
 
@@ -472,7 +512,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $j = json_decode(@file_get_contents($cacheFile), true);
         if (is_array($j) && count($j)) return $j;
       }
-      $url = 'https://iptv-org.github.io/iptv/countries/id.m3u';
+      // REVISI 31 Mei 2026: pakai playlist resmi dari repo iptv-org/iptv (streams/id.m3u)
+      $url = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u';
       $ctx = stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0'],'ssl'=>['verify_peer'=>false,'verify_peer_name'=>false]]);
       $raw = @file_get_contents($url, false, $ctx);
       $items = [];
@@ -713,6 +754,25 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
     <div class="stat-icon"><i class="bi bi-broadcast"></i></div>
     <div class="stat-label">Online</div><div class="stat-value"><?= count($onlineMembers) ?></div></div></div></div>
+</div>
+
+<!-- REVISI 31 Mei 2026: Total Visitor -->
+<div class="row g-3 mb-3">
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff;">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div style="font-size:2rem"><i class="bi bi-people"></i></div>
+        <div class="flex-grow-1">
+          <div class="small opacity-75">Total Visitor</div>
+          <div class="h3 mb-0 fw-bold"><?= number_format($totalVisitor, 0, ',', '.') ?></div>
+        </div>
+        <div class="text-end">
+          <div class="small opacity-75">Hari ini</div>
+          <div class="h5 mb-0 fw-bold"><?= number_format($visitorHariIni, 0, ',', '.') ?></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?php if($u): ?>

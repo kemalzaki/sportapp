@@ -1,9 +1,9 @@
 <?php
 /**
- * BARU (Revisi 31 Mei 2026):
- * Halaman "Artikel Olahraga & Teknik" — bacaan singkat tentang macam-macam
- * olahraga dan teknik yang benar. Sumber: Wikipedia REST API (id.wikipedia.org)
- * — gratis tanpa API key, sudah ada di cache via ip_fetch_json().
+ * Halaman "Artikel Olahraga & Teknik" — bacaan singkat dari Wikipedia REST API
+ * (id.wikipedia.org). Revisi 31 Mei 2026:
+ *  - Gambar Senam, Tinju, Renang, Peregangan dihapus (pakai ikon fallback)
+ *  - Artikel Pemanasan, Plank, Sprint, Latihan Interval dihapus dari daftar
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
@@ -21,15 +21,16 @@ $TOPIK = [
     'Angkat_besi','Panahan','Catur',
   ],
   'Teknik & Latihan' => [
-    'Pemanasan','Peregangan','Plank_(latihan)','Push-up','Pull-up',
-    'Lari_jarak_jauh','Sprint_(olahraga)','Latihan_interval','Kalistenik','Aerobik',
+    'Peregangan','Push-up','Pull-up','Lari_jarak_jauh','Kalistenik','Aerobik',
   ],
 ];
+
+// Slug yang gambar thumbnail-nya disembunyikan (pakai ikon).
+$HIDE_IMG = ['Senam','Tinju','Renang','Peregangan'];
 
 $slug = preg_replace('/[^A-Za-z0-9_()\-\.]/','', $_GET['t'] ?? '');
 $detail = null;
 if ($slug) {
-    // Wikipedia REST: page/summary
     $j = ip_fetch_json('https://id.wikipedia.org/api/rest_v1/page/summary/'.rawurlencode($slug), 86400);
     if (!empty($j['title'])) $detail = $j;
 }
@@ -49,9 +50,11 @@ include __DIR__.'/includes/header.php'; ?>
 <?php if ($detail): ?>
   <a href="/artikel_olahraga.php" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Daftar artikel</a>
   <div class="card shadow-sm border-0 mb-3">
-    <?php if (!empty($detail['originalimage']['source'])): ?>
+    <?php
+      $showHeroImg = !in_array($slug, $HIDE_IMG, true);
+      if ($showHeroImg && !empty($detail['originalimage']['source'])): ?>
       <img src="<?= htmlspecialchars($detail['originalimage']['source']) ?>" class="card-img-top" style="max-height:320px;object-fit:cover" alt="">
-    <?php elseif (!empty($detail['thumbnail']['source'])): ?>
+    <?php elseif ($showHeroImg && !empty($detail['thumbnail']['source'])): ?>
       <img src="<?= htmlspecialchars($detail['thumbnail']['source']) ?>" class="card-img-top" style="max-height:320px;object-fit:cover" alt="">
     <?php endif; ?>
     <div class="card-body">
@@ -73,9 +76,8 @@ include __DIR__.'/includes/header.php'; ?>
     <h2 class="h6 text-uppercase text-muted mt-3 mb-2"><?= htmlspecialchars($grup) ?></h2>
     <div class="row g-3 mb-2">
       <?php foreach ($list as $t):
-        // Ambil thumbnail ringan untuk preview (cache 1 hari).
         $sum = ip_fetch_json('https://id.wikipedia.org/api/rest_v1/page/summary/'.rawurlencode($t), 86400);
-        $thumb = $sum['thumbnail']['source'] ?? '';
+        $thumb = in_array($t, $HIDE_IMG, true) ? '' : ($sum['thumbnail']['source'] ?? '');
         $judul = $sum['title']       ?? str_replace('_',' ', $t);
         $desc  = $sum['description'] ?? '';
         $extract = $sum['extract']   ?? '';
