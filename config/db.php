@@ -200,6 +200,13 @@ try {
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lat NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lng NUMERIC(10,6)");
 
+    // === Revisi 2 Jun 2026: Midtrans columns ===
+    @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'pending'");
+    @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS midtrans_order_id VARCHAR(40)");
+    @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS snap_token VARCHAR(120)");
+    @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS snap_redirect TEXT");
+    @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS stok_dipotong BOOLEAN NOT NULL DEFAULT false");
+
     // === Lacak HP oleh admin (heartbeat lokasi tiap user) ===
     @pg_query(db(), "CREATE TABLE IF NOT EXISTS device_locations (
         user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

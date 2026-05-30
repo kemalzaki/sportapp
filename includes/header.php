@@ -91,6 +91,16 @@ if ($u) {
 /* Legacy fullscreen preloader: dimatikan agar tidak menutupi konten */
 #appPreloader{display:none !important;}
 #liveRefreshBadge{position:fixed;right:14px;bottom:78px;z-index:1080;display:none;}
+/* === Revisi 2 Jun 2026 #5: navbar tetap di atas saat scroll di mobile === */
+@media (max-width:991.98px){
+  nav.navbar.sticky-top{
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    z-index: 1050;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  body{ padding-top: 64px; }
+}
 </style>
 </head>
 <body>
