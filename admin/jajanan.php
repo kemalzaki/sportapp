@@ -221,7 +221,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
 
 <!-- ===== Modal Edit ===== -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-md-down">
     <div class="modal-content">
       <form method="post" enctype="multipart/form-data">
         <div class="modal-header"><h5 class="modal-title">Edit Jajanan</h5>

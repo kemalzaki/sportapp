@@ -399,7 +399,7 @@ include __DIR__.'/includes/header.php';
 
 <!-- ===== Modal Pemesanan (Gojek-style) ===== -->
 <div class="modal fade" id="pesanModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
         <h5 class="modal-title"><i class="bi bi-send-check"></i> Pemesanan Jajan</h5>
@@ -453,7 +453,7 @@ include __DIR__.'/includes/header.php';
               <input type="hidden" name="pickup_lng" id="pickup_lng">
             </div>
             <div id="locWarn" class="alert alert-danger small mt-2 mb-0 d-none">
-              Lokasi di luar jangkauan layanan (>${UIN_R_MAX_KM} km).
+              Lokasi di luar jangkauan layanan (>&nbsp;<?= $UIN_R_MAX_KM ?>&nbsp;km).
             </div>
           </div>
 
@@ -485,7 +485,11 @@ include __DIR__.'/includes/header.php';
 <?php endif; ?>
 
 <script>
-(function(){
+/* Tunggu DOMContentLoaded supaya bootstrap.bundle.min.js (di-load belakangan oleh
+   footer.php) sudah pasti tersedia. Sebelumnya `new bootstrap.Modal(...)` jalan
+   inline -> ReferenceError -> seluruh IIFE crash -> tombol "Pesan Sekarang" &
+   counter (+/-) tidak ter-bind. */
+document.addEventListener('DOMContentLoaded', function(){
   var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>, rekom_km: <?= $UIN_R_REKOM_KM ?>, max_km: <?= $UIN_R_MAX_KM ?>};
   var ONGKIR_BASE = <?= (int)$ONGKIR_BASE ?>, ONGKIR_PER_KM = <?= (int)$ONGKIR_PER_KM ?>, ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
   var currentDistKm = null, locValid = null;
@@ -508,7 +512,12 @@ include __DIR__.'/includes/header.php';
   }
 
   var modalEl = document.getElementById('pesanModal');
-  var modal = new bootstrap.Modal(modalEl);
+  var modal   = (typeof bootstrap !== 'undefined' && modalEl) ? new bootstrap.Modal(modalEl) : null;
+  function showModal(){
+    if (!modal && typeof bootstrap !== 'undefined' && modalEl) modal = new bootstrap.Modal(modalEl);
+    if (modal) modal.show();
+    else if (modalEl) { modalEl.classList.add('show'); modalEl.style.display='block'; document.body.classList.add('modal-open'); }
+  }
 
   // ====== Gojek-style: counter qty per produk di kartu ======
   document.querySelectorAll('.qty-counter').forEach(function(box){
@@ -550,7 +559,7 @@ include __DIR__.'/includes/header.php';
       document.getElementById('pickup_lat').value=''; document.getElementById('pickup_lng').value='';
       document.getElementById('locCoords').textContent='Lat/Lng belum terdeteksi';
       document.getElementById('locWarn').classList.add('d-none');
-      recalc(); modal.show();
+      recalc(); showModal();
     });
   });
 
@@ -632,7 +641,7 @@ include __DIR__.'/includes/header.php';
         }
       });
   }
-})();
+});
 </script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>
