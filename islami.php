@@ -62,6 +62,7 @@ include __DIR__.'/includes/header.php';
 <div class="row g-3 mb-3">
   <div class="col-md-3"><a href="/quran.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-success"></i><div class="fw-semibold mt-1">Al-Qur'an Digital</div></div></a></div>
   <div class="col-md-3"><a href="/jadwal_sholat.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-clock-history fs-2 text-primary"></i><div class="fw-semibold mt-1">Jadwal Sholat</div><div class="small text-muted">Waktu sholat 5 waktu</div></div></a></div>
+  <div class="col-md-3"><a href="#kiblat" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-compass fs-2 text-success"></i><div class="fw-semibold mt-1">Arah Kiblat</div><div class="small text-muted">Kompas digital ke Ka'bah</div></div></a></div>
   <div class="col-md-3"><a href="/doa.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-chat-quote fs-2 text-warning"></i><div class="fw-semibold mt-1">Doa Harian</div></div></a></div>
   <div class="col-md-3"><a href="/dzikir.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-brightness-high fs-2 text-info"></i><div class="fw-semibold mt-1">Dzikir Pagi & Petang</div></div></a></div>
 
@@ -79,6 +80,140 @@ include __DIR__.'/includes/header.php';
   <div class="col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
   <div class="col-md-3"><a href="/sejarah_nabi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-warning"></i><div class="fw-semibold mt-1">Sejarah Nabi &amp; Rasul</div><div class="small text-muted">25 Nabi &amp; Rasul</div></div></a></div>
 </div>
+
+<!-- ====== FITUR ARAH KIBLAT (revisi 30 Mei 2026) ====== -->
+<div class="card shadow-sm mb-3 border-success" id="kiblat">
+  <div class="card-header bg-success text-white d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-compass"></i> <strong>ARAH KIBLAT</strong> — Kompas Digital</span>
+    <small class="opacity-75">Ka'bah: 21.4225° LU, 39.8262° BT</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-5 text-center">
+        <div id="qiblaCompass" style="position:relative;width:240px;height:240px;margin:0 auto;border-radius:50%;border:3px solid #198754;background:radial-gradient(circle at 50% 50%, #f8fff9, #d4edda);">
+          <!-- mata angin -->
+          <div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);font-weight:700;color:#198754;">U</div>
+          <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-weight:700;color:#6c757d;">S</div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-weight:700;color:#6c757d;">B</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-weight:700;color:#6c757d;">T</div>
+          <!-- jarum kiblat -->
+          <div id="qiblaNeedle" style="position:absolute;top:50%;left:50%;width:6px;height:110px;background:linear-gradient(to top,#198754 0%,#198754 50%,#dc3545 50%,#dc3545 100%);transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:3px;transition:transform .25s ease-out;"></div>
+          <!-- pusat -->
+          <div style="position:absolute;top:50%;left:50%;width:14px;height:14px;border-radius:50%;background:#198754;transform:translate(-50%,-50%);border:2px solid #fff;"></div>
+        </div>
+        <div class="small text-muted mt-2">Ujung <span class="text-danger">merah</span> menunjuk ke arah Kiblat</div>
+      </div>
+      <div class="col-md-7">
+        <div class="mb-2">
+          <label class="form-label small mb-1">Lokasi Anda</label>
+          <div class="d-flex gap-2">
+            <input type="number" step="any" class="form-control form-control-sm" id="qLat" placeholder="Lintang (mis. -6.2)">
+            <input type="number" step="any" class="form-control form-control-sm" id="qLng" placeholder="Bujur (mis. 106.8)">
+            <button class="btn btn-sm btn-outline-success" id="btnQGeo" type="button"><i class="bi bi-geo-alt"></i> GPS</button>
+          </div>
+          <div class="small text-muted mt-1">Isi manual atau klik GPS (butuh izin lokasi browser).</div>
+        </div>
+        <div class="alert alert-light border mb-2 py-2">
+          <div class="small">Arah Kiblat dari lokasi Anda: <strong id="qBearing">—</strong>° dari Utara sejati</div>
+          <div class="small">Jarak ke Mekkah: <strong id="qDist">—</strong> km</div>
+          <div class="small">Heading perangkat: <strong id="qHeading">—</strong>°</div>
+        </div>
+        <button class="btn btn-sm btn-success" id="btnQOrient" type="button">
+          <i class="bi bi-phone-vibrate"></i> Aktifkan Kompas (HP/Tablet)
+        </button>
+        <div class="small text-muted mt-2">
+          <i class="bi bi-info-circle"></i> Pegang HP rata, jauhkan dari logam/magnet. Pada iOS perlu izin <em>Motion &amp; Orientation Access</em>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  // Koordinat Ka'bah
+  var MK_LAT = 21.4225, MK_LNG = 39.8262;
+  var toRad = function(d){return d*Math.PI/180;}, toDeg = function(r){return r*180/Math.PI;};
+  var bearingDeg = 0, heading = 0;
+  function calcBearing(lat1, lng1, lat2, lng2){
+    var f1 = toRad(lat1), f2 = toRad(lat2), dl = toRad(lng2-lng1);
+    var y = Math.sin(dl)*Math.cos(f2);
+    var x = Math.cos(f1)*Math.sin(f2) - Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
+    var br = toDeg(Math.atan2(y,x));
+    return (br+360)%360;
+  }
+  function calcDistance(lat1, lng1, lat2, lng2){
+    var R=6371, f1=toRad(lat1), f2=toRad(lat2), df=toRad(lat2-lat1), dl=toRad(lng2-lng1);
+    var a = Math.sin(df/2)*Math.sin(df/2)+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)*Math.sin(dl/2);
+    return Math.round(R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  }
+  function updateNeedle(){
+    var rot = bearingDeg - heading;
+    var n = document.getElementById('qiblaNeedle');
+    if (n) n.style.transform = 'translate(-50%,-100%) rotate(' + rot + 'deg)';
+    var h = document.getElementById('qHeading'); if (h) h.textContent = Math.round(heading);
+  }
+  function recalc(){
+    var lat = parseFloat(document.getElementById('qLat').value);
+    var lng = parseFloat(document.getElementById('qLng').value);
+    if (isNaN(lat) || isNaN(lng)) return;
+    bearingDeg = calcBearing(lat, lng, MK_LAT, MK_LNG);
+    document.getElementById('qBearing').textContent = bearingDeg.toFixed(1);
+    document.getElementById('qDist').textContent = calcDistance(lat, lng, MK_LAT, MK_LNG).toLocaleString('id-ID');
+    updateNeedle();
+  }
+  ['qLat','qLng'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', recalc);
+  });
+  var btnGeo = document.getElementById('btnQGeo');
+  if (btnGeo) btnGeo.addEventListener('click', function(){
+    if (!navigator.geolocation) { alert('Browser tidak mendukung geolokasi'); return; }
+    btnGeo.disabled = true; btnGeo.innerHTML = '<i class="bi bi-hourglass-split"></i> ...';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      document.getElementById('qLat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('qLng').value = pos.coords.longitude.toFixed(6);
+      recalc();
+      btnGeo.disabled = false; btnGeo.innerHTML = '<i class="bi bi-geo-alt"></i> GPS';
+    }, function(err){
+      alert('Gagal ambil lokasi: ' + err.message);
+      btnGeo.disabled = false; btnGeo.innerHTML = '<i class="bi bi-geo-alt"></i> GPS';
+    }, {enableHighAccuracy:true, timeout:10000});
+  });
+  function onOrient(e){
+    var h = null;
+    if (typeof e.webkitCompassHeading === 'number') h = e.webkitCompassHeading;          // iOS Safari
+    else if (e.absolute && typeof e.alpha === 'number') h = 360 - e.alpha;                // standar absolute
+    else if (typeof e.alpha === 'number') h = 360 - e.alpha;
+    if (h !== null) { heading = (h+360)%360; updateNeedle(); }
+  }
+  var btnOri = document.getElementById('btnQOrient');
+  if (btnOri) btnOri.addEventListener('click', function(){
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+
+      DeviceOrientationEvent.requestPermission().then(function(res){
+        if (res === 'granted') {
+          window.addEventListener('deviceorientation', onOrient, true);
+          btnOri.disabled = true; btnOri.innerHTML = '<i class="bi bi-check2"></i> Kompas aktif';
+        } else { alert('Izin orientasi ditolak.'); }
+      }).catch(function(){ alert('Tidak dapat meminta izin orientasi.'); });
+    } else if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', onOrient, true);
+      btnOri.disabled = true; btnOri.innerHTML = '<i class="bi bi-check2"></i> Kompas aktif';
+    } else if ('ondeviceorientation' in window) {
+      window.addEventListener('deviceorientation', onOrient, true);
+      btnOri.disabled = true; btnOri.innerHTML = '<i class="bi bi-check2"></i> Kompas aktif';
+    } else {
+      alert('Perangkat ini tidak mendukung sensor orientasi.');
+    }
+  });
+  // default Jakarta
+  document.getElementById('qLat').value = '-6.200000';
+  document.getElementById('qLng').value = '106.816666';
+  recalc();
+})();
+</script>
+<!-- ====== /ARAH KIBLAT ====== -->
 
 <!-- ====== TATA CARA SHALAT (Bacaan + Latin + Arti) ====== -->
 <div class="card shadow-sm mb-3 border-primary">

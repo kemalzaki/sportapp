@@ -17,7 +17,11 @@ $KATEGORI = [
 $cat = $_GET['cat'] ?? 'politik';
 if (!isset($KATEGORI[$cat])) $cat = 'politik';
 
-$posts = ip_fetch_rss($KATEGORI[$cat]['rss'], 600);
+$posts = ip_fetch_rss($KATEGORI[$cat]['rss'], 180); // cache 3 menit utk berita lebih segar
+// Urutkan berita terbaru di atas (revisi 30 Mei 2026)
+usort($posts, function($a,$b){
+    return (strtotime($b['pubDate'] ?? '') ?: 0) - (strtotime($a['pubDate'] ?? '') ?: 0);
+});
 
 include __DIR__.'/includes/header.php'; ?>
 
@@ -26,7 +30,7 @@ include __DIR__.'/includes/header.php'; ?>
 <div class="hero-sport-islami mb-3">
   <div class="hero-overlay">
     <h1 class="h4 mb-1"><i class="bi bi-newspaper"></i> Berita Terkini</h1>
-    <p class="small mb-0 opacity-85">Sumber resmi Antara News — diperbarui otomatis.</p>
+    <p class="small mb-0 opacity-85">Sumber resmi Antara News — feed terbaru di atas, diperbarui otomatis tiap 3 menit.</p>
   </div>
 </div>
 
