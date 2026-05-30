@@ -24,9 +24,12 @@ include __DIR__.'/includes/header.php';
         <div class="col-4"><div class="small text-muted">Waktu</div><div class="fs-3 fw-bold" id="runTime">00:00</div></div>
         <div class="col-4"><div class="small text-muted">Pace</div><div class="fs-3 fw-bold" id="runPace">--'--"</div></div>
       </div>
-      <div class="d-flex justify-content-center gap-2 mt-3">
+      <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
         <button id="btnStart" class="btn btn-success px-4"><i class="bi bi-play-fill"></i> Mulai</button>
         <button id="btnStop"  class="btn btn-danger  px-4" disabled><i class="bi bi-stop-fill"></i> Selesai</button>
+        <button id="btnLocate" type="button" class="btn btn-outline-primary px-3" title="Posisikan peta ke lokasi Anda sekarang">
+          <i class="bi bi-geo-alt-fill"></i> Posisikan Posisi Sekarang
+        </button>
       </div>
       <div id="runStatus" class="small text-muted mt-2 text-center"></div>
     </div></div>
@@ -151,6 +154,30 @@ include __DIR__.'/includes/header.php';
     var fd=new FormData(); fd.append('csrf',csrf); fd.append('_action','stop');
     fd.append('session_id',sessionId); fd.append('total_m',totalM); fd.append('durasi',dur);
     fetch('/api_run.php',{method:'POST',body:fd}).then(()=>location.reload());
+  });
+  // ===== Tombol "Posisikan Posisi Sekarang" (revisi 31 Mei 2026) =====
+  // Memusatkan peta ke lokasi GPS terkini tanpa harus memulai sesi lari.
+  var hereMarker = null;
+  document.getElementById('btnLocate').addEventListener('click', function(){
+    if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
+    var btn = this; btn.disabled = true;
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari posisi…';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      map.setView([lat, lng], 17);
+      if (!hereMarker) {
+        hereMarker = L.circleMarker([lat,lng], {radius:8, color:'#2563eb', fillColor:'#3b82f6', fillOpacity:.9, weight:2}).addTo(map);
+        hereMarker.bindTooltip('Anda di sini', {permanent:false}).openTooltip();
+      } else {
+        hereMarker.setLatLng([lat,lng]);
+      }
+      document.getElementById('runStatus').textContent = 'Posisi sekarang: '+lat.toFixed(5)+', '+lng.toFixed(5)+' (akurasi '+Math.round(pos.coords.accuracy)+' m)';
+      btn.disabled = false; btn.innerHTML = orig;
+    }, function(err){
+      alert('Gagal membaca posisi: '+err.message);
+      btn.disabled = false; btn.innerHTML = orig;
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
 })();
 document.addEventListener('click', function(ev){

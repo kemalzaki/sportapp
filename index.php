@@ -284,20 +284,13 @@ $stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
                    ORDER BY p.created_at DESC LIMIT 20");
 $uidMe = (int)($u['id'] ?? 0);
-// --- Social Feed pagination (2 post per halaman) ---
-$FEED_PER_PAGE = 2;
-$feedTotal = (int) db_val("SELECT COUNT(*) FROM posts WHERE jenis='post'");
-$feedPages = max(1, (int)ceil($feedTotal / $FEED_PER_PAGE));
-$feedPage  = isset($_GET['fp']) ? max(1, min($feedPages, (int)$_GET['fp'])) : 1;
-$feedOffset = ($feedPage - 1) * $FEED_PER_PAGE;
 $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis, p.created_at,
                   u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
                   (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=$1) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
-                WHERE p.jenis='post' ORDER BY p.created_at DESC
-                LIMIT $FEED_PER_PAGE OFFSET $feedOffset", [$uidMe]);
+                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12", [$uidMe]);
 
 // Komentar per post (untuk ditampilkan inline)
 $feedIds = array_map(fn($x)=>(int)$x['id'], $feed);
@@ -369,37 +362,35 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- ============ Info & Wawasan (revisi 30 Mei 2026 - butuh login) ============ -->
-<?php if(!$u): ?>
-  <section class="mb-3">
-    <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2 mb-0">
-      <div><i class="bi bi-lock-fill"></i> <strong>Info &amp; Wawasan</strong> hanya tersedia untuk anggota.
-        <span class="small text-muted d-block">Login untuk akses berita, beasiswa, kesehatan, kalistenik, dan video terbaru.</span>
-      </div>
-      <a href="/login.php" class="btn btn-sm btn-primary"><i class="bi bi-box-arrow-in-right"></i> Login</a>
-    </div>
-  </section>
-<?php else: ?>
+<!-- ============ Info & Wawasan (revisi 31 Mei 2026 — eye-catching banner + artikel olahraga) ============ -->
+<link rel="stylesheet" href="assets/css/sport-islami.css">
 <section class="mb-3">
+  <div class="hero-sport-islami hero-info mb-3">
+    <div class="hero-overlay">
+      <span class="badge bg-light text-primary mb-2"><i class="bi bi-compass"></i> INFO &amp; WAWASAN</span>
+      <h2 class="h4 mb-1 fw-bold">Belajar &amp; tetap update setiap hari</h2>
+      <p class="small mb-0 opacity-85">Berita 2026 · Beasiswa · Kesehatan · Buku · Kalistenik · Artikel Olahraga · Video IPTV</p>
+    </div>
+  </div>
   <div class="d-flex align-items-center justify-content-between mb-2">
-    <h2 class="h5 mb-0"><i class="bi bi-compass text-primary"></i> Info & Wawasan</h2>
-    <small class="text-muted">Data dari API publik & kurasi</small>
+    <h2 class="h5 mb-0"><i class="bi bi-grid text-primary"></i> Pilih topik</h2>
+    <small class="text-muted">Data dari API publik &amp; kurasi</small>
   </div>
   <div class="row g-2">
     <div class="col-6 col-md-3">
       <a href="/berita.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
             <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-newspaper fs-4"></i></div>
-            <div class="fw-semibold">Berita Terkini</div>
-            <div class="small text-muted">Politik · Ekonomi · Olahraga · Teknologi</div>
+            <div class="fw-semibold">Berita Terkini 2026</div>
+            <div class="small text-muted">CNN · Detik · Kompas · Antara</div>
           </div>
         </div>
       </a>
     </div>
     <div class="col-6 col-md-3">
       <a href="/beasiswa.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
             <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-mortarboard fs-4"></i></div>
             <div class="fw-semibold">Info Beasiswa</div>
@@ -410,18 +401,29 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="col-6 col-md-3">
       <a href="/kesehatan.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
             <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-heart-pulse fs-4"></i></div>
             <div class="fw-semibold">Kesehatan</div>
-            <div class="small text-muted">Penyakit umum & herbal</div>
+            <div class="small text-muted">Penyakit umum &amp; herbal</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/buku.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journals fs-4"></i></div>
+            <div class="fw-semibold">Koleksi Buku Terbaru</div>
+            <div class="small text-muted">Banyak kategori · Toko Bandung</div>
           </div>
         </div>
       </a>
     </div>
     <div class="col-6 col-md-3">
       <a href="/kalistenik.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
             <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-person-arms-up fs-4"></i></div>
             <div class="fw-semibold">Paket Bugar Kalistenik</div>
@@ -430,10 +432,22 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <!-- FITUR BARU: Video Terbaru (Berita IPTV Indonesia) -->
+    <!-- BARU (31 Mei 2026): Artikel Olahraga & Teknik (Wikipedia API) -->
+    <div class="col-6 col-md-3">
+      <a href="/artikel_olahraga.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card info-card-accent">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journal-richtext fs-4"></i></div>
+            <div class="fw-semibold">Artikel Olahraga &amp; Teknik</div>
+            <div class="small text-muted">Macam olahraga &amp; teknik yang benar</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <!-- Video Terbaru: IPTV (bukan YouTube) -->
     <div class="col-6 col-md-3">
       <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#videoTerbaruModal">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
             <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-collection-play fs-4"></i></div>
             <div class="fw-semibold">Video Terbaru</div>
@@ -444,95 +458,150 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </section>
-<?php endif; ?>
 <!-- ============ /Info & Wawasan ============ -->
 
-<!-- ============ Modal: Video Terbaru (Live News YouTube) ============ -->
+<!-- ============ Modal: Video Terbaru (Berita IPTV — Indonesia) ============ -->
 <?php
-  // Daftar channel berita live Indonesia di YouTube (lebih stabil daripada IPTV m3u8 yang sering offline/geo-block).
-  $LIVE_CHANNELS = [
-    ['nama'=>'CNN Indonesia',    'cid'=>'UCD6Yp_eP2N0VOS5HfdGD7BA'],
-    ['nama'=>'Kompas TV',        'cid'=>'UCwqU_OFkIyaNMfkO8tyhP0Q'],
-    ['nama'=>'Metro TV',         'cid'=>'UCprC6V73Cs2QdJoiPzN6PWg'],
-    ['nama'=>'tvOne News',       'cid'=>'UCP9KkPSdP--qpQfwAY5Q9DA'],
-    ['nama'=>'BeritaSatu',       'cid'=>'UC7Yj0L7JpYqWE_jUz3FnaWg'],
-    ['nama'=>'iNews',            'cid'=>'UCRC0arSqlS40e_kKtm6Erng'],
-    ['nama'=>'tvOne',            'cid'=>'UCgZUhRBYDpCO0Ts3UFn4WBA'],
-    ['nama'=>'IDX Channel',      'cid'=>'UCM4ndUjDQTKwjVZcXIfk9-Q'],
-  ];
+  // === Berita: IPTV stream dari iptv-org/iptv (Indonesia saja) ===
+  // Sumber playlist publik: https://iptv-org.github.io/iptv/countries/id.m3u
+  // Cache 6 jam ke sys temp dir agar tidak fetch tiap request.
+  if (!function_exists('iptv_fetch_news')) {
+    function iptv_fetch_news() {
+      $cacheFile = sys_get_temp_dir().'/iptv_id_cache.json';
+      if (is_file($cacheFile) && (time()-filemtime($cacheFile) < 21600)) {
+        $j = json_decode(@file_get_contents($cacheFile), true);
+        if (is_array($j) && count($j)) return $j;
+      }
+      $url = 'https://iptv-org.github.io/iptv/countries/id.m3u';
+      $ctx = stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0'],'ssl'=>['verify_peer'=>false,'verify_peer_name'=>false]]);
+      $raw = @file_get_contents($url, false, $ctx);
+      $items = [];
+      if ($raw) {
+        $lines = preg_split('/\r?\n/', $raw);
+        $cur = null;
+        foreach ($lines as $ln) {
+          if (strpos($ln, '#EXTINF') === 0) {
+            $cur = ['nama'=>'', 'logo'=>'', 'grup'=>'', 'url'=>''];
+            if (preg_match('/tvg-logo="([^"]*)"/', $ln, $m)) $cur['logo'] = $m[1];
+            if (preg_match('/group-title="([^"]*)"/', $ln, $m)) $cur['grup'] = $m[1];
+            $p = strrpos($ln, ',');
+            if ($p !== false) $cur['nama'] = trim(substr($ln, $p+1));
+          } elseif ($cur !== null && $ln !== '' && $ln[0] !== '#') {
+            $cur['url'] = trim($ln);
+            if ($cur['nama'] && $cur['url']) $items[] = $cur;
+            $cur = null;
+          }
+        }
+        if (count($items)) @file_put_contents($cacheFile, json_encode($items));
+      }
+      return $items;
+    }
+  }
+  $IPTV_NEWS = iptv_fetch_news();
+  // Urutkan alfabetis berdasarkan nama channel, batasi 80 untuk performa UI.
+  usort($IPTV_NEWS, function($a,$b){ return strcasecmp($a['nama'],$b['nama']); });
+  $IPTV_NEWS = array_slice($IPTV_NEWS, 0, 80);
 ?>
 <div class="modal fade" id="videoTerbaruModal" tabindex="-1" aria-labelledby="videoTerbaruLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="videoTerbaruLabel"><i class="bi bi-collection-play text-danger"></i> Video Terbaru — Live Berita (YouTube)</h5>
+        <h5 class="modal-title" id="videoTerbaruLabel"><i class="bi bi-collection-play text-danger"></i> Video Terbaru — Berita IPTV (Indonesia)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <?php foreach ($LIVE_CHANNELS as $i => $ch): ?>
-            <button type="button"
-                    class="btn btn-sm <?= $i===0?'btn-danger':'btn-outline-secondary' ?> yt-src-btn"
-                    data-cid="<?= htmlspecialchars($ch['cid']) ?>"
-                    data-name="<?= htmlspecialchars($ch['nama']) ?>">
-              <?= htmlspecialchars($ch['nama']) ?>
-            </button>
-          <?php endforeach; ?>
+        <div class="tab-content">
+          <!-- ===== Berita (IPTV) ===== -->
+          <div id="vt-berita">
+            <?php if (empty($IPTV_NEWS)): ?>
+              <div class="alert alert-warning small mb-2">
+                Gagal memuat daftar channel IPTV Indonesia. Pastikan server bisa mengakses
+                <code>iptv-org.github.io</code>. Coba muat ulang halaman.
+              </div>
+            <?php else: ?>
+              <div class="d-flex flex-wrap gap-2 mb-3" style="max-height:180px; overflow-y:auto;">
+                <?php foreach ($IPTV_NEWS as $i => $ch): ?>
+                  <button type="button"
+                          class="btn btn-sm <?= $i===0?'btn-danger':'btn-outline-secondary' ?> iptv-src-btn"
+                          data-url="<?= htmlspecialchars($ch['url']) ?>"
+                          data-name="<?= htmlspecialchars($ch['nama']) ?>"
+                          title="<?= htmlspecialchars($ch['grup']) ?>">
+                    <?= htmlspecialchars($ch['nama']) ?>
+                  </button>
+                <?php endforeach; ?>
+              </div>
+              <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+                <video id="iptvPlayer" controls autoplay muted playsinline></video>
+              </div>
+              <p class="small text-muted mt-2 mb-0">
+                <i class="bi bi-info-circle"></i> Sedang menonton: <strong id="iptvNow"><?= htmlspecialchars($IPTV_NEWS[0]['nama']) ?></strong>.
+                Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a> (negara <em>Indonesia</em>).
+                Beberapa stream mungkin offline / geo-block.
+              </p>
+            <?php endif; ?>
+          </div>
+
         </div>
-        <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
-          <iframe id="ytLivePlayer"
-                  src=""
-                  title="Live News"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                  referrerpolicy="strict-origin-when-cross-origin"></iframe>
-        </div>
-        <p class="small text-muted mt-2 mb-0">
-          <i class="bi bi-info-circle"></i> Sedang menonton: <strong id="ytNow"><?= htmlspecialchars($LIVE_CHANNELS[0]['nama']) ?></strong>.
-          Sumber: YouTube Live (kanal berita resmi). Jika channel sedang tidak menyiarkan live, akan muncul video terbaru.
-        </p>
       </div>
       <div class="modal-footer">
-        <span class="small text-muted me-auto">Live berita Indonesia via YouTube embed</span>
+        <span class="small text-muted me-auto">Berita: IPTV (iptv-org) — channel Indonesia</span>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
       </div>
     </div>
   </div>
 </div>
+<!-- HLS.js untuk memutar stream .m3u8 di browser non-Safari -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script>
 (function(){
-  var iframe = document.getElementById('ytLivePlayer');
-  var nowEl  = document.getElementById('ytNow');
-  function ytLiveUrl(cid){
-    // YouTube "live_stream" embed otomatis memutar live yang sedang aktif dari channel tsb.
-    return 'https://www.youtube.com/embed/live_stream?channel=' + encodeURIComponent(cid) + '&autoplay=1&mute=1';
-  }
-  function loadChannel(cid, name){
-    if (!iframe) return;
-    iframe.src = ytLiveUrl(cid);
+  // ---- IPTV HLS player ----
+  var video = document.getElementById('iptvPlayer');
+  var nowEl = document.getElementById('iptvNow');
+  var hls = null;
+  function loadStream(url, name){
+    if (!video) return;
     if (nowEl && name) nowEl.textContent = name;
+    if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url; video.play().catch(function(){});
+    } else if (window.Hls && window.Hls.isSupported()) {
+      hls = new window.Hls({ lowLatencyMode:true });
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(window.Hls.Events.MANIFEST_PARSED, function(){ video.play().catch(function(){}); });
+      hls.on(window.Hls.Events.ERROR, function(_, data){
+        if (data && data.fatal) console.warn('HLS error', data);
+      });
+    } else {
+      video.src = url;
+    }
   }
-  document.querySelectorAll('.yt-src-btn').forEach(function(btn){
+  document.querySelectorAll('.iptv-src-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
-      loadChannel(this.getAttribute('data-cid'), this.getAttribute('data-name'));
-      document.querySelectorAll('.yt-src-btn').forEach(function(b){
+      var url = this.getAttribute('data-url');
+      var nm  = this.getAttribute('data-name');
+      loadStream(url, nm);
+      document.querySelectorAll('.iptv-src-btn').forEach(function(b){
         b.classList.remove('btn-danger'); b.classList.add('btn-outline-secondary');
       });
       this.classList.remove('btn-outline-secondary'); this.classList.add('btn-danger');
     });
   });
+  // Auto-load first IPTV channel saat modal pertama dibuka.
   var modal = document.getElementById('videoTerbaruModal');
-  var firstBtn = document.querySelector('.yt-src-btn');
+  var firstBtn = document.querySelector('.iptv-src-btn');
   var loaded = false;
   if (modal) {
     modal.addEventListener('shown.bs.modal', function(){
       if (!loaded && firstBtn) {
-        loadChannel(firstBtn.getAttribute('data-cid'), firstBtn.getAttribute('data-name'));
+        loadStream(firstBtn.getAttribute('data-url'), firstBtn.getAttribute('data-name'));
         loaded = true;
       }
     });
     modal.addEventListener('hidden.bs.modal', function(){
-      if (iframe) iframe.src = '';
+      // Stop HLS
+      if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
+      if (video) { try { video.pause(); video.removeAttribute('src'); video.load(); } catch(e){} }
       loaded = false;
     });
   }
@@ -871,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
 
-    <div class="card shadow-sm" id="feed"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+    <div class="card shadow-sm"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
      <div class="card-body" data-live="feed">
       <?php foreach($feed as $p): ?>
         <div class="border-bottom pb-3 mb-3" id="post-<?= (int)$p['id'] ?>">
@@ -937,34 +1006,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <?php endif; ?>
         </div>
       <?php endforeach; if(!$feed): ?><p class="text-muted small text-center mb-0">Belum ada postingan.</p><?php endif; ?>
-      <?php if ($feedTotal > 0): ?>
-        <nav aria-label="Paginasi feed" class="mt-3">
-          <ul class="pagination pagination-sm justify-content-center mb-0">
-            <?php
-              $qs = $_GET; unset($qs['fp']);
-              $base = '?' . http_build_query($qs);
-              $sep  = ($base === '?') ? '' : '&';
-              $prev = max(1, $feedPage - 1);
-              $next = min($feedPages, $feedPage + 1);
-            ?>
-            <li class="page-item <?= $feedPage<=1?'disabled':'' ?>">
-              <a class="page-link" href="<?= htmlspecialchars($base.$sep.'fp='.$prev) ?>#feed">&laquo;</a>
-            </li>
-            <?php
-              $start = max(1, $feedPage - 2); $end = min($feedPages, $feedPage + 2);
-              for ($i=$start; $i<=$end; $i++):
-            ?>
-              <li class="page-item <?= $i===$feedPage?'active':'' ?>">
-                <a class="page-link" href="<?= htmlspecialchars($base.$sep.'fp='.$i) ?>#feed"><?= $i ?></a>
-              </li>
-            <?php endfor; ?>
-            <li class="page-item <?= $feedPage>=$feedPages?'disabled':'' ?>">
-              <a class="page-link" href="<?= htmlspecialchars($base.$sep.'fp='.$next) ?>#feed">&raquo;</a>
-            </li>
-          </ul>
-          <div class="text-center small text-muted mt-1">Halaman <?= $feedPage ?> dari <?= $feedPages ?> · <?= $feedTotal ?> postingan</div>
-        </nav>
-      <?php endif; ?>
     </div></div>
   </div>
 
