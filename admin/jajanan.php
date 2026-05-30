@@ -252,27 +252,42 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
 </div>
 
 <script>
-(function(){
-  var modal = new bootstrap.Modal(document.getElementById('editModal'));
-  document.querySelectorAll('.btn-edit').forEach(function(b){
-    b.addEventListener('click', function(){
-      var d = JSON.parse(b.dataset.row);
-      document.getElementById('ef_id').value       = d.id;
-      document.getElementById('ef_nama').value     = d.nama || '';
-      document.getElementById('ef_harga').value    = d.harga || 0;
-      document.getElementById('ef_stok').value     = d.stok || 0;
-      document.getElementById('ef_kategori').value = d.kategori || '';
-      document.getElementById('ef_desk').value     = d.deskripsi || '';
-      document.getElementById('ef_foto_url').value = d.foto_url || '';
-      document.getElementById('ef_lat').value      = d.lat || '';
-      document.getElementById('ef_lng').value      = d.lng || '';
-      document.getElementById('ef_aktif').checked  = !!d.aktif;
-      var prev = document.getElementById('ef_preview');
-      if (d.foto_url){ prev.src = d.foto_url; prev.style.display=''; } else { prev.style.display='none'; }
-      modal.show();
-    });
+/* Tunggu DOMContentLoaded supaya bootstrap.bundle.min.js (dimuat di footer.php)
+   sudah pasti tersedia. Sebelumnya script ini jalan inline -> `bootstrap`
+   undefined -> seluruh IIFE crash -> tombol Edit tidak ter-bind. */
+document.addEventListener('DOMContentLoaded', function(){
+  var modalEl = document.getElementById('editModal');
+  if (!modalEl || typeof bootstrap === 'undefined') return;
+  var modal = new bootstrap.Modal(modalEl);
+
+  function fillAndShow(b){
+    var d;
+    try { d = JSON.parse(b.getAttribute('data-row')); }
+    catch(e){ console.error('Gagal parse data-row:', e); return; }
+    document.getElementById('ef_id').value       = d.id;
+    document.getElementById('ef_nama').value     = d.nama || '';
+    document.getElementById('ef_harga').value    = d.harga || 0;
+    document.getElementById('ef_stok').value     = d.stok || 0;
+    document.getElementById('ef_kategori').value = d.kategori || '';
+    document.getElementById('ef_desk').value     = d.deskripsi || '';
+    document.getElementById('ef_foto_url').value = d.foto_url || '';
+    document.getElementById('ef_lat').value      = d.lat || '';
+    document.getElementById('ef_lng').value      = d.lng || '';
+    document.getElementById('ef_aktif').checked  = !!d.aktif;
+    var prev = document.getElementById('ef_preview');
+    if (d.foto_url){ prev.src = d.foto_url; prev.style.display=''; }
+    else { prev.style.display='none'; }
+    modal.show();
+  }
+
+  // Delegasi event — tahan banting walaupun footer.php memindahkan modal ke body.
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest && ev.target.closest('.btn-edit');
+    if (!b) return;
+    ev.preventDefault();
+    fillAndShow(b);
   });
-})();
+});
 </script>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

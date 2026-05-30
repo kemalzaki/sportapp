@@ -327,12 +327,12 @@ include __DIR__.'/includes/header.php';
 <!-- Grid produk -->
 <div class="row g-2">
 <?php foreach($rows as $r):
-    $waText = "Halo Admin Firdam, saya mau tanya ketersediaan jajanan: *".$r['nama']."* (Rp ".number_format((int)$r['harga'],0,',','.').").";
+    $waText = "Halo Admin Firdam, saya mau tanya apakah pedagang buka untuk jajanan: *".$r['nama']."* (Rp ".number_format((int)$r['harga'],0,',','.').").";
     $waLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM).'?text='.rawurlencode($waText);
+    $stokR = (int)$r['stok'];
 ?>
   <div class="col-md-4 col-sm-6 col-12">
     <div class="card h-100 shadow-sm position-relative">
-      <span class="badge bg-dark position-absolute top-0 end-0 m-2" style="opacity:.85"><i class="bi bi-box-seam"></i> stok <?= (int)$r['stok'] ?></span>
       <?php if(!empty($r['foto_url'])): ?>
         <img src="<?= htmlspecialchars($r['foto_url']) ?>" class="card-img-top" style="height:140px;object-fit:cover" alt="">
       <?php else: ?>
@@ -345,17 +345,30 @@ include __DIR__.'/includes/header.php';
         <div class="fw-semibold small"><?= htmlspecialchars($r['nama']) ?></div>
         <div class="text-success small fw-bold mb-1">Rp <?= number_format((int)$r['harga'],0,',','.') ?></div>
         <?php if(!empty($r['deskripsi'])): ?><div class="text-muted mb-2" style="font-size:.72rem"><?= htmlspecialchars($r['deskripsi']) ?></div><?php endif; ?>
+
+        <!-- Gojek-style counter qty per produk -->
+        <div class="qty-counter d-flex align-items-center justify-content-between mb-2"
+             data-id="<?= (int)$r['id'] ?>" data-stok="<?= $stokR ?>">
+          <span class="small text-muted">Jumlah</span>
+          <div class="input-group input-group-sm" style="max-width:130px">
+            <button type="button" class="btn btn-outline-success qc-minus" aria-label="Kurangi">−</button>
+            <input type="number" class="form-control text-center qc-input"
+                   value="1" min="1" max="<?= $stokR ?>" inputmode="numeric">
+            <button type="button" class="btn btn-outline-success qc-plus" aria-label="Tambah">+</button>
+          </div>
+        </div>
+
         <div class="mt-auto d-grid gap-1">
           <button type="button" class="btn btn-sm btn-success btn-pesan"
                   data-id="<?= (int)$r['id'] ?>"
                   data-nama="<?= htmlspecialchars($r['nama']) ?>"
                   data-harga="<?= (int)$r['harga'] ?>"
-                  data-stok="<?= (int)$r['stok'] ?>"
+                  data-stok="<?= $stokR ?>"
                   data-foto="<?= htmlspecialchars($r['foto_url'] ?? '') ?>">
             <i class="bi bi-send-check"></i> Pesan Sekarang
           </button>
           <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($waLink) ?>">
-            <i class="bi bi-whatsapp"></i> Tanyakan Ketersediaan
+            <i class="bi bi-whatsapp"></i> Tanyakan apakah pedagang buka?
           </a>
         </div>
       </div>
@@ -401,7 +414,7 @@ include __DIR__.'/includes/header.php';
             <div class="flex-grow-1">
               <div class="fw-semibold small" id="mod_nama">-</div>
               <div class="text-success small fw-bold" id="mod_harga">-</div>
-              <div class="small text-muted">Stok: <span id="mod_stok">-</span></div>
+              <input type="hidden" id="mod_stok" value="0">
             </div>
           </div>
 
@@ -497,6 +510,25 @@ include __DIR__.'/includes/header.php';
   var modalEl = document.getElementById('pesanModal');
   var modal = new bootstrap.Modal(modalEl);
 
+  // ====== Gojek-style: counter qty per produk di kartu ======
+  document.querySelectorAll('.qty-counter').forEach(function(box){
+    var stok  = parseInt(box.dataset.stok || '0', 10);
+    var input = box.querySelector('.qc-input');
+    var minus = box.querySelector('.qc-minus');
+    var plus  = box.querySelector('.qc-plus');
+    function clamp(){
+      var v = parseInt(input.value || '1', 10); if (isNaN(v) || v<1) v=1;
+      if (stok>0 && v>stok) v=stok;
+      input.value = v;
+      minus.disabled = (v<=1);
+      plus.disabled  = (stok>0 && v>=stok);
+    }
+    minus.addEventListener('click', function(){ input.value = Math.max(1, (parseInt(input.value||'1',10)-1)); clamp(); });
+    plus .addEventListener('click', function(){ input.value = (parseInt(input.value||'1',10)+1); clamp(); });
+    input.addEventListener('input', clamp);
+    clamp();
+  });
+
   document.querySelectorAll('.btn-pesan').forEach(function(b){
     b.addEventListener('click', function(){
       current.harga = parseInt(b.dataset.harga||'0',10);
@@ -504,10 +536,15 @@ include __DIR__.'/includes/header.php';
       document.getElementById('mod_jid').value   = b.dataset.id;
       document.getElementById('mod_nama').textContent  = b.dataset.nama;
       document.getElementById('mod_harga').textContent = fmtRp(current.harga);
-      document.getElementById('mod_stok').textContent  = current.stok;
+      document.getElementById('mod_stok').value = current.stok;
       var foto = b.dataset.foto, fimg = document.getElementById('mod_foto');
       if (foto) { fimg.src = foto; fimg.style.display=''; } else { fimg.style.display='none'; }
-      document.getElementById('mod_qty').value = 1;
+      // Ambil qty dari counter kartu (ala Gojek)
+      var card = b.closest('.card');
+      var qcInp = card ? card.querySelector('.qc-input') : null;
+      var qtyFromCard = qcInp ? Math.max(1, parseInt(qcInp.value||'1',10)) : 1;
+      if (current.stok && qtyFromCard > current.stok) qtyFromCard = current.stok;
+      document.getElementById('mod_qty').value = qtyFromCard;
       document.getElementById('mod_qty').max = current.stok;
       currentDistKm=null; locValid=null;
       document.getElementById('pickup_lat').value=''; document.getElementById('pickup_lng').value='';

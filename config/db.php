@@ -2,6 +2,12 @@
 /**
  * Koneksi PostgreSQL native (pg_*) — TANPA PDO.
  */
+
+// Muat env lokal (Midtrans dsb) bila tersedia — hanya men-set variabel
+// yang BELUM didefinisikan di environment, jadi aman untuk production.
+if (is_file(__DIR__ . '/env.local.php')) {
+    require_once __DIR__ . '/env.local.php';
+}
 if (session_status() === PHP_SESSION_NONE) {
     // === Member tetap login (cookie persistent 30 hari) ===
     $_cp = session_get_cookie_params();
