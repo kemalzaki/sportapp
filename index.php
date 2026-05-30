@@ -376,6 +376,40 @@ include __DIR__.'/includes/header.php'; ?>
   <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
   <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
 </section>
+
+<!-- ============ Layanan Publik (Donasi Kegiatan + Pesan Jajan) — terlihat juga untuk guest ============ -->
+<section class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-6">
+      <a href="/donasi.php" class="text-decoration-none">
+        <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#fee2e2,#fff);">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width:54px;height:54px;"><i class="bi bi-heart-fill fs-3"></i></div>
+            <div>
+              <div class="fw-semibold text-dark">Donasi Kegiatan</div>
+              <div class="small text-muted">Dukung kegiatan komunitas — transfer ke rekening resmi kami.</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="/jajanan.php" class="text-decoration-none">
+        <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#dcfce7,#fff);">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:54px;height:54px;"><i class="bi bi-bag-heart fs-3"></i></div>
+            <div>
+              <div class="fw-semibold text-dark">Pesan Jajan (antar ke rumah)</div>
+              <div class="small text-muted">Pesan jajanan, diantar oleh kurir member komunitas. Tanpa perlu login.</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+<!-- ============ /Layanan Publik ============ -->
+
 <script>
 let _deferredInstall = null;
 const _installBtn = document.getElementById('installBtn');
@@ -512,10 +546,22 @@ document.addEventListener('DOMContentLoaded', () => {
         $j = json_decode(@file_get_contents($cacheFile), true);
         if (is_array($j) && count($j)) return $j;
       }
-      // REVISI 31 Mei 2026: pakai playlist resmi dari repo iptv-org/iptv (streams/id.m3u)
-      $url = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u';
-      $ctx = stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0'],'ssl'=>['verify_peer'=>false,'verify_peer_name'=>false]]);
-      $raw = @file_get_contents($url, false, $ctx);
+      // REVISI 30 Mei 2026: coba beberapa URL playlist (struktur repo iptv-org sering berubah),
+      // dan filter hanya stream HTTPS .m3u8 supaya bisa diputar di browser tanpa mixed-content block.
+      $urls = [
+        'https://iptv-org.github.io/iptv/countries/id.m3u',
+        'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u',
+        'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id_news.m3u',
+      ];
+      $ctx = stream_context_create([
+        'http'=>['timeout'=>8,'user_agent'=>'Mozilla/5.0','follow_location'=>1],
+        'ssl' =>['verify_peer'=>false,'verify_peer_name'=>false],
+      ]);
+      $raw = '';
+      foreach ($urls as $url) {
+        $r = @file_get_contents($url, false, $ctx);
+        if ($r && strpos($r, '#EXTM3U') !== false) { $raw = $r; break; }
+      }
       $items = [];
       if ($raw) {
         $lines = preg_split('/\r?\n/', $raw);
@@ -528,13 +574,29 @@ document.addEventListener('DOMContentLoaded', () => {
             $p = strrpos($ln, ',');
             if ($p !== false) $cur['nama'] = trim(substr($ln, $p+1));
           } elseif ($cur !== null && $ln !== '' && $ln[0] !== '#') {
-            $cur['url'] = trim($ln);
-            if ($cur['nama'] && $cur['url']) $items[] = $cur;
+            $u = trim($ln);
+            $cur['url'] = $u;
+            // Hanya ambil HTTPS .m3u8 agar bisa diputar di browser (HLS.js)
+            if ($cur['nama'] && stripos($u,'https://')===0 && stripos($u,'.m3u8')!==false) {
+              $items[] = $cur;
+            }
             $cur = null;
           }
         }
-        if (count($items)) @file_put_contents($cacheFile, json_encode($items));
       }
+      // Fallback curated list — channel umum Indonesia yang masih aktif.
+      if (!$items) {
+        $items = [
+          ['nama'=>'TVRI Nasional','logo'=>'','grup'=>'Umum','url'=>'https://tvri-live.akamaized.net/hls/live/2014820/tvri-1/master.m3u8'],
+          ['nama'=>'CNN Indonesia','logo'=>'','grup'=>'Berita','url'=>'https://live.cnnindonesia.com/livecnn/smil:cnntv.smil/chunklist_b1500000.m3u8'],
+          ['nama'=>'Metro TV','logo'=>'','grup'=>'Berita','url'=>'https://liveterascasting.terasmedia.id/metrotv/index.m3u8'],
+          ['nama'=>'Kompas TV','logo'=>'','grup'=>'Berita','url'=>'https://serve.cast-helper.com/auth_token=1234-abcd/kompastv/index.m3u8'],
+          ['nama'=>'BeritaSatu','logo'=>'','grup'=>'Berita','url'=>'https://beritasatu-live-fa-lh.akamaihd.net/i/beritasatutv_1@76528/master.m3u8'],
+          ['nama'=>'Sample HLS (Apple)','logo'=>'','grup'=>'Demo','url'=>'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8'],
+          ['nama'=>'Big Buck Bunny (Demo)','logo'=>'','grup'=>'Demo','url'=>'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'],
+        ];
+      }
+      if (count($items)) @file_put_contents($cacheFile, json_encode($items));
       return $items;
     }
   }
@@ -611,7 +673,15 @@ document.addEventListener('DOMContentLoaded', () => {
       hls.attachMedia(video);
       hls.on(window.Hls.Events.MANIFEST_PARSED, function(){ video.play().catch(function(){}); });
       hls.on(window.Hls.Events.ERROR, function(_, data){
-        if (data && data.fatal) console.warn('HLS error', data);
+        if (data && data.fatal) {
+          console.warn('HLS error, switching to next channel', data);
+          // Auto skip ke channel berikutnya supaya user tetap dapat tontonan
+          var btns = Array.prototype.slice.call(document.querySelectorAll('.iptv-src-btn'));
+          var active = document.querySelector('.iptv-src-btn.btn-danger');
+          var idx = active ? btns.indexOf(active) : -1;
+          var nxt = btns[idx+1];
+          if (nxt) nxt.click();
+        }
       });
     } else {
       video.src = url;

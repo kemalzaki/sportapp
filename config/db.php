@@ -126,3 +126,78 @@ try {
                          WHERE jenis_id IN (SELECT id FROM jenis_olahraga WHERE nama IN ('Badminton','Futsal','Biliar','Biliard'))");
     }
 } catch (Throwable $e) { /* ignore */ }
+
+/* ---------- Revisi 30 Mei 2026: tabel baru ---------- */
+try {
+    // Donasi Kegiatan: rekening dikelola admin via CRUD
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS donasi_rekening (
+        id SERIAL PRIMARY KEY,
+        bank VARCHAR(60) NOT NULL,
+        nomor VARCHAR(60) NOT NULL,
+        atas_nama VARCHAR(120) NOT NULL,
+        keterangan VARCHAR(200),
+        aktif BOOLEAN NOT NULL DEFAULT true,
+        urutan INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+
+    // Rekap pengeluaran kegiatan olahraga (relasi ke jadwal)
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS pengeluaran_kegiatan (
+        id SERIAL PRIMARY KEY,
+        jadwal_id INT REFERENCES jadwal(id) ON DELETE SET NULL,
+        tanggal DATE NOT NULL DEFAULT CURRENT_DATE,
+        kategori VARCHAR(60),
+        judul VARCHAR(200) NOT NULL,
+        jumlah BIGINT NOT NULL DEFAULT 0,
+        catatan TEXT,
+        bukti_url TEXT,
+        created_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+
+    // === Jajanan (Gojek-style) ===
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan (
+        id SERIAL PRIMARY KEY,
+        nama VARCHAR(160) NOT NULL,
+        deskripsi TEXT,
+        harga INT NOT NULL DEFAULT 0,
+        stok INT NOT NULL DEFAULT 0,
+        foto_url TEXT,
+        kategori VARCHAR(60),
+        aktif BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan_pesanan (
+        id SERIAL PRIMARY KEY,
+        kode VARCHAR(20) UNIQUE NOT NULL,
+        nama_pemesan VARCHAR(120) NOT NULL,
+        no_wa VARCHAR(25) NOT NULL,
+        alamat TEXT NOT NULL,
+        catatan TEXT,
+        subtotal BIGINT NOT NULL DEFAULT 0,
+        ongkir BIGINT NOT NULL DEFAULT 0,
+        total BIGINT NOT NULL DEFAULT 0,
+        metode VARCHAR(20) DEFAULT 'cod',
+        status VARCHAR(20) NOT NULL DEFAULT 'baru',
+        kurir_user_id INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now(),
+        updated_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan_pesanan_item (
+        id SERIAL PRIMARY KEY,
+        pesanan_id INT NOT NULL REFERENCES jajanan_pesanan(id) ON DELETE CASCADE,
+        jajanan_id INT REFERENCES jajanan(id) ON DELETE SET NULL,
+        nama VARCHAR(160) NOT NULL,
+        harga INT NOT NULL DEFAULT 0,
+        qty INT NOT NULL DEFAULT 1
+    )");
+
+    // Seed rekening default kalau masih kosong (migrasi nilai lama Yayasan KRB → Donasi Kegiatan)
+    $cnt = @pg_fetch_row(@pg_query(db(), "SELECT COUNT(*) FROM donasi_rekening"));
+    if ($cnt && (int)$cnt[0] === 0) {
+        @pg_query(db(), "INSERT INTO donasi_rekening(bank,nomor,atas_nama,urutan,aktif) VALUES
+            ('BCA','1234567890','Bendahara Kegiatan',1,true),
+            ('Mandiri','9876543210','Bendahara Kegiatan',2,true),
+            ('DANA','081234567890','Bendahara Kegiatan',3,true)");
+    }
+} catch (Throwable $e) { /* ignore */ }

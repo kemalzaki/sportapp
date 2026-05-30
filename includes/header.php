@@ -117,12 +117,14 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/dm.php"><i class="bi bi-chat-dots text-info"></i> Pesan</a></li>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
           <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami</a></li>
+          <li class="nav-item"><a class="nav-link" href="/kurir.php"><i class="bi bi-scooter text-warning"></i> Kurir Jajan</a></li>
         <?php endif; ?>
         <?php if ($u && $u['role']==='admin'): ?>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-shield-lock"></i> Admin</a>
             <ul class="dropdown-menu dropdown-menu-end shadow">
               <li><a class="dropdown-item" href="/admin/jadwal.php">Manajemen Jadwal</a></li>
+              <li><a class="dropdown-item" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a></li>
               <li><a class="dropdown-item" href="/admin/absensi.php">Input Absensi</a></li>
               <li><a class="dropdown-item" href="/admin/qr_show.php">QR Check-in</a></li>
               <li><a class="dropdown-item" href="/admin/members.php">Member</a></li>
@@ -134,6 +136,11 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li>
               <li><a class="dropdown-item" href="/admin/challenge.php"><i class="bi bi-trophy text-warning"></i> Kelola Challenge Islami</a></li>
               <li><a class="dropdown-item" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><h6 class="dropdown-header">Donasi &amp; Jajanan</h6></li>
+              <li><a class="dropdown-item" href="/admin/donasi_rekening.php"><i class="bi bi-bank text-success"></i> Rekening Donasi Kegiatan</a></li>
+              <li><a class="dropdown-item" href="/admin/jajanan.php"><i class="bi bi-shop text-warning"></i> CRUD Jajanan</a></li>
+              <li><a class="dropdown-item" href="/admin/jajanan_pesanan.php"><i class="bi bi-bag-heart text-warning"></i> Pesanan Jajanan</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>
               <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>

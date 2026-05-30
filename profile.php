@@ -476,6 +476,7 @@ include __DIR__.'/includes/header.php';
     </div></div>
 
     <!-- ===== v7: Perlengkapan Olahraga ===== -->
+    <div data-live="perlengkapan-profile">
     <div class="card shadow-sm mt-3"><div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="bi bi-bag-check text-primary"></i> Perlengkapan Olahraga</span>
       <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#perlModal" onclick="perlReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
@@ -506,6 +507,7 @@ include __DIR__.'/includes/header.php';
       <?php endif; ?>
       <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Perlengkapan otomatis muncul di "Jadwal Terdekat" sesuai jenis olahraga.</div>
     </div></div>
+    </div>
   </div>
 </div>
 <script>
