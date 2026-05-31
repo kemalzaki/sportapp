@@ -31,8 +31,31 @@ function jjn_upload_imagekit_strict($fileField, $namaPrefix) {
     if (!file_exists(__DIR__.'/../config/imagekit.php')) {
         throw new RuntimeException('config/imagekit.php tidak ditemukan.');
     }
-    require_once __DIR__.'/../config/imagekit.php';
+    // PENTING: deklarasikan global SEBELUM require, agar $imageKit yang di-assign
+    // di scope top-level config/imagekit.php benar-benar tertulis ke variabel global,
+    // bukan ke local scope fungsi ini. Inilah sumber error "Variable $imageKit tidak terdefinisi".
     global $imageKit;
+    require_once __DIR__.'/../config/imagekit.php';
+    // Fallback: kalau config tidak mengisi $imageKit (mis. variabel diberi nama lain),
+    // coba ambil dari nama umum lain yang dipakai di project.
+    if (!isset($imageKit) || !is_object($imageKit)) {
+        foreach (['imagekit','IMAGEKIT','ik','imageKitClient'] as $alt) {
+            if (isset($GLOBALS[$alt]) && is_object($GLOBALS[$alt])) { $imageKit = $GLOBALS[$alt]; break; }
+        }
+    }
+    // Plan B: inisialisasi langsung dari ENV (publik/privat/endpoint) bila composer autoload sudah ada.
+    if (!isset($imageKit) || !is_object($imageKit)) {
+        $pub = getenv('IMAGEKIT_PUBLIC_KEY')  ?: (defined('IMAGEKIT_PUBLIC_KEY')  ? IMAGEKIT_PUBLIC_KEY  : '');
+        $prv = getenv('IMAGEKIT_PRIVATE_KEY') ?: (defined('IMAGEKIT_PRIVATE_KEY') ? IMAGEKIT_PRIVATE_KEY : '');
+        $end = getenv('IMAGEKIT_URL_ENDPOINT')?: (defined('IMAGEKIT_URL_ENDPOINT')? IMAGEKIT_URL_ENDPOINT: '');
+        $autoload = __DIR__.'/../vendor/autoload.php';
+        if ($pub && $prv && $end && file_exists($autoload)) {
+            require_once $autoload;
+            if (class_exists('ImageKit\\ImageKit')) {
+                $imageKit = new ImageKit\ImageKit($pub, $prv, $end);
+            }
+        }
+    }
     if (!isset($imageKit) || !is_object($imageKit)) {
         throw new RuntimeException('Variabel $imageKit tidak terdefinisi. Periksa config/imagekit.php & autoload composer.');
     }
@@ -91,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 if ($foto==='') { $foto = $cur['foto_url'] ?? null; $fotoFileId = $cur['foto_file_id'] ?? null; }
             } else {
                 if (!empty($cur['foto_file_id'])) {
-                    require_once __DIR__.'/../config/imagekit.php'; global $imageKit;
+                    global $imageKit; require_once __DIR__.'/../config/imagekit.php';
                     try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
                 }
             }
@@ -102,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $id = (int)$_POST['id'];
             $cur = db_one("SELECT foto_file_id FROM jajanan WHERE id=$1",[$id]);
             if (!empty($cur['foto_file_id'])) {
-                require_once __DIR__.'/../config/imagekit.php'; global $imageKit;
+                global $imageKit; require_once __DIR__.'/../config/imagekit.php';
                 try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
             }
             db_exec("DELETE FROM jajanan WHERE id=$1",[$id]);

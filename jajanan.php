@@ -144,6 +144,11 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
             throw new RuntimeException('MIDTRANS_SERVER_KEY belum disetel di environment. Hubungi admin untuk mengaktifkan pembayaran.');
         }
 
+        // URL absolut situs (untuk callback Midtrans → redirect setelah pembayaran)
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off') ? 'https' : 'http';
+        $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $finish_url = $scheme.'://'.$host.'/jajanan.php?berhasil='.urlencode($kode);
+
         $payload = [
             'transaction_details' => ['order_id'=>$kode, 'gross_amount'=>$total],
             'item_details' => [
@@ -155,6 +160,7 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
                 'shipping_address'=>['address'=>$alamat],
             ],
             'enabled_payments' => ['bca_va','bni_va','bri_va','mandiri_va','permata_va','gopay','shopeepay','qris','other_va','bank_transfer'],
+            'callbacks'        => ['finish' => $finish_url],
         ];
         $resp = mt_snap_request($payload, $MT_SERVER_KEY, $MT_BASE);
         db_exec("UPDATE jajanan_pesanan SET snap_token=$1, snap_redirect=$2 WHERE id=$3",
@@ -248,6 +254,84 @@ include __DIR__.'/includes/header.php';
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
+
+<?php
+/* ============================================================
+ * Tampilan "Pemesanan Berhasil" — dipanggil dari callbacks.finish Midtrans
+ * URL: /jajanan.php?berhasil=KODE
+ * Halaman ini akan polling status ke server (confirm_payment) sampai paid.
+ * ============================================================ */
+$berhasilKode = trim($_GET['berhasil'] ?? '');
+if ($berhasilKode !== ''):
+    $bOrder = db_one("SELECT kode,nama_pemesan,total,payment_status,status FROM jajanan_pesanan WHERE kode=$1",[$berhasilKode]);
+?>
+<div class="card border-success mb-3" id="bayarBerhasil">
+  <div class="card-header bg-success text-white">
+    <i class="bi bi-check-circle-fill"></i> Pemesanan Berhasil
+  </div>
+  <div class="card-body">
+    <?php if (!$bOrder): ?>
+      <div class="alert alert-warning mb-0 small">Kode pesanan <strong><?= htmlspecialchars($berhasilKode) ?></strong> tidak ditemukan.</div>
+    <?php else: ?>
+      <div class="mb-2">
+        <div class="small text-muted">Kode Pesanan</div>
+        <div class="h5 mb-0"><strong><?= htmlspecialchars($bOrder['kode']) ?></strong></div>
+      </div>
+      <div class="row g-2 small">
+        <div class="col-6">Nama: <strong><?= htmlspecialchars($bOrder['nama_pemesan']) ?></strong></div>
+        <div class="col-6">Total: <strong>Rp <?= number_format((int)$bOrder['total'],0,',','.') ?></strong></div>
+        <div class="col-6">Pembayaran: <span id="bp_pay" class="badge bg-<?= $bOrder['payment_status']==='paid'?'success':'warning text-dark' ?>"><?= htmlspecialchars($bOrder['payment_status']) ?></span></div>
+        <div class="col-6">Status: <span id="bp_st" class="badge bg-info"><?= htmlspecialchars($bOrder['status']) ?></span></div>
+      </div>
+      <div class="alert alert-info small mt-3 mb-2" id="bp_msg">
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Mengkonfirmasi pembayaran ke Midtrans…
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="/jajanan.php?cek_nama=<?= urlencode($bOrder['nama_pemesan']) ?>#cek-status" class="btn btn-sm btn-outline-primary"><i class="bi bi-list-check"></i> Lihat Pesanan Saya</a>
+        <a href="/jajanan.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+      </div>
+      <script>
+      (function(){
+        var kode = <?= json_encode($bOrder['kode']) ?>;
+        var tries = 0, MAX = 8;
+        function poll(){
+          tries++;
+          var fd = new FormData();
+          fd.append('csrf', <?= json_encode(csrf_token()) ?>);
+          fd.append('kode', kode);
+          fetch('/jajanan.php?ajax=confirm_payment',{method:'POST',body:fd,credentials:'same-origin'})
+            .then(function(r){return r.json();}).then(function(j){
+              if (!j || !j.ok) { return finish('failed'); }
+              if (j.status==='paid')    return finish('paid');
+              if (j.status==='failed')  return finish('failed');
+              if (tries < MAX) setTimeout(poll, 2000); else finish('pending');
+            }).catch(function(){ if (tries<MAX) setTimeout(poll,2500); else finish('pending'); });
+        }
+        function finish(s){
+          var msg = document.getElementById('bp_msg');
+          var pay = document.getElementById('bp_pay');
+          var st  = document.getElementById('bp_st');
+          if (s==='paid'){
+            msg.className='alert alert-success small mt-3 mb-2';
+            msg.innerHTML='<i class="bi bi-check-circle-fill"></i> Pembayaran berhasil dikonfirmasi. Pesanan kamu sedang diproses penjual.';
+            pay.className='badge bg-success'; pay.textContent='paid';
+            st.className='badge bg-info'; st.textContent='baru';
+          } else if (s==='failed'){
+            msg.className='alert alert-danger small mt-3 mb-2';
+            msg.innerHTML='<i class="bi bi-x-circle-fill"></i> Pembayaran gagal / dibatalkan. Silakan pesan ulang.';
+          } else {
+            msg.className='alert alert-warning small mt-3 mb-2';
+            msg.innerHTML='<i class="bi bi-hourglass-split"></i> Pembayaran masih tertunda. Selesaikan pembayaran di Midtrans, lalu cek "Pesanan Saya".';
+          }
+        }
+        poll();
+      })();
+      </script>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="p-3 mb-3 rounded-3 text-white" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);">
   <h1 class="h4 mb-1 text-white"><i class="bi bi-bag-heart"></i> Pesan Jajan — Antar ke Rumah</h1>
@@ -632,10 +716,10 @@ document.addEventListener('DOMContentLoaded', function(){
           alert('Snap.js belum dimuat. Set MIDTRANS_CLIENT_KEY.'); return;
         }
         window.snap.pay(j.token, {
-          onSuccess: function(){ confirmPayment(j.kode); },
-          onPending: function(){ confirmPayment(j.kode); },
-          onError:   function(){ alert('Pembayaran gagal.'); },
-          onClose:   function(){ /* user closed popup */ }
+          onSuccess: function(){ window.location.href = '/jajanan.php?berhasil=' + encodeURIComponent(j.kode); },
+          onPending: function(){ window.location.href = '/jajanan.php?berhasil=' + encodeURIComponent(j.kode); },
+          onError:   function(){ alert('Pembayaran gagal.'); window.location.href = '/jajanan.php?berhasil=' + encodeURIComponent(j.kode); },
+          onClose:   function(){ window.location.href = '/jajanan.php?berhasil=' + encodeURIComponent(j.kode); }
         });
       })
       .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); });
