@@ -1,18 +1,18 @@
 <?php
 /**
- * Revisi 2 Jun 2026
- *   #1 Teks stok dirapikan (badge overlay, tidak tabrakan dengan tombol qty)
- *   #2 Gojek-style: tombol "Pesan" per produk → modal data pengantaran + Midtrans
- *   #3 Tombol "Tanyakan Ketersediaan" per produk → WA Firdam
- *   #4 Nomor telepon menggunakan prefix +62 (bukan 0)
- *   #5 Navbar tetap di atas saat scroll di mobile (lihat includes/header.php)
- *   #8 Kolom pencarian produk
+ * Revisi 31 Mei 2026 (lanjutan)
+ *   #3 Tambah PPN 11% pada perhitungan total pemesanan
+ *   #4 Mobile: 2 produk per baris (col-6 di mobile)
+ *   #5 Foto produk bisa di-klik untuk diperbesar (lightbox)
+ *   #6 Wajib klik "Deteksi Lokasi Saya" sebelum bisa bayar via Midtrans
+ *   #7 Jika toko tutup (di luar jam_buka–jam_tutup) → tombol "Pesan" disable
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers();
+date_default_timezone_set('Asia/Jakarta');
 $pageTitle = 'Pesan Jajan';
 $u = current_user();
 
@@ -28,7 +28,7 @@ $MT_SNAP_JS    = $MT_PROD
     ? 'https://app.midtrans.com/snap/snap.js'
     : 'https://app.sandbox.midtrans.com/snap/snap.js';
 
-/* ---------- Konfigurasi ongkir ---------- */
+/* ---------- Konfigurasi ongkir & pajak ---------- */
 $UIN_LAT = -6.926263;
 $UIN_LNG = 107.717553;
 $UIN_R_REKOM_KM = 1.5;
@@ -37,6 +37,7 @@ $ONGKIR_BASE    = 3000;
 $ONGKIR_PER_KM  = 2000;
 $ONGKIR_FALLBACK = 5000;
 $PER_PAGE       = 5;
+$PPN_RATE       = 0.11; // PPN 11% (UU HPP)
 
 function jjn_haversine($lat1,$lng1,$lat2,$lng2){
     $R=6371000; $toRad=M_PI/180;
@@ -46,7 +47,6 @@ function jjn_haversine($lat1,$lng1,$lat2,$lng2){
 }
 function jjn_ongkir_from_dist_m($d, $base, $perKm){ return (int) round($base + ($d/1000.0) * $perKm); }
 
-/** Normalisasi nomor telepon ke format internasional (62xxxxxx, tanpa +). */
 function jjn_normalize_phone($raw){
     $s = preg_replace('/\D+/','', (string)$raw);
     if ($s === '') return '';
@@ -55,7 +55,15 @@ function jjn_normalize_phone($raw){
     return '62' . $s;
 }
 
-/** Panggil endpoint Midtrans Snap. Return [token, redirect_url] atau lempar exception. */
+/** Cek apakah toko sedang buka berdasarkan jam_buka/jam_tutup (format HH:MM:SS) dan jam sekarang.
+ *  Bila salah satu kosong, dianggap selalu buka. Mendukung jadwal lewat tengah malam (mis. 22:00–02:00). */
+function jjn_is_open($jamBuka, $jamTutup, $now = null) {
+    if (empty($jamBuka) || empty($jamTutup)) return true;
+    $now = $now ?: date('H:i:s');
+    if ($jamBuka <= $jamTutup) return ($now >= $jamBuka && $now <= $jamTutup);
+    return ($now >= $jamBuka || $now <= $jamTutup);
+}
+
 function mt_snap_request(array $payload, $serverKey, $base) {
     $url = rtrim($base,'/') . '/snap/v1/transactions';
     $ch = curl_init($url);
@@ -116,21 +124,31 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
         if (!$jid || $nama==='' || $no_wa==='' || $alamat==='') {
             throw new RuntimeException('Nama, nomor WA, dan alamat wajib diisi.');
         }
-        $j = db_one("SELECT id,nama,harga,stok,aktif FROM jajanan WHERE id=$1",[$jid]);
+        /* Revisi #6: WAJIB sudah klik "Deteksi Lokasi Saya".
+           Tanpa koordinat pickup_lat/pickup_lng, transaksi Midtrans tidak dibuat. */
+        if ($plat === null || $plng === null) {
+            throw new RuntimeException('Mohon klik "Deteksi Lokasi Saya" terlebih dahulu sebelum membayar via Midtrans.');
+        }
+
+        $j = db_one("SELECT id,nama,harga,stok,aktif,jam_buka,jam_tutup FROM jajanan WHERE id=$1",[$jid]);
         if (!$j || !($j['aktif']==='t'||$j['aktif']===true)) throw new RuntimeException('Produk tidak tersedia.');
+        /* Revisi #7: kalau toko sedang tutup berdasarkan jam_buka/jam_tutup → tolak. */
+        if (!jjn_is_open($j['jam_buka'] ?? null, $j['jam_tutup'] ?? null)) {
+            $jb = $j['jam_buka'] ? substr($j['jam_buka'],0,5) : '-';
+            $jt = $j['jam_tutup']? substr($j['jam_tutup'],0,5): '-';
+            throw new RuntimeException("Toko sedang tutup. Jam operasional: {$jb}–{$jt}.");
+        }
         $qty = min($qty, max(0,(int)$j['stok']));
         if ($qty<=0) throw new RuntimeException('Stok habis.');
 
-        // Ongkir
-        if ($plat !== null && $plng !== null) {
-            $dist = jjn_haversine($UIN_LAT,$UIN_LNG,$plat,$plng);
-            if ($dist/1000 > $UIN_R_MAX_KM) throw new RuntimeException('Lokasi diluar jangkauan layanan (>'.$UIN_R_MAX_KM.' km).');
-            $ongkir = jjn_ongkir_from_dist_m($dist, $ONGKIR_BASE, $ONGKIR_PER_KM);
-        } else {
-            $ongkir = $ONGKIR_FALLBACK;
-        }
-        $sub = $qty * (int)$j['harga'];
-        $total = $sub + $ongkir;
+        // Ongkir (lat/lng dijamin tidak null karena cek di atas)
+        $dist = jjn_haversine($UIN_LAT,$UIN_LNG,$plat,$plng);
+        if ($dist/1000 > $UIN_R_MAX_KM) throw new RuntimeException('Lokasi diluar jangkauan layanan (>'.$UIN_R_MAX_KM.' km).');
+        $ongkir = jjn_ongkir_from_dist_m($dist, $ONGKIR_BASE, $ONGKIR_PER_KM);
+
+        $sub  = $qty * (int)$j['harga'];
+        $ppn  = (int) round($sub * $PPN_RATE);  // PPN 11% atas subtotal barang
+        $total= $sub + $ppn + $ongkir;
 
         $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
         db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng,midtrans_order_id,payment_status)
@@ -144,7 +162,6 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
             throw new RuntimeException('MIDTRANS_SERVER_KEY belum disetel di environment. Hubungi admin untuk mengaktifkan pembayaran.');
         }
 
-        // URL absolut situs (untuk callback Midtrans → redirect setelah pembayaran)
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off') ? 'https' : 'http';
         $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $finish_url = $scheme.'://'.$host.'/jajanan.php?berhasil='.urlencode($kode);
@@ -153,7 +170,8 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
             'transaction_details' => ['order_id'=>$kode, 'gross_amount'=>$total],
             'item_details' => [
                 ['id'=>'JJN-'.$j['id'], 'price'=>(int)$j['harga'], 'quantity'=>$qty, 'name'=>substr($j['nama'],0,50)],
-                ['id'=>'ONGKIR',        'price'=>(int)$ongkir,     'quantity'=>1,    'name'=>'Ongkir'],
+                ['id'=>'PPN11',         'price'=>(int)$ppn,         'quantity'=>1,    'name'=>'PPN 11%'],
+                ['id'=>'ONGKIR',        'price'=>(int)$ongkir,      'quantity'=>1,    'name'=>'Ongkir'],
             ],
             'customer_details' => [
                 'first_name'=>$nama, 'phone'=>$no_wa,
@@ -186,7 +204,6 @@ if ($ajax === 'confirm_payment' && $_SERVER['REQUEST_METHOD']==='POST') {
         $fraud = $status['fraud_status'] ?? 'accept';
         if (in_array($ts, ['capture','settlement'], true) && $fraud === 'accept') {
             db_exec("UPDATE jajanan_pesanan SET payment_status='paid', status='baru', updated_at=now() WHERE id=$1",[(int)$order['id']]);
-            // Kurangi stok hanya kalau belum dikurangi (cek flag stok_dipotong)
             if (empty($order['stok_dipotong']) || $order['stok_dipotong']==='f' || $order['stok_dipotong']===false) {
                 $its = db_all("SELECT jajanan_id, qty FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$order['id']]);
                 foreach ($its as $it) {
@@ -221,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 /* ============================================================
- * Listing produk: kategori + pencarian + pagination
+ * Listing produk
  * ============================================================ */
 $katAll = db_all("SELECT COALESCE(NULLIF(TRIM(kategori),''),'Lainnya') AS kat, COUNT(*) AS n
                   FROM jajanan WHERE aktif=true AND stok>0
@@ -256,11 +273,6 @@ include __DIR__.'/includes/header.php';
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
 
 <?php
-/* ============================================================
- * Tampilan "Pemesanan Berhasil" — dipanggil dari callbacks.finish Midtrans
- * URL: /jajanan.php?berhasil=KODE
- * Halaman ini akan polling status ke server (confirm_payment) sampai paid.
- * ============================================================ */
 $berhasilKode = trim($_GET['berhasil'] ?? '');
 if ($berhasilKode !== ''):
     $bOrder = db_one("SELECT kode,nama_pemesan,total,payment_status,status FROM jajanan_pesanan WHERE kode=$1",[$berhasilKode]);
@@ -335,13 +347,14 @@ if ($berhasilKode !== ''):
 
 <div class="p-3 mb-3 rounded-3 text-white" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);">
   <h1 class="h4 mb-1 text-white"><i class="bi bi-bag-heart"></i> Pesan Jajan — Antar ke Rumah</h1>
-  <p class="mb-0 small opacity-90">Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet).</p>
+  <p class="mb-0 small opacity-90">Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet). Termasuk PPN <?= (int)($PPN_RATE*100) ?>%.</p>
 </div>
 
 <div class="alert alert-info py-2 small mb-3">
   <i class="bi bi-info-circle-fill"></i>
   Jarak rekomendasi pengantaran maks ±<?= $UIN_R_REKOM_KM ?> km, batas layanan <?= $UIN_R_MAX_KM ?> km dari
   <strong>UIN SGD Bandung</strong>. Ongkir Rp <?= number_format($ONGKIR_BASE,0,',','.') ?> + Rp <?= number_format($ONGKIR_PER_KM,0,',','.') ?>/km.
+  Harga belum termasuk <strong>PPN <?= (int)($PPN_RATE*100) ?>%</strong> (otomatis ditambahkan saat checkout).
 </div>
 
 <!-- Cek status pesanan -->
@@ -408,19 +421,35 @@ if ($berhasilKode !== ''):
 </div>
 <?php endif; ?>
 
-<!-- Grid produk -->
+<!-- Grid produk (Revisi #4: mobile 2 per baris → col-6) -->
 <div class="row g-2">
 <?php foreach($rows as $r):
     $waText = "Halo Admin Firdam, saya mau tanya apakah pedagang buka untuk jajanan: *".$r['nama']."* (Rp ".number_format((int)$r['harga'],0,',','.').").";
     $waLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM).'?text='.rawurlencode($waText);
     $stokR = (int)$r['stok'];
+    $isOpen = jjn_is_open($r['jam_buka'] ?? null, $r['jam_tutup'] ?? null);
+    $jamLabel = '';
+    if (!empty($r['jam_buka']) && !empty($r['jam_tutup'])) {
+        $jamLabel = substr($r['jam_buka'],0,5).'–'.substr($r['jam_tutup'],0,5);
+    }
 ?>
-  <div class="col-md-4 col-sm-6 col-12">
+  <div class="col-md-4 col-6">
     <div class="card h-100 shadow-sm position-relative">
       <?php if(!empty($r['foto_url'])): ?>
-        <img src="<?= htmlspecialchars($r['foto_url']) ?>" class="card-img-top" style="height:140px;object-fit:cover" alt="">
+        <img src="<?= htmlspecialchars($r['foto_url']) ?>"
+             class="card-img-top jjn-zoomable"
+             style="height:140px;object-fit:cover;cursor:zoom-in"
+             alt="<?= htmlspecialchars($r['nama']) ?>"
+             data-full="<?= htmlspecialchars($r['foto_url']) ?>"
+             data-title="<?= htmlspecialchars($r['nama']) ?>"
+             title="Klik untuk memperbesar foto">
       <?php else: ?>
         <div class="bg-light text-center py-4"><i class="bi bi-bag fs-1 text-muted"></i></div>
+      <?php endif; ?>
+      <?php if (!$isOpen): ?>
+        <span class="badge bg-danger position-absolute top-0 start-0 m-1"><i class="bi bi-door-closed"></i> Tutup</span>
+      <?php elseif ($jamLabel): ?>
+        <span class="badge bg-success-subtle text-success position-absolute top-0 start-0 m-1"><i class="bi bi-clock"></i> <?= htmlspecialchars($jamLabel) ?></span>
       <?php endif; ?>
       <div class="card-body p-2 d-flex flex-column">
         <?php if(!empty($r['kategori'])): ?>
@@ -430,19 +459,19 @@ if ($berhasilKode !== ''):
         <div class="text-success small fw-bold mb-1">Rp <?= number_format((int)$r['harga'],0,',','.') ?></div>
         <?php if(!empty($r['deskripsi'])): ?><div class="text-muted mb-2" style="font-size:.72rem"><?= htmlspecialchars($r['deskripsi']) ?></div><?php endif; ?>
 
-        <!-- Gojek-style counter qty per produk -->
         <div class="qty-counter d-flex align-items-center justify-content-between mb-2"
              data-id="<?= (int)$r['id'] ?>" data-stok="<?= $stokR ?>">
           <span class="small text-muted">Jumlah</span>
           <div class="input-group input-group-sm" style="max-width:130px">
-            <button type="button" class="btn btn-outline-success qc-minus" aria-label="Kurangi">−</button>
+            <button type="button" class="btn btn-outline-success qc-minus" aria-label="Kurangi" <?= $isOpen?'':'disabled' ?>>−</button>
             <input type="number" class="form-control text-center qc-input"
-                   value="1" min="1" max="<?= $stokR ?>" inputmode="numeric">
-            <button type="button" class="btn btn-outline-success qc-plus" aria-label="Tambah">+</button>
+                   value="1" min="1" max="<?= $stokR ?>" inputmode="numeric" <?= $isOpen?'':'disabled' ?>>
+            <button type="button" class="btn btn-outline-success qc-plus" aria-label="Tambah" <?= $isOpen?'':'disabled' ?>>+</button>
           </div>
         </div>
 
         <div class="mt-auto d-grid gap-1">
+          <?php if ($isOpen): ?>
           <button type="button" class="btn btn-sm btn-success btn-pesan"
                   data-id="<?= (int)$r['id'] ?>"
                   data-nama="<?= htmlspecialchars($r['nama']) ?>"
@@ -451,6 +480,12 @@ if ($berhasilKode !== ''):
                   data-foto="<?= htmlspecialchars($r['foto_url'] ?? '') ?>">
             <i class="bi bi-send-check"></i> Pesan Sekarang
           </button>
+          <?php else: ?>
+          <button type="button" class="btn btn-sm btn-secondary" disabled
+                  title="Toko sedang tutup<?= $jamLabel ? ' (jam '.$jamLabel.')' : '' ?>">
+            <i class="bi bi-door-closed"></i> Toko Tutup<?= $jamLabel ? ' • '.htmlspecialchars($jamLabel) : '' ?>
+          </button>
+          <?php endif; ?>
           <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($waLink) ?>">
             <i class="bi bi-whatsapp"></i> Tanyakan apakah pedagang buka?
           </a>
@@ -481,21 +516,26 @@ if ($berhasilKode !== ''):
 <div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $totalProduk ?> produk · 5 per halaman</div>
 <?php endif; ?>
 
-<!-- ===== Modal Pemesanan (Gojek-style) ===== -->
+<!-- ===== Modal Lightbox Foto (Revisi #5) ===== -->
+<div class="modal fade" id="zoomModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header border-0 py-2">
+        <h6 class="modal-title small" id="zoomTitle">Foto Produk</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-1" style="background:#000">
+        <img id="zoomImg" src="" alt="" style="max-width:100%;max-height:80vh;object-fit:contain;cursor:zoom-out">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Pemesanan ===== -->
 <style>
-/* Pastikan modal body bisa scroll di HP agar tombol submit terlihat */
-#pesanModal .modal-body {
-  overflow-y: auto !important;
-  max-height: calc(100vh - 150px);
-}
-@media (max-width: 576px) {
-  #pesanModal .modal-body {
-    max-height: calc(100vh - 130px);
-  }
-}
-.modal-fullscreen-sm-down .modal-content {
-  max-height: 100vh !important;
-}
+#pesanModal .modal-body { overflow-y: auto !important; max-height: calc(100vh - 150px); }
+@media (max-width: 576px) { #pesanModal .modal-body { max-height: calc(100vh - 130px); } }
+.modal-fullscreen-sm-down .modal-content { max-height: 100vh !important; }
 </style>
 <div class="modal fade" id="pesanModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
@@ -509,7 +549,7 @@ if ($berhasilKode !== ''):
         <input type="hidden" name="jajanan_id" id="mod_jid">
         <div class="modal-body">
           <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded">
-            <img id="mod_foto" src="" alt="" class="rounded" style="width:54px;height:54px;object-fit:cover;display:none">
+            <img id="mod_foto" src="" alt="" class="rounded jjn-zoomable" style="width:54px;height:54px;object-fit:cover;display:none;cursor:zoom-in">
             <div class="flex-grow-1">
               <div class="fw-semibold small" id="mod_nama">-</div>
               <div class="text-success small fw-bold" id="mod_harga">-</div>
@@ -551,6 +591,11 @@ if ($berhasilKode !== ''):
               <input type="hidden" name="pickup_lat" id="pickup_lat">
               <input type="hidden" name="pickup_lng" id="pickup_lng">
             </div>
+            <div class="alert alert-warning small mt-2 mb-0 py-1" id="locRequired">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <strong>Wajib:</strong> klik tombol di atas untuk mengizinkan akses lokasi.
+              Tanpa lokasi, pembayaran Midtrans tidak dapat diproses.
+            </div>
             <div id="locWarn" class="alert alert-danger small mt-2 mb-0 d-none">
               Lokasi di luar jangkauan layanan (>&nbsp;<?= $UIN_R_MAX_KM ?>&nbsp;km).
             </div>
@@ -558,6 +603,7 @@ if ($berhasilKode !== ''):
 
           <div class="p-2 bg-light rounded">
             <div class="d-flex justify-content-between small"><span>Subtotal</span><strong id="sumSub">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>PPN <?= (int)($PPN_RATE*100) ?>%</span><strong id="sumPpn">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>Ongkir <span id="sumOngkirNote" class="text-muted">(flat)</span></span><strong id="sumOngkir">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong></div>
             <hr class="my-1">
             <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar</span><strong class="text-success" id="sumTot">Rp 0</strong></div>
@@ -570,7 +616,10 @@ if ($berhasilKode !== ''):
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-success btn-sm" id="btnBayar"><i class="bi bi-credit-card-2-front"></i> Bayar via Midtrans</button>
+          <button type="submit" class="btn btn-success btn-sm" id="btnBayar" disabled
+                  title="Klik 'Deteksi Lokasi Saya' dulu untuk mengaktifkan pembayaran">
+            <i class="bi bi-credit-card-2-front"></i> Bayar via Midtrans
+          </button>
         </div>
       </form>
     </div>
@@ -584,14 +633,11 @@ if ($berhasilKode !== ''):
 <?php endif; ?>
 
 <script>
-/* Tunggu DOMContentLoaded supaya bootstrap.bundle.min.js (di-load belakangan oleh
-   footer.php) sudah pasti tersedia. Sebelumnya `new bootstrap.Modal(...)` jalan
-   inline -> ReferenceError -> seluruh IIFE crash -> tombol "Pesan Sekarang" &
-   counter (+/-) tidak ter-bind. */
 document.addEventListener('DOMContentLoaded', function(){
   var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>, rekom_km: <?= $UIN_R_REKOM_KM ?>, max_km: <?= $UIN_R_MAX_KM ?>};
   var ONGKIR_BASE = <?= (int)$ONGKIR_BASE ?>, ONGKIR_PER_KM = <?= (int)$ONGKIR_PER_KM ?>, ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
-  var currentDistKm = null, locValid = null;
+  var PPN_RATE = <?= json_encode($PPN_RATE) ?>;
+  var currentDistKm = null, locValid = null, locDetected = false;
   var current = {harga:0, stok:0};
 
   function fmtRp(n){ return 'Rp '+Math.round(n).toLocaleString('id-ID'); }
@@ -602,12 +648,25 @@ document.addEventListener('DOMContentLoaded', function(){
   function recalc(){
     var q = Math.max(1, parseInt(document.getElementById('mod_qty').value||'1',10));
     if (current.stok && q>current.stok) { q=current.stok; document.getElementById('mod_qty').value=q; }
-    var sub = q*current.harga, ong=calcOngkir();
+    var sub = q*current.harga;
+    var ppn = Math.round(sub*PPN_RATE);
+    var ong = calcOngkir();
     document.getElementById('sumSub').textContent=fmtRp(sub);
+    document.getElementById('sumPpn').textContent=fmtRp(ppn);
     document.getElementById('sumOngkir').textContent=fmtRp(ong);
-    document.getElementById('sumTot').textContent=fmtRp(sub+ong);
+    document.getElementById('sumTot').textContent=fmtRp(sub+ppn+ong);
     document.getElementById('sumOngkirNote').textContent = currentDistKm!==null
         ? '('+currentDistKm.toFixed(2)+' km)' : '(flat — share lokasi untuk akurat)';
+    updateBayarBtn();
+  }
+
+  function updateBayarBtn(){
+    var btn = document.getElementById('btnBayar');
+    if (!btn) return;
+    /* Revisi #6: tombol bayar baru aktif kalau lokasi sudah dideteksi & valid */
+    var ok = locDetected && locValid !== false;
+    btn.disabled = !ok;
+    btn.title = ok ? '' : "Klik 'Deteksi Lokasi Saya' dulu untuk mengaktifkan pembayaran";
   }
 
   var modalEl = document.getElementById('pesanModal');
@@ -618,18 +677,21 @@ document.addEventListener('DOMContentLoaded', function(){
     else if (modalEl) { modalEl.classList.add('show'); modalEl.style.display='block'; document.body.classList.add('modal-open'); }
   }
 
-  // ====== Gojek-style: counter qty per produk di kartu ======
+  // ====== Counter qty per produk di kartu ======
   document.querySelectorAll('.qty-counter').forEach(function(box){
     var stok  = parseInt(box.dataset.stok || '0', 10);
     var input = box.querySelector('.qc-input');
     var minus = box.querySelector('.qc-minus');
     var plus  = box.querySelector('.qc-plus');
+    if (!input || !minus || !plus) return;
     function clamp(){
       var v = parseInt(input.value || '1', 10); if (isNaN(v) || v<1) v=1;
       if (stok>0 && v>stok) v=stok;
       input.value = v;
-      minus.disabled = (v<=1);
-      plus.disabled  = (stok>0 && v>=stok);
+      if (!input.disabled){
+        minus.disabled = (v<=1);
+        plus.disabled  = (stok>0 && v>=stok);
+      }
     }
     minus.addEventListener('click', function(){ input.value = Math.max(1, (parseInt(input.value||'1',10)-1)); clamp(); });
     plus .addEventListener('click', function(){ input.value = (parseInt(input.value||'1',10)+1); clamp(); });
@@ -646,18 +708,20 @@ document.addEventListener('DOMContentLoaded', function(){
       document.getElementById('mod_harga').textContent = fmtRp(current.harga);
       document.getElementById('mod_stok').value = current.stok;
       var foto = b.dataset.foto, fimg = document.getElementById('mod_foto');
-      if (foto) { fimg.src = foto; fimg.style.display=''; } else { fimg.style.display='none'; }
-      // Ambil qty dari counter kartu (ala Gojek)
+      if (foto) { fimg.src = foto; fimg.style.display=''; fimg.setAttribute('data-full',foto); fimg.setAttribute('data-title', b.dataset.nama||''); }
+      else { fimg.style.display='none'; }
       var card = b.closest('.card');
       var qcInp = card ? card.querySelector('.qc-input') : null;
       var qtyFromCard = qcInp ? Math.max(1, parseInt(qcInp.value||'1',10)) : 1;
       if (current.stok && qtyFromCard > current.stok) qtyFromCard = current.stok;
       document.getElementById('mod_qty').value = qtyFromCard;
       document.getElementById('mod_qty').max = current.stok;
-      currentDistKm=null; locValid=null;
+      // Reset state lokasi setiap kali modal dibuka
+      currentDistKm=null; locValid=null; locDetected=false;
       document.getElementById('pickup_lat').value=''; document.getElementById('pickup_lng').value='';
       document.getElementById('locCoords').textContent='Lat/Lng belum terdeteksi';
       document.getElementById('locWarn').classList.add('d-none');
+      var lr = document.getElementById('locRequired'); if (lr) lr.classList.remove('d-none');
       recalc(); showModal();
     });
   });
@@ -671,7 +735,6 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   document.getElementById('mod_qty').addEventListener('input',recalc);
 
-  // Normalisasi WA: hapus 0 / +62 / 62 di depan
   var waInp = document.getElementById('mod_wa');
   waInp.addEventListener('input', function(){
     var v = (this.value||'').replace(/\D+/g,'');
@@ -693,13 +756,24 @@ document.addEventListener('DOMContentLoaded', function(){
       var warn=document.getElementById('locWarn');
       if (currentDistKm>UIN.max_km){warn.classList.remove('d-none'); locValid=false;}
       else {warn.classList.add('d-none'); locValid=true;}
+      locDetected = true;
+      var lr = document.getElementById('locRequired'); if (lr) lr.classList.add('d-none');
       recalc(); btn.disabled=false; btn.innerHTML=orig;
-    }, function(err){ alert('Gagal lokasi: '+err.message); btn.disabled=false; btn.innerHTML=orig; },
+    }, function(err){
+      alert('Gagal mendapatkan lokasi: '+err.message+'\n\nIzinkan akses lokasi pada browser untuk dapat melakukan pembayaran via Midtrans.');
+      btn.disabled=false; btn.innerHTML=orig;
+      locDetected = false; updateBayarBtn();
+    },
     {enableHighAccuracy:true, timeout:15000});
   });
 
   document.getElementById('pesanForm').addEventListener('submit', function(e){
     e.preventDefault();
+    /* Revisi #6: blok kalau lokasi belum dideteksi */
+    if (!locDetected) {
+      alert('Mohon klik "Deteksi Lokasi Saya" terlebih dahulu sebelum melakukan pembayaran via Midtrans.');
+      return;
+    }
     if (locValid===false) { alert('Lokasi di luar jangkauan.'); return; }
     var btn = document.getElementById('btnBayar');
     btn.disabled=true; var orig=btn.innerHTML;
@@ -710,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function(){
       .then(function(r){ return r.json(); })
       .then(function(j){
         btn.disabled=false; btn.innerHTML=orig;
-        if (!j.ok) { alert(j.error||'Gagal membuat transaksi'); return; }
+        if (!j.ok) { alert(j.error||'Gagal membuat transaksi'); updateBayarBtn(); return; }
         if (typeof window.snap === 'undefined') {
           if (j.redirect) { window.location.href = j.redirect; return; }
           alert('Snap.js belum dimuat. Set MIDTRANS_CLIENT_KEY.'); return;
@@ -722,24 +796,27 @@ document.addEventListener('DOMContentLoaded', function(){
           onClose:   function(){ window.location.href = '/jajanan.php?berhasil=' + encodeURIComponent(j.kode); }
         });
       })
-      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); });
+      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); updateBayarBtn(); });
   });
 
-  function confirmPayment(kode){
-    var fd = new FormData(); fd.append('csrf','<?= csrf_token() ?>'); fd.append('kode', kode);
-    fetch('/jajanan.php?ajax=confirm_payment', {method:'POST', body:fd, credentials:'same-origin'})
-      .then(function(r){return r.json();})
-      .then(function(j){
-        if (j.ok && j.status==='paid') {
-          window.location.href = '/jajanan.php?cek_nama='+encodeURIComponent(document.querySelector('#pesanForm [name=nama]').value);
-        } else if (j.ok && j.status==='pending') {
-          alert('Pembayaran tertunda. Selesaikan pembayaran lalu cek status pesanan.');
-          window.location.href = '/jajanan.php?cek_nama='+encodeURIComponent(document.querySelector('#pesanForm [name=nama]').value);
-        } else {
-          alert('Pembayaran belum berhasil.');
-        }
-      });
-  }
+  /* ===== Revisi #5: lightbox foto produk (klik gambar → modal zoom) ===== */
+  var zoomEl = document.getElementById('zoomModal');
+  var zoomImg = document.getElementById('zoomImg');
+  var zoomTitle = document.getElementById('zoomTitle');
+  var zoomModal = (typeof bootstrap !== 'undefined' && zoomEl) ? new bootstrap.Modal(zoomEl) : null;
+  document.addEventListener('click', function(ev){
+    var img = ev.target.closest && ev.target.closest('.jjn-zoomable');
+    if (!img) return;
+    /* Jangan trigger zoom kalau gambar di-klik untuk tombol di dalam .btn-pesan */
+    if (img.closest('.btn-pesan')) return;
+    var src = img.getAttribute('data-full') || img.src;
+    if (!src) return;
+    ev.preventDefault();
+    zoomImg.src = src;
+    zoomTitle.textContent = img.getAttribute('data-title') || img.alt || 'Foto Produk';
+    if (zoomModal) zoomModal.show();
+  });
+  if (zoomImg) zoomImg.addEventListener('click', function(){ if (zoomModal) zoomModal.hide(); });
 });
 </script>
 

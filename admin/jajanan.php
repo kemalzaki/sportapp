@@ -1,8 +1,9 @@
 <?php
 /**
- * Revisi 2 Jun 2026
- *   #6 Upload foto ke ImageKit ditampilkan errornya bila gagal (debug + flash)
- *   #7 Tampilan produk → tabel + pagination (10/halaman). Edit via modal.
+ * Revisi 31 Mei 2026 (lanjutan)
+ *   #1 CRUD waktu jam buka & jam tutup pedagang (kolom jam_buka, jam_tutup)
+ *
+ * Catatan migrasi: jalankan migrations_31mei2026_revisi.sql sebelum memakai file ini.
  */
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
@@ -12,7 +13,7 @@ $pageTitle = 'CRUD Jajanan';
 
 /** Upload foto ke ImageKit. Return ['url','fileId'] atau lempar exception kalau gagal. */
 function jjn_upload_imagekit_strict($fileField, $namaPrefix) {
-    if (empty($_FILES[$fileField]['name'])) return null; // tidak diisi
+    if (empty($_FILES[$fileField]['name'])) return null;
     $err = $_FILES[$fileField]['error'] ?? UPLOAD_ERR_NO_FILE;
     if ($err === UPLOAD_ERR_NO_FILE) return null;
     if ($err !== UPLOAD_ERR_OK) {
@@ -31,19 +32,13 @@ function jjn_upload_imagekit_strict($fileField, $namaPrefix) {
     if (!file_exists(__DIR__.'/../config/imagekit.php')) {
         throw new RuntimeException('config/imagekit.php tidak ditemukan.');
     }
-    // PENTING: deklarasikan global SEBELUM require, agar $imageKit yang di-assign
-    // di scope top-level config/imagekit.php benar-benar tertulis ke variabel global,
-    // bukan ke local scope fungsi ini. Inilah sumber error "Variable $imageKit tidak terdefinisi".
     global $imageKit;
     require_once __DIR__.'/../config/imagekit.php';
-    // Fallback: kalau config tidak mengisi $imageKit (mis. variabel diberi nama lain),
-    // coba ambil dari nama umum lain yang dipakai di project.
     if (!isset($imageKit) || !is_object($imageKit)) {
         foreach (['imagekit','IMAGEKIT','ik','imageKitClient'] as $alt) {
             if (isset($GLOBALS[$alt]) && is_object($GLOBALS[$alt])) { $imageKit = $GLOBALS[$alt]; break; }
         }
     }
-    // Plan B: inisialisasi langsung dari ENV (publik/privat/endpoint) bila composer autoload sudah ada.
     if (!isset($imageKit) || !is_object($imageKit)) {
         $pub = getenv('IMAGEKIT_PUBLIC_KEY')  ?: (defined('IMAGEKIT_PUBLIC_KEY')  ? IMAGEKIT_PUBLIC_KEY  : '');
         $prv = getenv('IMAGEKIT_PRIVATE_KEY') ?: (defined('IMAGEKIT_PRIVATE_KEY') ? IMAGEKIT_PRIVATE_KEY : '');
@@ -82,6 +77,16 @@ function jjn_parse_latlng($v, $min, $max) {
     return $f;
 }
 
+/** Normalisasi input jam HH:MM (atau HH:MM:SS) → "HH:MM:SS"; null kalau kosong/invalid. */
+function jjn_parse_time($v) {
+    $s = trim((string)$v);
+    if ($s === '') return null;
+    if (preg_match('/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/', $s, $m)) {
+        return sprintf('%02d:%02d:%02d', (int)$m[1], (int)$m[2], (int)($m[3] ?? 0));
+    }
+    return null;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a    = $_POST['_action'] ?? '';
@@ -95,6 +100,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $aktif= !empty($_POST['aktif']);
     $lat  = jjn_parse_latlng($_POST['lat'] ?? '', -90, 90);
     $lng  = jjn_parse_latlng($_POST['lng'] ?? '', -180, 180);
+    $jamBuka  = jjn_parse_time($_POST['jam_buka']  ?? '');
+    $jamTutup = jjn_parse_time($_POST['jam_tutup'] ?? '');
 
     try {
         if ($a === 'add' || $a === 'edit') {
@@ -103,9 +110,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
 
         if ($a==='add' && $nama!=='') {
-            db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng)
-                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng]);
+            db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng,jam_buka,jam_tutup)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup]);
             $_SESSION['flash'] = 'Jajanan ditambahkan.'.($foto?' Foto ter-upload.':'');
         } elseif ($a==='edit') {
             $id=(int)$_POST['id'];
@@ -118,8 +125,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
                 }
             }
-            db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10 WHERE id=$11",
-              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$id]);
+            db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10,jam_buka=$11,jam_tutup=$12 WHERE id=$13",
+              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$id]);
             $_SESSION['flash'] = 'Jajanan diperbarui.'.($upl?' Foto baru ter-upload.':'');
         } elseif ($a==='delete') {
             $id = (int)$_POST['id'];
@@ -146,6 +153,13 @@ if ($page > $totalPage) $page = $totalPage;
 $offset = ($page-1) * $PER_PAGE;
 $rows = db_all("SELECT * FROM jajanan ORDER BY aktif DESC, id DESC LIMIT $PER_PAGE OFFSET $offset");
 
+/** Helper: tampilan jam ringkas (HH:MM-HH:MM atau "-") */
+function jjn_fmt_jam($jb, $jt) {
+    if (!$jb || !$jt) return '<span class="text-muted small">—</span>';
+    return '<span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-clock"></i> '
+        .htmlspecialchars(substr($jb,0,5)).'–'.htmlspecialchars(substr($jt,0,5)).'</span>';
+}
+
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-shop text-warning"></i> CRUD Jajanan</h2>
@@ -153,7 +167,7 @@ include __DIR__.'/../includes/header.php';
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
 
 <p class="text-muted small">Foto otomatis diunggah ke <strong>ImageKit</strong>. Klik "Edit" pada baris produk untuk mengubah.
-Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
+Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tutup</strong> dipakai untuk auto-disable tombol "Pesan" di halaman pembeli.</p>
 
 <div class="card mb-3"><div class="card-header"><i class="bi bi-plus-circle"></i> Tambah Jajanan</div>
 <div class="card-body">
@@ -170,6 +184,8 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
     <div class="col-md-3"><label class="small">Upload Foto → ImageKit</label><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"></div>
     <div class="col-md-3"><label class="small">Lat</label><input class="form-control form-control-sm" name="lat" placeholder="-6.926263" inputmode="decimal"></div>
     <div class="col-md-3"><label class="small">Lng</label><input class="form-control form-control-sm" name="lng" placeholder="107.717553" inputmode="decimal"></div>
+    <div class="col-md-3"><label class="small"><i class="bi bi-clock"></i> Jam Buka</label><input type="time" class="form-control form-control-sm" name="jam_buka" value="07:00"></div>
+    <div class="col-md-3"><label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label><input type="time" class="form-control form-control-sm" name="jam_tutup" value="21:00"></div>
     <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-cloud-upload"></i> Simpan &amp; Upload</button></div>
   </form>
 </div></div>
@@ -189,6 +205,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
           <th>Kategori</th>
           <th class="text-end">Harga</th>
           <th class="text-end">Stok</th>
+          <th>Jam Buka–Tutup</th>
           <th>Lokasi</th>
           <th>Aktif</th>
           <th class="text-end" style="width:140px">Aksi</th>
@@ -200,7 +217,9 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
           'id'=>(int)$r['id'],'nama'=>$r['nama'],'deskripsi'=>$r['deskripsi'],
           'harga'=>(int)$r['harga'],'stok'=>(int)$r['stok'],'kategori'=>$r['kategori'],
           'foto_url'=>$r['foto_url'],'aktif'=>($r['aktif']==='t'||$r['aktif']===true),
-          'lat'=>$r['lat']??'','lng'=>$r['lng']??''
+          'lat'=>$r['lat']??'','lng'=>$r['lng']??'',
+          'jam_buka'=>$r['jam_buka'] ? substr($r['jam_buka'],0,5) : '',
+          'jam_tutup'=>$r['jam_tutup']? substr($r['jam_tutup'],0,5): '',
         ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
       ?>
         <tr>
@@ -209,6 +228,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
           <td><?= htmlspecialchars($r['kategori'] ?? '-') ?></td>
           <td class="text-end">Rp <?= number_format((int)$r['harga'],0,',','.') ?></td>
           <td class="text-end"><?= (int)$r['stok'] ?></td>
+          <td><?= jjn_fmt_jam($r['jam_buka'] ?? null, $r['jam_tutup'] ?? null) ?></td>
           <td><?php if(!empty($r['lat']) && !empty($r['lng'])): ?>
               <a target="_blank" rel="noopener" href="https://www.google.com/maps?q=<?= htmlspecialchars($r['lat']) ?>,<?= htmlspecialchars($r['lng']) ?>"><i class="bi bi-geo-alt-fill text-danger"></i> Maps</a>
             <?php else: ?><span class="text-muted small">—</span><?php endif; ?></td>
@@ -224,7 +244,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
           </td>
         </tr>
       <?php endforeach; if (!$rows): ?>
-        <tr><td colspan="8" class="text-center text-muted small py-3">Belum ada produk.</td></tr>
+        <tr><td colspan="9" class="text-center text-muted small py-3">Belum ada produk.</td></tr>
       <?php endif; ?>
       </tbody>
     </table>
@@ -244,19 +264,9 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
 
 <!-- ===== Modal Edit ===== -->
 <style>
-/* Pastikan modal body bisa scroll di HP agar tombol submit terlihat */
-#editModal .modal-body {
-  overflow-y: auto !important;
-  max-height: calc(100vh - 150px);
-}
-@media (max-width: 768px) {
-  #editModal .modal-body {
-    max-height: calc(100vh - 130px);
-  }
-}
-.modal-fullscreen-md-down .modal-content {
-  max-height: 100vh !important;
-}
+#editModal .modal-body { overflow-y: auto !important; max-height: calc(100vh - 150px); }
+@media (max-width: 768px) { #editModal .modal-body { max-height: calc(100vh - 130px); } }
+.modal-fullscreen-md-down .modal-content { max-height: 100vh !important; }
 </style>
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-md-down">
@@ -274,11 +284,14 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
           <div class="col-md-6"><label class="small">Kategori</label><input class="form-control form-control-sm" name="kategori" id="ef_kategori"></div>
           <div class="col-md-3"><label class="small">Lat</label><input class="form-control form-control-sm" name="lat" id="ef_lat" inputmode="decimal"></div>
           <div class="col-md-3"><label class="small">Lng</label><input class="form-control form-control-sm" name="lng" id="ef_lng" inputmode="decimal"></div>
+          <div class="col-md-6"><label class="small"><i class="bi bi-clock"></i> Jam Buka</label><input type="time" class="form-control form-control-sm" name="jam_buka" id="ef_jam_buka"></div>
+          <div class="col-md-6"><label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label><input type="time" class="form-control form-control-sm" name="jam_tutup" id="ef_jam_tutup"></div>
           <div class="col-12"><label class="small">Deskripsi</label><textarea class="form-control form-control-sm" name="deskripsi" id="ef_desk" rows="2"></textarea></div>
           <div class="col-md-7"><label class="small">URL Foto (akan dipakai bila tidak upload file baru)</label><input class="form-control form-control-sm" name="foto_url" id="ef_foto_url"></div>
           <div class="col-md-5"><label class="small">Upload baru → ImageKit</label><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"></div>
           <div class="col-12"><img id="ef_preview" src="" style="max-height:120px;display:none" class="rounded border"></div>
           <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="aktif" id="ef_aktif"><label class="form-check-label small" for="ef_aktif">Aktif</label></div></div>
+          <div class="col-12"><div class="alert alert-info small mb-0 py-2"><i class="bi bi-info-circle"></i> Kosongkan jam buka/tutup bila pedagang selalu buka.</div></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
@@ -290,9 +303,6 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak.</p>
 </div>
 
 <script>
-/* Tunggu DOMContentLoaded supaya bootstrap.bundle.min.js (dimuat di footer.php)
-   sudah pasti tersedia. Sebelumnya script ini jalan inline -> `bootstrap`
-   undefined -> seluruh IIFE crash -> tombol Edit tidak ter-bind. */
 document.addEventListener('DOMContentLoaded', function(){
   var modalEl = document.getElementById('editModal');
   if (!modalEl || typeof bootstrap === 'undefined') return;
@@ -311,6 +321,8 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('ef_foto_url').value = d.foto_url || '';
     document.getElementById('ef_lat').value      = d.lat || '';
     document.getElementById('ef_lng').value      = d.lng || '';
+    document.getElementById('ef_jam_buka').value = d.jam_buka || '';
+    document.getElementById('ef_jam_tutup').value= d.jam_tutup || '';
     document.getElementById('ef_aktif').checked  = !!d.aktif;
     var prev = document.getElementById('ef_preview');
     if (d.foto_url){ prev.src = d.foto_url; prev.style.display=''; }
@@ -318,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function(){
     modal.show();
   }
 
-  // Delegasi event — tahan banting walaupun footer.php memindahkan modal ke body.
   document.addEventListener('click', function(ev){
     var b = ev.target.closest && ev.target.closest('.btn-edit');
     if (!b) return;
