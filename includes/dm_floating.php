@@ -22,10 +22,22 @@ $__onDmPage = (basename($__self) === 'dm.php');
   align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2);padding:0;}
 #fbDmFabClose:hover{background:#ef4444;}
 /* Pil kecil untuk memunculkan kembali setelah ditutup */
-#fbDmReopen{position:fixed;right:14px;bottom:90px;z-index:1070;background:rgba(15,23,42,.75);color:#fff;
-  border:0;border-radius:999px;padding:4px 10px;font-size:.72rem;cursor:pointer;display:none;
-  box-shadow:0 4px 12px rgba(0,0,0,.25);}
+#fbDmReopenWrap{position:fixed;right:14px;bottom:90px;z-index:1070;display:none;align-items:center;gap:4px;}
+#fbDmReopenWrap.show{display:inline-flex;}
+#fbDmReopen{background:rgba(15,23,42,.75);color:#fff;
+  border:0;border-radius:999px;padding:4px 10px;font-size:.72rem;cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:.25rem;}
 #fbDmReopen:hover{background:#0ea5e9;}
+#fbDmReopenClose{background:#0f172a;color:#fff;border:0;border-radius:50%;width:20px;height:20px;
+  font-size:.75rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);padding:0;}
+#fbDmReopenClose:hover{background:#ef4444;}
+/* Tombol kecil untuk memunculkan kembali semuanya setelah benar-benar disembunyikan */
+#fbDmRestore{position:fixed;right:8px;bottom:78px;z-index:1070;background:rgba(15,23,42,.55);color:#fff;
+  border:0;border-radius:50%;width:28px;height:28px;font-size:.85rem;cursor:pointer;display:none;
+  align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);opacity:.55;}
+#fbDmRestore:hover{opacity:1;background:#0ea5e9;}
+#fbDmRestore.show{display:flex;}
 
 #fbDmPanel{position:fixed;right:18px;bottom:158px;z-index:1071;width:340px;max-width:92vw;height:480px;max-height:75vh;
   background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(2,6,23,.25);display:none;flex-direction:column;overflow:hidden;border:1px solid #e2e8f0;}
@@ -82,7 +94,11 @@ $__onDmPage = (basename($__self) === 'dm.php');
   <span class="badge" id="fbDmBadge">0</span>
   <span id="fbDmFabClose" title="Sembunyikan ikon chat" aria-label="Sembunyikan ikon chat">×</span>
 </button>
-<button type="button" id="fbDmReopen" title="Tampilkan kembali ikon chat"><i class="bi bi-chat-dots"></i> Pesan</button>
+<span id="fbDmReopenWrap">
+  <button type="button" id="fbDmReopen" title="Tampilkan kembali ikon chat"><i class="bi bi-chat-dots"></i> Pesan</button>
+  <button type="button" id="fbDmReopenClose" title="Sembunyikan total">×</button>
+</span>
+<button type="button" id="fbDmRestore" title="Tampilkan ikon chat kembali" aria-label="Tampilkan ikon chat kembali"><i class="bi bi-chat-dots"></i></button>
 
 
 <div id="fbDmPanel" role="dialog" aria-label="Daftar Pesan">
@@ -144,28 +160,41 @@ $__onDmPage = (basename($__self) === 'dm.php');
   // ===== Tutup / tampilkan kembali FAB chat (persisten di localStorage) =====
   var fabCloseBtn = document.getElementById('fbDmFabClose');
   var reopenBtn = document.getElementById('fbDmReopen');
-  var HIDE_KEY = 'hf_dm_fab_hidden';
-  function applyHidden(hidden){
-    if (hidden){
+  var reopenWrap = document.getElementById('fbDmReopenWrap');
+  var reopenCloseBtn = document.getElementById('fbDmReopenClose');
+  var restoreBtn = document.getElementById('fbDmRestore');
+  // State: 'visible' (FAB), 'pill' (tulisan), 'hidden' (total — hanya tombol kecil restore)
+  var STATE_KEY = 'hf_dm_state';
+  function applyState(st){
+    panel.classList.remove('open'); chat.classList.remove('open');
+    if (st === 'pill'){
       fab.style.display = 'none';
-      panel.classList.remove('open');
-      chat.classList.remove('open');
-      reopenBtn.style.display = 'inline-flex';
+      reopenWrap.classList.add('show');
+      restoreBtn.classList.remove('show');
+    } else if (st === 'hidden'){
+      fab.style.display = 'none';
+      reopenWrap.classList.remove('show');
+      restoreBtn.classList.add('show');
     } else {
       fab.style.display = 'flex';
-      reopenBtn.style.display = 'none';
+      reopenWrap.classList.remove('show');
+      restoreBtn.classList.remove('show');
     }
+    try { localStorage.setItem(STATE_KEY, st); } catch(e){}
   }
-  try { applyHidden(localStorage.getItem(HIDE_KEY) === '1'); } catch(e){}
-  fabCloseBtn.addEventListener('click', function(ev){
-    ev.stopPropagation();
-    try { localStorage.setItem(HIDE_KEY, '1'); } catch(e){}
-    applyHidden(true);
-  });
-  reopenBtn.addEventListener('click', function(){
-    try { localStorage.removeItem(HIDE_KEY); } catch(e){}
-    applyHidden(false);
-  });
+  var _init = 'visible';
+  try {
+    var s = localStorage.getItem(STATE_KEY);
+    if (s === 'pill' || s === 'hidden' || s === 'visible') _init = s;
+    // migrasi dari versi lama
+    else if (localStorage.getItem('hf_dm_fab_hidden') === '1') _init = 'pill';
+  } catch(e){}
+  applyState(_init);
+
+  fabCloseBtn.addEventListener('click', function(ev){ ev.stopPropagation(); applyState('pill'); });
+  reopenBtn.addEventListener('click', function(){ applyState('visible'); });
+  reopenCloseBtn.addEventListener('click', function(ev){ ev.stopPropagation(); applyState('hidden'); });
+  restoreBtn.addEventListener('click', function(){ applyState('visible'); });
 
   fab.addEventListener('click', function(){
     if (panel.classList.contains('open') || chat.classList.contains('open')) {

@@ -7,6 +7,11 @@ $pageTitle = 'Login';
 $err = null;
 if (!empty($_GET['expired'])) $err = 'Sesi habis. Silakan login kembali.';
 
+/* === Revisi: alur splash + onboarding sebelum login (sekali pakai per device) === */
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && empty($_COOKIE['hf_onboarded']) && empty($_GET['skip_intro'])) {
+    header('Location: /splash.php'); exit;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $uid   = (int)($_POST['user_id'] ?? 0);
@@ -160,6 +165,9 @@ body{
     <div class="lg-logo"><i class="bi bi-lightning-charge-fill"></i></div>
     <h1 class="lg-title">Selamat datang<br>kembali 👋</h1>
     <p class="lg-sub">Masuk untuk lanjut olahraga, jajan favorit, & ngumpul bareng komunitas HapFam.</p>
+    <img src="/assets/img/auth-illustration.svg" alt="" aria-hidden="true"
+         style="display:block;width:78%;max-width:280px;margin:1rem auto -.4rem;filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));">
+
   </header>
 
   <section class="lg-card">

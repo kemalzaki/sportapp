@@ -186,6 +186,7 @@ if ($u) {
     </div>
   </div>
 </nav>
+<?php require_once __DIR__.'/skeleton.php'; ?>
 <main class="container py-3">
 <?php if (!empty($u)): ?>
 <script>

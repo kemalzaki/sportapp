@@ -146,6 +146,9 @@ body{
     <div class="lg-logo"><i class="bi bi-person-plus-fill"></i></div>
     <h1 class="lg-title">Buat akun baru 🚀</h1>
     <p class="lg-sub">Daftar untuk mulai olahraga, pesan jajan, & gabung komunitas HapFam.</p>
+    <img src="/assets/img/auth-illustration.svg" alt="" aria-hidden="true"
+         style="display:block;width:70%;max-width:240px;margin:.9rem auto -.4rem;filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));">
+
   </header>
 
   <section class="lg-card">
