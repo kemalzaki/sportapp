@@ -687,8 +687,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script>
 (function(){
-<script>
-(function(){
+  // [Fix 1 Jun 2026] Tag <script> duplikat di blok ini sebelumnya membuat
+  // seluruh IIFE pemutar IPTV gagal di-parse JS (SyntaxError) sehingga di
+  // mobile maupun desktop video tidak pernah dijalankan. Sekarang hanya
+  // ada satu pembuka <script> + satu IIFE.
   // ---- IPTV HLS player ----
   // ===== Revisi 1 Jun 2026: SEMUA stream sekarang lewat /iptv_proxy.php
   // sehingga bisa diputar di mobile browser (Android Chrome, iOS Safari)
@@ -713,22 +715,24 @@ document.addEventListener('DOMContentLoaded', () => {
     video.muted = true;
   }
   var hls = null;
+  // Deteksi iOS Safari — hanya iOS yang punya pemutar HLS native andal.
+  // Android Chrome melaporkan "maybe" pada canPlayType('application/vnd.apple.mpegurl')
+  // tapi sebetulnya TIDAK bisa memutar — itulah penyebab IPTV gagal play di HP.
+  var isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function loadStream(url, name){
     if (IPTV_BLOCKED) return; // hanya APK yang diblok
     if (!video) return;
     if (nowEl && name) nowEl.textContent = name;
     if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url; video.play().catch(function(){});
-    } else if (window.Hls && window.Hls.isSupported()) {
-      hls = new window.Hls({ lowLatencyMode:true });
+    var useHlsJs = window.Hls && window.Hls.isSupported() && !isIOS;
+    if (useHlsJs) {
+      hls = new window.Hls({ lowLatencyMode:true, enableWorker:true });
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(window.Hls.Events.MANIFEST_PARSED, function(){ video.play().catch(function(){}); });
       hls.on(window.Hls.Events.ERROR, function(_, data){
         if (data && data.fatal) {
           console.warn('HLS error, switching to next channel', data);
-          // Auto skip ke channel berikutnya supaya user tetap dapat tontonan
           var btns = Array.prototype.slice.call(document.querySelectorAll('.iptv-src-btn'));
           var active = document.querySelector('.iptv-src-btn.btn-danger');
           var idx = active ? btns.indexOf(active) : -1;
@@ -736,8 +740,11 @@ document.addEventListener('DOMContentLoaded', () => {
           if (nxt) nxt.click();
         }
       });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS (iOS Safari, macOS Safari)
+      video.src = url; video.play().catch(function(){});
     } else {
-      video.src = url;
+      video.src = url; video.play().catch(function(){});
     }
   }
   document.querySelectorAll('.iptv-src-btn').forEach(function(btn){

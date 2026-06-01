@@ -39,6 +39,10 @@ if ($u) {
 <link rel="stylesheet" href="/assets/css/app.css">
 <link rel="stylesheet" href="/assets/css/app-v3.css">
 <link rel="stylesheet" href="/assets/css/desktop-fix.css">
+<!-- Revisi 1 Jun 2026: header atas gaya Gojek (mobile only) -->
+<link rel="stylesheet" href="/assets/css/gojek-top.css?v=1jun2026b">
+<!-- Revisi 1 Jun 2026: efek suara WebAudio (tanpa file mp3) -->
+<script defer src="/assets/js/sfx.js?v=1jun2026"></script>
 <style>
 .user-with-avatar{display:inline-flex;align-items:center;gap:.4rem;position:relative;}
 .user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
@@ -106,6 +110,101 @@ if ($u) {
 <body>
 <!-- Global preloader (disisipkan via JS hanya saat navigasi keluar halaman) -->
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
+
+<?php /* ============================================================
+        Revisi 1 Jun 2026: Header atas GAYA GOJEK (mobile only).
+        Desktop tetap pakai navbar Bootstrap di bawah ini.
+        ============================================================ */ ?>
+<header class="gt-top" role="banner">
+  <div class="gt-row">
+    <button class="gt-burger" type="button" data-bs-toggle="offcanvas" data-bs-target="#gtDrawer" aria-label="Buka menu" data-sfx="tap">
+      <i class="bi bi-list"></i>
+    </button>
+    <form class="gt-search" role="search" action="/search.php" method="get" data-sfx-off>
+      <i class="bi bi-search"></i>
+      <input type="search" name="q" placeholder="<?= $u ? 'Cari aktivitas, tempat, member…' : 'Cari di HapFam SportApp…' ?>" autocomplete="off">
+    </form>
+    <?php if ($u): ?>
+      <a href="/profile.php" class="gt-bell" aria-label="Notifikasi" data-sfx="tap" title="Notifikasi">
+        <i class="bi bi-bell-fill"></i>
+        <?php if ($nUnread): ?><span class="gt-badge-dot"><?= $nUnread > 9 ? '9+' : (int)$nUnread ?></span><?php endif; ?>
+      </a>
+      <a href="/profile.php" class="gt-avatar" aria-label="Profil saya" data-sfx="tap">
+        <?php if ($navFoto): ?>
+          <img src="<?= htmlspecialchars($navFoto) ?>" alt="Foto profil">
+        <?php else: ?>
+          <i class="bi bi-person-fill"></i>
+        <?php endif; ?>
+      </a>
+    <?php else: ?>
+      <a href="/login.php" class="gt-bell" aria-label="Masuk" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i></a>
+    <?php endif; ?>
+  </div>
+</header>
+<nav class="gt-chips" aria-label="Pintasan">
+  <a class="gt-chip <?= basename($_SERVER['SCRIPT_NAME'] ?? '')==='index.php'?'active':'' ?>" href="/index.php" data-sfx="tap"><i class="bi bi-house-door-fill gt-chip-c1"></i>Beranda</a>
+  <?php if ($u): ?>
+    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill gt-chip-c3"></i>Lari</a>
+    <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill gt-chip-c1"></i>Upload</a>
+    <a class="gt-chip" href="/jajanan.php" data-sfx="tap"><i class="bi bi-shop gt-chip-c2"></i>Jajan</a>
+    <a class="gt-chip" href="/kurir.php" data-sfx="tap"><i class="bi bi-scooter gt-chip-c2"></i>Kurir</a>
+    <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill gt-chip-c5"></i>Tempat</a>
+    <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill gt-chip-c2"></i>Event</a>
+    <a class="gt-chip" href="/checkin.php" data-sfx="tap"><i class="bi bi-qr-code-scan gt-chip-c4"></i>Check-in</a>
+    <a class="gt-chip" href="/dm.php" data-sfx="tap"><i class="bi bi-chat-dots-fill gt-chip-c4"></i>Pesan</a>
+    <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars gt-chip-c2"></i>Islami</a>
+    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-heart-pulse-fill gt-chip-c3"></i>Sehat</a>
+  <?php else: ?>
+    <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right gt-chip-c1"></i>Masuk</a>
+    <a class="gt-chip" href="/register.php" data-sfx="tap"><i class="bi bi-person-plus-fill gt-chip-c5"></i>Daftar</a>
+  <?php endif; ?>
+</nav>
+
+<?php /* Drawer menu lengkap untuk mobile — buka via burger di header Gojek-style. */ ?>
+<div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill"></i> HapFam SportApp</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <div class="list-group list-group-flush">
+      <a class="list-group-item list-group-item-action" href="/index.php"><i class="bi bi-house-door-fill"></i> Beranda</a>
+      <?php if ($u): ?>
+        <a class="list-group-item list-group-item-action" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a>
+        <a class="list-group-item list-group-item-action" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
+        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
+        <a class="list-group-item list-group-item-action" href="/checkin.php"><i class="bi bi-qr-code-scan"></i> Check-in</a>
+        <a class="list-group-item list-group-item-action" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
+        <a class="list-group-item list-group-item-action" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a>
+        <a class="list-group-item list-group-item-action" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
+        <a class="list-group-item list-group-item-action" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
+        <a class="list-group-item list-group-item-action" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
+        <a class="list-group-item list-group-item-action" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Lari</a>
+        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
+        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
+        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
+        <a class="list-group-item list-group-item-action" href="/jajanan.php"><i class="bi bi-shop"></i> Jajanan</a>
+        <a class="list-group-item list-group-item-action" href="/kurir.php"><i class="bi bi-scooter"></i> Kurir Jajan</a>
+        <a class="list-group-item list-group-item-action" href="/profile.php"><i class="bi bi-person-circle"></i> Profil Saya</a>
+        <?php if ($u['role']==='admin'): ?>
+          <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
+          <a class="list-group-item list-group-item-action" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
+          <a class="list-group-item list-group-item-action" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
+          <a class="list-group-item list-group-item-action" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
+          <a class="list-group-item list-group-item-action" href="/admin/toko.php"><i class="bi bi-shop-window"></i> Toko &amp; Produk</a>
+          <a class="list-group-item list-group-item-action" href="/admin/jajanan.php"><i class="bi bi-bag-heart"></i> Jajanan</a>
+          <a class="list-group-item list-group-item-action" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
+        <?php endif; ?>
+        <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
+      <?php else: ?>
+        <a class="list-group-item list-group-item-action" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Masuk</a>
+        <a class="list-group-item list-group-item-action" href="/register.php"><i class="bi bi-person-plus-fill"></i> Daftar</a>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+<!-- /Gojek-style mobile top header -->
+
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
     <a class="navbar-brand fw-bold" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> HapFam <span class="opacity-75">SportApp</span></a>

@@ -84,10 +84,12 @@ body{
   min-height:100dvh; display:flex; flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom,0);
 }
+/* Revisi 1 Jun 2026: hero pakai gambar olahraga bertema AI (silhouette atlet). */
 .lg-hero{
   position:relative; min-height:42dvh;
   background:
-    radial-gradient(120% 80% at 10% 10%, rgba(125,211,252,.35), transparent 60%),
+    linear-gradient(180deg, rgba(14,165,233,.35) 0%, rgba(99,102,241,.85) 100%),
+    url('/assets/img/sport-auth-hero.jpg') center/cover no-repeat,
     linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
   color:#fff; padding:2.4rem 1.5rem 2rem;
   border-bottom-left-radius:36px; border-bottom-right-radius:36px;
@@ -95,7 +97,12 @@ body{
 }
 .lg-hero::after{
   content:""; position:absolute; right:-60px; top:-60px; width:240px; height:240px;
-  background:radial-gradient(circle, rgba(255,255,255,.55) 0%, transparent 65%); opacity:.35; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.45) 0%, transparent 65%); opacity:.30; border-radius:50%;
+}
+.lg-hero::before{
+  /* Glow olahraga di pojok kiri-bawah */
+  content:""; position:absolute; left:-40px; bottom:-40px; width:200px; height:200px;
+  background:radial-gradient(circle, rgba(34,197,94,.55) 0%, transparent 65%); opacity:.4; border-radius:50%;
 }
 .lg-logo{
   width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.14);
@@ -163,11 +170,13 @@ body{
 <div class="lg-wrap">
   <header class="lg-hero">
     <div class="lg-logo"><i class="bi bi-lightning-charge-fill"></i></div>
-    <h1 class="lg-title">Selamat datang<br>kembali 👋</h1>
-    <p class="lg-sub">Masuk untuk lanjut olahraga, jajan favorit, & ngumpul bareng komunitas HapFam.</p>
-    <img src="/assets/img/auth-illustration.svg" alt="" aria-hidden="true"
-         style="display:block;width:78%;max-width:280px;margin:1rem auto -.4rem;filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));">
-
+    <h1 class="lg-title">Ayo Olahraga<br>Bareng 🏃‍♂️⚽</h1>
+    <p class="lg-sub">Masuk untuk lanjut lari, futsal, badminton, kalistenik, & jajan bareng komunitas HapFam.</p>
+    <div style="display:flex;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
+      <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-trophy-fill"></i> Event 2026</span>
+      <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-stopwatch-fill"></i> Run Tracker</span>
+      <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-heart-pulse-fill"></i> Sehat</span>
+    </div>
   </header>
 
   <section class="lg-card">
@@ -230,6 +239,20 @@ body{
   </section>
 </div>
 
+<!-- Revisi 1 Jun 2026: efek suara saat klik & submit -->
+<script src="/assets/js/sfx.js?v=1jun2026"></script>
+<script>
+// Tagging tombol untuk SFX
+document.getElementById('togglePw').setAttribute('data-sfx','tap');
+document.getElementById('btnSubmit').setAttribute('data-sfx','tap');
+var _btnGuest = document.getElementById('btnGuest'); if (_btnGuest) _btnGuest.setAttribute('data-sfx','tap');
+document.getElementById('loginForm').addEventListener('submit', function(){
+  try { window.SFX && SFX.notify(); } catch(e){}
+});
+<?php if ($err): ?>
+window.addEventListener('load', function(){ try { window.SFX && SFX.error(); } catch(e){} });
+<?php endif; ?>
+</script>
 <script>
 document.getElementById('togglePw').addEventListener('click', function(){
   var pw = document.getElementById('pw');

@@ -1,0 +1,121 @@
+/* ============================================================
+   Gojek-style TOP navigation (mobile only)
+   Revisi 1 Jun 2026 — header bagian atas
+   Hanya tampil di < 992px. Desktop tetap memakai navbar Bootstrap.
+   ============================================================ */
+:root{
+  --gt-h: 64px;
+  --gt-green: #00aa13;
+  --gt-green-2: #14c447;
+  --gt-ink: #0f172a;
+  --gt-muted: #64748b;
+  --gt-bg: #ffffff;
+  --gt-line: rgba(15,23,42,.08);
+}
+[data-bs-theme=dark]{
+  --gt-bg: #0f172a;
+  --gt-ink: #f8fafc;
+  --gt-muted: #94a3b8;
+  --gt-line: rgba(255,255,255,.08);
+}
+
+/* Sembunyikan navbar bootstrap lama di mobile; ganti dengan header Gojek-style */
+@media (max-width: 991.98px){
+  nav.navbar.sticky-top{ display: none !important; }
+  body{ padding-top: calc(var(--gt-h) + 56px) !important; } /* top header + chips */
+}
+
+.gt-top{
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 1051;
+  background: linear-gradient(135deg, var(--gt-green) 0%, var(--gt-green-2) 100%);
+  color: #fff;
+  padding: 8px 12px calc(8px + env(safe-area-inset-top, 0px));
+  box-shadow: 0 4px 14px -6px rgba(0,170,19,.45);
+}
+@media (max-width: 991.98px){ .gt-top{ display: block; } }
+
+.gt-row{
+  display: flex; align-items: center; gap: 10px;
+  height: 48px;
+}
+.gt-burger{
+  width: 40px; height: 40px; border-radius: 12px;
+  background: rgba(255,255,255,.18); border: 0; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+.gt-burger:active{ background: rgba(255,255,255,.32); }
+.gt-search{
+  flex: 1 1 auto; min-width: 0;
+  background: #fff; border-radius: 14px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  box-shadow: 0 6px 18px -10px rgba(0,0,0,.35);
+}
+.gt-search i{ color: var(--gt-green); font-size: 1.05rem; }
+.gt-search input{
+  flex: 1 1 auto; border: 0; outline: none; background: transparent;
+  font-size: .92rem; color: var(--gt-ink); min-width: 0;
+}
+.gt-search input::placeholder{ color: #94a3b8; }
+.gt-bell, .gt-avatar{
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; text-decoration: none; position: relative;
+  font-size: 1.1rem;
+}
+.gt-avatar img{ width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.gt-badge-dot{
+  position: absolute; top: -2px; right: -2px;
+  min-width: 16px; height: 16px; border-radius: 999px;
+  background: #ef4444; color: #fff;
+  font-size: .62rem; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--gt-green);
+  padding: 0 4px;
+}
+
+/* Pita quick-action gaya GoFood/GoRide */
+.gt-chips{
+  background: var(--gt-bg);
+  border-bottom: 1px solid var(--gt-line);
+  display: none;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  padding: 8px 10px;
+  scrollbar-width: none;
+}
+.gt-chips::-webkit-scrollbar{ display: none; }
+@media (max-width: 991.98px){
+  .gt-chips{ display: block;
+    position: fixed; top: calc(var(--gt-h) + env(safe-area-inset-top, 0px));
+    left: 0; right: 0; z-index: 1050;
+    box-shadow: 0 2px 8px -4px rgba(15,23,42,.12);
+  }
+}
+.gt-chip{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; margin-right: 8px;
+  background: #f1f5f9; color: var(--gt-ink);
+  border-radius: 999px; text-decoration: none;
+  font-size: .82rem; font-weight: 600;
+  border: 1px solid transparent;
+  transition: all .15s ease;
+}
+[data-bs-theme=dark] .gt-chip{ background:#1e293b; color:#f8fafc; }
+.gt-chip i{ font-size: 1rem; }
+.gt-chip.active{ background: rgba(0,170,19,.12); color: var(--gt-green); border-color: rgba(0,170,19,.35); }
+.gt-chip:active{ transform: scale(.96); }
+
+.gt-chip-c1{ color:#0ea5e9; } .gt-chip-c2{ color:#f59e0b; }
+.gt-chip-c3{ color:#ef4444; } .gt-chip-c4{ color:#6366f1; }
+.gt-chip-c5{ color:#10b981; } .gt-chip-c6{ color:#ec4899; }
+
+/* Drawer untuk menu lengkap — tetap pakai Bootstrap offcanvas */
+.gt-drawer .offcanvas-header{ background: linear-gradient(135deg, var(--gt-green), var(--gt-green-2)); color:#fff; }
+.gt-drawer .offcanvas-header .btn-close{ filter: invert(1); }
+.gt-drawer .list-group-item{ border:0; padding: .85rem 1rem; display:flex; align-items:center; gap:.7rem; }
+.gt-drawer .list-group-item i{ font-size:1.1rem; width:24px; text-align:center; color: var(--gt-green); }
