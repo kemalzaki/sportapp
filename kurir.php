@@ -8,6 +8,27 @@ $pageTitle = 'Kurir Jajanan';
 $u = current_user();
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
+    /* --- Revisi 3 Jun 2026: AJAX push lokasi driver realtime --- */
+    if (($_POST['_action'] ?? '') === 'push_loc') {
+        header('Content-Type: application/json');
+        try {
+            csrf_check();
+            $id  = (int)($_POST['id'] ?? 0);
+            $lat = isset($_POST['lat']) && $_POST['lat']!=='' ? (float)$_POST['lat'] : null;
+            $lng = isset($_POST['lng']) && $_POST['lng']!=='' ? (float)$_POST['lng'] : null;
+            if (!$id || $lat===null || $lng===null) throw new RuntimeException('Param tidak lengkap.');
+            if ($lat<-90||$lat>90||$lng<-180||$lng>180) throw new RuntimeException('Koordinat invalid.');
+            db_exec("UPDATE jajanan_pesanan
+                       SET driver_lat=$1, driver_lng=$2, driver_loc_updated_at=now()
+                     WHERE id=$3 AND kurir_user_id=$4",
+                [$lat, $lng, $id, (int)$u['id']]);
+            echo json_encode(['ok'=>true]);
+        } catch (Throwable $e) {
+            http_response_code(400);
+            echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+        }
+        exit;
+    }
     csrf_check();
     $a = $_POST['_action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
@@ -154,5 +175,82 @@ include __DIR__.'/includes/header.php';
   </li>
 <?php endforeach; if(!$hist): ?><li class="list-group-item small text-muted">Belum ada riwayat.</li><?php endif; ?>
 </ul>
+
+<?php
+/* ===== Revisi 3 Jun 2026: Live share lokasi driver =====
+   Kurir wajib aktifkan berbagi lokasi agar pemesan bisa melacak realtime.
+*/
+$activeIds = array_map(fn($r)=>(int)$r['id'], $mine);
+?>
+<?php if ($activeIds): ?>
+<div class="card border-success shadow-sm mt-4">
+  <div class="card-header bg-success-subtle d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-broadcast text-success"></i> <strong>Live Share Lokasi (untuk pemesan)</strong></span>
+    <span id="liveLocStatus" class="badge bg-secondary">Belum aktif</span>
+  </div>
+  <div class="card-body small">
+    <p class="mb-2 text-muted">
+      Aktifkan berbagi lokasi GPS untuk pesanan aktif Anda. Lokasi akan dikirim setiap ~10&nbsp;detik
+      sehingga pemesan dapat melacak posisi Anda secara <em>realtime</em>.
+    </p>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <button type="button" class="btn btn-success btn-sm" id="btnStartLive">
+        <i class="bi bi-geo-alt-fill"></i> Mulai Berbagi Lokasi
+      </button>
+      <button type="button" class="btn btn-outline-danger btn-sm d-none" id="btnStopLive">
+        <i class="bi bi-stop-circle"></i> Hentikan
+      </button>
+      <span class="text-muted" id="liveLocCoord">-</span>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var ACTIVE_IDS = <?= json_encode($activeIds) ?>;
+  var CSRF = <?= json_encode(csrf_token()) ?>;
+  var watchId = null, lastSent = 0;
+  var btnStart = document.getElementById('btnStartLive');
+  var btnStop  = document.getElementById('btnStopLive');
+  var statusEl = document.getElementById('liveLocStatus');
+  var coordEl  = document.getElementById('liveLocCoord');
+
+  function pushAll(lat,lng){
+    ACTIVE_IDS.forEach(function(id){
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('_action','push_loc');
+      fd.append('id', id);
+      fd.append('lat', lat.toFixed(6));
+      fd.append('lng', lng.toFixed(6));
+      fetch('kurir.php',{method:'POST',body:fd,credentials:'same-origin'}).catch(function(){});
+    });
+  }
+
+  btnStart.addEventListener('click', function(){
+    if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
+    navigator.geolocation.getCurrentPosition(function(p){
+      pushAll(p.coords.latitude, p.coords.longitude);
+      coordEl.textContent = p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5);
+    }, function(e){ alert('Gagal GPS: '+e.message); }, {enableHighAccuracy:true,timeout:15000});
+
+    watchId = navigator.geolocation.watchPosition(function(p){
+      var now = Date.now();
+      if (now - lastSent < 8000) return; // throttle ~10s
+      lastSent = now;
+      pushAll(p.coords.latitude, p.coords.longitude);
+      coordEl.textContent = p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5);
+    }, function(e){ console.warn('watch err',e); }, {enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+
+    statusEl.textContent = 'Aktif · live'; statusEl.className='badge bg-success';
+    btnStart.classList.add('d-none'); btnStop.classList.remove('d-none');
+  });
+  btnStop.addEventListener('click', function(){
+    if (watchId!==null && navigator.geolocation){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+    statusEl.textContent = 'Berhenti'; statusEl.className='badge bg-secondary';
+    btnStop.classList.add('d-none'); btnStart.classList.remove('d-none');
+  });
+})();
+</script>
+<?php endif; ?>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

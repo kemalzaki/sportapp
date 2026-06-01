@@ -614,13 +614,17 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="modal-body">
         <div class="tab-content">
-          <!-- ===== Revisi 1 Jun 2026 (Lanjutan) #2: IPTV hanya bisa diputar di tampilan DESKTOP ===== -->
+          <!-- ===== Revisi 3 Jun 2026 #3: IPTV kini bisa diputar di MOBILE BROWSER (Chrome/Safari).
+                  Hanya aplikasi Android (Capacitor WebView) yang dinonaktifkan karena keterbatasan codec HLS. ===== -->
           <div id="iptvMobileNotice" class="alert alert-warning small mb-3 d-none">
-            <i class="bi bi-laptop"></i>
-            <strong>IPTV hanya tersedia di tampilan desktop.</strong>
-            Pemutar IPTV dinonaktifkan pada perangkat seluler / aplikasi Android
-            karena keterbatasan codec HLS &amp; mixed-content di WebView.
-            Silakan buka halaman ini dari komputer/laptop (Chrome/Edge/Firefox) untuk menonton.
+            <i class="bi bi-phone"></i>
+            <strong>IPTV tidak tersedia di dalam aplikasi Android.</strong>
+            Pemutar IPTV dinonaktifkan pada APK Capacitor karena keterbatasan codec HLS &amp; mixed-content di WebView.
+            Silakan buka halaman ini melalui <strong>Chrome / Safari</strong> di handphone / laptop untuk menonton.
+          </div>
+          <div id="iptvMobileHint" class="alert alert-info small mb-3 d-none">
+            <i class="bi bi-info-circle-fill"></i>
+            Anda menonton dari handphone. Jika channel tidak dapat diputar, ketuk channel lain — sistem akan otomatis berpindah ke channel berikutnya.
           </div>
           <!-- ===== Berita (IPTV) ===== -->
           <div id="vt-berita">
@@ -666,29 +670,31 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 (function(){
   // ---- IPTV HLS player ----
-  // ===== Revisi 1 Jun 2026 (Lanjutan) #2: gate desktop-only =====
-  // IPTV hanya boleh diputar di tampilan DESKTOP. Di handphone / WebView Android
-  // (Capacitor APK), pemutar dinonaktifkan dan tampilkan notice.
+  // ===== Revisi 3 Jun 2026 #3: hanya APK Capacitor yang diblok.
+  // Mobile browser (Chrome / Safari) sekarang BOLEH memutar IPTV via HLS.js.
   var ua = (navigator.userAgent || '').toLowerCase();
-  var isMobileUA = /android|iphone|ipad|ipod|mobile|capacitor|wv\)/.test(ua);
-  var isCapacitor = !!(window.Capacitor || window.cordova);
-  var isNarrow = window.matchMedia && window.matchMedia('(max-width: 991.98px)').matches;
-  var IPTV_DESKTOP_ONLY = isMobileUA || isCapacitor || isNarrow;
+  var isCapacitor = !!(window.Capacitor || window.cordova) || /capacitor|wv\)/.test(ua);
+  var isMobileUA  = /android|iphone|ipad|ipod|mobile/.test(ua);
+  // Hanya blok di APK; di mobile browser kita coba putar.
+  var IPTV_BLOCKED = isCapacitor;
 
-  var notice  = document.getElementById('iptvMobileNotice');
+  var notice     = document.getElementById('iptvMobileNotice');
+  var mobileHint = document.getElementById('iptvMobileHint');
   var playerWrap = document.getElementById('iptvPlayerWrap');
   var chanList   = document.getElementById('iptvChannelList');
-  if (IPTV_DESKTOP_ONLY) {
+  if (IPTV_BLOCKED) {
     if (notice)     notice.classList.remove('d-none');
     if (playerWrap) playerWrap.classList.add('d-none');
     if (chanList)   chanList.classList.add('d-none');
+  } else if (isMobileUA && mobileHint) {
+    mobileHint.classList.remove('d-none');
   }
 
   var video = document.getElementById('iptvPlayer');
   var nowEl = document.getElementById('iptvNow');
   var hls = null;
   function loadStream(url, name){
-    if (IPTV_DESKTOP_ONLY) return; // mobile/in-app: jangan putar
+    if (IPTV_BLOCKED) return; // hanya APK yang diblok
     if (!video) return;
     if (nowEl && name) nowEl.textContent = name;
     if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
@@ -731,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
   var loaded = false;
   if (modal) {
     modal.addEventListener('shown.bs.modal', function(){
-      if (IPTV_DESKTOP_ONLY) return; // skip autoplay di mobile
+      if (IPTV_BLOCKED) return; // skip autoplay di APK
       if (!loaded && firstBtn) {
         loadStream(firstBtn.getAttribute('data-url'), firstBtn.getAttribute('data-name'));
         loaded = true;

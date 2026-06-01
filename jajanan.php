@@ -236,6 +236,35 @@ if ($ajax === 'confirm_payment' && $_SERVER['REQUEST_METHOD']==='POST') {
     exit;
 }
 
+/* === Revisi 3 Jun 2026 #2: AJAX polling lokasi driver untuk pemesan ===
+   Pemesan cukup tahu KODE pesanan + nama pemesan untuk melacak driver. */
+if ($ajax === 'driver_loc' && $_SERVER['REQUEST_METHOD']==='GET') {
+    header('Content-Type: application/json');
+    $kode = trim($_GET['kode'] ?? '');
+    if ($kode==='') { echo json_encode(['ok'=>false,'error'=>'kode kosong']); exit; }
+    $o = db_one("SELECT id,kode,status,kurir_user_id,driver_lat,driver_lng,driver_loc_updated_at,
+                        pickup_lat,pickup_lng
+                 FROM jajanan_pesanan WHERE kode=$1",[$kode]);
+    if (!$o) { echo json_encode(['ok'=>false,'error'=>'tidak ditemukan']); exit; }
+    $hasDriver = !empty($o['kurir_user_id']);
+    echo json_encode([
+      'ok'=>true,
+      'status'    => $o['status'],
+      'has_driver'=> $hasDriver,
+      'driver'    => $hasDriver && $o['driver_lat']!==null ? [
+          'lat'=>(float)$o['driver_lat'],
+          'lng'=>(float)$o['driver_lng'],
+          'updated_at'=>$o['driver_loc_updated_at'],
+       ] : null,
+      'pickup'    => $o['pickup_lat']!==null ? [
+          'lat'=>(float)$o['pickup_lat'],
+          'lng'=>(float)$o['pickup_lng']
+       ] : null,
+      'server_time' => date('c'),
+    ]);
+    exit;
+}
+
 /* ============================================================
  * Non-AJAX POST: cek status
  * ============================================================ */
@@ -256,12 +285,27 @@ $katAll = db_all("SELECT COALESCE(NULLIF(TRIM(kategori),''),'Lainnya') AS kat, C
                   GROUP BY 1 ORDER BY 1");
 $katPilih = trim($_GET['kat'] ?? '');
 $qSearch  = trim($_GET['q'] ?? '');
+$bukaFilter = trim($_GET['buka'] ?? ''); // '', 'open', 'closed'
 
 $page = max(1,(int)($_GET['page'] ?? 1));
 $where = "WHERE aktif=true AND stok>0";
 $params = []; $i = 0;
 if ($katPilih !== '' && $katPilih !== 'Semua') { $i++; $where .= " AND COALESCE(NULLIF(TRIM(kategori),''),'Lainnya') = \$$i"; $params[] = $katPilih; }
 if ($qSearch !== '')                          { $i++; $where .= " AND (LOWER(nama) LIKE LOWER(\$$i) OR LOWER(COALESCE(deskripsi,'')) LIKE LOWER(\$$i))"; $params[] = '%'.$qSearch.'%'; }
+/* Revisi #4: filter "buka sekarang" / "tutup" berdasarkan jam_buka/jam_tutup vs jam server.
+   Buka jika jam_buka/jam_tutup NULL (selalu buka), atau jam sekarang ada di rentang.
+   Mendukung jadwal yang melewati tengah malam (jam_buka > jam_tutup). */
+if ($bukaFilter === 'open') {
+    $where .= " AND ( (jam_buka IS NULL OR jam_tutup IS NULL)
+                      OR (jam_buka <= jam_tutup AND CURRENT_TIME BETWEEN jam_buka AND jam_tutup)
+                      OR (jam_buka >  jam_tutup AND (CURRENT_TIME >= jam_buka OR CURRENT_TIME <= jam_tutup)) )";
+} elseif ($bukaFilter === 'closed') {
+    $where .= " AND ( jam_buka IS NOT NULL AND jam_tutup IS NOT NULL
+                      AND NOT (
+                        (jam_buka <= jam_tutup AND CURRENT_TIME BETWEEN jam_buka AND jam_tutup)
+                        OR (jam_buka >  jam_tutup AND (CURRENT_TIME >= jam_buka OR CURRENT_TIME <= jam_tutup))
+                      ) )";
+}
 
 $totalProduk = (int) db_val("SELECT COUNT(*) FROM jajanan $where", $params);
 $totalPage   = max(1,(int)ceil($totalProduk / $PER_PAGE));
@@ -356,9 +400,55 @@ if ($berhasilKode !== ''):
 </div>
 <?php endif; ?>
 
-<div class="p-3 mb-3 rounded-3 text-white" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);">
-  <h1 class="h4 mb-1 text-white"><i class="bi bi-bag-heart"></i> Pesan Jajanan Favorit, Murah dan Mudah, dari mahasiswa untuk mahasiswa atau masyarakat sekitar UIN SGD Bandung</h1>
-  <p class="mb-0 small opacity-90">Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet). Termasuk PPN <?= (int)($PPN_RATE*100) ?>% & biaya admin Midtrans (Rp <?= number_format($MIDTRANS_FEE_FIXED,0,",",".") ?> + <?= rtrim(rtrim(number_format($MIDTRANS_FEE_PCT*100,2,",","."),"0"),",") ?>%).</p>
+<!-- ===== Revisi 3 Jun 2026 #5: Hero baru dengan SVG dekoratif ===== -->
+<style>
+.jjn-hero{
+  position:relative; overflow:hidden; border-radius:1rem; padding:1.5rem 1.25rem;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255,255,255,.25) 0, transparent 35%),
+    radial-gradient(circle at 10% 90%, rgba(255,255,255,.18) 0, transparent 40%),
+    linear-gradient(135deg,#16a34a 0%,#22c55e 40%,#0ea5e9 100%);
+  color:#fff; box-shadow:0 10px 30px -12px rgba(14,165,233,.45);
+}
+.jjn-hero h1{ color:#fff; font-weight:800; letter-spacing:-.5px; }
+.jjn-hero .deco{ position:absolute; right:-10px; top:-10px; width:180px; opacity:.85; pointer-events:none; }
+.jjn-hero .deco-2{ position:absolute; left:-30px; bottom:-30px; width:140px; opacity:.55; pointer-events:none; }
+@media (max-width:576px){ .jjn-hero .deco{ width:110px; opacity:.6 } .jjn-hero .deco-2{ display:none } }
+.jjn-chips{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+.jjn-chip{ background:rgba(255,255,255,.18); color:#fff; padding:.2rem .6rem; border-radius:999px; font-size:.72rem; backdrop-filter:blur(4px); }
+.jjn-card{ transition:transform .15s ease, box-shadow .15s ease; border:1px solid rgba(0,0,0,.06); }
+.jjn-card:hover{ transform:translateY(-2px); box-shadow:0 8px 20px -8px rgba(0,0,0,.18); }
+.jjn-time-pill{ display:inline-flex; align-items:center; gap:.25rem; font-size:.72rem; padding:.18rem .5rem; border-radius:999px; }
+.jjn-time-open{ background:#dcfce7; color:#166534; border:1px solid #86efac; }
+.jjn-time-closed{ background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.jjn-overlay-tutup{ position:absolute; inset:0; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; backdrop-filter:blur(1.5px); border-top-left-radius:.375rem; border-top-right-radius:.375rem; }
+</style>
+<div class="jjn-hero mb-3">
+  <svg class="deco" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="100" cy="100" r="80" fill="#fff" opacity=".10"/>
+    <g transform="translate(40,40)">
+      <path d="M60 10c22 0 40 18 40 40 0 18-12 33-28 38v22H48v-22C32 83 20 68 20 50 20 28 38 10 60 10z" fill="#fff" opacity=".95"/>
+      <circle cx="60" cy="48" r="6" fill="#f59e0b"/>
+      <circle cx="44" cy="58" r="4" fill="#ef4444"/>
+      <circle cx="76" cy="58" r="4" fill="#10b981"/>
+    </g>
+  </svg>
+  <svg class="deco-2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M30 140c20-40 60-60 100-40s60 60 40 80-100 0-140-40z" fill="#fff" opacity=".15"/>
+  </svg>
+  <div style="position:relative; z-index:2; max-width:780px">
+    <div class="jjn-chips mb-2">
+      <span class="jjn-chip"><i class="bi bi-lightning-charge-fill"></i> Antar Cepat</span>
+      <span class="jjn-chip"><i class="bi bi-shield-check"></i> Bayar Aman Midtrans</span>
+      <span class="jjn-chip"><i class="bi bi-geo-alt-fill"></i> Tracking Realtime</span>
+    </div>
+    <h1 class="h4 mb-1"><i class="bi bi-bag-heart"></i> Jajanan Favorit UIN SGD Bandung</h1>
+    <p class="mb-0 small" style="opacity:.95">
+      Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet).
+      Termasuk PPN <?= (int)($PPN_RATE*100) ?>% &amp; biaya admin Midtrans
+      (Rp <?= number_format($MIDTRANS_FEE_FIXED,0,",",".") ?> + <?= rtrim(rtrim(number_format($MIDTRANS_FEE_PCT*100,2,",","."),"0"),",") ?>%).
+    </p>
+  </div>
 </div>
 
 <div class="alert alert-info py-2 small mb-3">
@@ -385,9 +475,11 @@ if ($berhasilKode !== ''):
         <div class="small text-muted">Tidak ditemukan pesanan atas nama <strong><?= htmlspecialchars($cekNama) ?></strong>.</div>
       <?php else: ?>
         <div class="table-responsive"><table class="table table-sm small align-middle mb-0">
-          <thead><tr><th>Kode</th><th>Nama</th><th>Total</th><th>Bayar</th><th>Status</th><th>Tgl</th></tr></thead>
+          <thead><tr><th>Kode</th><th>Nama</th><th>Total</th><th>Bayar</th><th>Status</th><th>Tgl</th><th>Lacak</th></tr></thead>
           <tbody>
-          <?php foreach($cekHasil as $r): ?>
+          <?php foreach($cekHasil as $r):
+              $bisaLacak = in_array($r['status'], ['diproses','diantar'], true);
+          ?>
             <tr>
               <td><strong><?= htmlspecialchars($r['kode']) ?></strong></td>
               <td><?= htmlspecialchars($r['nama_pemesan']) ?></td>
@@ -395,6 +487,17 @@ if ($berhasilKode !== ''):
               <td><span class="badge bg-<?= ($r['payment_status']??'')==='paid'?'success':'secondary' ?>"><?= htmlspecialchars($r['payment_status']??'-') ?></span></td>
               <td><span class="badge bg-info"><?= htmlspecialchars($r['status']) ?></span></td>
               <td><?= htmlspecialchars(date('d M Y H:i', strtotime($r['created_at']))) ?></td>
+              <td>
+                <?php if ($bisaLacak): ?>
+                  <button type="button"
+                          class="btn btn-sm btn-outline-danger btn-lacak"
+                          data-kode="<?= htmlspecialchars($r['kode']) ?>">
+                    <i class="bi bi-geo-alt-fill"></i> Lacak Driver
+                  </button>
+                <?php else: ?>
+                  <span class="text-muted">-</span>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
           </tbody>
@@ -420,23 +523,43 @@ if ($berhasilKode !== ''):
 <?php if ($katAll): ?>
 <div class="mb-2 d-flex flex-wrap gap-1 align-items-center">
   <span class="small text-muted me-1"><i class="bi bi-tags"></i> Kategori:</span>
-  <a href="/jajanan.php<?= $qSearch!==''?'?q='.urlencode($qSearch):'' ?>" class="btn btn-sm <?= $katPilih===''?'btn-success':'btn-outline-success' ?>">Semua</a>
-  <?php foreach($katAll as $k):
-      $qs = ['kat'=>$k['kat']]; if($qSearch!=='') $qs['q']=$qSearch;
+  <?php
+    $baseQs = function(array $extra=[]) use ($qSearch,$katPilih,$bukaFilter){
+        $a = $extra;
+        if (!array_key_exists('kat',$a)  && $katPilih!=='')   $a['kat']=$katPilih;
+        if (!array_key_exists('q',$a)    && $qSearch!=='')    $a['q']=$qSearch;
+        if (!array_key_exists('buka',$a) && $bukaFilter!=='') $a['buka']=$bukaFilter;
+        return $a ? '?'.http_build_query($a) : '';
+    };
   ?>
-    <a href="/jajanan.php?<?= http_build_query($qs) ?>"
+  <a href="/jajanan.php<?= $baseQs(['kat'=>'']) ?>" class="btn btn-sm <?= $katPilih===''?'btn-success':'btn-outline-success' ?>">Semua</a>
+  <?php foreach($katAll as $k): ?>
+    <a href="/jajanan.php<?= $baseQs(['kat'=>$k['kat']]) ?>"
        class="btn btn-sm <?= $katPilih===$k['kat']?'btn-success':'btn-outline-success' ?>">
        <?= htmlspecialchars($k['kat']) ?> <span class="badge bg-light text-success ms-1"><?= (int)$k['n'] ?></span>
     </a>
   <?php endforeach; ?>
+</div>
+<!-- Revisi #4: filter berdasar jam buka/tutup -->
+<div class="mb-3 d-flex flex-wrap gap-1 align-items-center">
+  <span class="small text-muted me-1"><i class="bi bi-clock"></i> Jam Operasional:</span>
+  <a href="/jajanan.php<?= $baseQs(['buka'=>'']) ?>"
+     class="btn btn-sm <?= $bukaFilter===''?'btn-dark':'btn-outline-dark' ?>">Semua</a>
+  <a href="/jajanan.php<?= $baseQs(['buka'=>'open']) ?>"
+     class="btn btn-sm <?= $bukaFilter==='open'?'btn-success':'btn-outline-success' ?>">
+     <i class="bi bi-door-open-fill"></i> Buka Sekarang
+  </a>
+  <a href="/jajanan.php<?= $baseQs(['buka'=>'closed']) ?>"
+     class="btn btn-sm <?= $bukaFilter==='closed'?'btn-danger':'btn-outline-danger' ?>">
+     <i class="bi bi-door-closed-fill"></i> Tutup
+  </a>
+  <span class="small text-muted ms-2">Jam server: <strong><?= date('H:i') ?></strong> WIB</span>
 </div>
 <?php endif; ?>
 
 <!-- Grid produk (Revisi #4: mobile 2 per baris → col-6) -->
 <div class="row g-2">
 <?php foreach($rows as $r):
-    $waText = "Halo Admin Firdam, saya mau tanya apakah pedagang buka untuk jajanan: *".$r['nama']."* (Rp ".number_format((int)$r['harga'],0,',','.').").";
-    $waLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM).'?text='.rawurlencode($waText);
     $stokR = (int)$r['stok'];
     $isOpen = jjn_is_open($r['jam_buka'] ?? null, $r['jam_tutup'] ?? null);
     $jamLabel = '';
@@ -445,23 +568,30 @@ if ($berhasilKode !== ''):
     }
 ?>
   <div class="col-md-4 col-6">
-    <div class="card h-100 shadow-sm position-relative">
-      <?php if(!empty($r['foto_url'])): ?>
-        <img src="<?= htmlspecialchars($r['foto_url']) ?>"
-             class="card-img-top jjn-zoomable"
-             style="height:140px;object-fit:cover;cursor:zoom-in"
-             alt="<?= htmlspecialchars($r['nama']) ?>"
-             data-full="<?= htmlspecialchars($r['foto_url']) ?>"
-             data-title="<?= htmlspecialchars($r['nama']) ?>"
-             title="Klik untuk memperbesar foto">
-      <?php else: ?>
-        <div class="bg-light text-center py-4"><i class="bi bi-bag fs-1 text-muted"></i></div>
-      <?php endif; ?>
-      <?php if (!$isOpen): ?>
-        <span class="badge bg-danger position-absolute top-0 start-0 m-1"><i class="bi bi-door-closed"></i> Tutup</span>
-      <?php elseif ($jamLabel): ?>
-        <span class="badge bg-success-subtle text-success position-absolute top-0 start-0 m-1"><i class="bi bi-clock"></i> <?= htmlspecialchars($jamLabel) ?></span>
-      <?php endif; ?>
+    <div class="card jjn-card h-100 shadow-sm position-relative">
+      <div class="position-relative">
+        <?php if(!empty($r['foto_url'])): ?>
+          <img src="<?= htmlspecialchars($r['foto_url']) ?>"
+               class="card-img-top jjn-zoomable"
+               style="height:140px;object-fit:cover;cursor:zoom-in"
+               alt="<?= htmlspecialchars($r['nama']) ?>"
+               data-full="<?= htmlspecialchars($r['foto_url']) ?>"
+               data-title="<?= htmlspecialchars($r['nama']) ?>"
+               title="Klik untuk memperbesar foto">
+        <?php else: ?>
+          <div class="bg-light text-center py-4" style="height:140px;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-bag fs-1 text-muted"></i>
+          </div>
+        <?php endif; ?>
+        <?php if (!$isOpen): ?>
+          <div class="jjn-overlay-tutup"><i class="bi bi-door-closed-fill me-1"></i> Tutup</div>
+        <?php endif; ?>
+        <?php if ($jamLabel): ?>
+          <span class="position-absolute bottom-0 start-0 m-1 jjn-time-pill <?= $isOpen?'jjn-time-open':'jjn-time-closed' ?>">
+            <i class="bi bi-clock<?= $isOpen?'-fill':'-history' ?>"></i> <?= htmlspecialchars($jamLabel) ?>
+          </span>
+        <?php endif; ?>
+      </div>
       <div class="card-body p-2 d-flex flex-column">
         <?php if(!empty($r['kategori'])): ?>
           <span class="badge bg-success-subtle text-success mb-1 align-self-start"><i class="bi bi-tag-fill"></i> <?= htmlspecialchars($r['kategori']) ?></span>
@@ -497,9 +627,7 @@ if ($berhasilKode !== ''):
             <i class="bi bi-door-closed"></i> Toko Tutup<?= $jamLabel ? ' • '.htmlspecialchars($jamLabel) : '' ?>
           </button>
           <?php endif; ?>
-          <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($waLink) ?>">
-            <i class="bi bi-whatsapp"></i> Tanyakan apakah pedagang buka?
-          </a>
+          <!-- Revisi #1: tombol "Tanyakan apakah pedagang buka?" dihapus -->
         </div>
       </div>
     </div>
@@ -833,6 +961,125 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   if (zoomImg) zoomImg.addEventListener('click', function(){ if (zoomModal) zoomModal.hide(); });
 });
+</script>
+
+
+<!-- ===== Revisi 3 Jun 2026 #2: Modal Lacak Driver Realtime ===== -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<div class="modal fade" id="lacakModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white py-2">
+        <h6 class="modal-title"><i class="bi bi-geo-alt-fill"></i> Lacak Driver — <span id="lacakKode">-</span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-2">
+        <div class="d-flex justify-content-between align-items-center mb-2 small">
+          <div>
+            Status: <span id="lacakStatus" class="badge bg-info">-</span>
+            <span id="lacakAuto" class="badge bg-success-subtle text-success ms-1">
+              <i class="bi bi-arrow-repeat"></i> Auto-refresh 5 dtk
+            </span>
+          </div>
+          <button type="button" id="btnRefreshDriver" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+        <div id="lacakMap" style="height:360px;border-radius:.5rem;border:1px solid #e5e7eb"></div>
+        <div class="small text-muted mt-2" id="lacakInfo">Mengambil data driver…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var map=null, mDriver=null, mPickup=null, mUIN=null, pollTimer=null, currentKode=null;
+  var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>};
+
+  function ensureMap(){
+    if (map) return;
+    map = L.map('lacakMap').setView([UIN.lat, UIN.lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    mUIN = L.marker([UIN.lat, UIN.lng], {title:'UIN SGD Bandung'})
+              .addTo(map).bindPopup('<strong>UIN SGD Bandung</strong>');
+  }
+
+  function timeAgo(iso){
+    if (!iso) return '-';
+    var d = new Date(iso), s = Math.max(0, Math.floor((Date.now()-d.getTime())/1000));
+    if (s<60) return s+' detik lalu';
+    if (s<3600) return Math.floor(s/60)+' menit lalu';
+    return Math.floor(s/3600)+' jam lalu';
+  }
+
+  function fetchOnce(){
+    if (!currentKode) return;
+    fetch('/jajanan.php?ajax=driver_loc&kode='+encodeURIComponent(currentKode), {credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if (!j.ok) { document.getElementById('lacakInfo').textContent = j.error||'Gagal memuat'; return; }
+        var st = document.getElementById('lacakStatus');
+        st.textContent = j.status; st.className='badge bg-info';
+        var pts = [[UIN.lat,UIN.lng]];
+
+        if (j.pickup) {
+          if (!mPickup) {
+            mPickup = L.marker([j.pickup.lat, j.pickup.lng], {title:'Tujuan Pengantaran'})
+                       .addTo(map).bindPopup('<strong>Tujuan Anda</strong>');
+          } else mPickup.setLatLng([j.pickup.lat, j.pickup.lng]);
+          pts.push([j.pickup.lat, j.pickup.lng]);
+        }
+        if (j.has_driver && j.driver) {
+          var icon = L.divIcon({
+            className:'jjn-driver-icon',
+            html:'<div style="background:#dc2626;color:#fff;border-radius:999px;padding:6px 8px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.4);border:2px solid #fff"><i class="bi bi-scooter"></i></div>',
+            iconSize:[36,36], iconAnchor:[18,18]
+          });
+          if (!mDriver) {
+            mDriver = L.marker([j.driver.lat, j.driver.lng], {icon:icon, title:'Driver'})
+                       .addTo(map).bindPopup('<strong>Driver</strong>');
+          } else mDriver.setLatLng([j.driver.lat, j.driver.lng]);
+          pts.push([j.driver.lat, j.driver.lng]);
+          document.getElementById('lacakInfo').innerHTML =
+            '<i class="bi bi-broadcast text-danger"></i> Driver terakhir update: <strong>'+timeAgo(j.driver.updated_at)+'</strong>';
+        } else if (j.has_driver) {
+          document.getElementById('lacakInfo').innerHTML =
+            '<i class="bi bi-hourglass-split"></i> Driver sudah ditugaskan tapi belum mengaktifkan berbagi lokasi.';
+        } else {
+          document.getElementById('lacakInfo').innerHTML =
+            '<i class="bi bi-info-circle"></i> Belum ada driver yang mengambil pesanan ini.';
+        }
+        if (pts.length>1) map.fitBounds(pts, {padding:[30,30], maxZoom:17});
+      })
+      .catch(function(){ document.getElementById('lacakInfo').textContent='Koneksi gagal, akan dicoba lagi…'; });
+  }
+
+  var modalEl = document.getElementById('lacakModal');
+  var modal = (typeof bootstrap!=='undefined' && modalEl) ? new bootstrap.Modal(modalEl) : null;
+
+  document.addEventListener('click', function(ev){
+    var btn = ev.target.closest && ev.target.closest('.btn-lacak');
+    if (!btn) return;
+    currentKode = btn.getAttribute('data-kode');
+    document.getElementById('lacakKode').textContent = currentKode;
+    document.getElementById('lacakInfo').textContent = 'Mengambil data driver…';
+    if (modal) modal.show();
+    setTimeout(function(){ ensureMap(); map.invalidateSize(); fetchOnce();
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(fetchOnce, 5000);
+    }, 250);
+  });
+  document.getElementById('btnRefreshDriver').addEventListener('click', fetchOnce);
+  if (modalEl) modalEl.addEventListener('hidden.bs.modal', function(){
+    if (pollTimer) { clearInterval(pollTimer); pollTimer=null; }
+  });
+})();
 </script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>
