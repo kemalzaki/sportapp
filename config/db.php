@@ -206,6 +206,21 @@ try {
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lat NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lng NUMERIC(10,6)");
 
+    // === Revisi 2 Jun 2026 (lanjutan): Toko / Pedagang ===
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS toko (
+        id SERIAL PRIMARY KEY,
+        nama VARCHAR(160) NOT NULL,
+        deskripsi TEXT,
+        alamat TEXT,
+        no_wa VARCHAR(25),
+        lat NUMERIC(10,6),
+        lng NUMERIC(10,6),
+        aktif BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS toko_id INT REFERENCES toko(id) ON DELETE SET NULL");
+    @pg_query(db(), "CREATE INDEX IF NOT EXISTS jajanan_toko_idx ON jajanan(toko_id)");
+
     // === Revisi 2 Jun 2026: Midtrans columns ===
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'pending'");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS midtrans_order_id VARCHAR(40)");

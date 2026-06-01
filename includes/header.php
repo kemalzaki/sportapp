@@ -149,6 +149,7 @@ if ($u) {
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Donasi &amp; Jajanan</h6></li>
               <li><a class="dropdown-item" href="/admin/donasi_rekening.php"><i class="bi bi-bank text-success"></i> Rekening Donasi Kegiatan</a></li>
+              <li><a class="dropdown-item" href="/admin/toko.php"><i class="bi bi-shop-window text-warning"></i> CRUD Toko &amp; Produk</a></li>
               <li><a class="dropdown-item" href="/admin/jajanan.php"><i class="bi bi-shop text-warning"></i> CRUD Jajanan</a></li>
               <li><a class="dropdown-item" href="/admin/jajanan_pesanan.php"><i class="bi bi-bag-heart text-warning"></i> Pesanan Jajanan</a></li>
               <li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li>

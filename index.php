@@ -399,8 +399,8 @@ include __DIR__.'/includes/header.php'; ?>
           <div class="card-body d-flex align-items-center gap-3">
             <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:54px;height:54px;"><i class="bi bi-bag-heart fs-3"></i></div>
             <div>
-              <div class="fw-semibold text-dark">Pesan Jajan (antar ke rumah)</div>
-              <div class="small text-muted">Pesan jajanan, diantar oleh kurir member komunitas. Tanpa perlu login.</div>
+              <div class="fw-semibold text-dark">Pesan Jajanan Favorit, Murah dan Mudah, dari mahasiswa untuk mahasiswa atau masyarakat sekitar UIN SGD Bandung</div>
+              <div class="small text-muted">Pesan jajanan favorit & murah, diantar oleh kurir member komunitas. Tanpa perlu login.</div>
             </div>
           </div>
         </div>

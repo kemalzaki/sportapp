@@ -13,7 +13,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers();
 date_default_timezone_set('Asia/Jakarta');
-$pageTitle = 'Pesan Jajan';
+$pageTitle = 'Pesan Jajanan Favorit';
 $u = current_user();
 
 $ADMIN_WA_FIRDAM = getenv('ADMIN_WA_FIRDAM') ?: '6281386369207';
@@ -38,6 +38,15 @@ $ONGKIR_PER_KM  = 2000;
 $ONGKIR_FALLBACK = 5000;
 $PER_PAGE       = 5;
 $PPN_RATE       = 0.11; // PPN 11% (UU HPP)
+
+/* Biaya admin Midtrans (potongan) — ditanggung pembeli.
+ * Default mengikuti tarif umum Midtrans Snap (VA/QRIS):
+ *   - Fixed Rp 4.000 / transaksi  (mis. VA BCA/BNI/BRI/Mandiri)
+ *   - + 0.7% (QRIS) bila dipakai. Bisa diset 0 untuk dimatikan.
+ * Bisa di-override via env: MIDTRANS_FEE_FIXED, MIDTRANS_FEE_PCT.
+ */
+$MIDTRANS_FEE_FIXED = (int)   (getenv('MIDTRANS_FEE_FIXED') !== false && getenv('MIDTRANS_FEE_FIXED') !== '' ? getenv('MIDTRANS_FEE_FIXED') : 4000);
+$MIDTRANS_FEE_PCT   = (float) (getenv('MIDTRANS_FEE_PCT')   !== false && getenv('MIDTRANS_FEE_PCT')   !== '' ? getenv('MIDTRANS_FEE_PCT')   : 0.007); // 0.7%
 
 function jjn_haversine($lat1,$lng1,$lat2,$lng2){
     $R=6371000; $toRad=M_PI/180;
@@ -148,7 +157,8 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
 
         $sub  = $qty * (int)$j['harga'];
         $ppn  = (int) round($sub * $PPN_RATE);  // PPN 11% atas subtotal barang
-        $total= $sub + $ppn + $ongkir;
+        $feeAdmin = (int) round(($sub + $ppn + $ongkir) * $MIDTRANS_FEE_PCT) + (int)$MIDTRANS_FEE_FIXED; // potongan biaya admin Midtrans
+        $total= $sub + $ppn + $ongkir + $feeAdmin;
 
         $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
         db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng,midtrans_order_id,payment_status)
@@ -172,6 +182,7 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
                 ['id'=>'JJN-'.$j['id'], 'price'=>(int)$j['harga'], 'quantity'=>$qty, 'name'=>substr($j['nama'],0,50)],
                 ['id'=>'PPN11',         'price'=>(int)$ppn,         'quantity'=>1,    'name'=>'PPN 11%'],
                 ['id'=>'ONGKIR',        'price'=>(int)$ongkir,      'quantity'=>1,    'name'=>'Ongkir'],
+                ['id'=>'ADMIN',         'price'=>(int)$feeAdmin,    'quantity'=>1,    'name'=>'Biaya Admin Midtrans'],
             ],
             'customer_details' => [
                 'first_name'=>$nama, 'phone'=>$no_wa,
@@ -346,8 +357,8 @@ if ($berhasilKode !== ''):
 <?php endif; ?>
 
 <div class="p-3 mb-3 rounded-3 text-white" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);">
-  <h1 class="h4 mb-1 text-white"><i class="bi bi-bag-heart"></i> Pesan Jajan — Antar ke Rumah</h1>
-  <p class="mb-0 small opacity-90">Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet). Termasuk PPN <?= (int)($PPN_RATE*100) ?>%.</p>
+  <h1 class="h4 mb-1 text-white"><i class="bi bi-bag-heart"></i> Pesan Jajanan Favorit, Murah dan Mudah, dari mahasiswa untuk mahasiswa atau masyarakat sekitar UIN SGD Bandung</h1>
+  <p class="mb-0 small opacity-90">Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet). Termasuk PPN <?= (int)($PPN_RATE*100) ?>% & biaya admin Midtrans (Rp <?= number_format($MIDTRANS_FEE_FIXED,0,",",".") ?> + <?= rtrim(rtrim(number_format($MIDTRANS_FEE_PCT*100,2,",","."),"0"),",") ?>%).</p>
 </div>
 
 <div class="alert alert-info py-2 small mb-3">
@@ -604,6 +615,7 @@ if ($berhasilKode !== ''):
           <div class="p-2 bg-light rounded">
             <div class="d-flex justify-content-between small"><span>Subtotal</span><strong id="sumSub">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>PPN <?= (int)($PPN_RATE*100) ?>%</span><strong id="sumPpn">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>Biaya Admin Midtrans</span><strong id="sumFee">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>Ongkir <span id="sumOngkirNote" class="text-muted">(flat)</span></span><strong id="sumOngkir">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong></div>
             <hr class="my-1">
             <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar</span><strong class="text-success" id="sumTot">Rp 0</strong></div>
@@ -637,6 +649,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>, rekom_km: <?= $UIN_R_REKOM_KM ?>, max_km: <?= $UIN_R_MAX_KM ?>};
   var ONGKIR_BASE = <?= (int)$ONGKIR_BASE ?>, ONGKIR_PER_KM = <?= (int)$ONGKIR_PER_KM ?>, ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
   var PPN_RATE = <?= json_encode($PPN_RATE) ?>;
+  var MT_FEE_FIXED = <?= (int)$MIDTRANS_FEE_FIXED ?>, MT_FEE_PCT = <?= json_encode($MIDTRANS_FEE_PCT) ?>;
   var currentDistKm = null, locValid = null, locDetected = false;
   var current = {harga:0, stok:0};
 
@@ -651,10 +664,12 @@ document.addEventListener('DOMContentLoaded', function(){
     var sub = q*current.harga;
     var ppn = Math.round(sub*PPN_RATE);
     var ong = calcOngkir();
+    var fee = Math.round((sub+ppn+ong)*MT_FEE_PCT) + MT_FEE_FIXED;
     document.getElementById('sumSub').textContent=fmtRp(sub);
     document.getElementById('sumPpn').textContent=fmtRp(ppn);
     document.getElementById('sumOngkir').textContent=fmtRp(ong);
-    document.getElementById('sumTot').textContent=fmtRp(sub+ppn+ong);
+    var fEl=document.getElementById('sumFee'); if(fEl) fEl.textContent=fmtRp(fee);
+    document.getElementById('sumTot').textContent=fmtRp(sub+ppn+ong+fee);
     document.getElementById('sumOngkirNote').textContent = currentDistKm!==null
         ? '('+currentDistKm.toFixed(2)+' km)' : '(flat — share lokasi untuk akurat)';
     updateBayarBtn();

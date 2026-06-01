@@ -474,13 +474,17 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 </script>
 <script>
-/* ===== KOMPAS KIBLAT — bergerak sesuai gerakan HP =====
- * Perbaikan 31 Mei 2026: sebelumnya jarum tidak bergerak karena
- *  (1) iOS butuh permission DeviceOrientationEvent.requestPermission()
- *  (2) Chrome Android pakai event "deviceorientationabsolute" + alpha = arah utara
- *      sementara iOS pakai webkitCompassHeading.
- *  (3) listener tidak terdaftar sebelum permission diterima.
- * Sekarang ditangani semuanya + fallback bila tidak ada sensor.
+/* ===== KOMPAS KIBLAT — bergerak realtime sesuai gerakan HP =====
+ * Revisi 1 Jun 2026:
+ *  - Selalu tampilkan tombol "Aktifkan Sensor" (Android & iOS) karena banyak
+ *    browser baru butuh user-gesture sebelum event orientation di-emit.
+ *  - Pakai requestAnimationFrame supaya jarum bergerak smooth (anti-jitter).
+ *  - Subscribe ke "deviceorientationabsolute" DAN "deviceorientation" sekaligus
+ *    (Chrome Android & Firefox vs iOS Safari).
+ *  - Fallback manual: slider derajat bila device tidak punya magnetometer
+ *    (mis. laptop / desktop saat testing lokal).
+ *  - Tampilkan pesan jelas ketika sensor benar-benar tidak menghasilkan data
+ *    dalam 3 detik setelah listener aktif.
  */
 (function(){
   var needle  = document.getElementById('qiblaNeedle');
@@ -490,10 +494,14 @@ document.addEventListener('DOMContentLoaded', function(){
   var permBtn = document.getElementById('qiblaPerm');
   if (!needle) return;
 
-  // Lokasi Ka'bah (Makkah)
   var KAABA = { lat: 21.4225, lng: 39.8262 };
-  var qiblaBearing = null;   // derajat dari utara ke kiblat (lokasi user → Ka'bah)
-  var deviceHeading = 0;     // derajat HP saat ini (0 = HP menghadap utara)
+  var qiblaBearing = null;
+  var deviceHeading = 0;
+  var targetRotation = 0;
+  var currentRotation = 0;
+  var sensorActive = false;
+  var sensorGotData = false;
+  var rafScheduled = false;
 
   function toRad(d){ return d * Math.PI/180; }
   function toDeg(r){ return r * 180/Math.PI; }
@@ -505,65 +513,128 @@ document.addEventListener('DOMContentLoaded', function(){
     var b = toDeg(Math.atan2(y, x));
     return (b + 360) % 360;
   }
-  function render(){
-    if (qiblaBearing === null) { needle.style.transform = 'translate(-50%, -100%) rotate('+(-deviceHeading)+'deg)'; return; }
-    // Jarum harus menunjuk ke kiblat relatif terhadap arah HP saat ini.
-    var rel = (qiblaBearing - deviceHeading + 360) % 360;
-    needle.style.transform = 'translate(-50%, -100%) rotate(' + rel + 'deg)';
-    elHead.textContent = Math.round(deviceHeading) + '°';
-    elBear.textContent = Math.round(qiblaBearing) + '° dari Utara';
+  function shortestDelta(a, b){
+    var d = ((b - a + 540) % 360) - 180;
+    return d;
+  }
+  function tick(){
+    rafScheduled = false;
+    var delta = shortestDelta(currentRotation, targetRotation);
+    if (Math.abs(delta) < 0.2) {
+      currentRotation = targetRotation;
+    } else {
+      currentRotation = (currentRotation + delta * 0.25 + 720) % 360;
+      scheduleTick();
+    }
+    needle.style.transform = 'translate(-50%, -100%) rotate(' + currentRotation + 'deg)';
+  }
+  function scheduleTick(){
+    if (rafScheduled) return;
+    rafScheduled = true;
+    window.requestAnimationFrame(tick);
+  }
+  function updateLabels(){
+    if (elHead) elHead.textContent = Math.round(deviceHeading) + '°';
+    if (elBear && qiblaBearing !== null) elBear.textContent = Math.round(qiblaBearing) + '° dari Utara';
+  }
+  function applyTarget(){
+    if (qiblaBearing === null) {
+      targetRotation = (-deviceHeading + 360) % 360;
+    } else {
+      targetRotation = (qiblaBearing - deviceHeading + 360) % 360;
+    }
+    updateLabels();
+    scheduleTick();
   }
 
-  // 1) Ambil lokasi user.
+  // 1) GPS user.
   if (!navigator.geolocation) {
-    status.textContent = 'GPS tidak didukung browser. Kompas tidak bisa menentukan arah kiblat.';
+    status.textContent = 'GPS tidak didukung browser.';
   } else {
     navigator.geolocation.getCurrentPosition(function(pos){
       qiblaBearing = bearingTo(pos.coords.latitude, pos.coords.longitude, KAABA.lat, KAABA.lng);
-      status.textContent = 'Lokasi terdeteksi. Putar HP perlahan sampai jarum menunjuk lurus ke atas (🕋).';
-      render();
+      status.textContent = 'Lokasi terdeteksi. Aktifkan sensor lalu putar HP perlahan sampai jarum lurus ke atas (🕋).';
+      applyTarget();
     }, function(err){
-      status.textContent = 'Tidak bisa membaca lokasi (' + err.message + '). Memakai Jakarta sebagai default.';
       qiblaBearing = bearingTo(-6.2, 106.816666, KAABA.lat, KAABA.lng);
-      render();
+      status.textContent = 'Tidak bisa baca lokasi (' + err.message + '). Memakai Jakarta sebagai default.';
+      applyTarget();
     }, {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
   }
 
-  // 2) Dengarkan sensor orientasi.
+  // 2) Listener sensor.
   function onOrient(e){
     var h = null;
     if (typeof e.webkitCompassHeading === 'number') {
-      // iOS: 0 = utara, naik searah jarum jam — siap pakai.
-      h = e.webkitCompassHeading;
-    } else if (e.absolute && typeof e.alpha === 'number') {
-      // Android Chrome: alpha 0 = utara, naik berlawanan jarum jam → balik tanda.
-      h = 360 - e.alpha;
+      h = e.webkitCompassHeading;                 // iOS Safari
     } else if (typeof e.alpha === 'number') {
-      h = 360 - e.alpha;
+      h = 360 - e.alpha;                          // Chrome/Firefox Android
     }
     if (h === null || isNaN(h)) return;
+    sensorGotData = true;
     deviceHeading = (h + 360) % 360;
-    render();
+    applyTarget();
   }
   function attachSensors(){
-    // Coba absolute (Android), lalu fallback non-absolute.
+    if (sensorActive) return;
+    sensorActive = true;
     window.addEventListener('deviceorientationabsolute', onOrient, true);
-    window.addEventListener('deviceorientation', onOrient, true);
+    window.addEventListener('deviceorientation',          onOrient, true);
+    setTimeout(function(){
+      if (!sensorGotData) {
+        status.textContent = 'Sensor tidak mengirim data (device mungkin tanpa magnetometer / butuh HTTPS). Pakai slider manual di bawah.';
+        showManualSlider();
+      } else {
+        status.textContent = 'Sensor aktif. Putar HP perlahan.';
+      }
+    }, 3000);
   }
-  // 3) iOS 13+ butuh permission eksplisit dari user gesture.
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
+
+  // 3) Tombol aktifkan sensor — selalu muncul (Android maupun iOS).
+  if (permBtn) {
     permBtn.classList.remove('d-none');
     permBtn.addEventListener('click', function(){
-      DeviceOrientationEvent.requestPermission().then(function(state){
-        if (state === 'granted') { attachSensors(); permBtn.classList.add('d-none'); status.textContent = 'Sensor aktif. Putar HP perlahan.'; }
-        else { status.textContent = 'Izin sensor ditolak. Tidak bisa mendeteksi arah HP.'; }
-      }).catch(function(err){ status.textContent = 'Gagal meminta izin sensor: ' + err.message; });
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(function(state){
+          if (state === 'granted') { attachSensors(); permBtn.classList.add('d-none'); }
+          else { status.textContent = 'Izin sensor ditolak.'; showManualSlider(); }
+        }).catch(function(err){
+          status.textContent = 'Gagal minta izin sensor: '+err.message;
+          showManualSlider();
+        });
+      } else if (window.DeviceOrientationEvent) {
+        attachSensors();
+        permBtn.classList.add('d-none');
+      } else {
+        status.textContent = 'Browser tidak mendukung sensor orientasi.';
+        showManualSlider();
+      }
     });
-  } else if (window.DeviceOrientationEvent) {
+  }
+
+  // 4) Auto-attach pada Android (event biasanya nyala tanpa permission),
+  // permission iOS tetap butuh klik tombol di atas.
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission !== 'function' &&
+      window.DeviceOrientationEvent) {
     attachSensors();
-  } else {
-    status.textContent = 'Browser tidak mendukung sensor orientasi. Kompas tidak bisa bergerak.';
+  }
+
+  // 5) Slider manual sebagai fallback.
+  function showManualSlider(){
+    if (document.getElementById('qiblaManualWrap')) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'qiblaManualWrap';
+    wrap.className = 'mt-2 small';
+    wrap.innerHTML = '<label class="form-label mb-1">Putar manual (derajat HP terhadap Utara):</label>'+
+      '<input type="range" min="0" max="359" value="0" id="qiblaManual" class="form-range">';
+    var box = needle.closest('.card-body') || needle.parentNode;
+    box.appendChild(wrap);
+    document.getElementById('qiblaManual').addEventListener('input', function(){
+      deviceHeading = parseInt(this.value, 10) || 0;
+      applyTarget();
+    });
   }
 })();
 </script>
