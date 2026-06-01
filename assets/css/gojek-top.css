@@ -1,12 +1,13 @@
 /* ============================================================
-   Gojek-style TOP navigation (mobile only)
-   Revisi 1 Jun 2026 — header bagian atas
-   Hanya tampil di < 992px. Desktop tetap memakai navbar Bootstrap.
+   TOP navigation gaya app (mobile only) — Revisi 4 Jun 2026
+   Warna: biru kehitaman (selaras dashboard), BUKAN hijau.
    ============================================================ */
 :root{
   --gt-h: 64px;
-  --gt-green: #00aa13;
-  --gt-green-2: #14c447;
+  --gt-brand: #0ea5e9;       /* sky / aksen */
+  --gt-brand-2: #6366f1;     /* indigo */
+  --gt-dark: #0f172a;        /* slate-900 */
+  --gt-dark-2: #1e293b;      /* slate-800 */
   --gt-ink: #0f172a;
   --gt-muted: #64748b;
   --gt-bg: #ffffff;
@@ -19,54 +20,54 @@
   --gt-line: rgba(255,255,255,.08);
 }
 
-/* Sembunyikan navbar bootstrap lama di mobile; ganti dengan header Gojek-style */
+/* Sembunyikan navbar bootstrap lama di mobile */
 @media (max-width: 991.98px){
   nav.navbar.sticky-top{ display: none !important; }
-  body{ padding-top: calc(var(--gt-h) + 56px) !important; } /* top header + chips */
+  body{ padding-top: calc(var(--gt-h) + 56px) !important; }
 }
 
 .gt-top{
   display: none;
   position: fixed; top: 0; left: 0; right: 0;
   z-index: 1051;
-  background: linear-gradient(135deg, var(--gt-green) 0%, var(--gt-green-2) 100%);
+  background: linear-gradient(135deg, var(--gt-dark) 0%, var(--gt-dark-2) 60%, #243049 100%);
   color: #fff;
   padding: 8px 12px calc(8px + env(safe-area-inset-top, 0px));
-  box-shadow: 0 4px 14px -6px rgba(0,170,19,.45);
+  box-shadow: 0 4px 14px -6px rgba(15,23,42,.55);
+  border-bottom: 1px solid rgba(255,255,255,.06);
 }
 @media (max-width: 991.98px){ .gt-top{ display: block; } }
 
-.gt-row{
-  display: flex; align-items: center; gap: 10px;
-  height: 48px;
-}
+.gt-row{ display: flex; align-items: center; gap: 10px; height: 48px; }
 .gt-burger{
   width: 40px; height: 40px; border-radius: 12px;
-  background: rgba(255,255,255,.18); border: 0; color: #fff;
+  background: rgba(255,255,255,.10); border: 0; color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 1.3rem;
 }
-.gt-burger:active{ background: rgba(255,255,255,.32); }
+.gt-burger:active{ background: rgba(255,255,255,.22); }
 .gt-search{
   flex: 1 1 auto; min-width: 0;
   background: #fff; border-radius: 14px;
   display: flex; align-items: center; gap: 6px;
   padding: 6px 12px;
-  box-shadow: 0 6px 18px -10px rgba(0,0,0,.35);
+  box-shadow: 0 6px 18px -10px rgba(0,0,0,.45);
 }
-.gt-search i{ color: var(--gt-green); font-size: 1.05rem; }
+.gt-search i{ color: var(--gt-brand); font-size: 1.05rem; }
 .gt-search input{
   flex: 1 1 auto; border: 0; outline: none; background: transparent;
   font-size: .92rem; color: var(--gt-ink); min-width: 0;
 }
 .gt-search input::placeholder{ color: #94a3b8; }
+
 .gt-bell, .gt-avatar{
   width: 40px; height: 40px; border-radius: 50%;
-  background: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
   display: inline-flex; align-items: center; justify-content: center;
   color: #fff; text-decoration: none; position: relative;
-  font-size: 1.1rem;
+  font-size: 1.1rem; border: 0;
 }
+.gt-bell:hover, .gt-avatar:hover{ color: #fff; background: rgba(255,255,255,.18); }
 .gt-avatar img{ width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .gt-badge-dot{
   position: absolute; top: -2px; right: -2px;
@@ -74,11 +75,11 @@
   background: #ef4444; color: #fff;
   font-size: .62rem; font-weight: 800;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 2px solid var(--gt-green);
+  border: 2px solid var(--gt-dark);
   padding: 0 4px;
 }
 
-/* Pita quick-action gaya GoFood/GoRide */
+/* Pita quick-action (chips) */
 .gt-chips{
   background: var(--gt-bg);
   border-bottom: 1px solid var(--gt-line);
@@ -106,16 +107,58 @@
   transition: all .15s ease;
 }
 [data-bs-theme=dark] .gt-chip{ background:#1e293b; color:#f8fafc; }
-.gt-chip i{ font-size: 1rem; }
-.gt-chip.active{ background: rgba(0,170,19,.12); color: var(--gt-green); border-color: rgba(0,170,19,.35); }
+.gt-chip i{ font-size: 1rem; color: var(--gt-brand); }
+.gt-chip.active{ background: rgba(14,165,233,.12); color: var(--gt-brand); border-color: rgba(14,165,233,.35); }
 .gt-chip:active{ transform: scale(.96); }
 
-.gt-chip-c1{ color:#0ea5e9; } .gt-chip-c2{ color:#f59e0b; }
-.gt-chip-c3{ color:#ef4444; } .gt-chip-c4{ color:#6366f1; }
-.gt-chip-c5{ color:#10b981; } .gt-chip-c6{ color:#ec4899; }
-
-/* Drawer untuk menu lengkap — tetap pakai Bootstrap offcanvas */
-.gt-drawer .offcanvas-header{ background: linear-gradient(135deg, var(--gt-green), var(--gt-green-2)); color:#fff; }
+/* Drawer */
+.gt-drawer .offcanvas-header{
+  background: linear-gradient(135deg, var(--gt-dark), var(--gt-dark-2));
+  color:#fff;
+}
 .gt-drawer .offcanvas-header .btn-close{ filter: invert(1); }
 .gt-drawer .list-group-item{ border:0; padding: .85rem 1rem; display:flex; align-items:center; gap:.7rem; }
-.gt-drawer .list-group-item i{ font-size:1.1rem; width:24px; text-align:center; color: var(--gt-green); }
+.gt-drawer .list-group-item i{ font-size:1.1rem; width:24px; text-align:center; color: var(--gt-brand); }
+
+/* ====== Dropdown notifikasi (klik lonceng) ====== */
+.gt-notif-pop{
+  position: fixed; top: calc(var(--gt-h) + env(safe-area-inset-top, 0px) + 4px);
+  right: 8px; left: 8px;
+  max-width: 420px; margin-left:auto;
+  background: var(--gt-bg); color: var(--gt-ink);
+  border-radius: 18px; box-shadow: 0 18px 40px -16px rgba(15,23,42,.45);
+  z-index: 1080; overflow: hidden;
+  border: 1px solid var(--gt-line);
+  display: none;
+}
+.gt-notif-pop.show{ display: block; animation: gtNpop .18s ease; }
+@keyframes gtNpop{ from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+.gt-notif-head{
+  padding: .85rem 1rem; font-weight: 700; font-size: .95rem;
+  background: linear-gradient(135deg, var(--gt-dark), var(--gt-dark-2)); color:#fff;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.gt-notif-head a{ color:#cbd5e1; font-size:.78rem; text-decoration: none; }
+.gt-notif-list{ max-height: 60vh; overflow-y:auto; }
+.gt-notif-item{
+  display:flex; gap:.7rem; padding:.7rem .9rem; border-bottom: 1px solid var(--gt-line);
+  text-decoration: none; color: var(--gt-ink);
+}
+.gt-notif-item:hover{ background: rgba(14,165,233,.06); }
+.gt-notif-ico{
+  width:34px; height:34px; flex:0 0 34px; border-radius:10px;
+  background: rgba(14,165,233,.12); color: var(--gt-brand);
+  display:inline-flex; align-items:center; justify-content:center; font-size:1rem;
+}
+.gt-notif-body{ flex:1; min-width:0; }
+.gt-notif-title{ font-weight:600; font-size:.88rem; line-height:1.2; }
+.gt-notif-text{ font-size:.78rem; color: var(--gt-muted); line-height:1.25; margin-top:2px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.gt-notif-empty{ padding:1.4rem 1rem; text-align:center; color: var(--gt-muted); font-size:.88rem; }
+.gt-notif-foot{ padding:.55rem 1rem; text-align:center; border-top:1px solid var(--gt-line); }
+.gt-notif-foot a{ color: var(--gt-brand); font-size:.82rem; font-weight:600; text-decoration:none; }
+
+@media (min-width: 992px){
+  /* Desktop: dropdown menempel di atas; tetap fungsional kalau ada user pakai */
+  .gt-notif-pop{ position: absolute; right: 1rem; top: 60px; left:auto; width: 360px; }
+}

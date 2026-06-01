@@ -88,7 +88,7 @@ body{
 .lg-hero{
   position:relative; min-height:42dvh;
   background:
-    linear-gradient(180deg, rgba(14,165,233,.35) 0%, rgba(99,102,241,.85) 100%),
+    linear-gradient(180deg, rgba(15,23,42,.35) 0%, rgba(15,23,42,.78) 100%),
     url('/assets/img/sport-auth-hero.jpg') center/cover no-repeat,
     linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
   color:#fff; padding:2.4rem 1.5rem 2rem;
@@ -102,7 +102,7 @@ body{
 .lg-hero::before{
   /* Glow olahraga di pojok kiri-bawah */
   content:""; position:absolute; left:-40px; bottom:-40px; width:200px; height:200px;
-  background:radial-gradient(circle, rgba(34,197,94,.55) 0%, transparent 65%); opacity:.4; border-radius:50%;
+  background:radial-gradient(circle, rgba(14,165,233,.45) 0%, transparent 65%); opacity:.4; border-radius:50%;
 }
 .lg-logo{
   width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.14);

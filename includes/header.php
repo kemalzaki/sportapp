@@ -22,11 +22,10 @@ if ($u) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0ea5e9">
+<meta name="theme-color" content="#0f172a">
 <title><?= htmlspecialchars(($pageTitle ?? 'HapFam SportApp') . ' · HapFam SportApp') ?></title>
 <link rel="manifest" href="/manifest.php">
 <link rel="apple-touch-icon" href="/assets/icon-192.png">
-<!-- Favicon / shortcut icon browser -->
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512.png">
 <link rel="shortcut icon" href="/assets/icon-192.png">
@@ -39,10 +38,10 @@ if ($u) {
 <link rel="stylesheet" href="/assets/css/app.css">
 <link rel="stylesheet" href="/assets/css/app-v3.css">
 <link rel="stylesheet" href="/assets/css/desktop-fix.css">
-<!-- Revisi 1 Jun 2026: header atas gaya Gojek (mobile only) -->
-<link rel="stylesheet" href="/assets/css/gojek-top.css?v=1jun2026b">
-<!-- Revisi 1 Jun 2026: efek suara WebAudio (tanpa file mp3) -->
-<script defer src="/assets/js/sfx.js?v=1jun2026"></script>
+<!-- Revisi 4 Jun 2026: header atas biru-kehitaman (bukan hijau) -->
+<link rel="stylesheet" href="/assets/css/gojek-top.css?v=4jun2026">
+<!-- Revisi 4 Jun 2026: SFX klik di semua halaman -->
+<script defer src="/assets/js/sfx.js?v=4jun2026"></script>
 <style>
 .user-with-avatar{display:inline-flex;align-items:center;gap:.4rem;position:relative;}
 .user-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;}
@@ -63,7 +62,6 @@ if ($u) {
 .heatmap .cell{width:12px;height:12px;border-radius:2px;background:#ebedf0;}
 .heatmap .l1{background:#9be9a8;} .heatmap .l2{background:#40c463;} .heatmap .l3{background:#30a14e;} .heatmap .l4{background:#216e39;}
 [data-bs-theme=dark] .heatmap .cell{background:#1f2937;}
-/* === Navigasi rapi (item tidak tabrakan) === */
 .navbar .navbar-nav .nav-link{padding-left:.7rem;padding-right:.7rem;white-space:nowrap;}
 .navbar .navbar-nav .nav-link i{margin-right:.25rem;}
 @media (min-width:992px){
@@ -72,49 +70,27 @@ if ($u) {
   .navbar .navbar-nav.align-items-lg-center .nav-item + .nav-item{margin-left:.25rem;}
 }
 .navbar .dropdown-menu{min-width:240px;}
-/* === Mobile: admin dropdown bisa di-scroll === */
 @media (max-width:991.98px){
-  .navbar .dropdown-menu{
-    max-height: 70vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  /* Pastikan collapse-nya juga bisa di-scroll bila menu sangat panjang */
-  .navbar .navbar-collapse{
-    max-height: 85vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .navbar .dropdown-menu{ max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .navbar .navbar-collapse{ max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 }
-/* === Preloader (top progress bar, tidak menutupi halaman) === */
 #appTopLoader{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#0ea5e9,#6366f1,#22c55e);z-index:99999;box-shadow:0 0 8px rgba(14,165,233,.6);transition:width .25s ease,opacity .35s ease;opacity:0;pointer-events:none;border-radius:0 2px 2px 0;}
 #appTopLoader.active{opacity:1;}
 #appCornerSpinner{position:fixed;top:10px;right:14px;width:22px;height:22px;border:3px solid rgba(14,165,233,.25);border-top-color:#0ea5e9;border-radius:50%;animation:hfspin .8s linear infinite;z-index:99999;display:none;pointer-events:none;}
 #appCornerSpinner.active{display:block;}
 @keyframes hfspin{to{transform:rotate(360deg);}}
-/* Legacy fullscreen preloader: dimatikan agar tidak menutupi konten */
 #appPreloader{display:none !important;}
 #liveRefreshBadge{position:fixed;right:14px;bottom:78px;z-index:1080;display:none;}
-/* === Revisi 2 Jun 2026 #5: navbar tetap di atas saat scroll di mobile === */
 @media (max-width:991.98px){
-  nav.navbar.sticky-top{
-    position: fixed !important;
-    top: 0; left: 0; right: 0;
-    z-index: 1050;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-  }
-  body{ padding-top: 64px; }
+  nav.navbar.sticky-top{ position: fixed !important; top:0; left:0; right:0; z-index:1050;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15); }
 }
 </style>
 </head>
 <body>
-<!-- Global preloader (disisipkan via JS hanya saat navigasi keluar halaman) -->
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 
-<?php /* ============================================================
-        Revisi 1 Jun 2026: Header atas GAYA GOJEK (mobile only).
-        Desktop tetap pakai navbar Bootstrap di bawah ini.
-        ============================================================ */ ?>
+<?php /* ===== TOP header (mobile only) — biru-kehitaman ===== */ ?>
 <header class="gt-top" role="banner">
   <div class="gt-row">
     <button class="gt-burger" type="button" data-bs-toggle="offcanvas" data-bs-target="#gtDrawer" aria-label="Buka menu" data-sfx="tap">
@@ -125,10 +101,12 @@ if ($u) {
       <input type="search" name="q" placeholder="<?= $u ? 'Cari aktivitas, tempat, member…' : 'Cari di HapFam SportApp…' ?>" autocomplete="off">
     </form>
     <?php if ($u): ?>
-      <a href="/profile.php" class="gt-bell" aria-label="Notifikasi" data-sfx="tap" title="Notifikasi">
+      <!-- LONCENG: klik => buka popup notifikasi (BUKAN redirect) -->
+      <button type="button" class="gt-bell" id="gtBellBtn" aria-label="Notifikasi" data-sfx="tap" title="Notifikasi"
+              aria-haspopup="true" aria-expanded="false">
         <i class="bi bi-bell-fill"></i>
-        <?php if ($nUnread): ?><span class="gt-badge-dot"><?= $nUnread > 9 ? '9+' : (int)$nUnread ?></span><?php endif; ?>
-      </a>
+        <?php if ($nUnread): ?><span class="gt-badge-dot" id="gtBellBadge"><?= $nUnread > 9 ? '9+' : (int)$nUnread ?></span><?php endif; ?>
+      </button>
       <a href="/profile.php" class="gt-avatar" aria-label="Profil saya" data-sfx="tap">
         <?php if ($navFoto): ?>
           <img src="<?= htmlspecialchars($navFoto) ?>" alt="Foto profil">
@@ -141,26 +119,44 @@ if ($u) {
     <?php endif; ?>
   </div>
 </header>
+
+<?php if ($u): ?>
+<!-- Popup notifikasi yang muncul saat lonceng diklik -->
+<div class="gt-notif-pop" id="gtNotifPop" role="dialog" aria-modal="false" aria-label="Notifikasi terbaru">
+  <div class="gt-notif-head">
+    <span><i class="bi bi-bell-fill"></i> Notifikasi</span>
+    <a href="#" id="gtNotifMark">Tandai dibaca</a>
+  </div>
+  <div class="gt-notif-list" id="gtNotifList">
+    <div class="gt-notif-empty"><i class="bi bi-arrow-clockwise"></i> Memuat…</div>
+  </div>
+  <div class="gt-notif-foot">
+    <a href="/profile.php#notif">Lihat semua di Profil</a>
+  </div>
+</div>
+<?php endif; ?>
+
 <nav class="gt-chips" aria-label="Pintasan">
-  <a class="gt-chip <?= basename($_SERVER['SCRIPT_NAME'] ?? '')==='index.php'?'active':'' ?>" href="/index.php" data-sfx="tap"><i class="bi bi-house-door-fill gt-chip-c1"></i>Beranda</a>
+  <a class="gt-chip <?= basename($_SERVER['SCRIPT_NAME'] ?? '')==='index.php'?'active':'' ?>" href="/index.php" data-sfx="tap"><i class="bi bi-house-door-fill"></i>Beranda</a>
   <?php if ($u): ?>
-    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill gt-chip-c3"></i>Lari</a>
-    <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill gt-chip-c1"></i>Upload</a>
-    <a class="gt-chip" href="/jajanan.php" data-sfx="tap"><i class="bi bi-shop gt-chip-c2"></i>Jajan</a>
-    <a class="gt-chip" href="/kurir.php" data-sfx="tap"><i class="bi bi-scooter gt-chip-c2"></i>Kurir</a>
-    <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill gt-chip-c5"></i>Tempat</a>
-    <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill gt-chip-c2"></i>Event</a>
-    <a class="gt-chip" href="/checkin.php" data-sfx="tap"><i class="bi bi-qr-code-scan gt-chip-c4"></i>Check-in</a>
-    <a class="gt-chip" href="/dm.php" data-sfx="tap"><i class="bi bi-chat-dots-fill gt-chip-c4"></i>Pesan</a>
-    <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars gt-chip-c2"></i>Islami</a>
-    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-heart-pulse-fill gt-chip-c3"></i>Sehat</a>
+    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill"></i>Lari</a>
+    <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill"></i>Upload</a>
+    <a class="gt-chip" href="/jajanan.php" data-sfx="tap"><i class="bi bi-shop"></i>Jajan</a>
+    <a class="gt-chip" href="/kurir.php" data-sfx="tap"><i class="bi bi-scooter"></i>Kurir</a>
+    <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat</a>
+    <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event</a>
+    <a class="gt-chip" href="/checkin.php" data-sfx="tap"><i class="bi bi-qr-code-scan"></i>Check-in</a>
+    <a class="gt-chip" href="/dm.php" data-sfx="tap"><i class="bi bi-chat-dots-fill"></i>Pesan</a>
+    <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami</a>
+    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-heart-pulse-fill"></i>Sehat</a>
   <?php else: ?>
-    <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right gt-chip-c1"></i>Masuk</a>
-    <a class="gt-chip" href="/register.php" data-sfx="tap"><i class="bi bi-person-plus-fill gt-chip-c5"></i>Daftar</a>
+    <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i>Masuk</a>
+    <a class="gt-chip" href="/register.php" data-sfx="tap"><i class="bi bi-person-plus-fill"></i>Daftar</a>
   <?php endif; ?>
 </nav>
 
-<?php /* Drawer menu lengkap untuk mobile — buka via burger di header Gojek-style. */ ?>
+<?php /* Drawer menu lengkap — "Profil Saya" duplikat DIHILANGKAN (sudah ada
+        di avatar header atas dan ikon "Saya" di bottom nav). */ ?>
 <div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill"></i> HapFam SportApp</h5>
@@ -185,7 +181,6 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
         <a class="list-group-item list-group-item-action" href="/jajanan.php"><i class="bi bi-shop"></i> Jajanan</a>
         <a class="list-group-item list-group-item-action" href="/kurir.php"><i class="bi bi-scooter"></i> Kurir Jajan</a>
-        <a class="list-group-item list-group-item-action" href="/profile.php"><i class="bi bi-person-circle"></i> Profil Saya</a>
         <?php if ($u['role']==='admin'): ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
           <a class="list-group-item list-group-item-action" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
@@ -203,7 +198,7 @@ if ($u) {
     </div>
   </div>
 </div>
-<!-- /Gojek-style mobile top header -->
+<!-- /Mobile top header -->
 
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
@@ -272,11 +267,18 @@ if ($u) {
 
       <ul class="navbar-nav align-items-lg-center">
         <?php if ($u): ?>
-          <li class="nav-item"><a class="nav-link position-relative" href="/profile.php" title="Profil">
+          <!-- Lonceng desktop: dropdown notifikasi, BUKAN redirect -->
+          <li class="nav-item">
+            <button id="gtBellBtnDesktop" type="button" class="nav-link position-relative btn btn-link" title="Notifikasi" aria-haspopup="true" aria-expanded="false">
+              <i class="bi bi-bell-fill"></i>
+              <?php if($nUnread): ?><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;"><?= $nUnread ?></span><?php endif; ?>
+            </button>
+          </li>
+          <!-- Avatar = satu-satunya pintu ke Profil Saya di navbar (duplikat dibersihkan) -->
+          <li class="nav-item"><a class="nav-link" href="/profile.php" title="Profil saya">
             <?= user_avatar($navFoto, $u['nama'], 28) ?>
-            <?php if($nUnread): ?><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;"><?= $nUnread ?></span><?php endif; ?>
           </a></li>
-          <li class="nav-item"><a class="nav-link" href="/logout.php"><i class="bi bi-box-arrow-right"></i></a></li>
+          <li class="nav-item"><a class="nav-link" href="/logout.php" title="Keluar"><i class="bi bi-box-arrow-right"></i></a></li>
         <?php else: ?>
           <li class="nav-item"><a class="nav-link" href="/login.php">Login</a></li>
           <li class="nav-item"><a class="nav-link" href="/register.php">Daftar</a></li>
@@ -286,10 +288,93 @@ if ($u) {
   </div>
 </nav>
 <?php require_once __DIR__.'/skeleton.php'; ?>
+
+<?php if ($u): ?>
+<script>
+// === Revisi 4 Jun 2026: lonceng = popup notifikasi (BUKAN redirect) ===
+(function(){
+  var btnM = document.getElementById('gtBellBtn');
+  var btnD = document.getElementById('gtBellBtnDesktop');
+  var pop  = document.getElementById('gtNotifPop');
+  var list = document.getElementById('gtNotifList');
+  var badge= document.getElementById('gtBellBadge');
+  var loaded = false;
+  function fmtTime(ts){
+    try { var d = new Date((ts||'').replace(' ','T')); if(isNaN(d)) return ''; 
+      var diff = (Date.now()-d.getTime())/1000;
+      if (diff<60) return 'baru saja';
+      if (diff<3600) return Math.floor(diff/60)+' mnt lalu';
+      if (diff<86400) return Math.floor(diff/3600)+' jam lalu';
+      return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
+    } catch(e){ return ''; }
+  }
+  function icoFor(jenis){
+    var map = { booking:'calendar2-week', jadwal:'calendar-event', donasi:'cash-coin',
+      challenge:'trophy', dm:'chat-dots-fill', tempat:'geo-alt-fill',
+      event:'trophy-fill', upload:'cloud-upload-fill', sistem:'gear-fill' };
+    return map[jenis] || 'bell-fill';
+  }
+  function render(items){
+    if (!items || !items.length){
+      list.innerHTML = '<div class="gt-notif-empty"><i class="bi bi-inbox"></i><br>Belum ada notifikasi.</div>';
+      return;
+    }
+    var html = '';
+    items.forEach(function(n){
+      var href = n.url || '#';
+      html += '<a class="gt-notif-item" href="'+href+'" data-sfx="tap">'+
+              '<span class="gt-notif-ico"><i class="bi bi-'+icoFor(n.jenis||'')+'"></i></span>'+
+              '<span class="gt-notif-body">'+
+                '<span class="gt-notif-title">'+(n.judul||'(tanpa judul)')+'</span>'+
+                '<span class="gt-notif-text">'+(n.isi||'')+'</span>'+
+                '<span class="gt-notif-text" style="opacity:.7;margin-top:2px">'+fmtTime(n.dibuat_pada)+'</span>'+
+              '</span></a>';
+    });
+    list.innerHTML = html;
+  }
+  function load(){
+    if (loaded) return;
+    fetch('/api_notif_list.php', { credentials:'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ render(d.items||[]); loaded = true; })
+      .catch(function(){ list.innerHTML = '<div class="gt-notif-empty">Gagal memuat notifikasi.</div>'; });
+  }
+  function toggle(force){
+    if (!pop) return;
+    var show = (force!=null) ? force : !pop.classList.contains('show');
+    pop.classList.toggle('show', show);
+    if (btnM) btnM.setAttribute('aria-expanded', show?'true':'false');
+    if (btnD) btnD.setAttribute('aria-expanded', show?'true':'false');
+    if (show) load();
+  }
+  if (btnM) btnM.addEventListener('click', function(e){ e.preventDefault(); toggle(); });
+  if (btnD) btnD.addEventListener('click', function(e){ e.preventDefault(); toggle(); });
+  document.addEventListener('click', function(e){
+    if (!pop || !pop.classList.contains('show')) return;
+    if (pop.contains(e.target)) return;
+    if (btnM && btnM.contains(e.target)) return;
+    if (btnD && btnD.contains(e.target)) return;
+    toggle(false);
+  });
+  var mark = document.getElementById('gtNotifMark');
+  if (mark) mark.addEventListener('click', function(e){
+    e.preventDefault();
+    fetch('/api_notif_list.php?mark=1', { credentials:'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ render(d.items||[]); if (badge) badge.remove();
+        document.querySelectorAll('.badge.bg-danger').forEach(function(b){
+          if (/^\d+$/.test((b.textContent||'').trim())) b.remove();
+        });
+      });
+  });
+})();
+</script>
+<?php endif; ?>
+
 <main class="container py-3">
 <?php if (!empty($u)): ?>
 <script>
-// Heartbeat lokasi HP (revisi 31 Mei 2026 v2) — untuk fitur Lacak HP oleh Admin.
+// Heartbeat lokasi HP (untuk fitur Lacak HP oleh Admin)
 (function(){
   if (!navigator.geolocation) return;
   var csrf = '<?= csrf_token() ?>';
@@ -304,8 +389,8 @@ if ($u) {
       fetch('/api_device_loc.php', {method:'POST', body:fd, keepalive:true}).catch(function(){});
     }, function(){}, {enableHighAccuracy:false, timeout:20000, maximumAge:60000});
   }
-  setTimeout(ping, 5000);          // ping pertama 5 dtk setelah load
-  setInterval(ping, 2*60*1000);    // lalu tiap 2 menit
+  setTimeout(ping, 5000);
+  setInterval(ping, 2*60*1000);
 })();
 </script>
 <?php endif; ?>

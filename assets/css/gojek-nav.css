@@ -1,6 +1,6 @@
 /* ============================================================
-   Gojek-style bottom navigation
-   Revisi 1 Jun 2026
+   Bottom navigation (mobile) — Revisi 4 Jun 2026
+   Warna selaras: biru-kehitaman + aksen sky/indigo (BUKAN hijau).
    ============================================================ */
 :root{
   --gj-h: 68px;
@@ -9,8 +9,10 @@
   --gj-line: rgba(15,23,42,.08);
   --gj-ink: #0f172a;
   --gj-muted: #64748b;
-  --gj-green: #00aa13;        /* warna utama Gojek */
-  --gj-green-2: #14c447;
+  --gj-brand: #0ea5e9;
+  --gj-brand-2: #6366f1;
+  --gj-dark: #0f172a;
+  --gj-dark-2: #1e293b;
   --gj-red: #ef4444;
 }
 [data-bs-theme=dark]{
@@ -20,7 +22,6 @@
   --gj-muted: #94a3b8;
 }
 
-/* Hindari konten ketutup nav */
 body{ padding-bottom: calc(var(--gj-h) + var(--gj-safe) + 16px); }
 @media (min-width: 992px){ body{ padding-bottom: 0; } }
 
@@ -55,7 +56,6 @@ body{ padding-bottom: calc(var(--gj-h) + var(--gj-safe) + 16px); }
 .gj-item:active{ transform: scale(.94); }
 .gj-item .gj-label{ line-height: 1; letter-spacing: .01em; }
 
-/* Ikon bulat berwarna ala Gojek (GoRide / GoFood / GoSend dst) */
 .gj-ico{
   width: 38px; height: 38px; border-radius: 12px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -64,46 +64,45 @@ body{ padding-bottom: calc(var(--gj-h) + var(--gj-safe) + 16px); }
   transition: transform .2s ease, box-shadow .2s ease;
 }
 .gj-item:hover .gj-ico{ transform: translateY(-2px); }
-.gj-c-home  { background: linear-gradient(135deg,#00aa13,#14c447); }
-.gj-c-stat  { background: linear-gradient(135deg,#0ea5e9,#22d3ee); }
-.gj-c-event { background: linear-gradient(135deg,#f59e0b,#f97316); }
-.gj-c-me    { background: linear-gradient(135deg,#8b5cf6,#ec4899); overflow:hidden; padding:0; }
+/* Semua icon background pakai tone biru-kehitaman, hanya aksen sedikit beda */
+.gj-c-home  { background: linear-gradient(135deg,#0f172a,#1e293b); }
+.gj-c-stat  { background: linear-gradient(135deg,#1e293b,#0ea5e9); }
+.gj-c-event { background: linear-gradient(135deg,#1e293b,#6366f1); }
+.gj-c-me    { background: linear-gradient(135deg,#0f172a,#334155); overflow:hidden; padding:0; }
 
-/* Active state: label menjadi gelap + pill indikator */
 .gj-item.active{ color: var(--gj-ink); }
 .gj-item.active::after{
   content:""; position:absolute; left:50%; transform:translateX(-50%);
   bottom: 2px; width: 22px; height: 3px; border-radius: 999px;
-  background: linear-gradient(90deg, var(--gj-green), var(--gj-green-2));
+  background: linear-gradient(90deg, var(--gj-brand), var(--gj-brand-2));
 }
 .gj-item.active .gj-ico{
-  box-shadow: 0 10px 22px -8px rgba(0,170,19,.55), inset 0 -2px 0 rgba(0,0,0,.1);
+  box-shadow: 0 10px 22px -8px rgba(14,165,233,.55), inset 0 -2px 0 rgba(0,0,0,.1);
   transform: translateY(-1px) scale(1.04);
 }
 
-/* Avatar di item "Saya" */
 .gj-avatar{ width:100%; height:100%; object-fit:cover; display:block; }
 .gj-avatar-fb{
   width:100%; height:100%; display:inline-flex; align-items:center; justify-content:center;
-  background: linear-gradient(135deg,#8b5cf6,#ec4899); color:#fff;
+  background: linear-gradient(135deg,#0f172a,#334155); color:#fff;
   font-weight:800; font-size:.95rem;
 }
 
-/* FAB tengah – tombol Upload ala GoPay */
+/* FAB tengah – tombol Upload */
 .gj-fab{
   position: relative;
   display:flex; flex-direction:column; align-items:center; gap:4px;
-  text-decoration:none; color: var(--gj-green);
+  text-decoration:none; color: var(--gj-brand);
   font-size:.7rem; font-weight:700;
   margin-top: -22px;
 }
 .gj-fab-inner{
   width: 58px; height: 58px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--gj-green), var(--gj-green-2));
+  background: linear-gradient(135deg, var(--gj-brand), var(--gj-brand-2));
   color:#fff; font-size: 1.5rem;
   display:flex; align-items:center; justify-content:center;
   box-shadow:
-    0 14px 30px -8px rgba(0,170,19,.55),
+    0 14px 30px -8px rgba(14,165,233,.55),
     0 4px 10px rgba(15,23,42,.18),
     0 0 0 4px var(--gj-bg);
   transition: transform .18s ease, box-shadow .18s ease;
@@ -112,7 +111,6 @@ body{ padding-bottom: calc(var(--gj-h) + var(--gj-safe) + 16px); }
 .gj-fab:active .gj-fab-inner{ transform: scale(.92); }
 .gj-fab-label{ color: var(--gj-ink); line-height:1; }
 
-/* Badge notif */
 .gj-badge{
   position:absolute; top:2px; right: calc(50% - 26px);
   min-width:18px; height:18px; padding:0 5px;
@@ -122,7 +120,6 @@ body{ padding-bottom: calc(var(--gj-h) + var(--gj-safe) + 16px); }
   box-shadow: 0 0 0 2px var(--gj-bg);
 }
 
-/* Sembunyikan bottom-nav lama agar tidak dobel */
 .bottom-nav{ display:none !important; }
 @media (min-width: 992px){
   .gj-nav{ display:none !important; }
