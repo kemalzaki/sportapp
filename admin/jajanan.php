@@ -102,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $lng  = jjn_parse_latlng($_POST['lng'] ?? '', -180, 180);
     $jamBuka  = jjn_parse_time($_POST['jam_buka']  ?? '');
     $jamTutup = jjn_parse_time($_POST['jam_tutup'] ?? '');
+    $tokoId   = (int)($_POST['toko_id'] ?? 0) ?: null;
 
     try {
         if ($a === 'add' || $a === 'edit') {
@@ -110,9 +111,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
 
         if ($a==='add' && $nama!=='') {
-            db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng,jam_buka,jam_tutup)
-                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup]);
+            db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng,jam_buka,jam_tutup,toko_id)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$tokoId]);
             $_SESSION['flash'] = 'Jajanan ditambahkan.'.($foto?' Foto ter-upload.':'');
         } elseif ($a==='edit') {
             $id=(int)$_POST['id'];
@@ -125,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
                 }
             }
-            db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10,jam_buka=$11,jam_tutup=$12 WHERE id=$13",
-              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$id]);
+            db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10,jam_buka=$11,jam_tutup=$12,toko_id=$13 WHERE id=$14",
+              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$tokoId,$id]);
             $_SESSION['flash'] = 'Jajanan diperbarui.'.($upl?' Foto baru ter-upload.':'');
         } elseif ($a==='delete') {
             $id = (int)$_POST['id'];
@@ -151,7 +152,8 @@ $totalPage = max(1, (int)ceil($total / $PER_PAGE));
 $page = max(1, (int)($_GET['page'] ?? 1));
 if ($page > $totalPage) $page = $totalPage;
 $offset = ($page-1) * $PER_PAGE;
-$rows = db_all("SELECT * FROM jajanan ORDER BY aktif DESC, id DESC LIMIT $PER_PAGE OFFSET $offset");
+$rows = db_all("SELECT j.*, t.nama AS toko_nama FROM jajanan j LEFT JOIN toko t ON t.id=j.toko_id ORDER BY j.aktif DESC, j.id DESC LIMIT $PER_PAGE OFFSET $offset");
+$tokoOpt = db_all("SELECT id, nama FROM toko WHERE aktif=true ORDER BY nama");
 
 /** Helper: tampilan jam ringkas (HH:MM-HH:MM atau "-") */
 function jjn_fmt_jam($jb, $jt) {
@@ -186,6 +188,15 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
     <div class="col-md-3"><label class="small">Lng</label><input class="form-control form-control-sm" name="lng" placeholder="107.717553" inputmode="decimal"></div>
     <div class="col-md-3"><label class="small"><i class="bi bi-clock"></i> Jam Buka</label><input type="time" class="form-control form-control-sm" name="jam_buka" value="07:00"></div>
     <div class="col-md-3"><label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label><input type="time" class="form-control form-control-sm" name="jam_tutup" value="21:00"></div>
+    <div class="col-md-4"><label class="small"><i class="bi bi-shop text-warning"></i> Toko / Pedagang</label>
+      <select class="form-select form-select-sm" name="toko_id">
+        <option value="0">— Tidak terhubung toko —</option>
+        <?php foreach($tokoOpt as $t): ?>
+          <option value="<?= (int)$t['id'] ?>"><?= htmlspecialchars($t['nama']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <div class="form-text small">Atur di menu <em>CRUD Toko/Pedagang</em>.</div>
+    </div>
     <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-cloud-upload"></i> Simpan &amp; Upload</button></div>
   </form>
 </div></div>
@@ -203,6 +214,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
           <th style="width:60px">Foto</th>
           <th>Nama</th>
           <th>Kategori</th>
+          <th>Toko</th>
           <th class="text-end">Harga</th>
           <th class="text-end">Stok</th>
           <th>Jam Buka–Tutup</th>
@@ -220,12 +232,14 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
           'lat'=>$r['lat']??'','lng'=>$r['lng']??'',
           'jam_buka'=>$r['jam_buka'] ? substr($r['jam_buka'],0,5) : '',
           'jam_tutup'=>$r['jam_tutup']? substr($r['jam_tutup'],0,5): '',
+          'toko_id'=>(int)($r['toko_id'] ?? 0),
         ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
       ?>
         <tr>
           <td><?php if(!empty($r['foto_url'])): ?><img src="<?= htmlspecialchars($r['foto_url']) ?>" style="width:48px;height:48px;object-fit:cover;border-radius:6px"><?php else: ?><span class="text-muted small">—</span><?php endif; ?></td>
           <td><div class="fw-semibold"><?= htmlspecialchars($r['nama']) ?></div><div class="text-muted small text-truncate" style="max-width:280px"><?= htmlspecialchars($r['deskripsi'] ?? '') ?></div></td>
           <td><?= htmlspecialchars($r['kategori'] ?? '-') ?></td>
+          <td><?php if(!empty($r['toko_nama'])): ?><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop"></i> <?= htmlspecialchars($r['toko_nama']) ?></span><?php else: ?><span class="text-muted small">— belum di-assign —</span><?php endif; ?></td>
           <td class="text-end">Rp <?= number_format((int)$r['harga'],0,',','.') ?></td>
           <td class="text-end"><?= (int)$r['stok'] ?></td>
           <td><?= jjn_fmt_jam($r['jam_buka'] ?? null, $r['jam_tutup'] ?? null) ?></td>
@@ -244,7 +258,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
           </td>
         </tr>
       <?php endforeach; if (!$rows): ?>
-        <tr><td colspan="9" class="text-center text-muted small py-3">Belum ada produk.</td></tr>
+        <tr><td colspan="10" class="text-center text-muted small py-3">Belum ada produk.</td></tr>
       <?php endif; ?>
       </tbody>
     </table>
@@ -284,6 +298,14 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
           <div class="col-md-6"><label class="small">Kategori</label><input class="form-control form-control-sm" name="kategori" id="ef_kategori"></div>
           <div class="col-md-3"><label class="small">Lat</label><input class="form-control form-control-sm" name="lat" id="ef_lat" inputmode="decimal"></div>
           <div class="col-md-3"><label class="small">Lng</label><input class="form-control form-control-sm" name="lng" id="ef_lng" inputmode="decimal"></div>
+                    <div class="col-md-12"><label class="small"><i class="bi bi-shop text-warning"></i> Toko / Pedagang</label>
+            <select class="form-select form-select-sm" name="toko_id" id="ef_toko_id">
+              <option value="0">— Tidak terhubung toko —</option>
+              <?php foreach($tokoOpt as $t): ?>
+                <option value="<?= (int)$t['id'] ?>"><?= htmlspecialchars($t['nama']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
           <div class="col-md-6"><label class="small"><i class="bi bi-clock"></i> Jam Buka</label><input type="time" class="form-control form-control-sm" name="jam_buka" id="ef_jam_buka"></div>
           <div class="col-md-6"><label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label><input type="time" class="form-control form-control-sm" name="jam_tutup" id="ef_jam_tutup"></div>
           <div class="col-12"><label class="small">Deskripsi</label><textarea class="form-control form-control-sm" name="deskripsi" id="ef_desk" rows="2"></textarea></div>
@@ -323,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('ef_lng').value      = d.lng || '';
     document.getElementById('ef_jam_buka').value = d.jam_buka || '';
     document.getElementById('ef_jam_tutup').value= d.jam_tutup || '';
+    var efTk = document.getElementById('ef_toko_id'); if (efTk) efTk.value = (d.toko_id||0);
     document.getElementById('ef_aktif').checked  = !!d.aktif;
     var prev = document.getElementById('ef_preview');
     if (d.foto_url){ prev.src = d.foto_url; prev.style.display=''; }

@@ -311,7 +311,7 @@ $totalProduk = (int) db_val("SELECT COUNT(*) FROM jajanan $where", $params);
 $totalPage   = max(1,(int)ceil($totalProduk / $PER_PAGE));
 if ($page > $totalPage) $page = $totalPage;
 $offset = ($page-1) * $PER_PAGE;
-$rows = db_all("SELECT * FROM jajanan $where ORDER BY kategori NULLS LAST, nama
+$rows = db_all("SELECT *, (SELECT nama FROM toko WHERE toko.id = jajanan.toko_id) AS toko_nama FROM jajanan $where ORDER BY kategori NULLS LAST, nama
                 LIMIT $PER_PAGE OFFSET $offset", $params);
 
 $cekNama = trim($_GET['cek_nama'] ?? '');
@@ -474,34 +474,56 @@ if ($berhasilKode !== ''):
       <?php if (!$cekHasil): ?>
         <div class="small text-muted">Tidak ditemukan pesanan atas nama <strong><?= htmlspecialchars($cekNama) ?></strong>.</div>
       <?php else: ?>
-        <div class="table-responsive"><table class="table table-sm small align-middle mb-0">
-          <thead><tr><th>Kode</th><th>Nama</th><th>Total</th><th>Bayar</th><th>Status</th><th>Tgl</th><th>Lacak</th></tr></thead>
-          <tbody>
-          <?php foreach($cekHasil as $r):
-              $bisaLacak = in_array($r['status'], ['diproses','diantar'], true);
-          ?>
-            <tr>
-              <td><strong><?= htmlspecialchars($r['kode']) ?></strong></td>
-              <td><?= htmlspecialchars($r['nama_pemesan']) ?></td>
-              <td>Rp <?= number_format((int)$r['total'],0,',','.') ?></td>
-              <td><span class="badge bg-<?= ($r['payment_status']??'')==='paid'?'success':'secondary' ?>"><?= htmlspecialchars($r['payment_status']??'-') ?></span></td>
-              <td><span class="badge bg-info"><?= htmlspecialchars($r['status']) ?></span></td>
-              <td><?= htmlspecialchars(date('d M Y H:i', strtotime($r['created_at']))) ?></td>
-              <td>
-                <?php if ($bisaLacak): ?>
-                  <button type="button"
-                          class="btn btn-sm btn-outline-danger btn-lacak"
-                          data-kode="<?= htmlspecialchars($r['kode']) ?>">
-                    <i class="bi bi-geo-alt-fill"></i> Lacak Driver
-                  </button>
-                <?php else: ?>
-                  <span class="text-muted">-</span>
-                <?php endif; ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table></div>
+        <style>
+          .jjn-cek-table{ font-size:.78rem; }
+          .jjn-cek-table th, .jjn-cek-table td{ white-space:nowrap; vertical-align:middle; padding:.4rem .5rem; }
+          .jjn-cek-table td.col-nama{ white-space:normal; min-width:120px; max-width:160px; word-break:break-word; }
+          .jjn-cek-table td.col-tgl{ font-size:.7rem; color:#6b7280; }
+          .jjn-cek-table .btn-lacak{ white-space:nowrap; }
+          @media (max-width: 576px){
+            .jjn-cek-table .col-hide-sm{ display:none; }
+          }
+        </style>
+        <div class="table-responsive" style="overflow-x:auto">
+          <table class="table table-sm align-middle mb-0 jjn-cek-table" style="min-width:640px">
+            <thead class="table-light">
+              <tr>
+                <th>Kode</th>
+                <th>Nama</th>
+                <th class="text-end">Total</th>
+                <th>Bayar</th>
+                <th>Status</th>
+                <th class="col-hide-sm">Tgl</th>
+                <th class="text-end">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+            <?php foreach($cekHasil as $r):
+                $bisaLacak = in_array($r['status'], ['diproses','diantar'], true);
+            ?>
+              <tr>
+                <td><span class="badge bg-dark-subtle text-dark-emphasis"><?= htmlspecialchars($r['kode']) ?></span></td>
+                <td class="col-nama"><?= htmlspecialchars($r['nama_pemesan']) ?></td>
+                <td class="text-end fw-semibold">Rp <?= number_format((int)$r['total'],0,',','.') ?></td>
+                <td><span class="badge bg-<?= ($r['payment_status']??'')==='paid'?'success':'secondary' ?>"><?= htmlspecialchars($r['payment_status']??'-') ?></span></td>
+                <td><span class="badge bg-info"><?= htmlspecialchars($r['status']) ?></span></td>
+                <td class="col-tgl col-hide-sm"><?= htmlspecialchars(date('d M Y H:i', strtotime($r['created_at']))) ?></td>
+                <td class="text-end">
+                  <?php if ($bisaLacak): ?>
+                    <button type="button"
+                            class="btn btn-sm btn-danger btn-lacak"
+                            data-kode="<?= htmlspecialchars($r['kode']) ?>">
+                      <i class="bi bi-geo-alt-fill"></i> Lacak Driver
+                    </button>
+                  <?php else: ?>
+                    <span class="text-muted">—</span>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
       <?php endif; ?>
     <?php endif; ?>
   </div>
@@ -595,6 +617,9 @@ if ($berhasilKode !== ''):
       <div class="card-body p-2 d-flex flex-column">
         <?php if(!empty($r['kategori'])): ?>
           <span class="badge bg-success-subtle text-success mb-1 align-self-start"><i class="bi bi-tag-fill"></i> <?= htmlspecialchars($r['kategori']) ?></span>
+        <?php endif; ?>
+        <?php if(!empty($r['toko_nama'])): ?>
+          <div class="small text-warning-emphasis mb-1" style="font-size:.7rem"><i class="bi bi-shop"></i> <?= htmlspecialchars($r['toko_nama']) ?></div>
         <?php endif; ?>
         <div class="fw-semibold small"><?= htmlspecialchars($r['nama']) ?></div>
         <div class="text-success small fw-bold mb-1">Rp <?= number_format((int)$r['harga'],0,',','.') ?></div>
@@ -995,19 +1020,60 @@ document.addEventListener('DOMContentLoaded', function(){
   </div>
 </div>
 
+<style>
+/* ===== Marker desain (pemesan & kurir) ===== */
+.jjn-marker{
+  display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;border-radius:50%;
+  font-size:20px;color:#fff;border:3px solid #fff;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  position:relative;
+}
+.jjn-marker::after{
+  content:"";position:absolute;left:50%;bottom:-8px;
+  transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:inherit;
+}
+.jjn-marker-pemesan{ background:#16a34a; border-color:#bbf7d0; }
+.jjn-marker-pemesan::after{ color:#16a34a; }
+.jjn-marker-kurir{ background:#dc2626; border-color:#fecaca; }
+.jjn-marker-kurir::after{ color:#dc2626; }
+.jjn-marker-uin{ background:#2563eb; border-color:#bfdbfe; width:38px;height:38px;font-size:17px; }
+.jjn-marker-uin::after{ color:#2563eb; }
+.jjn-pulse{
+  position:absolute; inset:-6px; border-radius:50%;
+  background:rgba(220,38,38,.35); animation:jjnPulse 1.6s ease-out infinite;
+  z-index:-1;
+}
+@keyframes jjnPulse{
+  0%{ transform:scale(.6); opacity:.9 }
+  100%{ transform:scale(1.6); opacity:0 }
+}
+</style>
 <script>
 (function(){
-  var map=null, mDriver=null, mPickup=null, mUIN=null, pollTimer=null, currentKode=null;
+  var map=null, mDriver=null, mPickup=null, mUIN=null, routeLine=null, pollTimer=null, currentKode=null;
   var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>};
+
+  function divIcon(cls, html, size){
+    size = size || 44;
+    return L.divIcon({
+      className:'jjn-divicon',
+      html:'<div class="jjn-marker '+cls+'">'+html+'</div>',
+      iconSize:[size,size], iconAnchor:[size/2,size/2], popupAnchor:[0,-size/2]
+    });
+  }
 
   function ensureMap(){
     if (map) return;
-    map = L.map('lacakMap').setView([UIN.lat, UIN.lng], 15);
+    map = L.map('lacakMap', {zoomControl:true}).setView([UIN.lat, UIN.lng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap'
     }).addTo(map);
-    mUIN = L.marker([UIN.lat, UIN.lng], {title:'UIN SGD Bandung'})
-              .addTo(map).bindPopup('<strong>UIN SGD Bandung</strong>');
+    mUIN = L.marker([UIN.lat, UIN.lng], {
+      icon: divIcon('jjn-marker-uin','<i class="bi bi-mortarboard-fill"></i>',38),
+      title:'UIN SGD Bandung'
+    }).addTo(map).bindPopup('<strong>UIN SGD Bandung</strong><br><small>Titik referensi kampus</small>');
   }
 
   function timeAgo(iso){
@@ -1016,6 +1082,14 @@ document.addEventListener('DOMContentLoaded', function(){
     if (s<60) return s+' detik lalu';
     if (s<3600) return Math.floor(s/60)+' menit lalu';
     return Math.floor(s/3600)+' jam lalu';
+  }
+
+  function drawRoute(driver, pickup){
+    if (!driver || !pickup) { if (routeLine){ map.removeLayer(routeLine); routeLine=null; } return; }
+    var latlngs = [[driver.lat,driver.lng],[pickup.lat,pickup.lng]];
+    if (!routeLine){
+      routeLine = L.polyline(latlngs, {color:'#dc2626', weight:4, opacity:.7, dashArray:'8 8'}).addTo(map);
+    } else routeLine.setLatLngs(latlngs);
   }
 
   function fetchOnce(){
@@ -1029,33 +1103,31 @@ document.addEventListener('DOMContentLoaded', function(){
         var pts = [[UIN.lat,UIN.lng]];
 
         if (j.pickup) {
+          var iconPemesan = divIcon('jjn-marker-pemesan','<i class="bi bi-person-fill"></i>');
           if (!mPickup) {
-            mPickup = L.marker([j.pickup.lat, j.pickup.lng], {title:'Tujuan Pengantaran'})
-                       .addTo(map).bindPopup('<strong>Tujuan Anda</strong>');
-          } else mPickup.setLatLng([j.pickup.lat, j.pickup.lng]);
+            mPickup = L.marker([j.pickup.lat, j.pickup.lng], {icon:iconPemesan, title:'Pemesan'})
+                       .addTo(map).bindPopup('<strong>📍 Lokasi Pemesan</strong><br><small>Tujuan pengantaran</small>');
+          } else { mPickup.setLatLng([j.pickup.lat, j.pickup.lng]); mPickup.setIcon(iconPemesan); }
           pts.push([j.pickup.lat, j.pickup.lng]);
         }
         if (j.has_driver && j.driver) {
-          var icon = L.divIcon({
-            className:'jjn-driver-icon',
-            html:'<div style="background:#dc2626;color:#fff;border-radius:999px;padding:6px 8px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.4);border:2px solid #fff"><i class="bi bi-scooter"></i></div>',
-            iconSize:[36,36], iconAnchor:[18,18]
-          });
+          var iconKurir = divIcon('jjn-marker-kurir','<span class="jjn-pulse"></span><i class="bi bi-scooter"></i>');
           if (!mDriver) {
-            mDriver = L.marker([j.driver.lat, j.driver.lng], {icon:icon, title:'Driver'})
-                       .addTo(map).bindPopup('<strong>Driver</strong>');
-          } else mDriver.setLatLng([j.driver.lat, j.driver.lng]);
+            mDriver = L.marker([j.driver.lat, j.driver.lng], {icon:iconKurir, title:'Kurir'})
+                       .addTo(map).bindPopup('<strong>🛵 Kurir</strong><br><small>Posisi realtime</small>');
+          } else { mDriver.setLatLng([j.driver.lat, j.driver.lng]); mDriver.setIcon(iconKurir); }
           pts.push([j.driver.lat, j.driver.lng]);
+          drawRoute(j.driver, j.pickup);
           document.getElementById('lacakInfo').innerHTML =
-            '<i class="bi bi-broadcast text-danger"></i> Driver terakhir update: <strong>'+timeAgo(j.driver.updated_at)+'</strong>';
+            '<i class="bi bi-broadcast text-danger"></i> Kurir terakhir update: <strong>'+timeAgo(j.driver.updated_at)+'</strong>';
         } else if (j.has_driver) {
           document.getElementById('lacakInfo').innerHTML =
-            '<i class="bi bi-hourglass-split"></i> Driver sudah ditugaskan tapi belum mengaktifkan berbagi lokasi.';
+            '<i class="bi bi-hourglass-split"></i> Kurir sudah ditugaskan tapi belum mengaktifkan berbagi lokasi.';
         } else {
           document.getElementById('lacakInfo').innerHTML =
-            '<i class="bi bi-info-circle"></i> Belum ada driver yang mengambil pesanan ini.';
+            '<i class="bi bi-info-circle"></i> Belum ada kurir yang mengambil pesanan ini.';
         }
-        if (pts.length>1) map.fitBounds(pts, {padding:[30,30], maxZoom:17});
+        if (pts.length>1) map.fitBounds(pts, {padding:[40,40], maxZoom:17});
       })
       .catch(function(){ document.getElementById('lacakInfo').textContent='Koneksi gagal, akan dicoba lagi…'; });
   }
@@ -1068,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!btn) return;
     currentKode = btn.getAttribute('data-kode');
     document.getElementById('lacakKode').textContent = currentKode;
-    document.getElementById('lacakInfo').textContent = 'Mengambil data driver…';
+    document.getElementById('lacakInfo').textContent = 'Mengambil data kurir…';
     if (modal) modal.show();
     setTimeout(function(){ ensureMap(); map.invalidateSize(); fetchOnce();
       if (pollTimer) clearInterval(pollTimer);
@@ -1078,6 +1150,9 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnRefreshDriver').addEventListener('click', fetchOnce);
   if (modalEl) modalEl.addEventListener('hidden.bs.modal', function(){
     if (pollTimer) { clearInterval(pollTimer); pollTimer=null; }
+    if (mDriver){ map.removeLayer(mDriver); mDriver=null; }
+    if (mPickup){ map.removeLayer(mPickup); mPickup=null; }
+    if (routeLine){ map.removeLayer(routeLine); routeLine=null; }
   });
 })();
 </script>

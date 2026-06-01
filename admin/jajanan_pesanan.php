@@ -25,13 +25,24 @@ $members = db_all("SELECT id, nama FROM users WHERE role IN ('member','admin') O
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-bag-heart text-warning"></i> Pesanan Jajanan</h2>
-<p class="text-muted small">Tetapkan kurir dari member terdaftar dan ubah status pesanan.</p>
+<p class="text-muted small">Tetapkan kurir dari member terdaftar dan ubah status pesanan. Kolom <strong>Toko &amp; Produk</strong> menampilkan toko/pedagang asal tiap item pesanan.</p>
 
 <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
-  <thead><tr><th>Kode</th><th>Pemesan</th><th>Alamat</th><th>Item</th><th class="text-end">Total</th><th>Status</th><th>Kurir (member)</th><th class="text-end">Aksi</th></tr></thead>
+  <thead><tr><th>Kode</th><th>Pemesan</th><th>Alamat</th><th>Toko &amp; Produk</th><th class="text-end">Total</th><th>Status</th><th>Kurir (member)</th><th class="text-end">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $r):
-    $items = db_all("SELECT * FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$r['id']]);
+    $items = db_all("SELECT i.*, j.toko_id, t.nama AS toko_nama
+                     FROM jajanan_pesanan_item i
+                     LEFT JOIN jajanan j ON j.id = i.jajanan_id
+                     LEFT JOIN toko t    ON t.id = j.toko_id
+                     WHERE i.pesanan_id=$1
+                     ORDER BY t.nama NULLS LAST, i.id",[(int)$r['id']]);
+    // group items by toko
+    $grouped = [];
+    foreach($items as $it){
+      $key = $it['toko_nama'] ?: '— Tanpa Toko —';
+      $grouped[$key][] = $it;
+    }
   ?>
     <tr>
       <td class="small"><strong><?= htmlspecialchars($r['kode']) ?></strong><br><span class="text-muted"><?= date('d M H:i', strtotime($r['created_at'])) ?></span></td>
@@ -39,9 +50,14 @@ include __DIR__.'/../includes/header.php';
       <td class="small" style="max-width:220px"><?= nl2br(htmlspecialchars($r['alamat'])) ?>
         <?php if(!empty($r['catatan'])): ?><div class="text-muted"><em><?= htmlspecialchars($r['catatan']) ?></em></div><?php endif; ?>
       </td>
-      <td class="small">
-        <?php foreach($items as $it): ?>
-          <div><?= (int)$it['qty'] ?>× <?= htmlspecialchars($it['nama']) ?> <span class="text-muted">@<?= number_format((int)$it['harga'],0,',','.') ?></span></div>
+      <td class="small" style="min-width:220px">
+        <?php foreach($grouped as $tokoNama => $its): ?>
+          <div class="mb-1">
+            <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop"></i> <?= htmlspecialchars($tokoNama) ?></span>
+            <?php foreach($its as $it): ?>
+              <div class="ms-2"><i class="bi bi-dot"></i><?= (int)$it['qty'] ?>× <?= htmlspecialchars($it['nama']) ?> <span class="text-muted">@<?= number_format((int)$it['harga'],0,',','.') ?></span></div>
+            <?php endforeach; ?>
+          </div>
         <?php endforeach; ?>
       </td>
       <td class="text-end">Rp <?= number_format((int)$r['total'],0,',','.') ?>
