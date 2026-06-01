@@ -306,14 +306,19 @@ if ($ajax === 'detail_pesanan' && $_SERVER['REQUEST_METHOD']==='GET') {
                      WHERE i.pesanan_id=$1 ORDER BY i.id",[(int)$o['id']]);
     $kurir = null;
     if (!empty($o['kurir_user_id'])) {
-        $u2 = db_one("SELECT id, nama, COALESCE(nomor_wa,'') AS nomor_wa FROM users WHERE id=$1",[(int)$o['kurir_user_id']]);
+        // Revisi 1 Jun 2026 #2 — sertakan foto profil & nomor telepon kurir
+        $u2 = db_one("SELECT id, nama, COALESCE(nomor_wa,'') AS nomor_wa,
+                              COALESCE(foto_url,'') AS foto_url
+                       FROM users WHERE id=$1",[(int)$o['kurir_user_id']]);
         if ($u2) {
             $waN = jjn_normalize_phone($u2['nomor_wa'] ?? '');
             $kurir = [
-                'nama'   => $u2['nama'],
-                'no_wa'  => $waN,
-                'wa_link'=> $waN ? ('https://wa.me/'.$waN) : null,
-                'tel'    => $waN ? ('tel:+'.$waN) : null,
+                'nama'    => $u2['nama'],
+                'foto_url'=> $u2['foto_url'] ?: null,
+                'no_wa'   => $waN,
+                'wa_display' => $waN ? ('+'.$waN) : '-',
+                'wa_link' => $waN ? ('https://wa.me/'.$waN) : null,
+                'tel'     => $waN ? ('tel:+'.$waN) : null,
             ];
         }
     }
@@ -821,9 +826,25 @@ if ($berhasilKode !== ''):
 
 <!-- ===== Modal Pemesanan ===== -->
 <style>
-#pesanModal .modal-body { overflow-y: auto !important; max-height: calc(100vh - 150px); }
-@media (max-width: 576px) { #pesanModal .modal-body { max-height: calc(100vh - 130px); } }
-.modal-fullscreen-sm-down .modal-content { max-height: 100vh !important; }
+/* Revisi 1 Jun 2026 — pastikan body modal benar2 bisa di-scroll &
+   tombol "Bayar via Midtrans" di footer tidak pernah tertutup. */
+#pesanModal .modal-content{ display:flex; flex-direction:column; max-height:100vh; max-height:100dvh; overflow:hidden; }
+#pesanModal .modal-header,
+#pesanModal form{ flex:0 0 auto; }
+#pesanModal form{ display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+#pesanModal .modal-body{
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
+  flex:1 1 auto; min-height:0; padding-bottom:1rem;
+}
+#pesanModal .modal-footer{
+  position:sticky; bottom:0; background:#fff; z-index:5;
+  box-shadow:0 -4px 12px -8px rgba(0,0,0,.15);
+  padding-bottom:calc(.75rem + env(safe-area-inset-bottom,0px));
+}
+@media (max-width:576px){
+  #pesanModal .modal-dialog{ margin:0; height:100dvh; max-width:100%; }
+  #pesanModal .modal-content{ height:100dvh; max-height:100dvh; border-radius:0; }
+}
 </style>
 <div class="modal fade" id="pesanModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
@@ -1395,6 +1416,8 @@ document.addEventListener('DOMContentLoaded', function(){
   background:linear-gradient(135deg,#fef3c7,#fef9c3); border:1px solid #fde68a;
   border-radius:.5rem; padding:.6rem .7rem; font-size:.82rem;
 }
+.jjn-kurir-avatar{ width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.12); }
+.jjn-kurir-avatar-fallback{ display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#f59e0b,#dc2626); color:#fff; font-weight:700; font-size:1.4rem; }
 </style>
 
 <!-- ===== Preloader ===== -->
@@ -1808,11 +1831,22 @@ document.addEventListener('DOMContentLoaded', function(){
         var sisa = Math.max(0, tot - sub - ong);
         var kurirHtml = '';
         if (j.kurir){
+          var fotoSrc = j.kurir.foto_url ? j.kurir.foto_url : '';
+          var initial = (j.kurir.nama||'?').charAt(0).toUpperCase();
+          var avatar = fotoSrc
+            ? '<img src="'+fotoSrc.replace(/"/g,'&quot;')+'" alt="" class="jjn-kurir-avatar">'
+            : '<div class="jjn-kurir-avatar jjn-kurir-avatar-fallback">'+initial+'</div>';
+          var waDisp = j.kurir.wa_display || (j.kurir.no_wa ? ('+'+j.kurir.no_wa) : '-');
           kurirHtml =
             '<div class="jjn-kurir-card mt-3">'+
-              '<div class="fw-semibold mb-1"><i class="bi bi-scooter"></i> Kurir Anda</div>'+
-              '<div><strong>'+(j.kurir.nama||'-').replace(/</g,'&lt;')+'</strong></div>'+
-              '<div class="small">Telp/WA: '+(j.kurir.no_wa? ('+'+j.kurir.no_wa) :'-')+'</div>'+
+              '<div class="fw-semibold mb-2"><i class="bi bi-scooter"></i> Kurir Anda</div>'+
+              '<div class="d-flex align-items-center gap-3">'+
+                avatar +
+                '<div class="flex-grow-1">'+
+                  '<div><strong>'+(j.kurir.nama||'-').replace(/</g,'&lt;')+'</strong></div>'+
+                  '<div class="small"><i class="bi bi-telephone-fill"></i> '+waDisp+'</div>'+
+                '</div>'+
+              '</div>'+
               '<div class="mt-2 d-flex gap-2 flex-wrap">'+
                 (j.kurir.wa_link?('<a class="btn btn-sm btn-success" href="'+j.kurir.wa_link+'" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> Chat WhatsApp</a>'):'')+
                 (j.kurir.tel    ?('<a class="btn btn-sm btn-outline-success" href="'+j.kurir.tel+'"><i class="bi bi-telephone"></i> Telepon</a>'):'')+

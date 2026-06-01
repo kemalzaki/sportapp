@@ -1,4 +1,59 @@
 </main>
+<!-- ===== Revisi 1 Jun 2026 #3 — Skeleton loading global =====
+     Pakai di halaman manapun:
+       <div class="skeleton skel-line" style="width:60%"></div>
+       <div class="skeleton skel-block" style="height:120px"></div>
+       <div class="skeleton skel-circle" style="width:56px;height:56px"></div>
+     Atau panggil via JS: SK.rows(targetEl, 3) — render 3 baris skeleton.
+-->
+<style>
+.skeleton{
+  position:relative; overflow:hidden;
+  background:linear-gradient(90deg,#eef2f7 0%,#f7fafc 50%,#eef2f7 100%);
+  background-size:200% 100%; animation:skelShimmer 1.2s ease-in-out infinite;
+  border-radius:.45rem; display:block;
+}
+.skel-line{ height:14px; margin:.35rem 0; width:100%; }
+.skel-line.sm{ height:10px; }
+.skel-line.lg{ height:18px; }
+.skel-block{ height:80px; margin:.4rem 0; }
+.skel-circle{ border-radius:50%; }
+.skel-card{ padding:.85rem; border:1px solid #e5e7eb; border-radius:.6rem; margin-bottom:.6rem; background:#fff; }
+@keyframes skelShimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+[data-bs-theme=dark] .skeleton{
+  background:linear-gradient(90deg,#1f2937 0%,#273345 50%,#1f2937 100%); background-size:200% 100%;
+}
+[data-bs-theme=dark] .skel-card{ background:#0f172a; border-color:#1f2937; }
+</style>
+<script>
+/* Helper skeleton global. Idempotent — aman dipanggil berkali-kali. */
+window.SK = window.SK || {
+  rows: function(el, n){
+    if (!el) return; n = Math.max(1, n||3);
+    var h = ''; for (var i=0;i<n;i++){ h += '<div class="skeleton skel-line" style="width:'+(60+Math.random()*40)+'%"></div>'; }
+    el.innerHTML = h;
+  },
+  cards: function(el, n){
+    if (!el) return; n = Math.max(1, n||3);
+    var h = ''; for (var i=0;i<n;i++){
+      h += '<div class="skel-card">'+
+             '<div class="d-flex gap-2 align-items-center mb-2">'+
+               '<div class="skeleton skel-circle" style="width:42px;height:42px"></div>'+
+               '<div style="flex:1"><div class="skeleton skel-line" style="width:60%"></div>'+
+               '<div class="skeleton skel-line sm" style="width:40%"></div></div>'+
+             '</div>'+
+             '<div class="skeleton skel-block" style="height:60px"></div>'+
+           '</div>';
+    }
+    el.innerHTML = h;
+  },
+  block: function(el, h){
+    if (!el) return;
+    el.innerHTML = '<div class="skeleton skel-block" style="height:'+(h||120)+'px"></div>';
+  }
+};
+</script>
+
 <?php include __DIR__ . '/bottom_nav.php'; ?>
 <?php include __DIR__ . '/dm_floating.php'; ?>
 <footer class="app-footer text-center text-muted py-3 small">
