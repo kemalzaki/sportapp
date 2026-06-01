@@ -1,6 +1,10 @@
 <?php
 // Sticky bottom nav (gaya Gojek) + floating upload button. Hanya tampil saat login.
 // Revisi 1 Jun 2026: redesign menu navigasi seperti aplikasi Gojek di mobile.
+// Guard: cegah include ganda (mis. dipanggil di halaman + di footer.php) yang
+// menyebabkan "Cannot redeclare _gj_active()".
+if (defined('GJ_BOTTOM_NAV_RENDERED')) return;
+define('GJ_BOTTOM_NAV_RENDERED', true);
 $u = current_user();
 if (!$u) return;
 require_once __DIR__ . '/notifications.php';
@@ -11,8 +15,10 @@ $navFoto  = $_navFoto['foto_url'] ?? null;
 
 // Tentukan halaman aktif berdasarkan script name
 $_cur = basename($_SERVER['SCRIPT_NAME'] ?? '');
-function _gj_active($file, $cur){
-  return in_array($cur, (array)$file, true) ? 'active' : '';
+if (!function_exists('_gj_active')) {
+  function _gj_active($file, $cur){
+    return in_array($cur, (array)$file, true) ? 'active' : '';
+  }
 }
 ?>
 <link rel="stylesheet" href="/assets/css/gojek-nav.css?v=1jun2026">

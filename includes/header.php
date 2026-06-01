@@ -186,12 +186,26 @@ if ($u) {
         <?php if ($u['role']==='admin'): ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
           <a class="list-group-item list-group-item-action" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
+          <a class="list-group-item list-group-item-action" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a>
+          <a class="list-group-item list-group-item-action" href="/admin/absensi.php"><i class="bi bi-clipboard-check"></i> Input Absensi</a>
+          <a class="list-group-item list-group-item-action" href="/admin/qr_show.php"><i class="bi bi-qr-code"></i> QR Check-in</a>
           <a class="list-group-item list-group-item-action" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
+          <a class="list-group-item list-group-item-action" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
+          <a class="list-group-item list-group-item-action" href="/admin/tempat.php"><i class="bi bi-geo-alt-fill"></i> CRUD Tempat</a>
+          <a class="list-group-item list-group-item-action" href="/admin/event.php"><i class="bi bi-trophy"></i> Pengaturan Event</a>
+          <a class="list-group-item list-group-item-action" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a>
+          <a class="list-group-item list-group-item-action" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a>
+          <a class="list-group-item list-group-item-action" href="/admin/challenge.php"><i class="bi bi-trophy-fill text-warning"></i> Kelola Challenge Islami</a>
+          <a class="list-group-item list-group-item-action" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
           <a class="list-group-item list-group-item-action" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
+          <div class="px-3 pt-2 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Donasi &amp; Jajanan</div>
+          <a class="list-group-item list-group-item-action" href="/admin/donasi_rekening.php"><i class="bi bi-bank text-success"></i> Rekening Donasi Kegiatan</a>
           <a class="list-group-item list-group-item-action" href="/admin/toko.php"><i class="bi bi-shop-window"></i> Toko &amp; Produk</a>
           <a class="list-group-item list-group-item-action" href="/admin/jajanan.php"><i class="bi bi-bag-heart"></i> Jajanan</a>
+          <a class="list-group-item list-group-item-action" href="/admin/jajanan_pesanan.php"><i class="bi bi-bag-check text-warning"></i> Pesanan Jajanan</a>
           <a class="list-group-item list-group-item-action" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
         <?php endif; ?>
+
         <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
       <?php else: ?>
         <a class="list-group-item list-group-item-action" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Masuk</a>

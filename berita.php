@@ -297,5 +297,5 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<?php include __DIR__.'/includes/bottom_nav.php'; ?>
+<?php /* bottom_nav.php sudah di-include oleh footer.php — hindari include ganda */ ?>
 <?php include __DIR__.'/includes/footer.php'; ?>
