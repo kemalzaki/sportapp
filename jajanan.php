@@ -1420,6 +1420,40 @@ document.addEventListener('DOMContentLoaded', function(){
   padding:.65rem .75rem; margin:.5rem -1rem -1rem; box-shadow:0 -6px 14px -10px rgba(0,0,0,.15);
 }
 
+/* === Revisi: paksa #tokoModal scrollable. Wrapper <form> di antara
+   .modal-content & .modal-body memutus layout flex bawaan Bootstrap
+   `modal-dialog-scrollable`, sehingga body tidak punya tinggi terbatas
+   dan tidak bisa di-scroll. Rule berikut memulihkan layout flex
+   end-to-end (modal-content → form → modal-body) + sticky footer
+   yang tetap terlihat saat keyboard mobile muncul. */
+#tokoModal .modal-dialog{ display:flex; align-items:stretch; max-height:100dvh; }
+#tokoModal .modal-content{
+  display:flex; flex-direction:column;
+  max-height:calc(100dvh - 1rem); height:auto;
+  overflow:hidden;
+}
+#tokoModal .jjn-toko-head{ flex:0 0 auto; }
+#tokoModal form{
+  display:flex; flex-direction:column;
+  flex:1 1 auto; min-height:0; overflow:hidden;
+}
+#tokoModal .modal-body{
+  flex:1 1 auto; min-height:0;
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
+  padding-bottom:1rem;
+}
+#tokoModal .modal-footer{
+  flex:0 0 auto;
+  position:sticky; bottom:0; background:#fff; z-index:5;
+  border-top:1px solid #e5e7eb;
+  box-shadow:0 -6px 14px -10px rgba(0,0,0,.2);
+  padding-bottom:calc(.75rem + env(safe-area-inset-bottom,0px));
+}
+@media (max-width:576px){
+  #tokoModal .modal-dialog{ margin:0; height:100dvh; max-height:100dvh; max-width:100%; }
+  #tokoModal .modal-content{ height:100dvh; max-height:100dvh; border-radius:0; }
+}
+
 /* ===== Detail Pesanan ===== */
 .jjn-detail-row{ display:flex; justify-content:space-between; padding:.25rem 0; font-size:.85rem; }
 .jjn-detail-row.total{ font-weight:700; border-top:1px dashed #cbd5e1; padding-top:.4rem; margin-top:.3rem; color:#16a34a; }

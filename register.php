@@ -56,14 +56,14 @@ $waLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM).'?text='.ra
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1d3a">
+<meta name="theme-color" content="#0ea5e9">
 <title>Daftar · HapFam SportApp</title>
 <link rel="icon" href="/assets/icon-192.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{ --brand:#1e3a8a; --brand-2:#0b1d3a; --brand-glow:#3b82f6; --ink:#0f172a; --muted:#64748b; }
+:root{ --brand:#0ea5e9; --brand-2:#6366f1; --brand-glow:#38bdf8; --ink:#0f172a; --muted:#64748b; }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; min-height:100dvh; }
 body{
@@ -75,15 +75,15 @@ body{
 .lg-hero{
   position:relative; min-height:32dvh;
   background:
-    radial-gradient(120% 80% at 10% 10%, rgba(59,130,246,.28), transparent 60%),
-    linear-gradient(135deg,#0b1d3a 0%, #1e3a8a 55%, #0f172a 100%);
+    radial-gradient(120% 80% at 10% 10%, rgba(125,211,252,.35), transparent 60%),
+    linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
   color:#fff; padding:2.2rem 1.5rem 1.8rem;
   border-bottom-left-radius:36px; border-bottom-right-radius:36px;
   overflow:hidden;
 }
 .lg-hero::after{
   content:""; position:absolute; right:-60px; top:-60px; width:240px; height:240px;
-  background:radial-gradient(circle, rgba(59,130,246,.6) 0%, transparent 65%); opacity:.35; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55) 0%, transparent 65%); opacity:.35; border-radius:50%;
 }
 .lg-logo{
   width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.14);
@@ -105,7 +105,7 @@ body{
   border:1.5px solid #e2e8f0; border-radius:14px; padding:.8rem 1rem;
   font-size:.98rem; width:100%; background:#f8fafc; transition:all .18s ease;
 }
-.lg-input:focus, .lg-select:focus{ border-color:var(--brand-glow); background:#fff; outline:none; box-shadow:0 0 0 4px rgba(59,130,246,.18); }
+.lg-input:focus, .lg-select:focus{ border-color:var(--brand-glow); background:#fff; outline:none; box-shadow:0 0 0 4px rgba(56,189,248,.22); }
 .lg-input-group{ display:flex; gap:.5rem; }
 .lg-input-group .lg-input{ flex:1 1 auto; }
 .lg-input-group .lg-wa-btn{
@@ -114,9 +114,9 @@ body{
   box-shadow:0 6px 16px -8px rgba(22,163,74,.6);
 }
 .btn-lg-primary{
-  background:linear-gradient(135deg,var(--brand-2),var(--brand) 55%,var(--brand-glow)); color:#fff;
+  background:linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%); color:#fff;
   border:0; border-radius:14px; padding:.95rem 1rem; font-weight:700; font-size:1rem; width:100%;
-  box-shadow:0 10px 22px -10px rgba(30,58,138,.65);
+  box-shadow:0 10px 22px -10px rgba(14,165,233,.6);
   transition:transform .12s ease, box-shadow .18s ease;
 }
 .btn-lg-primary:active{ transform:translateY(1px); }
