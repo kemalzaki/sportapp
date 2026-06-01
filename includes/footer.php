@@ -50,8 +50,44 @@ window.SK = window.SK || {
   block: function(el, h){
     if (!el) return;
     el.innerHTML = '<div class="skeleton skel-block" style="height:'+(h||120)+'px"></div>';
+  },
+  /* Isi otomatis semua elemen [data-skel] dengan skeleton sesuai tipenya.
+     Contoh penggunaan di halaman manapun:
+       <div data-skel="rows" data-skel-count="5"> ... data asli ... </div>
+       <div data-skel="cards" data-skel-count="3"></div>
+       <div data-skel="block" data-skel-h="180"></div>
+     Skeleton hanya digambar SETELAH halaman terbuka (DOMContentLoaded),
+     sehingga efeknya muncul "setelah pindah halaman", bukan sebelumnya.
+     Tandai data-skel-keep="1" agar skeleton tidak otomatis dihapus saat
+     halaman selesai load (mis. menunggu fetch JS milik halaman). */
+  auto: function(root){
+    var scope = root || document;
+    scope.querySelectorAll('[data-skel]').forEach(function(el){
+      if (el.dataset.skelDone === '1') return;
+      var kind = el.getAttribute('data-skel') || 'rows';
+      var n = parseInt(el.getAttribute('data-skel-count')||'3',10);
+      var h = parseInt(el.getAttribute('data-skel-h')||'120',10);
+      if (kind === 'cards') window.SK.cards(el, n);
+      else if (kind === 'block') window.SK.block(el, h);
+      else window.SK.rows(el, n);
+      el.dataset.skelDone = '1';
+    });
+  },
+  /* Wrapper fetch yang otomatis menampilkan skeleton di target sampai
+     response datang. Mengembalikan promise teks. */
+  fetch: function(url, targetEl, kind, opts){
+    if (targetEl){
+      if (kind === 'cards') window.SK.cards(targetEl, (opts&&opts.count)||3);
+      else if (kind === 'block') window.SK.block(targetEl, (opts&&opts.h)||120);
+      else window.SK.rows(targetEl, (opts&&opts.count)||3);
+    }
+    return fetch(url, Object.assign({credentials:'same-origin'}, opts||{}))
+      .then(function(r){ return (opts&&opts.json) ? r.json() : r.text(); });
   }
 };
+/* Jalankan auto-skeleton begitu DOM siap → muncul setelah halaman terbuka. */
+document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto(); } catch(e){} });
+
 </script>
 
 <?php include __DIR__ . '/bottom_nav.php'; ?>
@@ -146,30 +182,11 @@ window.SK = window.SK || {
   window.addEventListener('pageshow', hideAll);
   window.addEventListener('popstate', function(){ start(); setTimeout(done, 600); });
 
-  // Klik link internal → tampilkan loader (akan otomatis hilang saat halaman baru load)
-  document.addEventListener('click', function(ev){
-    var a = ev.target.closest && ev.target.closest('a');
-    if (!a) return;
-    var href = a.getAttribute('href') || '';
-    if (!href || href.charAt(0) === '#') return;
-    if (a.target === '_blank' || a.hasAttribute('download')) return;
-    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button === 1) return;
-    if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
-    try {
-      var u = new URL(a.href, location.href);
-      if (u.origin !== location.origin) return;
-    } catch(e){ return; }
-    start();
-  }, true);
+  // Revisi: TIDAK lagi menampilkan loader saat klik link / submit / beforeunload.
+  // Efek loading (skeleton) sekarang muncul SETELAH pindah halaman, dijalankan
+  // oleh SK.auto() pada DOMContentLoaded di halaman tujuan. Loader top-bar
+  // tetap aktif untuk request AJAX/XHR di bawah ini.
 
-  // Form submit (CRUD)
-  document.addEventListener('submit', function(ev){
-    start();
-    setTimeout(function(){ if (ev.defaultPrevented) done(); }, 50);
-  }, true);
-
-  // Saat benar-benar navigasi keluar
-  window.addEventListener('beforeunload', function(){ start(); });
 
   // Bungkus fetch & XHR agar request AJAX juga menampilkan progress
   if (window.fetch){

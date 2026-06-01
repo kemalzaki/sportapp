@@ -16,6 +16,17 @@ $__onDmPage = (basename($__self) === 'dm.php');
 #fbDmFab:hover{transform:scale(1.06);}
 #fbDmFab .badge{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:999px;
   font-size:.65rem;padding:2px 6px;border:2px solid #fff;display:none;}
+/* Tombol close kecil di FAB — sembunyikan widget chat yang melayang */
+#fbDmFabClose{position:absolute;top:-6px;left:-6px;width:22px;height:22px;border-radius:50%;
+  background:#0f172a;color:#fff;border:2px solid #fff;font-size:.8rem;line-height:1;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2);padding:0;}
+#fbDmFabClose:hover{background:#ef4444;}
+/* Pil kecil untuk memunculkan kembali setelah ditutup */
+#fbDmReopen{position:fixed;right:14px;bottom:90px;z-index:1070;background:rgba(15,23,42,.75);color:#fff;
+  border:0;border-radius:999px;padding:4px 10px;font-size:.72rem;cursor:pointer;display:none;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);}
+#fbDmReopen:hover{background:#0ea5e9;}
+
 #fbDmPanel{position:fixed;right:18px;bottom:158px;z-index:1071;width:340px;max-width:92vw;height:480px;max-height:75vh;
   background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(2,6,23,.25);display:none;flex-direction:column;overflow:hidden;border:1px solid #e2e8f0;}
 #fbDmPanel.open{display:flex;}
@@ -69,7 +80,10 @@ $__onDmPage = (basename($__self) === 'dm.php');
 <button id="fbDmFab" title="Pesan" aria-label="Pesan">
   <i class="bi bi-chat-dots-fill"></i>
   <span class="badge" id="fbDmBadge">0</span>
+  <span id="fbDmFabClose" title="Sembunyikan ikon chat" aria-label="Sembunyikan ikon chat">×</span>
 </button>
+<button type="button" id="fbDmReopen" title="Tampilkan kembali ikon chat"><i class="bi bi-chat-dots"></i> Pesan</button>
+
 
 <div id="fbDmPanel" role="dialog" aria-label="Daftar Pesan">
   <header>
@@ -126,6 +140,32 @@ $__onDmPage = (basename($__self) === 'dm.php');
 
   function esc(t){return (t||'').toString().replace(/[<>&]/g, c=>({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c]));}
   function fmtTime(s){ try{ var d=new Date(s); return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} }
+
+  // ===== Tutup / tampilkan kembali FAB chat (persisten di localStorage) =====
+  var fabCloseBtn = document.getElementById('fbDmFabClose');
+  var reopenBtn = document.getElementById('fbDmReopen');
+  var HIDE_KEY = 'hf_dm_fab_hidden';
+  function applyHidden(hidden){
+    if (hidden){
+      fab.style.display = 'none';
+      panel.classList.remove('open');
+      chat.classList.remove('open');
+      reopenBtn.style.display = 'inline-flex';
+    } else {
+      fab.style.display = 'flex';
+      reopenBtn.style.display = 'none';
+    }
+  }
+  try { applyHidden(localStorage.getItem(HIDE_KEY) === '1'); } catch(e){}
+  fabCloseBtn.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    try { localStorage.setItem(HIDE_KEY, '1'); } catch(e){}
+    applyHidden(true);
+  });
+  reopenBtn.addEventListener('click', function(){
+    try { localStorage.removeItem(HIDE_KEY); } catch(e){}
+    applyHidden(false);
+  });
 
   fab.addEventListener('click', function(){
     if (panel.classList.contains('open') || chat.classList.contains('open')) {
