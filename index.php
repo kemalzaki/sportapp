@@ -11,6 +11,12 @@ send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Beranda';
 $u = current_user();
 
+/* === Revisi: ketika pertama buka aplikasi, paksa ke /login.php (kecuali mode guest eksplisit) === */
+if (!$u && empty($_GET['guest']) && empty($_SESSION['guest_ok'])) {
+    header('Location: /login.php'); exit;
+}
+if (!$u && !empty($_GET['guest'])) { $_SESSION['guest_ok'] = 1; }
+
 // ---- Handle forum + social feed actions ----
 if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     csrf_check();

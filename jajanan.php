@@ -306,8 +306,9 @@ if ($ajax === 'detail_pesanan' && $_SERVER['REQUEST_METHOD']==='GET') {
                      WHERE i.pesanan_id=$1 ORDER BY i.id",[(int)$o['id']]);
     $kurir = null;
     if (!empty($o['kurir_user_id'])) {
-        // Revisi 1 Jun 2026 #2 — sertakan foto profil & nomor telepon kurir
-        $u2 = db_one("SELECT id, nama, COALESCE(nomor_wa,'') AS nomor_wa,
+        // Revisi: ambil foto & nomor telepon kurir; fallback ke kolom `wa` jika `nomor_wa` kosong.
+        $u2 = db_one("SELECT id, nama,
+                              COALESCE(NULLIF(nomor_wa,''), NULLIF(wa,'')) AS nomor_wa,
                               COALESCE(foto_url,'') AS foto_url
                        FROM users WHERE id=$1",[(int)$o['kurir_user_id']]);
         if ($u2) {
@@ -316,7 +317,7 @@ if ($ajax === 'detail_pesanan' && $_SERVER['REQUEST_METHOD']==='GET') {
                 'nama'    => $u2['nama'],
                 'foto_url'=> $u2['foto_url'] ?: null,
                 'no_wa'   => $waN,
-                'wa_display' => $waN ? ('+'.$waN) : '-',
+                'wa_display' => $waN ? ('+'.$waN) : 'Nomor belum tersedia',
                 'wa_link' => $waN ? ('https://wa.me/'.$waN) : null,
                 'tel'     => $waN ? ('tel:+'.$waN) : null,
             ];
@@ -570,12 +571,12 @@ if ($berhasilKode !== ''):
 <div class="card mb-3" id="cek-status">
   <div class="card-header bg-light"><i class="bi bi-search"></i> Cek Status Pesanan Saya</div>
   <div class="card-body">
-    <form method="post" class="row g-2 align-items-end">
+    <form method="post" class="row g-2 align-items-end" id="formCekPesanan" onsubmit="(function(f){var b=f.querySelector('button[type=submit]');if(b){b.disabled=true;b.innerHTML='<span class=\'spinner-border spinner-border-sm me-2\'></span>Mengecek…';}})(this);">
       <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
       <input type="hidden" name="_action" value="cek_status">
       <div class="col-md-8"><label class="small">Nama Pemesan</label>
         <input class="form-control form-control-sm" name="cek_nama" required value="<?= htmlspecialchars($cekNama) ?>"></div>
-      <div class="col-md-4"><button class="btn btn-sm btn-primary w-100"><i class="bi bi-search"></i> Cek Pesanan</button></div>
+      <div class="col-md-4"><button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-search"></i> Cek Pesanan</button></div>
     </form>
     <?php if ($cekNama !== ''): ?>
       <hr>
@@ -826,23 +827,33 @@ if ($berhasilKode !== ''):
 
 <!-- ===== Modal Pemesanan ===== -->
 <style>
-/* Revisi 1 Jun 2026 — pastikan body modal benar2 bisa di-scroll &
-   tombol "Bayar via Midtrans" di footer tidak pernah tertutup. */
-#pesanModal .modal-content{ display:flex; flex-direction:column; max-height:100vh; max-height:100dvh; overflow:hidden; }
-#pesanModal .modal-header,
-#pesanModal form{ flex:0 0 auto; }
-#pesanModal form{ display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+/* Revisi: pastikan modal body benar2 scrollable & tombol Bayar di footer
+   selalu terlihat (sticky), termasuk di mobile saat keyboard muncul. */
+#pesanModal .modal-dialog{ display:flex; align-items:stretch; max-height:100dvh; }
+#pesanModal .modal-content{
+  display:flex; flex-direction:column;
+  max-height:calc(100dvh - 1rem); height:auto;
+  overflow:hidden;
+}
+#pesanModal .modal-header{ flex:0 0 auto; }
+#pesanModal form{
+  display:flex; flex-direction:column;
+  flex:1 1 auto; min-height:0; overflow:hidden;
+}
 #pesanModal .modal-body{
+  flex:1 1 auto; min-height:0;
   overflow-y:auto !important; -webkit-overflow-scrolling:touch;
-  flex:1 1 auto; min-height:0; padding-bottom:1rem;
+  padding-bottom:1rem;
 }
 #pesanModal .modal-footer{
+  flex:0 0 auto;
   position:sticky; bottom:0; background:#fff; z-index:5;
-  box-shadow:0 -4px 12px -8px rgba(0,0,0,.15);
+  border-top:1px solid #e5e7eb;
+  box-shadow:0 -6px 14px -10px rgba(0,0,0,.2);
   padding-bottom:calc(.75rem + env(safe-area-inset-bottom,0px));
 }
 @media (max-width:576px){
-  #pesanModal .modal-dialog{ margin:0; height:100dvh; max-width:100%; }
+  #pesanModal .modal-dialog{ margin:0; height:100dvh; max-height:100dvh; max-width:100%; }
   #pesanModal .modal-content{ height:100dvh; max-height:100dvh; border-radius:0; }
 }
 </style>
