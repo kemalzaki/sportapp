@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kesehatan & Obat Herbal';
+$pageSkeleton = 'list'; // Skeleton sesuai data: daftar artikel kesehatan
 
 /**
  * Catatan: Tidak ada API publik gratis terstandar untuk obat herbal Indonesia.

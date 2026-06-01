@@ -60,7 +60,7 @@
 }
 .gt-search input::placeholder{ color: #94a3b8; }
 
-.gt-bell, .gt-avatar{
+.gt-bell, .gt-avatar, .gt-logout{
   width: 40px; height: 40px; border-radius: 50%;
   background: rgba(255,255,255,.10);
   display: inline-flex; align-items: center; justify-content: center;
@@ -68,6 +68,8 @@
   font-size: 1.1rem; border: 0;
 }
 .gt-bell:hover, .gt-avatar:hover{ color: #fff; background: rgba(255,255,255,.18); }
+.gt-logout{ background: rgba(239,68,68,.22); }
+.gt-logout:hover{ color: #fff; background: rgba(239,68,68,.40); }
 .gt-avatar img{ width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .gt-badge-dot{
   position: absolute; top: -2px; right: -2px;

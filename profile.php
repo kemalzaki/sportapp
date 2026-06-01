@@ -9,6 +9,7 @@ send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
 $pageTitle = 'Profil Saya';
+$pageSkeleton = 'profile'; // Skeleton sesuai data: kartu profil
 
 // Pastikan tabel olahraga favorit ada (idempotent — aman tiap load)
 try {
@@ -246,6 +247,12 @@ include __DIR__.'/includes/header.php';
         <span class="pill">⭐ <?= $xp ?> XP</span></div>
       <div class="xp-bar mt-2"><div style="width:<?= min(100,$xpInLevel/2) ?>%"></div></div>
       <small class="text-muted">Butuh <?= $xpToNext ?> XP lagi ke Level <?= $level+1 ?></small>
+
+      <div class="mt-3">
+        <a href="/logout.php" class="btn btn-outline-danger w-100" onclick="return confirm('Keluar dari akun?')">
+          <i class="bi bi-box-arrow-right"></i> Keluar / Logout
+        </a>
+      </div>
 
       <form data-ajax method="post" enctype="multipart/form-data" class="mt-3 text-start">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">

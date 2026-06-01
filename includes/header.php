@@ -87,7 +87,7 @@ if ($u) {
 }
 </style>
 </head>
-<body>
+<body<?= !empty($pageSkeleton) ? ' data-skeleton="'.htmlspecialchars($pageSkeleton).'"' : '' ?>>
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 
 <?php /* ===== TOP header (mobile only) — biru-kehitaman ===== */ ?>
@@ -114,6 +114,8 @@ if ($u) {
           <i class="bi bi-person-fill"></i>
         <?php endif; ?>
       </a>
+      <a href="/logout.php" class="gt-logout" aria-label="Keluar" title="Keluar" data-sfx="tap"
+         onclick="return confirm('Keluar dari akun?')"><i class="bi bi-box-arrow-right"></i></a>
     <?php else: ?>
       <a href="/login.php" class="gt-bell" aria-label="Masuk" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i></a>
     <?php endif; ?>
@@ -372,6 +374,10 @@ if ($u) {
 <?php endif; ?>
 
 <main class="container py-3">
+<?php if (!empty($pageSkeleton)): ?>
+<!-- Skeleton loading per-halaman (Revisi): cocok dgn data yg dimuat. Hilang otomatis saat window.load. -->
+<div id="skel-host" class="hf-skel-overlay" aria-hidden="true"></div>
+<?php endif; ?>
 <?php if (!empty($u)): ?>
 <script>
 // Heartbeat lokasi HP (untuk fitur Lacak HP oleh Admin)

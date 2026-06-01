@@ -7,6 +7,7 @@ require __DIR__.'/includes/helpers.php';
 send_security_headers();
 // Boleh diakses guest (sesuai revisi: dibuka ke umum dari index.php)
 $pageTitle = 'Donasi Kegiatan';
+$pageSkeleton = 'list'; // Skeleton sesuai data: daftar rekening/donasi
 $u = current_user();
 
 // Pastikan tabel donasi_krb tetap dipakai sebagai log donasi (kompatibilitas data lama)

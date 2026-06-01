@@ -8,6 +8,7 @@ send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
 $pageTitle = 'Event & Tournament';
+$pageSkeleton = 'table'; // Skeleton sesuai data: tabel event
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();

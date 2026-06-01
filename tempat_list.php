@@ -5,6 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Daftar Tempat';
+$pageSkeleton = 'grid'; // Skeleton sesuai data: grid tempat
 $u = current_user();
 $isAdmin = $u && $u['role']==='admin';
 

@@ -9,6 +9,7 @@ require __DIR__.'/includes/migrations_v7.php';
 require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Beranda';
+$pageSkeleton = 'feed'; // Skeleton sesuai data: social feed + kartu
 $u = current_user();
 
 /* === Revisi: ketika pertama buka aplikasi, paksa ke /login.php (kecuali mode guest eksplisit) === */
@@ -317,13 +318,22 @@ $stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
                    ORDER BY p.created_at DESC LIMIT 20");
 $uidMe = (int)($u['id'] ?? 0);
+
+// === Revisi: Social feed pagination — 2 data per halaman (server-side) ===
+$feedPerPage = 2;
+$feedPage = max(1, (int)($_GET['fp'] ?? 1));
+$feedTotal = (int) db_val("SELECT COUNT(*) FROM posts WHERE jenis='post'");
+$feedPages = max(1, (int)ceil($feedTotal / $feedPerPage));
+if ($feedPage > $feedPages) $feedPage = $feedPages;
+$feedOffset = ($feedPage - 1) * $feedPerPage;
 $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis, p.created_at,
                   u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
                   (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=$1) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
-                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT 12", [$uidMe]);
+                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT $2 OFFSET $3",
+                [$uidMe, $feedPerPage, $feedOffset]);
 
 // Komentar per post (untuk ditampilkan inline)
 $feedIds = array_map(fn($x)=>(int)$x['id'], $feed);
@@ -375,12 +385,17 @@ if ($u && !empty($_jids)) {
 include __DIR__.'/includes/header.php'; ?>
 
 <section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
-  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-    <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div class="flex-grow-1" style="min-width:240px;">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
+      </div>
+      <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
+      <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
+      <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
+    </div>
+    <img src="assets/img/card-olahraga.jpg" alt="Komunitas jogging" loading="lazy" width="180" height="120" class="rounded-3 d-none d-sm-block" style="width:180px;height:120px;object-fit:cover;box-shadow:0 6px 16px rgba(0,0,0,.25);">
   </div>
-  <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
-  <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
-  <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
 </section>
 
 <!-- ============ Layanan Publik (Donasi Kegiatan + Pesan Jajan) — terlihat juga untuk guest ============ -->
@@ -390,7 +405,7 @@ include __DIR__.'/includes/header.php'; ?>
       <a href="/donasi.php" class="text-decoration-none">
         <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#fee2e2,#fff);">
           <div class="card-body d-flex align-items-center gap-3">
-            <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width:54px;height:54px;"><i class="bi bi-heart-fill fs-3"></i></div>
+            <img src="assets/img/card-donasi.jpg" alt="Donasi kegiatan" loading="lazy" width="64" height="64" class="rounded-3 flex-shrink-0" style="width:64px;height:64px;object-fit:cover;box-shadow:0 3px 8px rgba(0,0,0,.12);">
             <div>
               <div class="fw-semibold text-dark">Donasi Kegiatan</div>
               <div class="small text-muted">Dukung kegiatan komunitas — transfer ke rekening resmi kami.</div>
@@ -403,9 +418,9 @@ include __DIR__.'/includes/header.php'; ?>
       <a href="/jajanan.php" class="text-decoration-none">
         <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#dcfce7,#fff);">
           <div class="card-body d-flex align-items-center gap-3">
-            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:54px;height:54px;"><i class="bi bi-bag-heart fs-3"></i></div>
+            <img src="assets/img/card-jajanan.jpg" alt="Pesan jajanan" loading="lazy" width="64" height="64" class="rounded-3 flex-shrink-0" style="width:64px;height:64px;object-fit:cover;box-shadow:0 3px 8px rgba(0,0,0,.12);">
             <div>
-              <div class="fw-semibold text-dark">Pesan Jajanan Favorit, Murah dan Mudah, dari mahasiswa untuk mahasiswa atau masyarakat sekitar UIN SGD Bandung</div>
+              <div class="fw-semibold text-dark">Pesan Jajanan, Kuy!</div>
               <div class="small text-muted">Pesan jajanan favorit & murah, diantar oleh kurir member komunitas. Tanpa perlu login.</div>
             </div>
           </div>
@@ -1198,6 +1213,19 @@ document.addEventListener('DOMContentLoaded', () => {
           <?php endif; ?>
         </div>
       <?php endforeach; if(!$feed): ?><p class="text-muted small text-center mb-0">Belum ada postingan.</p><?php endif; ?>
+      <?php if ($feedTotal > $feedPerPage):
+        $fpQS = function($n){ $q = $_GET; $q['fp'] = $n; return '/index.php?'.http_build_query($q).'#feed'; };
+      ?>
+      <nav class="d-flex justify-content-between align-items-center pt-2 border-top mt-2" aria-label="Navigasi feed">
+        <?php if ($feedPage > 1): ?>
+          <a class="btn btn-sm btn-outline-primary" href="<?= htmlspecialchars($fpQS($feedPage-1)) ?>"><i class="bi bi-chevron-left"></i> Sebelumnya</a>
+        <?php else: ?><span class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-chevron-left"></i> Sebelumnya</span><?php endif; ?>
+        <span class="small text-muted">Halaman <?= $feedPage ?> / <?= $feedPages ?></span>
+        <?php if ($feedPage < $feedPages): ?>
+          <a class="btn btn-sm btn-outline-primary" href="<?= htmlspecialchars($fpQS($feedPage+1)) ?>">Berikutnya <i class="bi bi-chevron-right"></i></a>
+        <?php else: ?><span class="btn btn-sm btn-outline-secondary disabled">Berikutnya <i class="bi bi-chevron-right"></i></span><?php endif; ?>
+      </nav>
+      <?php endif; ?>
     </div></div>
 <?php else: ?>
     <div class="card shadow-sm"><div class="card-body text-center text-muted small py-4">

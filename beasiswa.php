@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Info Beasiswa';
+$pageSkeleton = 'list'; // Skeleton sesuai data: daftar beasiswa
 
 /**
  * Sumber data:

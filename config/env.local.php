@@ -12,10 +12,10 @@
  *    variable asli (mis. lewat Apache SetEnv, .htaccess, atau panel host)
  *    lalu hapus / kosongkan file ini.
  *
- * Kredensial Midtrans (Sandbox) berdasarkan permintaan pemilik akun:
+ * Kredensial Midtrans (PRODUCTION) berdasarkan permintaan pemilik akun:
  *   Merchant ID : G537554248
- *   Client Key  : SB-Mid-client-pwmZyS8VPUrfQqMK
- *   Server Key  : SB-Mid-server-_UnhA5sDl77J0FYIgwKrmONQ
+ *   Client Key  : Mid-client-a0Qdc090d4Z1OSXw
+ *   Server Key  : Mid-server-nQ40waJaQMihHi-DnUtxndLH
  */
 
 if (!function_exists('hf_env_set')) {
@@ -28,12 +28,12 @@ if (!function_exists('hf_env_set')) {
     }
 }
 
-// ===== Midtrans (Sandbox) =====
+// ===== Midtrans (PRODUCTION) =====
 hf_env_set('MIDTRANS_MERCHANT_ID', 'G537554248');
-hf_env_set('MIDTRANS_CLIENT_KEY',  'SB-Mid-client-pwmZyS8VPUrfQqMK');
-hf_env_set('MIDTRANS_SERVER_KEY',  'SB-Mid-server-_UnhA5sDl77J0FYIgwKrmONQ');
+hf_env_set('MIDTRANS_CLIENT_KEY',  'Mid-client-a0Qdc090d4Z1OSXw');
+hf_env_set('MIDTRANS_SERVER_KEY',  'Mid-server-nQ40waJaQMihHi-DnUtxndLH');
 // "0" / "" = sandbox, "1" = production
-hf_env_set('MIDTRANS_PROD', '0');
+hf_env_set('MIDTRANS_PROD', '1');
 
 // ===== Admin WA (opsional, untuk tombol "Tanyakan apakah pedagang buka?") =====
 hf_env_set('ADMIN_WA_FIRDAM', '6281386369207');

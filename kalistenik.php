@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Paket Bugar Kalistenik';
+$pageSkeleton = 'grid'; // Skeleton sesuai data: grid gerakan
 
 // Katalog gerakan kalistenik + ilustrasi muslimah berhijab (asset lokal)
 // + langkah detail untuk modal "Lihat Gerakan"

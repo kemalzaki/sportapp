@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login();
 $pageTitle = 'Leaderboard Amal & Aktivitas Sehat';
+$pageSkeleton = 'table'; // Skeleton sesuai data: tabel leaderboard
 
 // Sorting
 $sortOpts = [

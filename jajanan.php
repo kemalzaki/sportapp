@@ -20,6 +20,7 @@ require __DIR__.'/includes/helpers.php';
 send_security_headers();
 date_default_timezone_set('Asia/Jakarta');
 $pageTitle = 'Pesan Jajanan Favorit';
+$pageSkeleton = 'grid'; // Skeleton sesuai data: grid produk
 $u = current_user();
 
 $ADMIN_WA_FIRDAM = getenv('ADMIN_WA_FIRDAM') ?: '6281386369207';

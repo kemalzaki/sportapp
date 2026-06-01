@@ -28,8 +28,17 @@
 .sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem;}
 .sk-table{width:100%;border-collapse:separate;border-spacing:0 6px;}
 .sk-table td{padding:6px 8px;}
-/* Container overlay per-page (BUKAN overlay generic full-screen) */
+/* Container overlay per-page */
 .hf-skel-container{padding:.5rem 0;}
+/* Overlay skeleton per-halaman (Revisi): menutup area konten sampai window.load,
+   sehingga bentuk skeleton sesuai data tiap halaman. */
+.hf-skel-overlay{
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  z-index:1035; background:var(--bs-body-bg,#fff);
+  overflow-y:auto; padding:72px 12px 90px;
+}
+.hf-skel-overlay .hf-skel-container{max-width:960px;margin:0 auto;}
+[data-bs-theme=dark] .hf-skel-overlay{background:#0b1220;}
 </style>
 <script>
 (function(){
@@ -142,9 +151,12 @@
     else if (mode === 'table')  html = HFSkel.table(8,4);
     host.innerHTML = '<div class="hf-skel-container">'+html+'</div>';
   });
-  window.addEventListener('load', function(){
+  function hideSkelHost(){
     var host = document.getElementById('skel-host');
-    if (host) host.innerHTML = '';
-  });
+    if (host){ host.innerHTML = ''; host.parentNode && host.parentNode.removeChild(host); }
+  }
+  window.addEventListener('load', function(){ setTimeout(hideSkelHost, 250); });
+  // Pengaman: tetap hilang walau ada aset lambat / event load terlewat.
+  setTimeout(hideSkelHost, 6000);
 })();
 </script>
