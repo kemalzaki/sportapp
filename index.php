@@ -582,8 +582,10 @@ document.addEventListener('DOMContentLoaded', () => {
           } elseif ($cur !== null && $ln !== '' && $ln[0] !== '#') {
             $u = trim($ln);
             $cur['url'] = $u;
-            // Hanya ambil HTTPS .m3u8 agar bisa diputar di browser (HLS.js)
-            if ($cur['nama'] && stripos($u,'https://')===0 && stripos($u,'.m3u8')!==false) {
+            // Revisi 1 Jun 2026: terima HTTP maupun HTTPS (semua akan
+            // diputar lewat /iptv_proxy.php sehingga aman dari mixed-content
+            // dan CORS, termasuk di mobile browser).
+            if ($cur['nama'] && stripos($u,'.m3u8')!==false && preg_match('#^https?://#i',$u)) {
               $items[] = $cur;
             }
             $cur = null;
@@ -610,6 +612,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Urutkan alfabetis berdasarkan nama channel, batasi 80 untuk performa UI.
   usort($IPTV_NEWS, function($a,$b){ return strcasecmp($a['nama'],$b['nama']); });
   $IPTV_NEWS = array_slice($IPTV_NEWS, 0, 80);
+
+  // Revisi 1 Jun 2026: helper untuk membungkus URL stream lewat proxy server.
+  // Tujuan: agar IPTV bisa diputar di mobile browser (Android/iOS) dan APK
+  // tanpa terhalang mixed-content atau CORS.
+  if (!function_exists('iptv_proxy_url')) {
+    function iptv_proxy_url($u){
+      $b = rtrim(strtr(base64_encode($u), '+/', '-_'), '=');
+      return '/iptv_proxy.php?u=' . $b;
+    }
+  }
 ?>
 <div class="modal fade" id="videoTerbaruModal" tabindex="-1" aria-labelledby="videoTerbaruLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
@@ -644,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <?php foreach ($IPTV_NEWS as $i => $ch): ?>
                   <button type="button"
                           class="btn btn-sm <?= $i===0?'btn-danger':'btn-outline-secondary' ?> iptv-src-btn"
-                          data-url="<?= htmlspecialchars($ch['url']) ?>"
+                          data-url="<?= htmlspecialchars(iptv_proxy_url($ch['url'])) ?>"
                           data-name="<?= htmlspecialchars($ch['nama']) ?>"
                           title="<?= htmlspecialchars($ch['grup']) ?>">
                     <?= htmlspecialchars($ch['nama']) ?>
@@ -675,29 +687,31 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script>
 (function(){
+<script>
+(function(){
   // ---- IPTV HLS player ----
-  // ===== Revisi 3 Jun 2026 #3: hanya APK Capacitor yang diblok.
-  // Mobile browser (Chrome / Safari) sekarang BOLEH memutar IPTV via HLS.js.
-  var ua = (navigator.userAgent || '').toLowerCase();
-  var isCapacitor = !!(window.Capacitor || window.cordova) || /capacitor|wv\)/.test(ua);
+  // ===== Revisi 1 Jun 2026: SEMUA stream sekarang lewat /iptv_proxy.php
+  // sehingga bisa diputar di mobile browser (Android Chrome, iOS Safari)
+  // maupun APK Capacitor. Tidak ada lagi mixed-content / CORS error.
+  var ua          = (navigator.userAgent || '').toLowerCase();
   var isMobileUA  = /android|iphone|ipad|ipod|mobile/.test(ua);
-  // Hanya blok di APK; di mobile browser kita coba putar.
-  var IPTV_BLOCKED = isCapacitor;
+  var IPTV_BLOCKED = false; // tidak diblok di platform manapun
 
   var notice     = document.getElementById('iptvMobileNotice');
   var mobileHint = document.getElementById('iptvMobileHint');
   var playerWrap = document.getElementById('iptvPlayerWrap');
   var chanList   = document.getElementById('iptvChannelList');
-  if (IPTV_BLOCKED) {
-    if (notice)     notice.classList.remove('d-none');
-    if (playerWrap) playerWrap.classList.add('d-none');
-    if (chanList)   chanList.classList.add('d-none');
-  } else if (isMobileUA && mobileHint) {
-    mobileHint.classList.remove('d-none');
-  }
+  if (notice) notice.classList.add('d-none');
+  if (isMobileUA && mobileHint) mobileHint.classList.remove('d-none');
 
   var video = document.getElementById('iptvPlayer');
   var nowEl = document.getElementById('iptvNow');
+  // Pastikan atribut yang dibutuhkan mobile autoplay aktif
+  if (video) {
+    video.setAttribute('playsinline','');
+    video.setAttribute('webkit-playsinline','');
+    video.muted = true;
+  }
   var hls = null;
   function loadStream(url, name){
     if (IPTV_BLOCKED) return; // hanya APK yang diblok
