@@ -1,11 +1,17 @@
 <?php
 /**
- * Revisi 31 Mei 2026 (lanjutan)
- *   #3 Tambah PPN 11% pada perhitungan total pemesanan
- *   #4 Mobile: 2 produk per baris (col-6 di mobile)
- *   #5 Foto produk bisa di-klik untuk diperbesar (lightbox)
- *   #6 Wajib klik "Deteksi Lokasi Saya" sebelum bisa bayar via Midtrans
- *   #7 Jika toko tutup (di luar jam_buka–jam_tutup) → tombol "Pesan" disable
+ * Revisi 4 Juni 2026
+ *   #1 Tabel hasil "Cek Pesanan Saya" mendapat tombol DETAIL PESANAN
+ *      (modal berisi rincian item, ongkir, kurir + nomor telpon kurir).
+ *   #2 Tombol "Lacak Driver" tetap (sudah ada) — ikon pemesan/kurir didesain.
+ *   #3 Preloader fullscreen good-looking (animasi cup + skeleton).
+ *   #4 Fitur RATING bintang per pesanan untuk status=selesai.
+ *   #5 "Pesan Sekarang" sekarang membuka modal TOKO berisi semua produk
+ *      toko tersebut + input jumlah di samping tiap produk (multi-item).
+ *   #6 Efek-efek tambahan: shimmer skeleton, hover-lift kartu, micro
+ *      animations, gradient halus, badge berdenyut, dsb.
+ *
+ * Revisi 31 Mei 2026 — PPN 11%, mobile col-6, lightbox, wajib lokasi.
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
@@ -122,51 +128,75 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
     header('Content-Type: application/json');
     try {
         csrf_check();
-        $jid    = (int)($_POST['jajanan_id'] ?? 0);
-        $qty    = max(1,(int)($_POST['qty'] ?? 1));
+        $jidLegacy = (int)($_POST['jajanan_id'] ?? 0);
+        $qtyLegacy = max(1,(int)($_POST['qty'] ?? 1));
+        $itemsRaw  = $_POST['items'] ?? '';
+        $items     = [];
+        if ($itemsRaw !== '') {
+            $tmp = json_decode($itemsRaw, true);
+            if (!is_array($tmp)) throw new RuntimeException('Format items tidak valid.');
+            foreach ($tmp as $it) {
+                $iid = (int)($it['id'] ?? 0);
+                $iqt = max(1,(int)($it['qty'] ?? 0));
+                if ($iid>0 && $iqt>0) $items[] = ['id'=>$iid, 'qty'=>$iqt];
+            }
+        } elseif ($jidLegacy>0) {
+            $items[] = ['id'=>$jidLegacy, 'qty'=>$qtyLegacy];
+        }
+        if (!$items) throw new RuntimeException('Tidak ada produk yang dipilih.');
+
         $nama   = substr(trim($_POST['nama'] ?? ''),0,120);
         $no_wa  = jjn_normalize_phone($_POST['no_wa'] ?? '');
         $alamat = substr(trim($_POST['alamat'] ?? ''),0,500);
         $catat  = substr(trim($_POST['catatan'] ?? ''),0,500);
         $plat   = ($_POST['pickup_lat'] ?? '') !== '' ? (float)$_POST['pickup_lat'] : null;
         $plng   = ($_POST['pickup_lng'] ?? '') !== '' ? (float)$_POST['pickup_lng'] : null;
-        if (!$jid || $nama==='' || $no_wa==='' || $alamat==='') {
+        if ($nama==='' || $no_wa==='' || $alamat==='') {
             throw new RuntimeException('Nama, nomor WA, dan alamat wajib diisi.');
         }
-        /* Revisi #6: WAJIB sudah klik "Deteksi Lokasi Saya".
-           Tanpa koordinat pickup_lat/pickup_lng, transaksi Midtrans tidak dibuat. */
         if ($plat === null || $plng === null) {
             throw new RuntimeException('Mohon klik "Deteksi Lokasi Saya" terlebih dahulu sebelum membayar via Midtrans.');
         }
 
-        $j = db_one("SELECT id,nama,harga,stok,aktif,jam_buka,jam_tutup FROM jajanan WHERE id=$1",[$jid]);
-        if (!$j || !($j['aktif']==='t'||$j['aktif']===true)) throw new RuntimeException('Produk tidak tersedia.');
-        /* Revisi #7: kalau toko sedang tutup berdasarkan jam_buka/jam_tutup → tolak. */
-        if (!jjn_is_open($j['jam_buka'] ?? null, $j['jam_tutup'] ?? null)) {
-            $jb = $j['jam_buka'] ? substr($j['jam_buka'],0,5) : '-';
-            $jt = $j['jam_tutup']? substr($j['jam_tutup'],0,5): '-';
-            throw new RuntimeException("Toko sedang tutup. Jam operasional: {$jb}–{$jt}.");
+        // Ambil & validasi semua produk
+        $resolved = [];
+        $sub = 0;
+        $itemNamesForOrder = [];
+        foreach ($items as $it) {
+            $j = db_one("SELECT id,nama,harga,stok,aktif,jam_buka,jam_tutup,toko_id FROM jajanan WHERE id=$1",[$it['id']]);
+            if (!$j || !($j['aktif']==='t'||$j['aktif']===true)) throw new RuntimeException('Produk tidak tersedia ('.$it['id'].').');
+            if (!jjn_is_open($j['jam_buka'] ?? null, $j['jam_tutup'] ?? null)) {
+                $jb = $j['jam_buka'] ? substr($j['jam_buka'],0,5) : '-';
+                $jt = $j['jam_tutup']? substr($j['jam_tutup'],0,5): '-';
+                throw new RuntimeException("Toko sedang tutup untuk \"{$j['nama']}\" (jam {$jb}–{$jt}).");
+            }
+            $q = min($it['qty'], max(0,(int)$j['stok']));
+            if ($q<=0) throw new RuntimeException('Stok habis untuk "'.$j['nama'].'".');
+            $resolved[] = ['j'=>$j, 'qty'=>$q];
+            $sub += $q * (int)$j['harga'];
+            $itemNamesForOrder[] = $q.'× '.$j['nama'];
         }
-        $qty = min($qty, max(0,(int)$j['stok']));
-        if ($qty<=0) throw new RuntimeException('Stok habis.');
 
-        // Ongkir (lat/lng dijamin tidak null karena cek di atas)
         $dist = jjn_haversine($UIN_LAT,$UIN_LNG,$plat,$plng);
         if ($dist/1000 > $UIN_R_MAX_KM) throw new RuntimeException('Lokasi diluar jangkauan layanan (>'.$UIN_R_MAX_KM.' km).');
         $ongkir = jjn_ongkir_from_dist_m($dist, $ONGKIR_BASE, $ONGKIR_PER_KM);
 
-        $sub  = $qty * (int)$j['harga'];
-        $ppn  = (int) round($sub * $PPN_RATE);  // PPN 11% atas subtotal barang
-        $feeAdmin = (int) round(($sub + $ppn + $ongkir) * $MIDTRANS_FEE_PCT) + (int)$MIDTRANS_FEE_FIXED; // potongan biaya admin Midtrans
-        $total= $sub + $ppn + $ongkir + $feeAdmin;
+        $ppn      = (int) round($sub * $PPN_RATE);
+        $feeAdmin = (int) round(($sub + $ppn + $ongkir) * $MIDTRANS_FEE_PCT) + (int)$MIDTRANS_FEE_FIXED;
+        $total    = $sub + $ppn + $ongkir + $feeAdmin;
 
         $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
         db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng,midtrans_order_id,payment_status)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,'midtrans','pending_payment',$9,$10,$11,'pending')",
           [$kode,$nama,$no_wa,$alamat,$catat?:null,$sub,$ongkir,$total,$plat,$plng,$kode]);
         $pid = (int) db_val("SELECT id FROM jajanan_pesanan WHERE kode=$1",[$kode]);
-        db_exec("INSERT INTO jajanan_pesanan_item(pesanan_id,jajanan_id,nama,harga,qty) VALUES($1,$2,$3,$4,$5)",
-          [$pid,(int)$j['id'],$j['nama'],(int)$j['harga'],$qty]);
+        $itemDetails = [];
+        foreach ($resolved as $r) {
+            $j = $r['j']; $q = $r['qty'];
+            db_exec("INSERT INTO jajanan_pesanan_item(pesanan_id,jajanan_id,nama,harga,qty) VALUES($1,$2,$3,$4,$5)",
+              [$pid,(int)$j['id'],$j['nama'],(int)$j['harga'],$q]);
+            $itemDetails[] = ['id'=>'JJN-'.$j['id'], 'price'=>(int)$j['harga'], 'quantity'=>$q, 'name'=>substr($j['nama'],0,50)];
+        }
 
         if ($MT_SERVER_KEY === '') {
             throw new RuntimeException('MIDTRANS_SERVER_KEY belum disetel di environment. Hubungi admin untuk mengaktifkan pembayaran.');
@@ -176,20 +206,16 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
         $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $finish_url = $scheme.'://'.$host.'/jajanan.php?berhasil='.urlencode($kode);
 
+        $itemDetails[] = ['id'=>'PPN11',  'price'=>(int)$ppn,      'quantity'=>1, 'name'=>'PPN 11%'];
+        $itemDetails[] = ['id'=>'ONGKIR', 'price'=>(int)$ongkir,   'quantity'=>1, 'name'=>'Ongkir'];
+        $itemDetails[] = ['id'=>'ADMIN',  'price'=>(int)$feeAdmin, 'quantity'=>1, 'name'=>'Biaya Admin Midtrans'];
+
         $payload = [
             'transaction_details' => ['order_id'=>$kode, 'gross_amount'=>$total],
-            'item_details' => [
-                ['id'=>'JJN-'.$j['id'], 'price'=>(int)$j['harga'], 'quantity'=>$qty, 'name'=>substr($j['nama'],0,50)],
-                ['id'=>'PPN11',         'price'=>(int)$ppn,         'quantity'=>1,    'name'=>'PPN 11%'],
-                ['id'=>'ONGKIR',        'price'=>(int)$ongkir,      'quantity'=>1,    'name'=>'Ongkir'],
-                ['id'=>'ADMIN',         'price'=>(int)$feeAdmin,    'quantity'=>1,    'name'=>'Biaya Admin Midtrans'],
-            ],
-            'customer_details' => [
-                'first_name'=>$nama, 'phone'=>$no_wa,
-                'shipping_address'=>['address'=>$alamat],
-            ],
-            'enabled_payments' => ['bca_va','bni_va','bri_va','mandiri_va','permata_va','gopay','shopeepay','qris','other_va','bank_transfer'],
-            'callbacks'        => ['finish' => $finish_url],
+            'item_details'        => $itemDetails,
+            'customer_details'    => ['first_name'=>$nama, 'phone'=>$no_wa, 'shipping_address'=>['address'=>$alamat]],
+            'enabled_payments'    => ['bca_va','bni_va','bri_va','mandiri_va','permata_va','gopay','shopeepay','qris','other_va','bank_transfer'],
+            'callbacks'           => ['finish' => $finish_url],
         ];
         $resp = mt_snap_request($payload, $MT_SERVER_KEY, $MT_BASE);
         db_exec("UPDATE jajanan_pesanan SET snap_token=$1, snap_redirect=$2 WHERE id=$3",
@@ -265,6 +291,83 @@ if ($ajax === 'driver_loc' && $_SERVER['REQUEST_METHOD']==='GET') {
     exit;
 }
 
+/* === Revisi 4 Jun 2026 #1: AJAX Detail Pesanan (items + kurir + nomor telpon) === */
+if ($ajax === 'detail_pesanan' && $_SERVER['REQUEST_METHOD']==='GET') {
+    header('Content-Type: application/json');
+    $kode = trim($_GET['kode'] ?? '');
+    if ($kode==='') { echo json_encode(['ok'=>false,'error'=>'kode kosong']); exit; }
+    $o = db_one("SELECT id,kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,status,payment_status,
+                        created_at,updated_at,kurir_user_id,rating,rating_komentar,rating_at
+                 FROM jajanan_pesanan WHERE kode=$1",[$kode]);
+    if (!$o) { echo json_encode(['ok'=>false,'error'=>'Pesanan tidak ditemukan']); exit; }
+    $items = db_all("SELECT i.nama, i.harga, i.qty, (SELECT nama FROM toko t WHERE t.id=j.toko_id) AS toko_nama
+                     FROM jajanan_pesanan_item i
+                     LEFT JOIN jajanan j ON j.id=i.jajanan_id
+                     WHERE i.pesanan_id=$1 ORDER BY i.id",[(int)$o['id']]);
+    $kurir = null;
+    if (!empty($o['kurir_user_id'])) {
+        $u2 = db_one("SELECT id, nama, COALESCE(nomor_wa,'') AS nomor_wa FROM users WHERE id=$1",[(int)$o['kurir_user_id']]);
+        if ($u2) {
+            $waN = jjn_normalize_phone($u2['nomor_wa'] ?? '');
+            $kurir = [
+                'nama'   => $u2['nama'],
+                'no_wa'  => $waN,
+                'wa_link'=> $waN ? ('https://wa.me/'.$waN) : null,
+                'tel'    => $waN ? ('tel:+'.$waN) : null,
+            ];
+        }
+    }
+    echo json_encode(['ok'=>true, 'order'=>$o, 'items'=>$items, 'kurir'=>$kurir]);
+    exit;
+}
+
+/* === Revisi 4 Jun 2026 #5: AJAX list produk satu toko (untuk modal Pesan Sekarang) === */
+if ($ajax === 'toko_produk' && $_SERVER['REQUEST_METHOD']==='GET') {
+    header('Content-Type: application/json');
+    $tid = (int)($_GET['toko_id'] ?? 0);
+    if ($tid<=0) { echo json_encode(['ok'=>false,'error'=>'toko_id kosong']); exit; }
+    $toko = db_one("SELECT id,nama,deskripsi,alamat,no_wa FROM toko WHERE id=$1",[$tid]);
+    if (!$toko) { echo json_encode(['ok'=>false,'error'=>'Toko tidak ditemukan']); exit; }
+    $prods = db_all("SELECT id,nama,harga,stok,foto_url,kategori,deskripsi,jam_buka,jam_tutup
+                     FROM jajanan WHERE toko_id=$1 AND aktif=true AND stok>0
+                     ORDER BY nama",[$tid]);
+    $now = date('H:i:s');
+    foreach ($prods as &$p) {
+        $p['is_open'] = jjn_is_open($p['jam_buka'] ?? null, $p['jam_tutup'] ?? null, $now);
+        $p['stok'] = (int)$p['stok'];
+        $p['harga']= (int)$p['harga'];
+        $p['jam_buka_short']  = $p['jam_buka']  ? substr($p['jam_buka'],0,5)  : null;
+        $p['jam_tutup_short'] = $p['jam_tutup'] ? substr($p['jam_tutup'],0,5) : null;
+    }
+    echo json_encode(['ok'=>true,'toko'=>$toko,'produk'=>$prods]);
+    exit;
+}
+
+/* === Revisi 4 Jun 2026 #4: AJAX submit rating pesanan (1..5 bintang) === */
+if ($ajax === 'submit_rating' && $_SERVER['REQUEST_METHOD']==='POST') {
+    header('Content-Type: application/json');
+    try {
+        csrf_check();
+        $kode    = trim($_POST['kode'] ?? '');
+        $rating  = (int)($_POST['rating'] ?? 0);
+        $komen   = substr(trim($_POST['komentar'] ?? ''),0,500);
+        if ($kode==='' || $rating<1 || $rating>5) throw new RuntimeException('Rating tidak valid (1–5).');
+        $o = db_one("SELECT id,status,rating FROM jajanan_pesanan WHERE kode=$1",[$kode]);
+        if (!$o) throw new RuntimeException('Pesanan tidak ditemukan.');
+        if ($o['status'] !== 'selesai') throw new RuntimeException('Rating hanya untuk pesanan yang sudah selesai.');
+        if (!empty($o['rating'])) throw new RuntimeException('Pesanan ini sudah dirating.');
+        db_exec("UPDATE jajanan_pesanan SET rating=$1, rating_komentar=$2, rating_at=now() WHERE id=$3",
+            [$rating, $komen ?: null, (int)$o['id']]);
+        echo json_encode(['ok'=>true,'rating'=>$rating]);
+    } catch (Throwable $e) {
+        http_response_code(400);
+        echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+
+
 /* ============================================================
  * Non-AJAX POST: cek status
  * ============================================================ */
@@ -316,7 +419,7 @@ $rows = db_all("SELECT *, (SELECT nama FROM toko WHERE toko.id = jajanan.toko_id
 
 $cekNama = trim($_GET['cek_nama'] ?? '');
 $cekHasil = $cekNama !== ''
-    ? db_all("SELECT id,kode,nama_pemesan,no_wa,total,status,payment_status,created_at,updated_at
+    ? db_all("SELECT id,kode,nama_pemesan,no_wa,total,status,payment_status,created_at,updated_at,rating
               FROM jajanan_pesanan
               WHERE LOWER(nama_pemesan) LIKE LOWER($1) AND status<>'pending_payment'
               ORDER BY created_at DESC LIMIT 20", ['%'.$cekNama.'%'])
@@ -499,7 +602,9 @@ if ($berhasilKode !== ''):
             </thead>
             <tbody>
             <?php foreach($cekHasil as $r):
-                $bisaLacak = in_array($r['status'], ['diproses','diantar'], true);
+                $bisaLacak  = in_array($r['status'], ['diproses','diantar'], true);
+                $sudahRate  = !empty($r['rating']);
+                $bisaRate   = ($r['status']==='selesai') && !$sudahRate;
             ?>
               <tr>
                 <td><span class="badge bg-dark-subtle text-dark-emphasis"><?= htmlspecialchars($r['kode']) ?></span></td>
@@ -509,15 +614,31 @@ if ($berhasilKode !== ''):
                 <td><span class="badge bg-info"><?= htmlspecialchars($r['status']) ?></span></td>
                 <td class="col-tgl col-hide-sm"><?= htmlspecialchars(date('d M Y H:i', strtotime($r['created_at']))) ?></td>
                 <td class="text-end">
-                  <?php if ($bisaLacak): ?>
-                    <button type="button"
-                            class="btn btn-sm btn-danger btn-lacak"
-                            data-kode="<?= htmlspecialchars($r['kode']) ?>">
-                      <i class="bi bi-geo-alt-fill"></i> Lacak Driver
+                  <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-detail"
+                            data-kode="<?= htmlspecialchars($r['kode']) ?>"
+                            title="Lihat rincian pesanan & kontak kurir">
+                      <i class="bi bi-receipt"></i> Detail
                     </button>
-                  <?php else: ?>
-                    <span class="text-muted">—</span>
-                  <?php endif; ?>
+                    <?php if ($bisaLacak): ?>
+                      <button type="button" class="btn btn-sm btn-danger btn-lacak"
+                              data-kode="<?= htmlspecialchars($r['kode']) ?>">
+                        <i class="bi bi-geo-alt-fill"></i> Lacak
+                      </button>
+                    <?php endif; ?>
+                    <?php if ($bisaRate): ?>
+                      <button type="button" class="btn btn-sm btn-warning btn-rating"
+                              data-kode="<?= htmlspecialchars($r['kode']) ?>">
+                        <i class="bi bi-star-fill"></i> Beri Rating
+                      </button>
+                    <?php elseif ($sudahRate): ?>
+                      <span class="badge bg-warning-subtle text-warning-emphasis" title="Rating Anda">
+                        <?php for($s=1;$s<=5;$s++): ?>
+                          <i class="bi bi-star<?= $s<=(int)$r['rating']?'-fill':'' ?>"></i>
+                        <?php endfor; ?>
+                      </span>
+                    <?php endif; ?>
+                  </div>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -638,8 +759,12 @@ if ($berhasilKode !== ''):
 
         <div class="mt-auto d-grid gap-1">
           <?php if ($isOpen): ?>
-          <button type="button" class="btn btn-sm btn-success btn-pesan"
+          <?php $hasToko = !empty($r['toko_id']); ?>
+          <button type="button"
+                  class="btn btn-sm btn-success <?= $hasToko?'btn-pesan-toko':'btn-pesan' ?>"
                   data-id="<?= (int)$r['id'] ?>"
+                  data-toko-id="<?= $hasToko ? (int)$r['toko_id'] : '' ?>"
+                  data-toko-nama="<?= htmlspecialchars($r['toko_nama'] ?? 'Toko') ?>"
                   data-nama="<?= htmlspecialchars($r['nama']) ?>"
                   data-harga="<?= (int)$r['harga'] ?>"
                   data-stok="<?= $stokR ?>"
@@ -652,7 +777,6 @@ if ($berhasilKode !== ''):
             <i class="bi bi-door-closed"></i> Toko Tutup<?= $jamLabel ? ' • '.htmlspecialchars($jamLabel) : '' ?>
           </button>
           <?php endif; ?>
-          <!-- Revisi #1: tombol "Tanyakan apakah pedagang buka?" dihapus -->
         </div>
       </div>
     </div>
@@ -1153,6 +1277,592 @@ document.addEventListener('DOMContentLoaded', function(){
     if (mDriver){ map.removeLayer(mDriver); mDriver=null; }
     if (mPickup){ map.removeLayer(mPickup); mPickup=null; }
     if (routeLine){ map.removeLayer(routeLine); routeLine=null; }
+  });
+})();
+</script>
+
+<!-- ===================================================================
+     Revisi 4 Juni 2026 — Preloader, Modal Toko (multi-item),
+     Detail Pesanan, Rating Bintang, dan efek-efek indah.
+     =================================================================== -->
+<style>
+/* ===== #3 Preloader good-looking ===== */
+#jjnPreloader{
+  position:fixed; inset:0; z-index:11000;
+  background:linear-gradient(135deg,#16a34a 0%,#22c55e 45%,#0ea5e9 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:#fff; transition:opacity .5s ease, visibility .5s ease;
+}
+#jjnPreloader.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+#jjnPreloader .cup{
+  position:relative; width:90px; height:90px; margin-bottom:1rem;
+  animation: jjnFloat 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.25));
+}
+#jjnPreloader .cup .steam{
+  position:absolute; left:50%; top:-22px; width:4px; height:20px;
+  background:rgba(255,255,255,.85); border-radius:4px;
+  transform:translateX(-50%); animation: jjnSteam 1.6s ease-in-out infinite;
+  opacity:.85;
+}
+#jjnPreloader .cup .steam.s2{ left:calc(50% - 14px); animation-delay:.4s; }
+#jjnPreloader .cup .steam.s3{ left:calc(50% + 14px); animation-delay:.8s; }
+#jjnPreloader .title{ font-weight:800; letter-spacing:.3px; font-size:1.1rem; }
+#jjnPreloader .sub{ font-size:.78rem; opacity:.9; margin-top:.25rem; }
+#jjnPreloader .bar{
+  margin-top:1rem; width:200px; height:6px; background:rgba(255,255,255,.25);
+  border-radius:999px; overflow:hidden; position:relative;
+}
+#jjnPreloader .bar::after{
+  content:""; position:absolute; inset:0; width:40%; background:#fff; border-radius:999px;
+  animation: jjnBar 1.2s ease-in-out infinite;
+}
+@keyframes jjnFloat{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes jjnSteam{
+  0%{ transform:translate(-50%,0) scaleY(.4); opacity:.0 }
+  40%{ opacity:.9 }
+  100%{ transform:translate(-50%,-20px) scaleY(1.2); opacity:0 }
+}
+@keyframes jjnBar{
+  0%{ left:-40% } 100%{ left:100% }
+}
+
+/* ===== #6 Efek tambahan ===== */
+.jjn-card{ transition: transform .18s ease, box-shadow .18s ease; }
+.jjn-card:hover{ transform: translateY(-3px); box-shadow:0 12px 24px -10px rgba(0,0,0,.18); }
+.jjn-shimmer{
+  background:linear-gradient(90deg,#eef2f7 0%,#f8fafc 50%,#eef2f7 100%);
+  background-size:200% 100%; animation: jjnShimmer 1.2s linear infinite; border-radius:.4rem;
+}
+@keyframes jjnShimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.jjn-fade-in{ animation: jjnFadeIn .35s ease both; }
+@keyframes jjnFadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+.jjn-pop{ animation: jjnPop .25s ease both; }
+@keyframes jjnPop{ 0%{transform:scale(.94); opacity:0} 100%{transform:scale(1); opacity:1} }
+.jjn-chip-live{ display:inline-flex; align-items:center; gap:.3rem; }
+.jjn-chip-live .dot{
+  width:8px; height:8px; border-radius:50%; background:#16a34a;
+  box-shadow:0 0 0 0 rgba(22,163,74,.6); animation: jjnDot 1.4s ease-out infinite;
+}
+@keyframes jjnDot{
+  0%{ box-shadow:0 0 0 0 rgba(22,163,74,.6) }
+  100%{ box-shadow:0 0 0 12px rgba(22,163,74,0) }
+}
+
+/* ===== #4 Rating bintang ===== */
+.jjn-star-pick{ font-size:2rem; color:#d4d4d8; cursor:pointer; transition:transform .1s ease, color .1s ease; }
+.jjn-star-pick:hover{ transform:scale(1.15); }
+.jjn-star-pick.on{ color:#f59e0b; }
+
+/* ===== #5 Modal Toko ===== */
+.jjn-toko-head{
+  background:linear-gradient(135deg,#16a34a,#0ea5e9);
+  color:#fff; padding:1rem 1rem .8rem; border-top-left-radius:.5rem; border-top-right-radius:.5rem;
+}
+.jjn-toko-prod{
+  display:flex; gap:.6rem; align-items:center; padding:.55rem; border:1px solid #e5e7eb;
+  border-radius:.55rem; background:#fff; transition:background .15s ease, border-color .15s ease;
+}
+.jjn-toko-prod:hover{ background:#f8fafc; border-color:#cbd5e1; }
+.jjn-toko-prod img{ width:56px; height:56px; object-fit:cover; border-radius:.4rem; flex-shrink:0; }
+.jjn-toko-prod .ph{ width:56px; height:56px; border-radius:.4rem; background:#f1f5f9; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.jjn-toko-prod .nm{ font-weight:600; font-size:.85rem; line-height:1.2; }
+.jjn-toko-prod .pr{ color:#16a34a; font-weight:700; font-size:.78rem; }
+.jjn-toko-prod .meta{ font-size:.7rem; color:#6b7280; }
+.jjn-toko-prod .qbox{ display:flex; align-items:center; gap:.15rem; flex-shrink:0; }
+.jjn-toko-prod .qbox input{ width:46px; text-align:center; }
+.jjn-toko-prod.disabled{ opacity:.55; background:#f8fafc; }
+.jjn-cart-summary{
+  position:sticky; bottom:0; background:#fff; border-top:1px solid #e5e7eb;
+  padding:.65rem .75rem; margin:.5rem -1rem -1rem; box-shadow:0 -6px 14px -10px rgba(0,0,0,.15);
+}
+
+/* ===== Detail Pesanan ===== */
+.jjn-detail-row{ display:flex; justify-content:space-between; padding:.25rem 0; font-size:.85rem; }
+.jjn-detail-row.total{ font-weight:700; border-top:1px dashed #cbd5e1; padding-top:.4rem; margin-top:.3rem; color:#16a34a; }
+.jjn-kurir-card{
+  background:linear-gradient(135deg,#fef3c7,#fef9c3); border:1px solid #fde68a;
+  border-radius:.5rem; padding:.6rem .7rem; font-size:.82rem;
+}
+</style>
+
+<!-- ===== Preloader ===== -->
+<div id="jjnPreloader" aria-hidden="true">
+  <div class="cup" aria-hidden="true">
+    <span class="steam s1"></span><span class="steam s2"></span><span class="steam s3"></span>
+    <!-- SVG cup -->
+    <svg viewBox="0 0 100 100" width="90" height="90" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 36h55v20a22 22 0 0 1-22 22h-11A22 22 0 0 1 20 56V36z" fill="#fff"/>
+      <path d="M75 42h6a10 10 0 0 1 0 20h-6v-6h6a4 4 0 0 0 0-8h-6v-6z" fill="#fff"/>
+      <ellipse cx="47.5" cy="36" rx="27.5" ry="5" fill="#fff" opacity=".7"/>
+    </svg>
+  </div>
+  <div class="title">Memuat Jajanan Favorit</div>
+  <div class="sub">Menyiapkan menu terbaik untukmu…</div>
+  <div class="bar" aria-hidden="true"></div>
+</div>
+<script>
+  // Sembunyikan preloader setelah halaman siap (atau timeout 2.5s sebagai jaga-jaga)
+  (function(){
+    var pl = document.getElementById('jjnPreloader'); if (!pl) return;
+    function hide(){ pl.classList.add('hide'); setTimeout(function(){ pl.remove(); }, 600); }
+    if (document.readyState === 'complete') { setTimeout(hide, 250); }
+    else { window.addEventListener('load', function(){ setTimeout(hide, 250); }); }
+    setTimeout(hide, 2500); // hard fallback
+  })();
+</script>
+
+<!-- ===== Modal Toko (multi-item) ===== -->
+<div class="modal fade" id="tokoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content jjn-pop">
+      <div class="jjn-toko-head">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="small opacity-75"><i class="bi bi-shop"></i> Toko</div>
+            <h5 class="mb-0" id="tokoNama">-</h5>
+            <div class="small" id="tokoAlamat" style="opacity:.9"></div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+      </div>
+      <form id="tokoForm">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="items" id="tokoItemsJson">
+        <div class="modal-body">
+          <div id="tokoProdList" class="d-grid gap-2 mb-3">
+            <div class="jjn-shimmer" style="height:64px"></div>
+            <div class="jjn-shimmer" style="height:64px"></div>
+            <div class="jjn-shimmer" style="height:64px"></div>
+          </div>
+
+          <div class="border rounded p-2 mb-2">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="small">Nama Pemesan</label>
+                <input class="form-control form-control-sm" name="nama" required value="<?= htmlspecialchars($u['nama'] ?? '') ?>">
+              </div>
+              <div class="col-md-6">
+                <label class="small">Nomor WhatsApp</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">+62</span>
+                  <input class="form-control" name="no_wa" id="tk_wa" required inputmode="numeric"
+                         placeholder="81234567890"
+                         value="<?= htmlspecialchars(preg_replace('/^(\+?62|0)/','', $u['nomor_wa'] ?? '')) ?>">
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="small">Alamat Lengkap Pengantaran</label>
+                <textarea class="form-control form-control-sm" name="alamat" rows="2" required></textarea>
+              </div>
+              <div class="col-12">
+                <label class="small">Catatan (opsional)</label>
+                <input class="form-control form-control-sm" name="catatan" placeholder="cth: gerbang biru, pagar besi">
+              </div>
+            </div>
+          </div>
+
+          <div class="border rounded p-2 bg-light-subtle mb-2">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button type="button" id="tkDetectLoc" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-geo-alt-fill"></i> Deteksi Lokasi Saya
+              </button>
+              <span id="tkLocCoords" class="small text-muted">Lat/Lng belum terdeteksi</span>
+              <input type="hidden" name="pickup_lat" id="tk_lat">
+              <input type="hidden" name="pickup_lng" id="tk_lng">
+            </div>
+            <div class="alert alert-warning small mt-2 mb-0 py-1" id="tkLocRequired">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <strong>Wajib:</strong> klik tombol di atas. Tanpa lokasi, pembayaran Midtrans tidak dapat diproses.
+            </div>
+            <div id="tkLocWarn" class="alert alert-danger small mt-2 mb-0 d-none">
+              Lokasi di luar jangkauan layanan (>&nbsp;<?= $UIN_R_MAX_KM ?>&nbsp;km).
+            </div>
+          </div>
+
+          <div class="jjn-cart-summary">
+            <div class="d-flex justify-content-between small"><span>Subtotal (<span id="tk_qtot">0</span> item)</span><strong id="tk_sub">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>PPN <?= (int)($PPN_RATE*100) ?>%</span><strong id="tk_ppn">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>Biaya Admin Midtrans</span><strong id="tk_fee">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>Ongkir <span id="tk_ongnote" class="text-muted">(flat)</span></span><strong id="tk_ong">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong></div>
+            <hr class="my-1">
+            <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar</span><strong class="text-success" id="tk_total">Rp 0</strong></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-success btn-sm" id="tkBayar" disabled>
+            <i class="bi bi-credit-card-2-front"></i> Bayar via Midtrans
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Detail Pesanan ===== -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content jjn-pop">
+      <div class="modal-header bg-primary text-white py-2">
+        <h6 class="modal-title"><i class="bi bi-receipt"></i> Detail Pesanan — <span id="dtKode">-</span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="dtBody">
+        <div class="jjn-shimmer" style="height:120px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Rating ===== -->
+<div class="modal fade" id="ratingModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content jjn-pop">
+      <div class="modal-header bg-warning text-dark py-2">
+        <h6 class="modal-title"><i class="bi bi-star-fill"></i> Beri Rating — <span id="rtKode">-</span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="ratingForm">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="kode" id="rt_kode">
+        <input type="hidden" name="rating" id="rt_value" value="0">
+        <div class="modal-body text-center">
+          <div class="small text-muted mb-2">Bagaimana pengalaman pesanan Anda?</div>
+          <div id="rtStars" class="d-flex justify-content-center gap-2 mb-2" role="radiogroup" aria-label="Rating">
+            <?php for($s=1;$s<=5;$s++): ?>
+              <i class="bi bi-star jjn-star-pick" data-val="<?= $s ?>" role="radio" aria-checked="false" tabindex="0"></i>
+            <?php endfor; ?>
+          </div>
+          <div class="small mb-2" id="rtLabel" style="min-height:1.2em">&nbsp;</div>
+          <textarea class="form-control form-control-sm" name="komentar" rows="2" placeholder="Komentar (opsional)"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-sm btn-warning" id="rtSubmit" disabled><i class="bi bi-send"></i> Kirim Rating</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var UIN = {lat: <?= $UIN_LAT ?>, lng: <?= $UIN_LNG ?>, max_km: <?= $UIN_R_MAX_KM ?>};
+  var ONGKIR_BASE = <?= (int)$ONGKIR_BASE ?>, ONGKIR_PER_KM = <?= (int)$ONGKIR_PER_KM ?>, ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
+  var PPN_RATE = <?= json_encode($PPN_RATE) ?>;
+  var MT_FEE_FIXED = <?= (int)$MIDTRANS_FEE_FIXED ?>, MT_FEE_PCT = <?= json_encode($MIDTRANS_FEE_PCT) ?>;
+  var CSRF = <?= json_encode(csrf_token()) ?>;
+
+  function fmtRp(n){ return 'Rp '+Math.round(n).toLocaleString('id-ID'); }
+  function haversine(a,b){var R=6371000,toRad=Math.PI/180,dLat=(b.lat-a.lat)*toRad,dLng=(b.lng-a.lng)*toRad;
+    var s=Math.sin(dLat/2)**2+Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));}
+
+  /* ===================== MODAL TOKO (multi item) ===================== */
+  var tkModalEl = document.getElementById('tokoModal');
+  var tkModal   = (typeof bootstrap!=='undefined' && tkModalEl) ? new bootstrap.Modal(tkModalEl) : null;
+  var tkState = { tokoId:null, prods:[], qty:{}, distKm:null, locValid:null, locDetected:false, preselect:null };
+
+  function tkRecalc(){
+    var sub=0, qtot=0;
+    tkState.prods.forEach(function(p){
+      var q = parseInt(tkState.qty[p.id]||0,10) || 0;
+      if (q>0){ sub += q*p.harga; qtot += q; }
+    });
+    var ong = (tkState.distKm!==null) ? Math.round(ONGKIR_BASE + tkState.distKm*ONGKIR_PER_KM) : ONGKIR_FALLBACK;
+    var ppn = Math.round(sub*PPN_RATE);
+    var fee = sub>0 ? (Math.round((sub+ppn+ong)*MT_FEE_PCT) + MT_FEE_FIXED) : 0;
+    var tot = sub + ppn + ong + fee;
+    document.getElementById('tk_sub').textContent  = fmtRp(sub);
+    document.getElementById('tk_ppn').textContent  = fmtRp(ppn);
+    document.getElementById('tk_fee').textContent  = fmtRp(fee);
+    document.getElementById('tk_ong').textContent  = fmtRp(ong);
+    document.getElementById('tk_total').textContent= fmtRp(tot);
+    document.getElementById('tk_qtot').textContent = qtot;
+    document.getElementById('tk_ongnote').textContent = (tkState.distKm!==null) ? '('+tkState.distKm.toFixed(2)+' km)' : '(flat — share lokasi untuk akurat)';
+    var btn = document.getElementById('tkBayar');
+    btn.disabled = !(qtot>0 && tkState.locDetected && tkState.locValid!==false);
+    btn.title = btn.disabled
+      ? (qtot<=0 ? 'Pilih minimal 1 produk' : 'Klik "Deteksi Lokasi Saya" dulu')
+      : '';
+  }
+
+  function tkRenderProds(){
+    var list = document.getElementById('tokoProdList'); list.innerHTML='';
+    if (!tkState.prods.length){
+      list.innerHTML = '<div class="alert alert-warning small mb-0">Toko ini belum memiliki produk aktif.</div>';
+      return;
+    }
+    tkState.prods.forEach(function(p){
+      var row = document.createElement('div');
+      row.className = 'jjn-toko-prod jjn-fade-in' + (p.is_open?'':' disabled');
+      var jam = (p.jam_buka_short && p.jam_tutup_short) ? (' · '+p.jam_buka_short+'–'+p.jam_tutup_short) : '';
+      var img = p.foto_url
+        ? '<img src="'+p.foto_url.replace(/"/g,'&quot;')+'" alt="">'
+        : '<div class="ph"><i class="bi bi-bag text-muted"></i></div>';
+      var qty = parseInt(tkState.qty[p.id]||0,10) || 0;
+      row.innerHTML =
+        img +
+        '<div class="flex-grow-1 min-w-0">' +
+          '<div class="nm">'+ p.nama.replace(/</g,'&lt;') +'</div>'+
+          '<div class="pr">'+ fmtRp(p.harga) +'</div>'+
+          '<div class="meta">Stok: '+ p.stok + (p.kategori?(' · '+p.kategori):'') + jam + (p.is_open?'':' · <strong class="text-danger">Tutup</strong>') +'</div>'+
+        '</div>' +
+        '<div class="qbox">' +
+          '<button type="button" class="btn btn-outline-success btn-sm tk-minus" '+(p.is_open?'':'disabled')+'>−</button>'+
+          '<input type="number" class="form-control form-control-sm tk-input" value="'+qty+'" min="0" max="'+p.stok+'" inputmode="numeric" '+(p.is_open?'':'disabled')+'>'+
+          '<button type="button" class="btn btn-outline-success btn-sm tk-plus" '+(p.is_open?'':'disabled')+'>+</button>'+
+        '</div>';
+      list.appendChild(row);
+      var inp = row.querySelector('.tk-input');
+      function setQ(v){
+        v = Math.max(0, Math.min(p.stok, parseInt(v||0,10)||0));
+        tkState.qty[p.id] = v; inp.value = v; tkRecalc();
+      }
+      row.querySelector('.tk-minus').addEventListener('click', function(){ setQ((parseInt(inp.value||0,10)||0)-1); });
+      row.querySelector('.tk-plus' ).addEventListener('click', function(){ setQ((parseInt(inp.value||0,10)||0)+1); });
+      inp.addEventListener('input', function(){ setQ(inp.value); });
+    });
+    // Preselect dari kartu yang diklik
+    if (tkState.preselect){
+      var ps = tkState.preselect;
+      if (tkState.qty[ps.id]==null) { tkState.qty[ps.id] = ps.qty; }
+      var inps = list.querySelectorAll('.tk-input');
+      tkState.prods.forEach(function(p, i){
+        if (p.id === ps.id && inps[i]){ inps[i].value = tkState.qty[p.id]; }
+      });
+      tkState.preselect = null;
+    }
+    tkRecalc();
+  }
+
+  function tkOpen(tokoId, tokoNama, preselect){
+    tkState = { tokoId:tokoId, prods:[], qty:{}, distKm:null, locValid:null, locDetected:false, preselect: preselect||null };
+    document.getElementById('tokoNama').textContent = tokoNama || 'Toko';
+    document.getElementById('tokoAlamat').textContent = '';
+    document.getElementById('tk_lat').value=''; document.getElementById('tk_lng').value='';
+    document.getElementById('tkLocCoords').textContent='Lat/Lng belum terdeteksi';
+    document.getElementById('tkLocWarn').classList.add('d-none');
+    document.getElementById('tkLocRequired').classList.remove('d-none');
+    var list = document.getElementById('tokoProdList');
+    list.innerHTML = '<div class="jjn-shimmer" style="height:64px"></div><div class="jjn-shimmer" style="height:64px"></div><div class="jjn-shimmer" style="height:64px"></div>';
+    if (tkModal) tkModal.show();
+    fetch('/jajanan.php?ajax=toko_produk&toko_id='+encodeURIComponent(tokoId), {credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if (!j.ok){ list.innerHTML='<div class="alert alert-danger small">'+(j.error||'Gagal memuat')+'</div>'; return; }
+        if (j.toko){
+          document.getElementById('tokoNama').textContent = j.toko.nama;
+          document.getElementById('tokoAlamat').textContent = j.toko.alamat || '';
+        }
+        tkState.prods = j.produk || [];
+        tkRenderProds();
+      })
+      .catch(function(){ list.innerHTML='<div class="alert alert-danger small">Koneksi gagal.</div>'; });
+  }
+
+  // Klik tombol "Pesan Sekarang" pada kartu → buka modal toko
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest && ev.target.closest('.btn-pesan-toko');
+    if (!b) return;
+    var tid = b.getAttribute('data-toko-id');
+    if (!tid){ alert('Produk ini belum ditautkan ke toko.'); return; }
+    var card = b.closest('.card');
+    var qcInp = card ? card.querySelector('.qc-input') : null;
+    var preQty = qcInp ? Math.max(1, parseInt(qcInp.value||'1',10)) : 1;
+    tkOpen(parseInt(tid,10), b.getAttribute('data-toko-nama')||'Toko', { id: parseInt(b.getAttribute('data-id'),10), qty: preQty });
+  });
+
+  // Nomor WA bersihkan
+  var tkWa = document.getElementById('tk_wa');
+  if (tkWa) tkWa.addEventListener('input', function(){
+    var v = (this.value||'').replace(/\D+/g,'').replace(/^(62|0)+/, ''); this.value = v;
+  });
+
+  // Deteksi lokasi
+  document.getElementById('tkDetectLoc').addEventListener('click', function(){
+    if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
+    var btn=this, orig=btn.innerHTML; btn.disabled=true;
+    btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mendeteksi…';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat=pos.coords.latitude, lng=pos.coords.longitude;
+      document.getElementById('tk_lat').value=lat.toFixed(6);
+      document.getElementById('tk_lng').value=lng.toFixed(6);
+      tkState.distKm = haversine({lat:lat,lng:lng}, UIN)/1000;
+      document.getElementById('tkLocCoords').innerHTML =
+        'Lat '+lat.toFixed(5)+' · Lng '+lng.toFixed(5)+' · <strong>'+tkState.distKm.toFixed(2)+' km</strong> ke UIN';
+      var warn=document.getElementById('tkLocWarn');
+      if (tkState.distKm>UIN.max_km){ warn.classList.remove('d-none'); tkState.locValid=false; }
+      else { warn.classList.add('d-none'); tkState.locValid=true; }
+      tkState.locDetected = true;
+      document.getElementById('tkLocRequired').classList.add('d-none');
+      tkRecalc(); btn.disabled=false; btn.innerHTML=orig;
+    }, function(err){
+      alert('Gagal mendapatkan lokasi: '+err.message);
+      btn.disabled=false; btn.innerHTML=orig;
+      tkState.locDetected=false; tkRecalc();
+    }, {enableHighAccuracy:true, timeout:15000});
+  });
+
+  // Submit checkout multi-item
+  document.getElementById('tokoForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var items = [];
+    tkState.prods.forEach(function(p){
+      var q = parseInt(tkState.qty[p.id]||0,10)||0;
+      if (q>0) items.push({id:p.id, qty:q});
+    });
+    if (!items.length){ alert('Pilih minimal 1 produk'); return; }
+    if (!tkState.locDetected){ alert('Mohon klik "Deteksi Lokasi Saya" dulu'); return; }
+    if (tkState.locValid===false){ alert('Lokasi di luar jangkauan.'); return; }
+    document.getElementById('tokoItemsJson').value = JSON.stringify(items);
+    var btn = document.getElementById('tkBayar'); btn.disabled=true; var orig=btn.innerHTML;
+    btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Memproses…';
+    var fd = new FormData(this);
+    fetch('/jajanan.php?ajax=create_snap',{method:'POST',body:fd,credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        btn.disabled=false; btn.innerHTML=orig;
+        if (!j.ok){ alert(j.error||'Gagal'); return; }
+        if (typeof window.snap === 'undefined'){
+          if (j.redirect){ window.location.href = j.redirect; return; }
+          alert('Snap.js belum dimuat'); return;
+        }
+        window.snap.pay(j.token, {
+          onSuccess: function(){ window.location.href='/jajanan.php?berhasil='+encodeURIComponent(j.kode); },
+          onPending: function(){ window.location.href='/jajanan.php?berhasil='+encodeURIComponent(j.kode); },
+          onError:   function(){ alert('Pembayaran gagal'); window.location.href='/jajanan.php?berhasil='+encodeURIComponent(j.kode); },
+          onClose:   function(){ window.location.href='/jajanan.php?berhasil='+encodeURIComponent(j.kode); }
+        });
+      })
+      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); });
+  });
+
+  /* ===================== MODAL DETAIL PESANAN ===================== */
+  var dtModalEl = document.getElementById('detailModal');
+  var dtModal   = (typeof bootstrap!=='undefined' && dtModalEl) ? new bootstrap.Modal(dtModalEl) : null;
+
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest && ev.target.closest('.btn-detail');
+    if (!b) return;
+    var kode = b.getAttribute('data-kode');
+    document.getElementById('dtKode').textContent = kode;
+    var body = document.getElementById('dtBody');
+    body.innerHTML = '<div class="jjn-shimmer mb-2" style="height:24px"></div>'+
+                     '<div class="jjn-shimmer mb-2" style="height:80px"></div>'+
+                     '<div class="jjn-shimmer" style="height:60px"></div>';
+    if (dtModal) dtModal.show();
+    fetch('/jajanan.php?ajax=detail_pesanan&kode='+encodeURIComponent(kode),{credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if (!j.ok){ body.innerHTML = '<div class="alert alert-danger small mb-0">'+(j.error||'Gagal memuat')+'</div>'; return; }
+        var o = j.order || {};
+        var itemsHtml = (j.items||[]).map(function(it){
+          var line = (parseInt(it.harga,10)||0) * (parseInt(it.qty,10)||0);
+          return '<div class="jjn-detail-row">'+
+                  '<span><strong>'+(parseInt(it.qty,10)||0)+'×</strong> '+
+                    (it.nama||'').replace(/</g,'&lt;') +
+                    (it.toko_nama?'<div class="small text-muted">'+ it.toko_nama.replace(/</g,'&lt;') +'</div>':'') +
+                  '</span>'+
+                  '<strong>'+fmtRp(line)+'</strong>'+
+                 '</div>';
+        }).join('') || '<div class="text-muted small">Tidak ada item.</div>';
+        var sub = parseInt(o.subtotal||0,10), ong = parseInt(o.ongkir||0,10), tot = parseInt(o.total||0,10);
+        var sisa = Math.max(0, tot - sub - ong);
+        var kurirHtml = '';
+        if (j.kurir){
+          kurirHtml =
+            '<div class="jjn-kurir-card mt-3">'+
+              '<div class="fw-semibold mb-1"><i class="bi bi-scooter"></i> Kurir Anda</div>'+
+              '<div><strong>'+(j.kurir.nama||'-').replace(/</g,'&lt;')+'</strong></div>'+
+              '<div class="small">Telp/WA: '+(j.kurir.no_wa? ('+'+j.kurir.no_wa) :'-')+'</div>'+
+              '<div class="mt-2 d-flex gap-2 flex-wrap">'+
+                (j.kurir.wa_link?('<a class="btn btn-sm btn-success" href="'+j.kurir.wa_link+'" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> Chat WhatsApp</a>'):'')+
+                (j.kurir.tel    ?('<a class="btn btn-sm btn-outline-success" href="'+j.kurir.tel+'"><i class="bi bi-telephone"></i> Telepon</a>'):'')+
+              '</div>'+
+            '</div>';
+        } else {
+          kurirHtml = '<div class="alert alert-info small mt-3 mb-0"><i class="bi bi-info-circle"></i> Belum ada kurir yang mengambil pesanan ini.</div>';
+        }
+        var ratingHtml = '';
+        if (o.rating){
+          var stars=''; for (var s=1;s<=5;s++){ stars += '<i class="bi bi-star'+(s<=parseInt(o.rating,10)?'-fill text-warning':'')+'"></i>'; }
+          ratingHtml = '<div class="mt-3 small"><strong>Rating Anda:</strong> '+stars+
+                       (o.rating_komentar?('<div class="text-muted">"'+ String(o.rating_komentar).replace(/</g,'&lt;') +'"</div>'):'') +'</div>';
+        }
+        body.innerHTML =
+          '<div class="row g-2 small mb-2">'+
+            '<div class="col-6"><div class="text-muted">Nama Pemesan</div><strong>'+(o.nama_pemesan||'-').replace(/</g,'&lt;')+'</strong></div>'+
+            '<div class="col-6"><div class="text-muted">No WA Pemesan</div><strong>+'+(o.no_wa||'-')+'</strong></div>'+
+            '<div class="col-12"><div class="text-muted">Alamat</div><div>'+(o.alamat||'-').replace(/</g,'&lt;')+'</div></div>'+
+            (o.catatan?('<div class="col-12"><div class="text-muted">Catatan</div><div>'+ String(o.catatan).replace(/</g,'&lt;') +'</div></div>'):'')+
+            '<div class="col-6"><div class="text-muted">Status</div><span class="badge bg-info">'+(o.status||'-')+'</span></div>'+
+            '<div class="col-6"><div class="text-muted">Pembayaran</div><span class="badge bg-'+((o.payment_status==='paid')?'success':'secondary')+'">'+(o.payment_status||'-')+'</span></div>'+
+          '</div>'+
+          '<hr class="my-2">'+
+          '<div class="small fw-semibold mb-1"><i class="bi bi-basket"></i> Item Pesanan</div>'+
+          itemsHtml +
+          '<div class="jjn-detail-row mt-2"><span>Subtotal</span><strong>'+fmtRp(sub)+'</strong></div>'+
+          '<div class="jjn-detail-row"><span>PPN & Biaya Admin</span><strong>'+fmtRp(sisa)+'</strong></div>'+
+          '<div class="jjn-detail-row"><span>Ongkir</span><strong>'+fmtRp(ong)+'</strong></div>'+
+          '<div class="jjn-detail-row total"><span>Total</span><strong>'+fmtRp(tot)+'</strong></div>'+
+          kurirHtml +
+          ratingHtml;
+      })
+      .catch(function(){ body.innerHTML='<div class="alert alert-danger small mb-0">Koneksi gagal.</div>'; });
+  });
+
+  /* ===================== MODAL RATING ===================== */
+  var rtModalEl = document.getElementById('ratingModal');
+  var rtModal   = (typeof bootstrap!=='undefined' && rtModalEl) ? new bootstrap.Modal(rtModalEl) : null;
+  var RATING_LABELS = ['','Sangat buruk','Buruk','Cukup','Bagus','Luar biasa!'];
+
+  function rtSet(val){
+    document.getElementById('rt_value').value = val;
+    var stars = document.querySelectorAll('#rtStars .jjn-star-pick');
+    stars.forEach(function(st){
+      var v = parseInt(st.getAttribute('data-val'),10);
+      st.classList.toggle('on', v<=val);
+      st.classList.toggle('bi-star-fill', v<=val);
+      st.classList.toggle('bi-star', v>val);
+      st.setAttribute('aria-checked', v===val ? 'true':'false');
+    });
+    document.getElementById('rtLabel').textContent = RATING_LABELS[val] || '\u00A0';
+    document.getElementById('rtSubmit').disabled = !(val>=1 && val<=5);
+  }
+
+  document.querySelectorAll('#rtStars .jjn-star-pick').forEach(function(st){
+    st.addEventListener('click', function(){ rtSet(parseInt(st.getAttribute('data-val'),10)); });
+    st.addEventListener('keydown', function(e){ if (e.key===' '||e.key==='Enter'){ e.preventDefault(); rtSet(parseInt(st.getAttribute('data-val'),10)); } });
+  });
+
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest && ev.target.closest('.btn-rating');
+    if (!b) return;
+    var kode = b.getAttribute('data-kode');
+    document.getElementById('rt_kode').value = kode;
+    document.getElementById('rtKode').textContent = kode;
+    rtSet(0);
+    var ta = document.querySelector('#ratingForm textarea[name=komentar]'); if (ta) ta.value='';
+    if (rtModal) rtModal.show();
+  });
+
+  document.getElementById('ratingForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = document.getElementById('rtSubmit'); btn.disabled=true; var orig=btn.innerHTML;
+    btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mengirim…';
+    var fd = new FormData(this);
+    fetch('/jajanan.php?ajax=submit_rating',{method:'POST',body:fd,credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        btn.disabled=false; btn.innerHTML=orig;
+        if (!j.ok){ alert(j.error||'Gagal mengirim rating'); return; }
+        if (rtModal) rtModal.hide();
+        // Refresh halaman supaya tabel update badge bintang
+        setTimeout(function(){ location.reload(); }, 250);
+      })
+      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); });
   });
 })();
 </script>
