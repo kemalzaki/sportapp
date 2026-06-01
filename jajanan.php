@@ -1014,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', function(){
       document.getElementById('locCoords').textContent='Lat/Lng belum terdeteksi';
       document.getElementById('locWarn').classList.add('d-none');
       var lr = document.getElementById('locRequired'); if (lr) lr.classList.remove('d-none');
+      if (window.JJN_PRELOAD) { window.JJN_PRELOAD.show('Membuka form pemesanan…'); setTimeout(function(){ window.JJN_PRELOAD.hide(); }, 400); }
       recalc(); showModal();
     });
   });
@@ -1070,12 +1071,14 @@ document.addEventListener('DOMContentLoaded', function(){
     var btn = document.getElementById('btnBayar');
     btn.disabled=true; var orig=btn.innerHTML;
     btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Memproses…';
+    if (window.JJN_PRELOAD) window.JJN_PRELOAD.show('Memproses pembayaran…');
 
     var fd = new FormData(this);
     fetch('/jajanan.php?ajax=create_snap', {method:'POST', body:fd, credentials:'same-origin'})
       .then(function(r){ return r.json(); })
       .then(function(j){
         btn.disabled=false; btn.innerHTML=orig;
+        if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide();
         if (!j.ok) { alert(j.error||'Gagal membuat transaksi'); updateBayarBtn(); return; }
         if (typeof window.snap === 'undefined') {
           if (j.redirect) { window.location.href = j.redirect; return; }
@@ -1088,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', function(){
           onClose:   function(){ window.location.href = '/jajanan.php?berhasil=' + encodeURIComponent(j.kode); }
         });
       })
-      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); updateBayarBtn(); });
+      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide(); alert('Koneksi gagal'); updateBayarBtn(); });
   });
 
   /* ===== Revisi #5: lightbox foto produk (klik gambar → modal zoom) ===== */
@@ -1257,7 +1260,11 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   var modalEl = document.getElementById('lacakModal');
-  var modal = (typeof bootstrap!=='undefined' && modalEl) ? new bootstrap.Modal(modalEl) : null;
+  var modal = null;
+  function getLacakModal(){
+    if (!modal && typeof bootstrap !== 'undefined' && modalEl) modal = new bootstrap.Modal(modalEl);
+    return modal;
+  }
 
   document.addEventListener('click', function(ev){
     var btn = ev.target.closest && ev.target.closest('.btn-lacak');
@@ -1265,11 +1272,15 @@ document.addEventListener('DOMContentLoaded', function(){
     currentKode = btn.getAttribute('data-kode');
     document.getElementById('lacakKode').textContent = currentKode;
     document.getElementById('lacakInfo').textContent = 'Mengambil data kurir…';
-    if (modal) modal.show();
-    setTimeout(function(){ ensureMap(); map.invalidateSize(); fetchOnce();
+    if (window.JJN_PRELOAD) window.JJN_PRELOAD.show('Membuka pelacak kurir…');
+    var m = getLacakModal();
+    if (m) m.show();
+    setTimeout(function(){
+      if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide();
+      ensureMap(); map.invalidateSize(); fetchOnce();
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = setInterval(fetchOnce, 5000);
-    }, 250);
+    }, 300);
   });
   document.getElementById('btnRefreshDriver').addEventListener('click', fetchOnce);
   if (modalEl) modalEl.addEventListener('hidden.bs.modal', function(){
@@ -1402,13 +1413,26 @@ document.addEventListener('DOMContentLoaded', function(){
   <div class="bar" aria-hidden="true"></div>
 </div>
 <script>
-  // Sembunyikan preloader setelah halaman siap (atau timeout 2.5s sebagai jaga-jaga)
+  // Preloader: auto-hide on load, plus expose JJN_PRELOAD.show/hide untuk submit & aksi tombol
   (function(){
     var pl = document.getElementById('jjnPreloader'); if (!pl) return;
-    function hide(){ pl.classList.add('hide'); setTimeout(function(){ pl.remove(); }, 600); }
+    var subEl = pl.querySelector('.sub');
+    var defaultSub = subEl ? subEl.textContent : '';
+    function show(msg){
+      if (subEl && msg) subEl.textContent = msg;
+      pl.classList.remove('hide');
+      pl.style.removeProperty('display');
+      pl.style.opacity = '';
+      pl.style.visibility = '';
+    }
+    function hide(){
+      pl.classList.add('hide');
+      if (subEl) subEl.textContent = defaultSub;
+    }
+    window.JJN_PRELOAD = { show: show, hide: hide };
     if (document.readyState === 'complete') { setTimeout(hide, 250); }
     else { window.addEventListener('load', function(){ setTimeout(hide, 250); }); }
-    setTimeout(hide, 2500); // hard fallback
+    setTimeout(hide, 2500); // hard fallback awal load
   })();
 </script>
 
@@ -1561,7 +1585,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ===================== MODAL TOKO (multi item) ===================== */
   var tkModalEl = document.getElementById('tokoModal');
-  var tkModal   = (typeof bootstrap!=='undefined' && tkModalEl) ? new bootstrap.Modal(tkModalEl) : null;
+  var tkModal = null;
+  function getTkModal(){
+    if (!tkModal && typeof bootstrap !== 'undefined' && tkModalEl) tkModal = new bootstrap.Modal(tkModalEl);
+    return tkModal;
+  }
   var tkState = { tokoId:null, prods:[], qty:{}, distKm:null, locValid:null, locDetected:false, preselect:null };
 
   function tkRecalc(){
@@ -1647,7 +1675,8 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('tkLocRequired').classList.remove('d-none');
     var list = document.getElementById('tokoProdList');
     list.innerHTML = '<div class="jjn-shimmer" style="height:64px"></div><div class="jjn-shimmer" style="height:64px"></div><div class="jjn-shimmer" style="height:64px"></div>';
-    if (tkModal) tkModal.show();
+    var _tkM = getTkModal(); if (_tkM) _tkM.show();
+    if (window.JJN_PRELOAD) { window.JJN_PRELOAD.show('Memuat produk toko…'); setTimeout(function(){ window.JJN_PRELOAD.hide(); }, 600); }
     fetch('/jajanan.php?ajax=toko_produk&toko_id='+encodeURIComponent(tokoId), {credentials:'same-origin'})
       .then(function(r){return r.json();})
       .then(function(j){
@@ -1719,11 +1748,13 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('tokoItemsJson').value = JSON.stringify(items);
     var btn = document.getElementById('tkBayar'); btn.disabled=true; var orig=btn.innerHTML;
     btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Memproses…';
+    if (window.JJN_PRELOAD) window.JJN_PRELOAD.show('Memproses pembayaran…');
     var fd = new FormData(this);
     fetch('/jajanan.php?ajax=create_snap',{method:'POST',body:fd,credentials:'same-origin'})
       .then(function(r){return r.json();})
       .then(function(j){
         btn.disabled=false; btn.innerHTML=orig;
+        if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide();
         if (!j.ok){ alert(j.error||'Gagal'); return; }
         if (typeof window.snap === 'undefined'){
           if (j.redirect){ window.location.href = j.redirect; return; }
@@ -1736,12 +1767,16 @@ document.addEventListener('DOMContentLoaded', function(){
           onClose:   function(){ window.location.href='/jajanan.php?berhasil='+encodeURIComponent(j.kode); }
         });
       })
-      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); });
+      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide(); alert('Koneksi gagal'); });
   });
 
   /* ===================== MODAL DETAIL PESANAN ===================== */
   var dtModalEl = document.getElementById('detailModal');
-  var dtModal   = (typeof bootstrap!=='undefined' && dtModalEl) ? new bootstrap.Modal(dtModalEl) : null;
+  var dtModal = null;
+  function getDtModal(){
+    if (!dtModal && typeof bootstrap !== 'undefined' && dtModalEl) dtModal = new bootstrap.Modal(dtModalEl);
+    return dtModal;
+  }
 
   document.addEventListener('click', function(ev){
     var b = ev.target.closest && ev.target.closest('.btn-detail');
@@ -1752,7 +1787,8 @@ document.addEventListener('DOMContentLoaded', function(){
     body.innerHTML = '<div class="jjn-shimmer mb-2" style="height:24px"></div>'+
                      '<div class="jjn-shimmer mb-2" style="height:80px"></div>'+
                      '<div class="jjn-shimmer" style="height:60px"></div>';
-    if (dtModal) dtModal.show();
+    if (window.JJN_PRELOAD) { window.JJN_PRELOAD.show('Memuat detail pesanan…'); setTimeout(function(){ window.JJN_PRELOAD.hide(); }, 500); }
+    var _dtM = getDtModal(); if (_dtM) _dtM.show();
     fetch('/jajanan.php?ajax=detail_pesanan&kode='+encodeURIComponent(kode),{credentials:'same-origin'})
       .then(function(r){return r.json();})
       .then(function(j){
@@ -1815,7 +1851,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ===================== MODAL RATING ===================== */
   var rtModalEl = document.getElementById('ratingModal');
-  var rtModal   = (typeof bootstrap!=='undefined' && rtModalEl) ? new bootstrap.Modal(rtModalEl) : null;
+  var rtModal = null;
+  function getRtModal(){
+    if (!rtModal && typeof bootstrap !== 'undefined' && rtModalEl) rtModal = new bootstrap.Modal(rtModalEl);
+    return rtModal;
+  }
   var RATING_LABELS = ['','Sangat buruk','Buruk','Cukup','Bagus','Luar biasa!'];
 
   function rtSet(val){
@@ -1845,24 +1885,26 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('rtKode').textContent = kode;
     rtSet(0);
     var ta = document.querySelector('#ratingForm textarea[name=komentar]'); if (ta) ta.value='';
-    if (rtModal) rtModal.show();
+    var _rtM = getRtModal(); if (_rtM) _rtM.show();
   });
 
   document.getElementById('ratingForm').addEventListener('submit', function(e){
     e.preventDefault();
     var btn = document.getElementById('rtSubmit'); btn.disabled=true; var orig=btn.innerHTML;
     btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mengirim…';
+    if (window.JJN_PRELOAD) window.JJN_PRELOAD.show('Mengirim rating…');
     var fd = new FormData(this);
     fetch('/jajanan.php?ajax=submit_rating',{method:'POST',body:fd,credentials:'same-origin'})
       .then(function(r){return r.json();})
       .then(function(j){
         btn.disabled=false; btn.innerHTML=orig;
+        if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide();
         if (!j.ok){ alert(j.error||'Gagal mengirim rating'); return; }
-        if (rtModal) rtModal.hide();
+        var _rtM = getRtModal(); if (_rtM) _rtM.hide();
         // Refresh halaman supaya tabel update badge bintang
         setTimeout(function(){ location.reload(); }, 250);
       })
-      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; alert('Koneksi gagal'); });
+      .catch(function(){ btn.disabled=false; btn.innerHTML=orig; if (window.JJN_PRELOAD) window.JJN_PRELOAD.hide(); alert('Koneksi gagal'); });
   });
 })();
 </script>
