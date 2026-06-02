@@ -1703,6 +1703,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var ONGKIR_BASE = <?= (int)$ONGKIR_BASE ?>, ONGKIR_PER_KM = <?= (int)$ONGKIR_PER_KM ?>, ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
   var PPN_RATE = <?= json_encode($PPN_RATE) ?>;
   var MT_FEE_FIXED = <?= (int)$MIDTRANS_FEE_FIXED ?>, MT_FEE_PCT = <?= json_encode($MIDTRANS_FEE_PCT) ?>;
+  var APP_FEE_FIXED = <?= (int)$APP_FEE_FIXED ?>, APP_FEE_PCT = <?= json_encode($APP_FEE_PCT) ?>;
   var CSRF = <?= json_encode(csrf_token()) ?>;
 
   function fmtRp(n){ return 'Rp '+Math.round(n).toLocaleString('id-ID'); }
