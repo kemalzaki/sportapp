@@ -53,6 +53,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db_exec("UPDATE users SET nomor_wa=$1, jenis_kelamin=NULLIF($2,'') WHERE id=$3",
                 [$wa ?: null, $jk, (int)$u['id']]);
         }
+    } elseif ($a==='update_tema') {
+        $valid = ['sky','indigo','emerald','rose','amber','violet','slate'];
+        $t = $_POST['tema_warna'] ?? 'sky';
+        if (!in_array($t, $valid, true)) $t = 'sky';
+        db_exec("UPDATE users SET tema_warna=$1 WHERE id=$2", [$t, (int)$u['id']]);
     } elseif ($a==='delete_wa') {
         db_exec("UPDATE users SET nomor_wa=NULL WHERE id=$1", [(int)$u['id']]);
     } elseif ($a==='mark_notif') {
@@ -229,6 +234,36 @@ foreach ($heatRows as $r) $heatMap[$r['d']] = (int)$r['c'];
 $xp = (int)$me['xp']; $level = (int)$me['level'];
 $xpInLevel = $xp % 200; $xpToNext = 200 - $xpInLevel;
 include __DIR__.'/includes/header.php';
+?>
+<section class="container my-3" id="temaWarna">
+  <div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-palette-fill text-primary"></i> Tema Warna Aplikasi</div>
+    <form data-ajax method="post" class="card-body">
+      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+      <input type="hidden" name="_action" value="update_tema">
+      <p class="small text-muted mb-2">Pilih warna utama tampilan aplikasi. Perubahan akan terlihat setelah halaman dimuat ulang.</p>
+      <?php
+        $temaSekarang = 'sky';
+        try { $rr = db_one("SELECT COALESCE(tema_warna,'sky') AS t FROM users WHERE id=$1",[(int)$u['id']]); if ($rr) $temaSekarang = $rr['t']; } catch (Throwable $e) {}
+        $opsi = [
+          'sky'=>['Langit','#0ea5e9'], 'indigo'=>['Indigo','#6366f1'], 'emerald'=>['Emerald','#10b981'],
+          'rose'=>['Mawar','#f43f5e'], 'amber'=>['Amber','#f59e0b'], 'violet'=>['Violet','#8b5cf6'], 'slate'=>['Slate','#475569'],
+        ];
+      ?>
+      <div class="d-flex flex-wrap gap-2">
+        <?php foreach ($opsi as $k=>$v): ?>
+          <label class="border rounded p-2 d-flex align-items-center gap-2" style="cursor:pointer;<?= $temaSekarang===$k?'border-color:#0ea5e9;border-width:2px;':'' ?>">
+            <input type="radio" name="tema_warna" value="<?= $k ?>" <?= $temaSekarang===$k?'checked':'' ?> class="form-check-input m-0">
+            <span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:<?= $v[1] ?>;"></span>
+            <span class="small"><?= $v[0] ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+      <button class="btn btn-primary btn-sm mt-3"><i class="bi bi-save"></i> Simpan Tema</button>
+    </form>
+  </div>
+</section>
+<?php
 ?>
 <h2 class="mb-3"><i class="bi bi-person-circle text-primary"></i> Profil Saya</h2>
 

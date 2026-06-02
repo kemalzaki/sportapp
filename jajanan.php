@@ -17,6 +17,8 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/app_settings.php';
+require __DIR__.'/includes/invoice_email.php';
 send_security_headers();
 date_default_timezone_set('Asia/Jakarta');
 $pageTitle = 'Pesan Jajanan Favorit';
@@ -52,8 +54,11 @@ $PPN_RATE       = 0.11; // PPN 11% (UU HPP)
  *   - + 0.7% (QRIS) bila dipakai. Bisa diset 0 untuk dimatikan.
  * Bisa di-override via env: MIDTRANS_FEE_FIXED, MIDTRANS_FEE_PCT.
  */
-$MIDTRANS_FEE_FIXED = (int)   (getenv('MIDTRANS_FEE_FIXED') !== false && getenv('MIDTRANS_FEE_FIXED') !== '' ? getenv('MIDTRANS_FEE_FIXED') : 4000);
-$MIDTRANS_FEE_PCT   = (float) (getenv('MIDTRANS_FEE_PCT')   !== false && getenv('MIDTRANS_FEE_PCT')   !== '' ? getenv('MIDTRANS_FEE_PCT')   : 0.007); // 0.7%
+// Revisi 2 Jun 2026: prioritas pengaturan dari /admin/biaya.php (tabel app_settings)
+$MIDTRANS_FEE_FIXED = app_setting_int('biaya_admin_fixed', (int)(getenv('MIDTRANS_FEE_FIXED') ?: 4000));
+$MIDTRANS_FEE_PCT   = app_setting_float('biaya_admin_pct', (float)(getenv('MIDTRANS_FEE_PCT') ?: 0.007));
+$APP_FEE_FIXED      = app_setting_int('biaya_aplikasi_fixed', 1000);
+$APP_FEE_PCT        = app_setting_float('biaya_aplikasi_pct', 0.0);
 
 function jjn_haversine($lat1,$lng1,$lat2,$lng2){
     $R=6371000; $toRad=M_PI/180;
@@ -73,7 +78,13 @@ function jjn_normalize_phone($raw){
 
 /** Cek apakah toko sedang buka berdasarkan jam_buka/jam_tutup (format HH:MM:SS) dan jam sekarang.
  *  Bila salah satu kosong, dianggap selalu buka. Mendukung jadwal lewat tengah malam (mis. 22:00–02:00). */
-function jjn_is_open($jamBuka, $jamTutup, $now = null) {
+function jjn_is_open($jamBuka, $jamTutup, $now = null, $hariBuka = null) {
+    // Cek hari (0=Minggu .. 6=Sabtu). Kosong/null = setiap hari.
+    if (!empty($hariBuka)) {
+        $today = (int) date('w');
+        $allow = array_map('intval', array_filter(explode(',', (string)$hariBuka), 'is_numeric'));
+        if ($allow && !in_array($today, $allow, true)) return false;
+    }
     if (empty($jamBuka) || empty($jamTutup)) return true;
     $now = $now ?: date('H:i:s');
     if ($jamBuka <= $jamTutup) return ($now >= $jamBuka && $now <= $jamTutup);
@@ -164,9 +175,9 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
         $sub = 0;
         $itemNamesForOrder = [];
         foreach ($items as $it) {
-            $j = db_one("SELECT id,nama,harga,stok,aktif,jam_buka,jam_tutup,toko_id FROM jajanan WHERE id=$1",[$it['id']]);
+            $j = db_one("SELECT id,nama,harga,stok,aktif,jam_buka,jam_tutup,toko_id,hari_buka FROM jajanan WHERE id=$1",[$it['id']]);
             if (!$j || !($j['aktif']==='t'||$j['aktif']===true)) throw new RuntimeException('Produk tidak tersedia ('.$it['id'].').');
-            if (!jjn_is_open($j['jam_buka'] ?? null, $j['jam_tutup'] ?? null)) {
+            if (!jjn_is_open($j['jam_buka'] ?? null, $j['jam_tutup'] ?? null, null, $j['hari_buka'] ?? null)) {
                 $jb = $j['jam_buka'] ? substr($j['jam_buka'],0,5) : '-';
                 $jt = $j['jam_tutup']? substr($j['jam_tutup'],0,5): '-';
                 throw new RuntimeException("Toko sedang tutup untuk \"{$j['nama']}\" (jam {$jb}–{$jt}).");
@@ -184,12 +195,15 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
 
         $ppn      = (int) round($sub * $PPN_RATE);
         $feeAdmin = (int) round(($sub + $ppn + $ongkir) * $MIDTRANS_FEE_PCT) + (int)$MIDTRANS_FEE_FIXED;
-        $total    = $sub + $ppn + $ongkir + $feeAdmin;
+        $feeApp   = (int) round(($sub + $ppn + $ongkir) * $APP_FEE_PCT) + (int)$APP_FEE_FIXED;
+        $total    = $sub + $ppn + $ongkir + $feeAdmin + $feeApp;
 
         $kode = 'JJN-'.date('ymd').'-'.strtoupper(bin2hex(random_bytes(2)));
-        db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng,midtrans_order_id,payment_status)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,'midtrans','pending_payment',$9,$10,$11,'pending')",
-          [$kode,$nama,$no_wa,$alamat,$catat?:null,$sub,$ongkir,$total,$plat,$plng,$kode]);
+        // Revisi 2 Jun 2026: simpan biaya_admin, biaya_aplikasi, email_pemesan
+        $email_pemesan = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL) ?: null;
+        db_exec("INSERT INTO jajanan_pesanan(kode,nama_pemesan,no_wa,alamat,catatan,subtotal,ongkir,total,metode,status,pickup_lat,pickup_lng,midtrans_order_id,payment_status,biaya_admin,biaya_aplikasi,email_pemesan)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,'midtrans','pending_payment',$9,$10,$11,'pending',$12,$13,$14)",
+          [$kode,$nama,$no_wa,$alamat,$catat?:null,$sub,$ongkir,$total,$plat,$plng,$kode,$feeAdmin,$feeApp,$email_pemesan]);
         $pid = (int) db_val("SELECT id FROM jajanan_pesanan WHERE kode=$1",[$kode]);
         $itemDetails = [];
         foreach ($resolved as $r) {
@@ -210,6 +224,7 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD']==='POST') {
         $itemDetails[] = ['id'=>'PPN11',  'price'=>(int)$ppn,      'quantity'=>1, 'name'=>'PPN 11%'];
         $itemDetails[] = ['id'=>'ONGKIR', 'price'=>(int)$ongkir,   'quantity'=>1, 'name'=>'Ongkir'];
         $itemDetails[] = ['id'=>'ADMIN',  'price'=>(int)$feeAdmin, 'quantity'=>1, 'name'=>'Biaya Admin Midtrans'];
+        $itemDetails[] = ['id'=>'APPFEE', 'price'=>(int)$feeApp,   'quantity'=>1, 'name'=>'Biaya Aplikasi'];
 
         $payload = [
             'transaction_details' => ['order_id'=>$kode, 'gross_amount'=>$total],
@@ -242,6 +257,14 @@ if ($ajax === 'confirm_payment' && $_SERVER['REQUEST_METHOD']==='POST') {
         $fraud = $status['fraud_status'] ?? 'accept';
         if (in_array($ts, ['capture','settlement'], true) && $fraud === 'accept') {
             db_exec("UPDATE jajanan_pesanan SET payment_status='paid', status='baru', updated_at=now() WHERE id=$1",[(int)$order['id']]);
+            try {
+                $od = db_one("SELECT * FROM jajanan_pesanan WHERE id=$1",[(int)$order['id']]);
+                $its = db_all("SELECT nama,harga,qty FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$order['id']]);
+                if ($od && empty($od['invoice_sent_at']) && !empty($od['email_pemesan'])) {
+                    $sch = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off') ? 'https' : 'http';
+                    kirim_invoice_email($od, $its, $sch.'://'.($_SERVER['HTTP_HOST'] ?? 'localhost'));
+                }
+            } catch (Throwable $e) { error_log('invoice send: '.$e->getMessage()); }
             if (empty($order['stok_dipotong']) || $order['stok_dipotong']==='f' || $order['stok_dipotong']===false) {
                 $its = db_all("SELECT jajanan_id, qty FROM jajanan_pesanan_item WHERE pesanan_id=$1",[(int)$order['id']]);
                 foreach ($its as $it) {
@@ -340,7 +363,7 @@ if ($ajax === 'toko_produk' && $_SERVER['REQUEST_METHOD']==='GET') {
                      ORDER BY nama",[$tid]);
     $now = date('H:i:s');
     foreach ($prods as &$p) {
-        $p['is_open'] = jjn_is_open($p['jam_buka'] ?? null, $p['jam_tutup'] ?? null, $now);
+        $p['is_open'] = jjn_is_open($p['jam_buka'] ?? null, $p['jam_tutup'] ?? null, $now, $p['hari_buka'] ?? null);
         $p['stok'] = (int)$p['stok'];
         $p['harga']= (int)$p['harga'];
         $p['jam_buka_short']  = $p['jam_buka']  ? substr($p['jam_buka'],0,5)  : null;
@@ -711,7 +734,7 @@ if ($berhasilKode !== ''):
 <div class="row g-2">
 <?php foreach($rows as $r):
     $stokR = (int)$r['stok'];
-    $isOpen = jjn_is_open($r['jam_buka'] ?? null, $r['jam_tutup'] ?? null);
+    $isOpen = jjn_is_open($r['jam_buka'] ?? null, $r['jam_tutup'] ?? null, null, $r['hari_buka'] ?? null);
     $jamLabel = '';
     if (!empty($r['jam_buka']) && !empty($r['jam_tutup'])) {
         $jamLabel = substr($r['jam_buka'],0,5).'–'.substr($r['jam_tutup'],0,5);
@@ -899,6 +922,9 @@ if ($berhasilKode !== ''):
 
           <label class="small">Alamat Lengkap Pengantaran</label>
           <textarea class="form-control form-control-sm mb-2" name="alamat" rows="2" required></textarea>
+          <label class="small mt-2">Email (untuk invoice)</label>
+          <input class="form-control form-control-sm mb-2" type="email" name="email" placeholder="email@anda.com (opsional)" value="<?= htmlspecialchars($u['email'] ?? '') ?>">
+
 
           <label class="small">Catatan (opsional)</label>
           <input class="form-control form-control-sm mb-2" name="catatan" placeholder="cth: gerbang biru, pagar besi">
@@ -1547,6 +1573,9 @@ document.addEventListener('DOMContentLoaded', function(){
               <div class="col-12">
                 <label class="small">Alamat Lengkap Pengantaran</label>
                 <textarea class="form-control form-control-sm" name="alamat" rows="2" required></textarea>
+          <label class="small mt-2">Email (untuk invoice)</label>
+          <input class="form-control form-control-sm mb-2" type="email" name="email" placeholder="email@anda.com (opsional)" value="<?= htmlspecialchars($u['email'] ?? '') ?>">
+
               </div>
               <div class="col-12">
                 <label class="small">Catatan (opsional)</label>

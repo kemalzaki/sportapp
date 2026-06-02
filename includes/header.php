@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/theme_user.php';
 require_once __DIR__ . '/migrations_v7.php';
 require_once __DIR__ . '/migrations_v8.php';
 require_once __DIR__ . '/migrations_v9.php';
@@ -86,6 +87,7 @@ if ($u) {
     box-shadow: 0 2px 8px rgba(0,0,0,.15); }
 }
 </style>
+<style id="userTheme"><?= user_theme_css() ?></style>
 </head>
 <body<?= !empty($pageSkeleton) ? ' data-skeleton="'.htmlspecialchars($pageSkeleton).'"' : '' ?>>
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
@@ -107,13 +109,6 @@ if ($u) {
         <i class="bi bi-bell-fill"></i>
         <?php if ($nUnread): ?><span class="gt-badge-dot" id="gtBellBadge"><?= $nUnread > 9 ? '9+' : (int)$nUnread ?></span><?php endif; ?>
       </button>
-      <a href="/profile.php" class="gt-avatar" aria-label="Profil saya" data-sfx="tap">
-        <?php if ($navFoto): ?>
-          <img src="<?= htmlspecialchars($navFoto) ?>" alt="Foto profil">
-        <?php else: ?>
-          <i class="bi bi-person-fill"></i>
-        <?php endif; ?>
-      </a>
       <a href="/logout.php" class="gt-logout" aria-label="Keluar" title="Keluar" data-sfx="tap"
          onclick="return confirm('Keluar dari akun?')"><i class="bi bi-box-arrow-right"></i></a>
     <?php else: ?>

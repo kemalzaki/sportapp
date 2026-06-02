@@ -18,6 +18,8 @@ require_once __DIR__.'/includes/islami_migrations.php';
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     rate_limit_or_die('register:'.($_SERVER['REMOTE_ADDR'] ?? '0'), 30, 600);
+    // Revisi 2 Jun 2026: wajib setuju Kebijakan Privasi (UU PDP)
+    if (empty($_POST['agree_pdp'])) { $err = 'Anda harus menyetujui Kebijakan Privasi (UU PDP) terlebih dahulu.'; goto __after_post_register; }
     $nama = trim($_POST['nama'] ?? '');
     $email = strtolower(trim($_POST['email'] ?? ''));
     $pass = $_POST['password'] ?? '';
@@ -36,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     else {
         $hash = hash_password($pass);
         try {
-            db_exec("INSERT INTO users(nama,email,password_hash,role,jenis_kelamin,nomor_wa,referred_by_code) VALUES($1,$2,$3,'member',$4,$5,$6)",
-                [$nama, $email, $hash, $jk, $wa, $ref]);
+            db_exec("INSERT INTO users(nama,email,password_hash,role,jenis_kelamin,nomor_wa,referred_by_code,privasi_disetujui_at,privasi_versi_disetujui) VALUES($1,$2,$3,'member',$4,$5,$6,now(),$7)",
+                [$nama, $email, $hash, $jk, $wa, $ref, (string)(db_val("SELECT versi FROM kebijakan_privasi WHERE aktif=true ORDER BY id DESC LIMIT 1") ?? '1.0')]);
             header('Location: /login.php'); exit;
         } catch (Throwable $e) {
             try {
@@ -47,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             } catch (Throwable $e2) { $err = 'Pendaftaran gagal: '.$e2->getMessage(); }
         }
     }
+    __after_post_register:;
 }
 $csrf = csrf_token();
 $waLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM).'?text='.rawurlencode('Halo Admin Firdam, saya ingin mendaftar di HapFam SportApp. Mohon kode referalnya. Terima kasih.');
@@ -214,6 +217,15 @@ body{
         </div>
       </div>
 
+      
+      <!-- Revisi 2 Jun 2026: persetujuan kebijakan privasi (UU PDP) -->
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="pdp" name="agree_pdp" value="1" required <?= !empty($_POST['agree_pdp'])?'checked':'' ?>>
+        <label class="form-check-label small" for="pdp">
+          Saya menyetujui pemrosesan data pribadi saya sesuai
+          <a href="/privasi.php" target="_blank" class="text-decoration-underline">Kebijakan Privasi (UU PDP No. 27/2022)</a>.
+        </label>
+      </div>
       <button type="submit" class="btn-lg-primary" id="btnSubmit">
         <i class="bi bi-person-check"></i> Daftar
       </button>

@@ -382,7 +382,21 @@ if ($u && !empty($_jids)) {
     } catch (Throwable $e) {}
 }
 
+
+/* Revisi 2 Jun 2026: render blok CMS dari tabel index_blok */
+if (!function_exists('render_index_blok')) {
+    function render_index_blok(string $posisi): void {
+        try {
+            $rs = db_all("SELECT judul, konten FROM index_blok WHERE aktif=true AND posisi=$1 ORDER BY urutan, id", [$posisi]);
+        } catch (Throwable $e) { $rs = []; }
+        foreach ($rs as $b) {
+            echo '<section class="container my-3"><div class="card shadow-sm"><div class="card-header fw-semibold">'
+               . htmlspecialchars($b['judul']) . '</div><div class="card-body">' . $b['konten'] . '</div></div></section>';
+        }
+    }
+}
 include __DIR__.'/includes/header.php'; ?>
+<?php render_index_blok('top'); ?>
 
 <section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
   <div class="d-flex flex-wrap align-items-center gap-3">
@@ -1516,4 +1530,4 @@ function showStory(d){
 </script>
 <?php endif; ?>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php render_index_blok('bottom'); include __DIR__.'/includes/footer.php'; ?>

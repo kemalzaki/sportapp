@@ -218,6 +218,15 @@ body{
         </div>
       </div>
 
+      
+      <!-- Revisi 2 Jun 2026: persetujuan kebijakan privasi (UU PDP) -->
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="pdp" required>
+        <label class="form-check-label small" for="pdp">
+          Saya telah membaca &amp; menyetujui
+          <a href="/privasi.php" target="_blank" class="text-decoration-underline">Kebijakan Privasi (UU PDP)</a>.
+        </label>
+      </div>
       <button type="submit" class="btn-lg-primary" id="btnSubmit">
         <i class="bi bi-box-arrow-in-right"></i> Masuk
       </button>

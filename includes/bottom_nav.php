@@ -1,8 +1,9 @@
 <?php
 // Sticky bottom nav (gaya Gojek) + floating upload button. Hanya tampil saat login.
+// Revisi 2 Jun 2026:
+//   - Tab "Event" diganti jadi "Berita" (berita.php). Halaman aktif memperhitungkan
+//     berita.php sebagai item aktif.
 // Revisi 1 Jun 2026: redesign menu navigasi seperti aplikasi Gojek di mobile.
-// Guard: cegah include ganda (mis. dipanggil di halaman + di footer.php) yang
-// menyebabkan "Cannot redeclare _gj_active()".
 if (defined('GJ_BOTTOM_NAV_RENDERED')) return;
 define('GJ_BOTTOM_NAV_RENDERED', true);
 $u = current_user();
@@ -13,7 +14,6 @@ $nUnread  = unread_notif_count((int)$u['id']);
 $_navFoto = db_one("SELECT foto_url FROM users WHERE id=$1", [(int)$u['id']]);
 $navFoto  = $_navFoto['foto_url'] ?? null;
 
-// Tentukan halaman aktif berdasarkan script name
 $_cur = basename($_SERVER['SCRIPT_NAME'] ?? '');
 if (!function_exists('_gj_active')) {
   function _gj_active($file, $cur){
@@ -21,7 +21,7 @@ if (!function_exists('_gj_active')) {
   }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=1jun2026">
+<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
 <nav class="gj-nav d-lg-none" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">
     <span class="gj-ico gj-c-home"><i class="bi bi-house-door-fill"></i></span>
@@ -35,9 +35,10 @@ if (!function_exists('_gj_active')) {
     <span class="gj-fab-inner"><i class="bi bi-plus-lg"></i></span>
     <span class="gj-fab-label">Upload</span>
   </a>
-  <a href="/event.php" class="gj-item <?= _gj_active(['event.php','challenge.php','leaderboard_islami.php'], $_cur) ?>">
-    <span class="gj-ico gj-c-event"><i class="bi bi-trophy-fill"></i></span>
-    <span class="gj-label">Event</span>
+  <!-- Revisi 2 Jun 2026: dulu Event, sekarang Berita -->
+  <a href="/berita.php" class="gj-item <?= _gj_active(['berita.php'], $_cur) ?>">
+    <span class="gj-ico gj-c-event"><i class="bi bi-newspaper"></i></span>
+    <span class="gj-label">Berita</span>
   </a>
   <a href="/profile.php" class="gj-item position-relative <?= _gj_active(['profile.php','user.php'], $_cur) ?>">
     <span class="gj-ico gj-c-me">
