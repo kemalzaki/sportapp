@@ -45,7 +45,7 @@ $UIN_R_MAX_KM   = 3.0;
 $ONGKIR_BASE    = 3000;
 $ONGKIR_PER_KM  = 2000;
 $ONGKIR_FALLBACK = 5000;
-$PER_PAGE       = 5;
+$PER_PAGE       = 6;
 $PPN_RATE       = 0.11; // PPN 11% (UU HPP)
 
 /* Biaya admin Midtrans (potongan) — ditanggung pembeli.
@@ -353,23 +353,46 @@ if ($ajax === 'detail_pesanan' && $_SERVER['REQUEST_METHOD']==='GET') {
 
 /* === Revisi 4 Jun 2026 #5: AJAX list produk satu toko (untuk modal Pesan Sekarang) === */
 if ($ajax === 'toko_produk' && $_SERVER['REQUEST_METHOD']==='GET') {
-    header('Content-Type: application/json');
-    $tid = (int)($_GET['toko_id'] ?? 0);
-    if ($tid<=0) { echo json_encode(['ok'=>false,'error'=>'toko_id kosong']); exit; }
-    $toko = db_one("SELECT id,nama,deskripsi,alamat,no_wa FROM toko WHERE id=$1",[$tid]);
-    if (!$toko) { echo json_encode(['ok'=>false,'error'=>'Toko tidak ditemukan']); exit; }
-    $prods = db_all("SELECT id,nama,harga,stok,foto_url,kategori,deskripsi,jam_buka,jam_tutup
-                     FROM jajanan WHERE toko_id=$1 AND aktif=true AND stok>0
-                     ORDER BY nama",[$tid]);
-    $now = date('H:i:s');
-    foreach ($prods as &$p) {
-        $p['is_open'] = jjn_is_open($p['jam_buka'] ?? null, $p['jam_tutup'] ?? null, $now, $p['hari_buka'] ?? null);
-        $p['stok'] = (int)$p['stok'];
-        $p['harga']= (int)$p['harga'];
-        $p['jam_buka_short']  = $p['jam_buka']  ? substr($p['jam_buka'],0,5)  : null;
-        $p['jam_tutup_short'] = $p['jam_tutup'] ? substr($p['jam_tutup'],0,5) : null;
+    // Bersihkan output buffer agar respons MURNI JSON (cegah "Koneksi gagal" di sisi JS).
+    while (ob_get_level() > 0) { @ob_end_clean(); }
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $tid = (int)($_GET['toko_id'] ?? 0);
+        if ($tid<=0) { echo json_encode(['ok'=>false,'error'=>'toko_id kosong']); exit; }
+        $toko = db_one("SELECT id,nama,deskripsi,alamat,no_wa FROM toko WHERE id=$1",[$tid]);
+        if (!$toko) { echo json_encode(['ok'=>false,'error'=>'Toko tidak ditemukan']); exit; }
+
+        // Bangun daftar kolom secara defensif: tambahkan jam_buka/jam_tutup/hari_buka
+        // hanya jika kolom-kolomnya benar-benar ada di tabel jajanan (idempotent vs migrasi).
+        $cols = ['id','nama','harga','stok','foto_url','kategori','deskripsi'];
+        $optional = ['jam_buka','jam_tutup','hari_buka'];
+        try {
+            $existing = db_all("SELECT column_name FROM information_schema.columns
+                                WHERE table_name='jajanan' AND column_name = ANY($1)", [ '{'.implode(',', $optional).'}' ]);
+            $have = array_map(function($r){ return $r['column_name']; }, $existing ?: []);
+            foreach ($optional as $oc) { if (in_array($oc, $have, true)) $cols[] = $oc; }
+        } catch (Throwable $e) { /* fallback: cols dasar saja */ }
+
+        $sql = "SELECT ".implode(',', $cols)."
+                FROM jajanan
+                WHERE toko_id=$1 AND aktif=true AND stok>0
+                ORDER BY nama";
+        $prods = db_all($sql, [$tid]) ?: [];
+
+        $now = date('H:i:s');
+        foreach ($prods as &$p) {
+            $p['is_open'] = jjn_is_open($p['jam_buka'] ?? null, $p['jam_tutup'] ?? null, $now, $p['hari_buka'] ?? null);
+            $p['stok']  = (int)($p['stok'] ?? 0);
+            $p['harga'] = (int)($p['harga'] ?? 0);
+            $p['jam_buka_short']  = !empty($p['jam_buka'])  ? substr($p['jam_buka'],0,5)  : null;
+            $p['jam_tutup_short'] = !empty($p['jam_tutup']) ? substr($p['jam_tutup'],0,5) : null;
+        }
+        unset($p);
+        echo json_encode(['ok'=>true,'toko'=>$toko,'produk'=>$prods]);
+    } catch (Throwable $e) {
+        http_response_code(200); // tetap 200 agar fetch tidak gagal; pesan lewat JSON
+        echo json_encode(['ok'=>false,'error'=>'Gagal memuat produk toko: '.$e->getMessage()]);
     }
-    echo json_encode(['ok'=>true,'toko'=>$toko,'produk'=>$prods]);
     exit;
 }
 
@@ -1783,8 +1806,11 @@ document.addEventListener('DOMContentLoaded', function(){
     list.innerHTML = '<div class="jjn-shimmer" style="height:64px"></div><div class="jjn-shimmer" style="height:64px"></div><div class="jjn-shimmer" style="height:64px"></div>';
     var _tkM = getTkModal(); if (_tkM) _tkM.show();
     if (window.JJN_PRELOAD) { window.JJN_PRELOAD.show('Memuat produk toko…'); setTimeout(function(){ window.JJN_PRELOAD.hide(); }, 600); }
-    fetch('/jajanan.php?ajax=toko_produk&toko_id='+encodeURIComponent(tokoId), {credentials:'same-origin'})
-      .then(function(r){return r.json();})
+    fetch('/jajanan.php?ajax=toko_produk&toko_id='+encodeURIComponent(tokoId), {credentials:'same-origin', headers:{'Accept':'application/json'}})
+      .then(function(r){ return r.text().then(function(t){
+          try { return JSON.parse(t); }
+          catch(e){ return {ok:false, error:'Respons server tidak valid (HTTP '+r.status+').'}; }
+      });})
       .then(function(j){
         if (!j.ok){ list.innerHTML='<div class="alert alert-danger small">'+(j.error||'Gagal memuat')+'</div>'; return; }
         if (j.toko){
@@ -1794,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', function(){
         tkState.prods = j.produk || [];
         tkRenderProds();
       })
-      .catch(function(){ list.innerHTML='<div class="alert alert-danger small">Koneksi gagal.</div>'; });
+      .catch(function(err){ list.innerHTML='<div class="alert alert-danger small">Koneksi gagal: '+(err && err.message ? err.message : 'tidak dapat menghubungi server')+'</div>'; });
   }
 
   // Klik tombol "Pesan Sekarang" pada kartu → buka modal toko
