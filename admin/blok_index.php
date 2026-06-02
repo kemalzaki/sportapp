@@ -68,7 +68,7 @@ include __DIR__.'/../includes/header.php';
       <input type="number" class="form-control form-control-sm" name="urutan" value="<?= (int)($edit['urutan'] ?? 0) ?>"></div>
     <div class="col-md-2 mt-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="aktif" id="ak3" <?= (!$edit || ($edit['aktif']==='t'||$edit['aktif']===true))?'checked':'' ?>><label for="ak3" class="small">aktif</label></div></div>
     <div class="col-12"><label class="small">Konten (HTML)</label>
-      <textarea class="form-control" name="konten" id="konten" rows="10"><?= htmlspecialchars($edit['konten'] ?? '') ?></textarea>
+      <textarea class="form-control" name="konten" id="konten" rows="10" data-wysiwyg><?= htmlspecialchars($edit['konten'] ?? '') ?></textarea>
     </div>
     <div class="col-12">
       <button class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan</button>

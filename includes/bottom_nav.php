@@ -22,6 +22,19 @@ if (!function_exists('_gj_active')) {
 }
 ?>
 <link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
+<style>
+/* Revisi 2 Jun 2026: samakan warna ikon navigasi bawah mobile (tidak warna-warni) */
+.gj-nav .gj-item .gj-ico{ color:#0f172a !important; background:transparent !important; }
+.gj-nav .gj-item .gj-ico i{ color:#0f172a !important; }
+.gj-nav .gj-item.active .gj-ico,
+.gj-nav .gj-item.active .gj-ico i{ color:#0ea5e9 !important; }
+.gj-nav .gj-item .gj-label{ color:#475569; }
+.gj-nav .gj-item.active .gj-label{ color:#0ea5e9; font-weight:600; }
+[data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
+[data-bs-theme=dark] .gj-nav .gj-item .gj-ico i{ color:#e2e8f0 !important; }
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i{ color:#38bdf8 !important; }
+</style>
 <nav class="gj-nav d-lg-none" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">
     <span class="gj-ico gj-c-home"><i class="bi bi-house-door-fill"></i></span>

@@ -103,6 +103,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $jamBuka  = jjn_parse_time($_POST['jam_buka']  ?? '');
     $jamTutup = jjn_parse_time($_POST['jam_tutup'] ?? '');
     $tokoId   = (int)($_POST['toko_id'] ?? 0) ?: null;
+    // Revisi: hari_buka csv 0..6 (0=Min). Kosong/semua -> setiap hari.
+    $hariArr  = array_values(array_filter(array_map('intval', (array)($_POST['hari_buka'] ?? [])), fn($d)=>$d>=0&&$d<=6));
+    $hariBuka = $hariArr ? implode(',', array_unique($hariArr)) : '0,1,2,3,4,5,6';
 
     try {
         if ($a === 'add' || $a === 'edit') {
@@ -111,9 +114,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
 
         if ($a==='add' && $nama!=='') {
-            db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng,jam_buka,jam_tutup,toko_id)
-                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
-              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$tokoId]);
+            db_exec("INSERT INTO jajanan(nama,deskripsi,harga,stok,foto_url,foto_file_id,kategori,aktif,lat,lng,jam_buka,jam_tutup,toko_id,hari_buka)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
+              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$tokoId,$hariBuka]);
             $_SESSION['flash'] = 'Jajanan ditambahkan.'.($foto?' Foto ter-upload.':'');
         } elseif ($a==='edit') {
             $id=(int)$_POST['id'];
@@ -126,8 +129,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     try { $imageKit->deleteFile($cur['foto_file_id']); } catch(Throwable $e){}
                 }
             }
-            db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10,jam_buka=$11,jam_tutup=$12,toko_id=$13 WHERE id=$14",
-              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$tokoId,$id]);
+            db_exec("UPDATE jajanan SET nama=$1,deskripsi=$2,harga=$3,stok=$4,foto_url=$5,foto_file_id=$6,kategori=$7,aktif=$8,lat=$9,lng=$10,jam_buka=$11,jam_tutup=$12,toko_id=$13,hari_buka=$14 WHERE id=$15",
+              [$nama,$des?:null,$harga,$stok,$foto?:null,$fotoFileId,$kat?:null,$aktif?'t':'f',$lat,$lng,$jamBuka,$jamTutup,$tokoId,$hariBuka,$id]);
             $_SESSION['flash'] = 'Jajanan diperbarui.'.($upl?' Foto baru ter-upload.':'');
         } elseif ($a==='delete') {
             $id = (int)$_POST['id'];
@@ -188,6 +191,13 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
     <div class="col-md-3"><label class="small">Lng</label><input class="form-control form-control-sm" name="lng" placeholder="107.717553" inputmode="decimal"></div>
     <div class="col-md-3"><label class="small"><i class="bi bi-clock"></i> Jam Buka</label><input type="time" class="form-control form-control-sm" name="jam_buka" value="07:00"></div>
     <div class="col-md-3"><label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label><input type="time" class="form-control form-control-sm" name="jam_tutup" value="21:00"></div>
+    <div class="col-12"><label class="small"><i class="bi bi-calendar-week"></i> Hari Buka <span class="text-muted">(centang yang buka)</span></label>
+      <div class="d-flex flex-wrap gap-2">
+        <?php $_dn=['Min','Sen','Sel','Rab','Kam','Jum','Sab']; foreach($_dn as $i=>$nm): ?>
+          <label class="form-check form-check-inline mb-0"><input type="checkbox" class="form-check-input" name="hari_buka[]" value="<?= $i ?>" checked> <span class="small"><?= $nm ?></span></label>
+        <?php endforeach; ?>
+      </div>
+    </div>
     <div class="col-md-4"><label class="small"><i class="bi bi-shop text-warning"></i> Toko / Pedagang</label>
       <select class="form-select form-select-sm" name="toko_id">
         <option value="0">— Tidak terhubung toko —</option>
@@ -232,6 +242,7 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
           'lat'=>$r['lat']??'','lng'=>$r['lng']??'',
           'jam_buka'=>$r['jam_buka'] ? substr($r['jam_buka'],0,5) : '',
           'jam_tutup'=>$r['jam_tutup']? substr($r['jam_tutup'],0,5): '',
+          'hari_buka'=>$r['hari_buka'] ?? '0,1,2,3,4,5,6',
           'toko_id'=>(int)($r['toko_id'] ?? 0),
         ], JSON_UNESCAPED_UNICODE), ENT_QUOTES);
       ?>
@@ -308,6 +319,13 @@ Lokasi (lat/lng) dipakai untuk peta &amp; perhitungan jarak. <strong>Jam buka/tu
           </div>
           <div class="col-md-6"><label class="small"><i class="bi bi-clock"></i> Jam Buka</label><input type="time" class="form-control form-control-sm" name="jam_buka" id="ef_jam_buka"></div>
           <div class="col-md-6"><label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label><input type="time" class="form-control form-control-sm" name="jam_tutup" id="ef_jam_tutup"></div>
+          <div class="col-12"><label class="small"><i class="bi bi-calendar-week"></i> Hari Buka</label>
+            <div class="d-flex flex-wrap gap-2" id="ef_hari_wrap">
+              <?php $_dn2=['Min','Sen','Sel','Rab','Kam','Jum','Sab']; foreach($_dn2 as $i=>$nm): ?>
+                <label class="form-check form-check-inline mb-0"><input type="checkbox" class="form-check-input ef-hari" name="hari_buka[]" value="<?= $i ?>"> <span class="small"><?= $nm ?></span></label>
+              <?php endforeach; ?>
+            </div>
+          </div>
           <div class="col-12"><label class="small">Deskripsi</label><textarea class="form-control form-control-sm" name="deskripsi" id="ef_desk" rows="2"></textarea></div>
           <div class="col-md-7"><label class="small">URL Foto (akan dipakai bila tidak upload file baru)</label><input class="form-control form-control-sm" name="foto_url" id="ef_foto_url"></div>
           <div class="col-md-5"><label class="small">Upload baru → ImageKit</label><input type="file" class="form-control form-control-sm" name="foto" accept="image/*"></div>
@@ -345,6 +363,8 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('ef_lng').value      = d.lng || '';
     document.getElementById('ef_jam_buka').value = d.jam_buka || '';
     document.getElementById('ef_jam_tutup').value= d.jam_tutup || '';
+    var _hb = (d.hari_buka||'0,1,2,3,4,5,6').toString().split(',').map(function(x){return parseInt(x,10);});
+    document.querySelectorAll('.ef-hari').forEach(function(cb){ cb.checked = _hb.indexOf(parseInt(cb.value,10))!==-1; });
     var efTk = document.getElementById('ef_toko_id'); if (efTk) efTk.value = (d.toko_id||0);
     document.getElementById('ef_aktif').checked  = !!d.aktif;
     var prev = document.getElementById('ef_preview');

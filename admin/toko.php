@@ -37,18 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lat   = tk_parse_latlng($_POST['lat'] ?? '', -90, 90);
             $lng   = tk_parse_latlng($_POST['lng'] ?? '', -180, 180);
             $aktif = !empty($_POST['aktif']) ? 't' : 'f';
+            $jamBuka  = !empty($_POST['jam_buka'])  ? substr($_POST['jam_buka'],0,8)  : null;
+            $jamTutup = !empty($_POST['jam_tutup']) ? substr($_POST['jam_tutup'],0,8) : null;
+            $hariArr  = array_values(array_filter(array_map('intval', (array)($_POST['hari_buka'] ?? [])), fn($d)=>$d>=0&&$d<=6));
+            $hariBuka = $hariArr ? implode(',', array_unique($hariArr)) : '0,1,2,3,4,5,6';
             if ($nama === '') throw new RuntimeException('Nama toko wajib diisi.');
 
             if ($a === 'add') {
-                db_exec("INSERT INTO toko(nama,deskripsi,alamat,no_wa,lat,lng,aktif)
-                         VALUES($1,$2,$3,$4,$5,$6,$7)",
-                  [$nama, $des?:null, $alm?:null, $wa?:null, $lat, $lng, $aktif]);
+                db_exec("INSERT INTO toko(nama,deskripsi,alamat,no_wa,lat,lng,aktif,jam_buka,jam_tutup,hari_buka)
+                         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+                  [$nama, $des?:null, $alm?:null, $wa?:null, $lat, $lng, $aktif, $jamBuka, $jamTutup, $hariBuka]);
                 $_SESSION['flash'] = 'Toko ditambahkan.';
             } else {
                 $id = (int)($_POST['id'] ?? 0);
-                db_exec("UPDATE toko SET nama=$1,deskripsi=$2,alamat=$3,no_wa=$4,lat=$5,lng=$6,aktif=$7
-                          WHERE id=$8",
-                  [$nama, $des?:null, $alm?:null, $wa?:null, $lat, $lng, $aktif, $id]);
+                db_exec("UPDATE toko SET nama=$1,deskripsi=$2,alamat=$3,no_wa=$4,lat=$5,lng=$6,aktif=$7,jam_buka=$8,jam_tutup=$9,hari_buka=$10
+                          WHERE id=$11",
+                  [$nama, $des?:null, $alm?:null, $wa?:null, $lat, $lng, $aktif, $jamBuka, $jamTutup, $hariBuka, $id]);
                 $_SESSION['flash'] = 'Toko diperbarui.';
             }
         } elseif ($a === 'delete') {
@@ -160,6 +164,34 @@ include __DIR__.'/../includes/header.php';
             <input class="form-control form-control-sm" name="lng" inputmode="decimal"
                    placeholder="107.717553"
                    value="<?= htmlspecialchars($editRow['lng'] ?? '') ?>">
+          </div>
+          <div class="col-6">
+            <label class="small"><i class="bi bi-clock"></i> Jam Buka</label>
+            <input type="time" class="form-control form-control-sm" name="jam_buka"
+                   value="<?= htmlspecialchars($editRow['jam_buka'] ? substr($editRow['jam_buka'],0,5) : '07:00') ?>">
+          </div>
+          <div class="col-6">
+            <label class="small"><i class="bi bi-clock-history"></i> Jam Tutup</label>
+            <input type="time" class="form-control form-control-sm" name="jam_tutup"
+                   value="<?= htmlspecialchars($editRow['jam_tutup'] ? substr($editRow['jam_tutup'],0,5) : '21:00') ?>">
+          </div>
+          <div class="col-12">
+            <label class="small"><i class="bi bi-calendar-week"></i> Hari Buka (centang yang buka)</label>
+            <?php
+              $_tkHari = isset($editRow['hari_buka']) && $editRow['hari_buka']!==null
+                ? array_map('intval', explode(',', $editRow['hari_buka']))
+                : [0,1,2,3,4,5,6];
+              $_dn3 = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+            ?>
+            <div class="d-flex flex-wrap gap-2">
+              <?php foreach($_dn3 as $i=>$nm): ?>
+                <label class="form-check form-check-inline mb-0">
+                  <input type="checkbox" class="form-check-input" name="hari_buka[]" value="<?= $i ?>" <?= in_array($i,$_tkHari,true)?'checked':'' ?>>
+                  <span class="small"><?= $nm ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+            <div class="form-text small">Kosong / semua dicentang = buka setiap hari.</div>
           </div>
           <div class="col-12 d-flex gap-2">
             <button class="btn btn-sm btn-primary">

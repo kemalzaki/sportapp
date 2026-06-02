@@ -21,7 +21,19 @@ include __DIR__.'/includes/header.php';
     <?= $k['konten'] /* HTML sudah disanitize di admin */ ?>
   </div></div>
   <div class="mt-3">
-    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Kembali</a>
+    <a href="/login.php" id="btnPrivasiBack" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Kembali</a>
+  <script>
+    (function(){
+      var b=document.getElementById("btnPrivasiBack");
+      if(!b)return;
+      b.addEventListener("click",function(e){
+        var ref=document.referrer||"";
+        if(ref && history.length>1 && ref.indexOf(location.host)!==-1){
+          e.preventDefault(); history.back();
+        }
+      });
+    })();
+  </script>
   </div>
 </article>
 <?php include __DIR__.'/includes/footer.php'; ?>

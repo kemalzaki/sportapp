@@ -579,7 +579,8 @@ if ($berhasilKode !== ''):
     <p class="mb-0 small" style="opacity:.95">
       Pesan per produk seperti Gojek. Pembayaran online via Midtrans (transfer/VA/QRIS/e-wallet).
       Termasuk PPN <?= (int)($PPN_RATE*100) ?>% &amp; biaya admin Midtrans
-      (Rp <?= number_format($MIDTRANS_FEE_FIXED,0,",",".") ?> + <?= rtrim(rtrim(number_format($MIDTRANS_FEE_PCT*100,2,",","."),"0"),",") ?>%).
+      (Rp <?= number_format($MIDTRANS_FEE_FIXED,0,",",".") ?> + <?= rtrim(rtrim(number_format($MIDTRANS_FEE_PCT*100,2,",","."),"0"),",") ?>%) &amp;
+      biaya aplikasi (Rp <?= number_format($APP_FEE_FIXED,0,",",".") ?><?= $APP_FEE_PCT>0 ? " + ".rtrim(rtrim(number_format($APP_FEE_PCT*100,2,",","."),"0"),",")."%" : "" ?>).
     </p>
   </div>
 </div>
@@ -952,6 +953,7 @@ if ($berhasilKode !== ''):
             <div class="d-flex justify-content-between small"><span>Subtotal</span><strong id="sumSub">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>PPN <?= (int)($PPN_RATE*100) ?>%</span><strong id="sumPpn">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>Biaya Admin Midtrans</span><strong id="sumFee">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>Biaya Aplikasi</span><strong id="sumApp">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>Ongkir <span id="sumOngkirNote" class="text-muted">(flat)</span></span><strong id="sumOngkir">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong></div>
             <hr class="my-1">
             <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar</span><strong class="text-success" id="sumTot">Rp 0</strong></div>
@@ -986,6 +988,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var ONGKIR_BASE = <?= (int)$ONGKIR_BASE ?>, ONGKIR_PER_KM = <?= (int)$ONGKIR_PER_KM ?>, ONGKIR_FALLBACK = <?= (int)$ONGKIR_FALLBACK ?>;
   var PPN_RATE = <?= json_encode($PPN_RATE) ?>;
   var MT_FEE_FIXED = <?= (int)$MIDTRANS_FEE_FIXED ?>, MT_FEE_PCT = <?= json_encode($MIDTRANS_FEE_PCT) ?>;
+  var APP_FEE_FIXED = <?= (int)$APP_FEE_FIXED ?>, APP_FEE_PCT = <?= json_encode($APP_FEE_PCT) ?>;
   var currentDistKm = null, locValid = null, locDetected = false;
   var current = {harga:0, stok:0};
 
@@ -1001,11 +1004,13 @@ document.addEventListener('DOMContentLoaded', function(){
     var ppn = Math.round(sub*PPN_RATE);
     var ong = calcOngkir();
     var fee = Math.round((sub+ppn+ong)*MT_FEE_PCT) + MT_FEE_FIXED;
+    var appFee = Math.round((sub+ppn+ong)*APP_FEE_PCT) + APP_FEE_FIXED;
     document.getElementById('sumSub').textContent=fmtRp(sub);
     document.getElementById('sumPpn').textContent=fmtRp(ppn);
     document.getElementById('sumOngkir').textContent=fmtRp(ong);
     var fEl=document.getElementById('sumFee'); if(fEl) fEl.textContent=fmtRp(fee);
-    document.getElementById('sumTot').textContent=fmtRp(sub+ppn+ong+fee);
+    var aEl=document.getElementById('sumApp'); if(aEl) aEl.textContent=fmtRp(appFee);
+    document.getElementById('sumTot').textContent=fmtRp(sub+ppn+ong+fee+appFee);
     document.getElementById('sumOngkirNote').textContent = currentDistKm!==null
         ? '('+currentDistKm.toFixed(2)+' km)' : '(flat — share lokasi untuk akurat)';
     updateBayarBtn();
@@ -1606,6 +1611,7 @@ document.addEventListener('DOMContentLoaded', function(){
             <div class="d-flex justify-content-between small"><span>Subtotal (<span id="tk_qtot">0</span> item)</span><strong id="tk_sub">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>PPN <?= (int)($PPN_RATE*100) ?>%</span><strong id="tk_ppn">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>Biaya Admin Midtrans</span><strong id="tk_fee">Rp 0</strong></div>
+            <div class="d-flex justify-content-between small"><span>Biaya Aplikasi</span><strong id="tk_app">Rp 0</strong></div>
             <div class="d-flex justify-content-between small"><span>Ongkir <span id="tk_ongnote" class="text-muted">(flat)</span></span><strong id="tk_ong">Rp <?= number_format($ONGKIR_FALLBACK,0,',','.') ?></strong></div>
             <hr class="my-1">
             <div class="d-flex justify-content-between"><span class="fw-semibold">Total Bayar</span><strong class="text-success" id="tk_total">Rp 0</strong></div>
@@ -1699,10 +1705,12 @@ document.addEventListener('DOMContentLoaded', function(){
     var ong = (tkState.distKm!==null) ? Math.round(ONGKIR_BASE + tkState.distKm*ONGKIR_PER_KM) : ONGKIR_FALLBACK;
     var ppn = Math.round(sub*PPN_RATE);
     var fee = sub>0 ? (Math.round((sub+ppn+ong)*MT_FEE_PCT) + MT_FEE_FIXED) : 0;
-    var tot = sub + ppn + ong + fee;
+    var appFee = sub>0 ? (Math.round((sub+ppn+ong)*APP_FEE_PCT) + APP_FEE_FIXED) : 0;
+    var tot = sub + ppn + ong + fee + appFee;
     document.getElementById('tk_sub').textContent  = fmtRp(sub);
     document.getElementById('tk_ppn').textContent  = fmtRp(ppn);
     document.getElementById('tk_fee').textContent  = fmtRp(fee);
+    var tkA=document.getElementById('tk_app'); if(tkA) tkA.textContent=fmtRp(appFee);
     document.getElementById('tk_ong').textContent  = fmtRp(ong);
     document.getElementById('tk_total').textContent= fmtRp(tot);
     document.getElementById('tk_qtot').textContent = qtot;

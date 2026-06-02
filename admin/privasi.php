@@ -65,7 +65,7 @@ include __DIR__.'/../includes/header.php';
       <label for="akP" class="small">aktif (versi yang ditampilkan publik)</label>
     </div></div>
     <div class="col-12"><label class="small">Konten HTML</label>
-      <textarea class="form-control" name="konten" rows="18"><?= htmlspecialchars($edit['konten'] ?? '') ?></textarea>
+      <textarea class="form-control" name="konten" rows="18" data-wysiwyg><?= htmlspecialchars($edit['konten'] ?? '') ?></textarea>
     </div>
     <div class="col-12">
       <button class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan</button>
