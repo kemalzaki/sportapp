@@ -412,26 +412,6 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </section>
 
-<!-- ============ Layanan Publik (Donasi Kegiatan) — terlihat juga untuk guest ============ -->
-<section class="mb-3">
-  <div class="row g-2">
-    <div class="col-md-12">
-      <a href="/donasi.php" class="text-decoration-none">
-        <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#fee2e2,#fff);">
-          <div class="card-body d-flex align-items-center gap-3">
-            <img src="assets/img/card-donasi.jpg" alt="Donasi kegiatan" loading="lazy" width="64" height="64" class="rounded-3 flex-shrink-0" style="width:64px;height:64px;object-fit:cover;box-shadow:0 3px 8px rgba(0,0,0,.12);">
-            <div>
-              <div class="fw-semibold text-dark">Donasi Kegiatan</div>
-              <div class="small text-muted">Dukung kegiatan komunitas — transfer ke rekening resmi kami.</div>
-            </div>
-          </div>
-        </div>
-      </a>
-    </div>
-  </div>
-</section>
-<!-- ============ /Layanan Publik ============ -->
-
 <script>
 let _deferredInstall = null;
 const _installBtn = document.getElementById('installBtn');
@@ -445,9 +425,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- ============ Info & Wawasan (revisi 31 Mei 2026 — eye-catching banner + artikel olahraga) ============ -->
+<!-- ============ Info & Wawasan (revisi 3 Jun 2026 — dipindah ke bawah Social Feed) ============ -->
 <link rel="stylesheet" href="assets/css/sport-islami.css">
-<section class="mb-3">
+<section class="mb-3" id="sec-info-wawasan">
   <div class="hero-sport-islami hero-info mb-3">
     <div class="hero-overlay">
       <span class="badge bg-light text-primary mb-2"><i class="bi bi-compass"></i> INFO &amp; WAWASAN</span>
@@ -625,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 <?php endif; ?>
 
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-3" id="sec-dashboard-stats">
   <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
     <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
     <div class="stat-label">Total Sesi</div><div class="stat-value"><?= $totalSesi ?></div></div></div></div>
@@ -743,7 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php endif; ?>
 
     <?php if (!empty($eventTerdekat)): ?>
-    <div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card shadow-sm mb-3" id="sec-event-terdekat"><div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="bi bi-trophy text-warning me-1"></i> Event Terdekat</span>
       <a href="/event.php" class="small text-decoration-none">Lihat semua &raquo;</a>
     </div>
@@ -784,7 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <?php endif; ?>
 
-    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
+    <div class="card shadow-sm mb-3" id="sec-jadwal-terdekat"><div class="card-header"><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</div>
       <div data-live="jadwal">
       <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
         <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th>Absensi Saya</th><th class="text-end">Absen</th></tr></thead><tbody>
@@ -885,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
 <?php if ($u && in_array($u['role'] ?? '', ['member','admin'], true)): ?>
-    <div class="card shadow-sm"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+    <div class="card shadow-sm" id="sec-social-feed"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
      <div class="card-body" data-live="feed">
       <?php foreach($feed as $p): ?>
         <div class="border-bottom pb-3 mb-3" id="post-<?= (int)$p['id'] ?>">
@@ -975,7 +955,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 
   <div class="col-lg-5">
-    <div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-broadcast text-success me-1"></i> Online (<?= count($onlineMembers) ?>)</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+    <div class="card shadow-sm mb-3" id="sec-online"><div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-broadcast text-success me-1"></i> Online (<?= count($onlineMembers) ?>)</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
       <ul class="list-group list-group-flush" data-live="online">
         <?php foreach($onlineMembers as $om): ?>
           <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -1253,5 +1233,31 @@ function showStory(d){
 })();
 </script>
 <?php endif; ?>
+
+
+<!-- ============ Revisi 3 Jun 2026: Reorder layout via JS ============ -->
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      var dash    = $('sec-dashboard-stats');
+      var online  = $('sec-online');
+      var event_  = $('sec-event-terdekat');
+      var jadwal  = $('sec-jadwal-terdekat');
+      var social  = $('sec-social-feed');
+      var info    = $('sec-info-wawasan');
+      function moveAfter(node, ref){ if(node && ref && ref.parentNode){ ref.parentNode.insertBefore(node, ref.nextSibling); } }
+      if (dash) {
+        var anchor = dash;
+        [online, event_, jadwal].forEach(function(el){ if(el){ moveAfter(el, anchor); anchor = el; } });
+      }
+      var lastTop = jadwal || event_ || online || dash;
+      if (social && lastTop) moveAfter(social, lastTop);
+      if (info && social) moveAfter(info, social);
+    } catch(e){ console.warn('reorder failed', e); }
+  });
+})();
+</script>
 
 <?php render_index_blok('bottom'); include __DIR__.'/includes/footer.php'; ?>

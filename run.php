@@ -104,11 +104,91 @@ include __DIR__.'/includes/header.php';
   var sessionId = <?= $active ? (int)$active['id'] : 'null' ?>;
   var watchId=null, startedAt=null, timerInt=null, pauseAt=null, pausedTotalMs=0, paused=false;
   var totalM = 0, points = [];
+  // Revisi 3 Jun 2026: persist state ke localStorage agar saat halaman pindah/HP layar mati,
+  // ketika user kembali, tracking otomatis lanjut (mirip Strava — sesi tidak ke-stop sendiri).
+  var LS_KEY = 'hf_run_state_v1';
+  function saveState(){
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        sessionId: sessionId, startedAt: startedAt, totalM: totalM,
+        pausedTotalMs: pausedTotalMs, paused: paused, points: points.slice(-500),
+        savedAt: Date.now()
+      }));
+    } catch(e){}
+  }
+  function loadState(){
+    try {
+      var raw = localStorage.getItem(LS_KEY); if (!raw) return null;
+      return JSON.parse(raw);
+    } catch(e){ return null; }
+  }
+  function clearState(){ try { localStorage.removeItem(LS_KEY); } catch(e){} }
   var wakeLock = null, audioCtx = null, silentOsc = null;
   var map = L.map('runMap').setView([-6.2,106.816666], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(map);
   var line = L.polyline([], {color:'#dc2626', weight:5}).addTo(map);
   var marker=null;
+  var trackingNotif = null;
+
+  // Revisi 3 Jun 2026: notifikasi persistent supaya user tahu tracking masih jalan
+  // walau pindah halaman / HP layar mati. Saat tap notifikasi, balik ke /run.php.
+  function notifyTrackingRunning(){
+    try {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'default') Notification.requestPermission();
+      if (Notification.permission !== 'granted') return;
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(function(reg){
+          reg.showNotification('🏃 Tracking lari aktif', {
+            body: 'GPS sedang merekam. Tap untuk kembali ke halaman tracking.',
+            tag: 'hf-run-tracking', renotify: false, silent: true,
+            requireInteraction: true,
+            data: { url: '/run.php' },
+            icon: '/assets/icon-192.png', badge: '/assets/icon-192.png'
+          }).catch(function(){});
+        });
+      }
+    } catch(e){}
+  }
+  function closeTrackingNotif(){
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(function(reg){
+          reg.getNotifications({ tag: 'hf-run-tracking' }).then(function(ns){
+            ns.forEach(function(n){ n.close(); });
+          });
+        });
+      }
+    } catch(e){}
+  }
+
+  // Auto-resume kalau ada sesi aktif (di DB) + state tersimpan lokal.
+  function autoResumeIfActive(){
+    if (!sessionId) return;
+    var st = loadState();
+    if (!st || st.sessionId !== sessionId) {
+      // ada sesi aktif di server tapi tidak ada state lokal — mulai dari nol tapi tetap lanjutkan sesi.
+      startedAt = Date.now();
+      totalM = 0; points = []; pausedTotalMs = 0; paused = false;
+    } else {
+      startedAt = st.startedAt || Date.now();
+      totalM = +st.totalM || 0;
+      points = Array.isArray(st.points) ? st.points : [];
+      pausedTotalMs = +st.pausedTotalMs || 0;
+      paused = !!st.paused;
+      if (points.length) { line.setLatLngs(points); map.fitBounds(line.getBounds(), {padding:[20,20]}); }
+    }
+    document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnPause').disabled = false;
+    document.getElementById('btnStop').disabled = false;
+    document.getElementById('runStatus').textContent = '▶ Sesi aktif dilanjutkan otomatis (auto-resume).';
+    timerInt = setInterval(updateUI, 1000);
+    if (!paused) startWatch();
+    acquireWakeLock();
+    startSilentAudio();
+    notifyTrackingRunning();
+    updateUI();
+  }
 
   // ===== Wake Lock + audio silent loop (revisi 31 Mei 2026) =====
   // Mencegah layar tidur & menjaga JS tetap berjalan saat HP mati / layar tertutup,
@@ -202,6 +282,7 @@ include __DIR__.'/includes/header.php';
       fetch('/api_run.php',{method:'POST',body:fd, keepalive:true});
     }
     updateUI();
+    saveState();
   }
   function onErr(e){ document.getElementById('runStatus').textContent='Error GPS: '+e.message; }
 
@@ -223,6 +304,8 @@ include __DIR__.'/includes/header.php';
     startWatch();
     await acquireWakeLock();
     startSilentAudio();
+    saveState();
+    notifyTrackingRunning();
   });
 
   document.getElementById('btnPause').addEventListener('click', function(){
@@ -252,7 +335,7 @@ include __DIR__.'/includes/header.php';
     var dur = elapsedSec();
     var fd=new FormData(); fd.append('csrf',csrf); fd.append('_action','stop');
     fd.append('session_id',sessionId); fd.append('total_m',totalM); fd.append('durasi',dur);
-    fetch('/api_run.php',{method:'POST',body:fd}).then(()=>location.reload());
+    fetch('/api_run.php',{method:'POST',body:fd}).then(function(){ clearState(); closeTrackingNotif(); location.reload(); });
   });
 
   // ===== Posisi Sekarang =====
@@ -276,6 +359,11 @@ include __DIR__.'/includes/header.php';
       btn.disabled = false; btn.innerHTML = orig;
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
+
+  // Jalankan auto-resume setelah DOM siap
+  autoResumeIfActive();
+  // Daftar service worker untuk dukungan notifikasi background
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js').catch(function(){}); }
 })();
 
 // Hapus

@@ -747,26 +747,6 @@ if ($waSelf && !$cntPerl) {
 }
 ?>
 
-<!-- ===== Revisi: Integrasi Strava ===== -->
-<?php
-$stravaConnected = false;
-try { $stravaConnected = (bool)db_one("SELECT 1 FROM user_strava WHERE user_id=$1", [(int)$u['id']]); }
-catch (Throwable $e) { /* tabel belum ada — lihat strava_connect.php */ }
-?>
-<section class="container my-3" id="stravaSection">
-  <div class="card shadow-sm">
-    <div class="card-header"><i class="bi bi-activity text-warning"></i> Integrasi Strava</div>
-    <div class="card-body">
-      <?php if ($stravaConnected): ?>
-        <p class="small text-success mb-2"><i class="bi bi-check-circle"></i> Akun Strava sudah terhubung. Aktivitas baru akan otomatis masuk ke aplikasi.</p>
-      <?php else: ?>
-        <p class="small text-muted mb-2">Sambungkan akun Strava agar setiap aktivitas yang kamu posting di Strava (lari, bersepeda, dll) otomatis masuk ke feed HapFam SportApp.</p>
-        <a href="/strava_connect.php" class="btn btn-warning btn-sm"><i class="bi bi-link-45deg"></i> Sambungkan Strava</a>
-      <?php endif; ?>
-    </div>
-  </div>
-</section>
-
 <!-- ===== Revisi: Tema Warna Aplikasi dipindahkan ke BAGIAN BAWAH halaman ===== -->
 <section class="container my-3" id="temaWarna">
   <div class="card shadow-sm">

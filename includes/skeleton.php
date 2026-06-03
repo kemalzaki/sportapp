@@ -32,13 +32,15 @@
 .hf-skel-container{padding:.5rem 0;}
 /* Overlay skeleton per-halaman (Revisi): menutup area konten sampai window.load,
    sehingga bentuk skeleton sesuai data tiap halaman. */
+/* Revisi 3 Jun 2026: skeleton TIDAK lagi menutup konten penuh.
+   Konten halaman ditampilkan dulu — skeleton muncul sebentar
+   di bawah/sela halaman saja, lalu hilang otomatis. */
 .hf-skel-overlay{
-  position:fixed; top:0; left:0; right:0; bottom:0;
-  z-index:1035; background:var(--bs-body-bg,#fff);
-  overflow-y:auto; padding:72px 12px 90px;
+  position:static; display:block;
+  max-width:960px; margin:8px auto; padding:0 12px;
+  opacity:.85;
 }
 .hf-skel-overlay .hf-skel-container{max-width:960px;margin:0 auto;}
-[data-bs-theme=dark] .hf-skel-overlay{background:#0b1220;}
 </style>
 <script>
 (function(){
@@ -136,7 +138,7 @@
 
   // Auto-upgrade <body data-skeleton="..."> — sisipkan placeholder yang tepat
   // ke dalam #skel-host, jika ada. Hilang otomatis setelah window.load.
-  document.addEventListener('DOMContentLoaded', function(){
+  function _hfRenderSkel(){
     var mode = document.body.getAttribute('data-skeleton');
     if (!mode) return;
     var host = document.getElementById('skel-host');
@@ -150,12 +152,17 @@
     else if (mode === 'profile')html = HFSkel.profile();
     else if (mode === 'table')  html = HFSkel.table(8,4);
     host.innerHTML = '<div class="hf-skel-container">'+html+'</div>';
+  }
+  // Tampilkan halaman dulu, baru skeleton — jadi halaman lincah & tidak lemot.
+  window.addEventListener('load', function(){
+    setTimeout(function(){ try{_hfRenderSkel();}catch(e){} }, 50);
   });
   function hideSkelHost(){
     var host = document.getElementById('skel-host');
     if (host){ host.innerHTML = ''; host.parentNode && host.parentNode.removeChild(host); }
   }
-  window.addEventListener('load', function(){ setTimeout(hideSkelHost, 250); });
+  // Hapus skeleton setelah short delay, supaya benar2 hanya muncul sebentar
+setTimeout(hideSkelHost, 1200);
   // Pengaman: tetap hilang walau ada aset lambat / event load terlewat.
   setTimeout(hideSkelHost, 6000);
 })();

@@ -191,16 +191,10 @@ if ($u) {
           <a class="list-group-item list-group-item-action" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
           <a class="list-group-item list-group-item-action" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
           <div class="px-3 pt-2 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">CMS &amp; Pengaturan</div>
-          <a class="list-group-item list-group-item-action" href="/admin/biaya.php"><i class="bi bi-cash-coin text-success"></i> Biaya Admin &amp; Aplikasi</a>
-          <a class="list-group-item list-group-item-action" href="/admin/menu.php"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS)</a>
+                    <a class="list-group-item list-group-item-action" href="/admin/menu.php"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS)</a>
           <a class="list-group-item list-group-item-action" href="/admin/blok_index.php"><i class="bi bi-grid-3x3-gap text-success"></i> Blok Beranda</a>
           <a class="list-group-item list-group-item-action" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
-          <div class="px-3 pt-2 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Donasi &amp; Jajanan</div>
-          <a class="list-group-item list-group-item-action" href="/admin/donasi_rekening.php"><i class="bi bi-bank text-success"></i> Rekening Donasi Kegiatan</a>
-          <a class="list-group-item list-group-item-action" href="/admin/toko.php"><i class="bi bi-shop-window"></i> Toko &amp; Produk</a>
-          <a class="list-group-item list-group-item-action" href="/admin/jajanan.php"><i class="bi bi-bag-heart"></i> Jajanan</a>
-          <a class="list-group-item list-group-item-action" href="/admin/jajanan_pesanan.php"><i class="bi bi-bag-check text-warning"></i> Pesanan Jajanan</a>
-          <a class="list-group-item list-group-item-action" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
+                                                            <a class="list-group-item list-group-item-action" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
         <?php endif; ?>
 
         <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
@@ -255,17 +249,11 @@ if ($u) {
               <li><hr class="dropdown-divider"></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">CMS &amp; Pengaturan</h6></li>
-              <li><a class="dropdown-item" href="/admin/biaya.php"><i class="bi bi-cash-coin text-success"></i> Biaya Admin &amp; Aplikasi</a></li>
-              <li><a class="dropdown-item" href="/admin/menu.php"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS)</a></li>
+                            <li><a class="dropdown-item" href="/admin/menu.php"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS)</a></li>
               <li><a class="dropdown-item" href="/admin/blok_index.php"><i class="bi bi-grid-3x3-gap text-success"></i> Blok Beranda</a></li>
               <li><a class="dropdown-item" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><h6 class="dropdown-header">Donasi &amp; Jajanan</h6></li>
-              <li><a class="dropdown-item" href="/admin/donasi_rekening.php"><i class="bi bi-bank text-success"></i> Rekening Donasi Kegiatan</a></li>
-              <li><a class="dropdown-item" href="/admin/toko.php"><i class="bi bi-shop-window text-warning"></i> CRUD Toko &amp; Produk</a></li>
-              <li><a class="dropdown-item" href="/admin/jajanan.php"><i class="bi bi-shop text-warning"></i> CRUD Jajanan</a></li>
-              <li><a class="dropdown-item" href="/admin/jajanan_pesanan.php"><i class="bi bi-bag-heart text-warning"></i> Pesanan Jajanan</a></li>
-              <li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li>
+                                                                                    <li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>
               <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>
