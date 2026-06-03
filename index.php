@@ -463,6 +463,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
+    <div class="col-6 col-md-3">
+      <a href="/beasiswa.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-mortarboard fs-4"></i></div>
+            <div class="fw-semibold">Beasiswa</div>
+            <div class="small text-muted">Info beasiswa dalam &amp; luar negeri</div>
+          </div>
         </div>
       </a>
     </div>
@@ -963,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <?php endforeach; if(!$onlineMembers): ?><li class="list-group-item text-muted small">Belum ada yang online.</li><?php endif; ?>
       </ul></div>
 
-    <div class="card shadow-sm" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+    <div class="card shadow-sm mb-3" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
     <div class="card-body" data-live="forum">
       <?php if($u): ?>
       <form method="post" class="d-flex gap-2 mb-3" data-ajax data-ajax-label="Mengirim pesan...">

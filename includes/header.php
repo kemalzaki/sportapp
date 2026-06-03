@@ -379,10 +379,7 @@ if ($u) {
 <?php endif; ?>
 
 <main class="container py-3">
-<?php if (!empty($pageSkeleton)): ?>
-<!-- Skeleton loading per-halaman (Revisi): cocok dgn data yg dimuat. Hilang otomatis saat window.load. -->
-<div id="skel-host" class="hf-skel-overlay" aria-hidden="true"></div>
-<?php endif; ?>
+
 <?php if (!empty($u)): ?>
 <script>
 // Heartbeat lokasi HP (untuk fitur Lacak HP oleh Admin)
