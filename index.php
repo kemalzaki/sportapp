@@ -463,14 +463,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <div class="col-6 col-md-3">
-      <a href="/beasiswa.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0 info-card">
-          <div class="card-body text-center">
-            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-mortarboard fs-4"></i></div>
-            <div class="fw-semibold">Info Beasiswa</div>
-            <div class="small text-muted">S1 · S2 · S3</div>
-          </div>
         </div>
       </a>
     </div>
@@ -605,21 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 <?php endif; ?>
 
-<div class="row g-3 mb-3" id="sec-dashboard-stats">
-  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
-    <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
-    <div class="stat-label">Total Sesi</div><div class="stat-value"><?= $totalSesi ?></div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
-    <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
-    <div class="stat-label">Total Hadir</div><div class="stat-value"><?= $totalHadir ?></div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
-    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
-    <div class="stat-label">Member</div><div class="stat-value"><?= $totalMember ?></div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
-    <div class="stat-icon"><i class="bi bi-broadcast"></i></div>
-    <div class="stat-label">Online</div><div class="stat-value"><?= count($onlineMembers) ?></div></div></div></div>
-</div>
-
 <!-- REVISI 31 Mei 2026: Total Visitor -->
 <div class="row g-3 mb-3">
   <div class="col-12 col-md-6">
@@ -638,6 +615,22 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+
+<div class="row g-3 mb-3" id="sec-dashboard-stats">
+  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
+    <div class="stat-label">Total Sesi</div><div class="stat-value"><?= $totalSesi ?></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+    <div class="stat-label">Total Hadir</div><div class="stat-value"><?= $totalHadir ?></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="stat-label">Member</div><div class="stat-value"><?= $totalMember ?></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
+    <div class="stat-icon"><i class="bi bi-broadcast"></i></div>
+    <div class="stat-label">Online</div><div class="stat-value"><?= count($onlineMembers) ?></div></div></div></div>
+</div>
+
 
 <?php if($u): ?>
 <div class="card shadow-sm mb-3" id="feed"><div class="card-header d-flex justify-content-between">
@@ -1235,26 +1228,26 @@ function showStory(d){
 <?php endif; ?>
 
 
-<!-- ============ Revisi 3 Jun 2026: Reorder layout via JS ============ -->
+<!-- ============ Revisi 4 Jun 2026: Reorder layout via JS ============ -->
 <script>
 (function(){
   function $(id){ return document.getElementById(id); }
   document.addEventListener('DOMContentLoaded', function(){
     try {
       var dash    = $('sec-dashboard-stats');
+      var story   = $('feed');             // Story Hari Ini
+      var social  = $('sec-social-feed');  // Social Feed
+      var forum   = $('forum');            // Forum Komunitas
       var online  = $('sec-online');
       var event_  = $('sec-event-terdekat');
       var jadwal  = $('sec-jadwal-terdekat');
-      var social  = $('sec-social-feed');
       var info    = $('sec-info-wawasan');
       function moveAfter(node, ref){ if(node && ref && ref.parentNode){ ref.parentNode.insertBefore(node, ref.nextSibling); } }
-      if (dash) {
-        var anchor = dash;
-        [online, event_, jadwal].forEach(function(el){ if(el){ moveAfter(el, anchor); anchor = el; } });
-      }
-      var lastTop = jadwal || event_ || online || dash;
-      if (social && lastTop) moveAfter(social, lastTop);
-      if (info && social) moveAfter(info, social);
+      var anchor = dash;
+      // Urutan baru: dashboard -> story -> social feed -> forum -> online -> event -> jadwal -> info
+      [story, social, forum, online, event_, jadwal, info].forEach(function(el){
+        if (el && anchor) { moveAfter(el, anchor); anchor = el; }
+      });
     } catch(e){ console.warn('reorder failed', e); }
   });
 })();
