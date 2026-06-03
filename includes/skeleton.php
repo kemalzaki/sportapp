@@ -96,15 +96,37 @@
     inject: function(t,h){ if(typeof t==='string') t=document.querySelector(t); if(t) t.innerHTML=h; }
   };
 
-  // Skeleton hanya tampil saat user men-trigger refresh manual.
-  // (Auto-poll silent tidak menampilkan skeleton supaya tidak mengganggu pembacaan.)
+  // Skeleton tampil saat user men-trigger refresh manual.
   document.addEventListener('click', function(ev){
     var b = ev.target.closest && ev.target.closest('[data-soft-refresh]');
     if(!b) return;
-    // Cari kontainer [data-live] terdekat (atau seluruh halaman bila tidak ada)
     var card = b.closest('.card,[data-live-host]');
     var nodes = card ? card.querySelectorAll('[data-live],[data-skel-shape]') : document.querySelectorAll('[data-live],[data-skel-shape]');
     nodes.forEach(fill);
   }, true);
+
+  // Auto: tampilkan skeleton sebentar pada setiap pemuatan halaman supaya
+  // setiap section [data-live] / [data-skel-shape] menampilkan bentuk loading
+  // sesuai datanya, lalu konten asli muncul kembali.
+  function autoFlash(){
+    var nodes = document.querySelectorAll('[data-live],[data-skel-shape]');
+    if(!nodes.length) return;
+    nodes.forEach(function(node){
+      var original = node.innerHTML;
+      var h = node.offsetHeight;
+      if (h > 40) node.style.minHeight = h+'px';
+      node.innerHTML = render(shapeFor(node));
+      setTimeout(function(){
+        node.innerHTML = original;
+        // biarkan minHeight tetap sebentar agar tidak meloncat
+        setTimeout(function(){ node.style.minHeight = ''; }, 150);
+      }, 650);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoFlash);
+  } else {
+    autoFlash();
+  }
 })();
 </script>

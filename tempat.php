@@ -53,11 +53,18 @@ $bookings = $selected ? db_all("SELECT b.*, u.nama FROM booking b JOIN users u O
 $byDate = [];
 foreach ($bookings as $b) $byDate[$b['tanggal']][] = $b;
 
-// Semua booking aktif (dapat dilihat seluruh member)
+// Semua booking aktif (dapat dilihat seluruh member) — dengan pagination
+$bookPerPage = 10;
+$bookPage = max(1, (int)($_GET['bp'] ?? 1));
+$bookTotal = (int) db_val("SELECT COUNT(*) FROM booking WHERE status<>'canceled' AND tanggal >= CURRENT_DATE - INTERVAL '7 days'");
+$bookPages = max(1, (int)ceil($bookTotal / $bookPerPage));
+if ($bookPage > $bookPages) $bookPage = $bookPages;
+$bookOffset = ($bookPage - 1) * $bookPerPage;
 $allBooks = db_all("SELECT b.*, t.nama AS tnama, u.nama AS uname FROM booking b
                     JOIN tempat t ON t.id=b.tempat_id LEFT JOIN users u ON u.id=b.user_id
                     WHERE b.status<>'canceled' AND b.tanggal >= CURRENT_DATE - INTERVAL '7 days'
-                    ORDER BY b.tanggal DESC, b.jam_mulai DESC LIMIT 50");
+                    ORDER BY b.tanggal DESC, b.jam_mulai DESC LIMIT $1 OFFSET $2",
+                    [$bookPerPage, $bookOffset]);
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-calendar2-week text-primary"></i> Booking Lapangan</h2>
@@ -134,7 +141,21 @@ include __DIR__.'/includes/header.php';
         <?php endif; ?>
       </li>
     <?php endforeach; if(!$allBooks): ?><li class="list-group-item text-muted small text-center">Belum ada booking.</li><?php endif; ?>
-    </ul></div>
+    </ul>
+    <?php if ($bookTotal > $bookPerPage):
+      $bpQS = function($n){ $q = $_GET; $q['bp'] = $n; return '/tempat.php?'.http_build_query($q); };
+    ?>
+    <nav class="d-flex justify-content-between align-items-center p-2 border-top" aria-label="Navigasi booking">
+      <?php if ($bookPage > 1): ?>
+        <a class="btn btn-sm btn-outline-primary" href="<?= htmlspecialchars($bpQS($bookPage-1)) ?>"><i class="bi bi-chevron-left"></i> Sebelumnya</a>
+      <?php else: ?><span class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-chevron-left"></i> Sebelumnya</span><?php endif; ?>
+      <span class="small text-muted">Halaman <?= $bookPage ?> / <?= $bookPages ?> · Total <?= $bookTotal ?></span>
+      <?php if ($bookPage < $bookPages): ?>
+        <a class="btn btn-sm btn-outline-primary" href="<?= htmlspecialchars($bpQS($bookPage+1)) ?>">Berikutnya <i class="bi bi-chevron-right"></i></a>
+      <?php else: ?><span class="btn btn-sm btn-outline-secondary disabled">Berikutnya <i class="bi bi-chevron-right"></i></span><?php endif; ?>
+    </nav>
+    <?php endif; ?>
+    </div>
   </div>
 </div>
 <?php include __DIR__.'/includes/footer.php'; ?>

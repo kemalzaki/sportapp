@@ -134,6 +134,97 @@ document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto()
 <!-- Top progress preloader (tampil tipis di atas, tidak menutupi konten) -->
 <div id="appTopLoader"></div>
 <div id="appCornerSpinner"></div>
+
+<!-- Revisi: Preloader persen pada setiap perpindahan halaman -->
+<div id="appNavPreloader" aria-hidden="true" style="display:none;">
+  <div class="anp-card">
+    <div class="anp-spin"></div>
+    <div class="anp-pct">0%</div>
+    <div class="anp-label">Memuat halaman…</div>
+    <div class="anp-bar"><div class="anp-bar-fill"></div></div>
+  </div>
+</div>
+<style>
+#appNavPreloader{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:99998;display:flex;align-items:center;justify-content:center;}
+#appNavPreloader .anp-card{background:#fff;border-radius:16px;padding:22px 28px;min-width:240px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35);}
+#appNavPreloader .anp-spin{width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#0ea5e9;border-radius:50%;margin:0 auto 10px;animation:anpSpin .8s linear infinite;}
+#appNavPreloader .anp-pct{font-size:1.4rem;font-weight:800;color:#0f172a;}
+#appNavPreloader .anp-label{font-size:.8rem;color:#64748b;margin-top:2px;}
+#appNavPreloader .anp-bar{margin-top:10px;width:100%;height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden;}
+#appNavPreloader .anp-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ea5e9,#6366f1,#22c55e);transition:width .15s ease;}
+@keyframes anpSpin{to{transform:rotate(360deg);}}
+[data-bs-theme=dark] #appNavPreloader .anp-card{background:#1e293b;color:#fff;}
+[data-bs-theme=dark] #appNavPreloader .anp-pct{color:#fff;}
+</style>
+<script>
+(function(){
+  var pop  = document.getElementById('appNavPreloader');
+  var pctE = pop.querySelector('.anp-pct');
+  var barE = pop.querySelector('.anp-bar-fill');
+  var lblE = pop.querySelector('.anp-label');
+  var t = null, pct = 0;
+  function show(label){
+    if (!pop) return;
+    pop.style.display = 'flex';
+    pop.setAttribute('aria-hidden','false');
+    pct = 1; render();
+    if (label && lblE) lblE.textContent = label;
+    if (t) clearInterval(t);
+    t = setInterval(function(){
+      var inc = pct < 70 ? 4 : (pct < 90 ? 1.5 : 0.4);
+      pct = Math.min(95, pct + inc);
+      render();
+    }, 120);
+  }
+  function finish(){
+    if (!pop) return;
+    if (t) { clearInterval(t); t = null; }
+    pct = 100; render();
+    setTimeout(function(){
+      pop.style.display = 'none';
+      pop.setAttribute('aria-hidden','true');
+      pct = 0; render();
+    }, 220);
+  }
+  function render(){
+    if (pctE) pctE.textContent = Math.floor(pct)+'%';
+    if (barE) barE.style.width = pct+'%';
+  }
+  // Tangkap klik link internal (bukan modal/hash/target=_blank/download)
+  document.addEventListener('click', function(ev){
+    var a = ev.target.closest && ev.target.closest('a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (!href || href.charAt(0)==='#') return;
+    if (a.target && a.target !== '' && a.target !== '_self') return;
+    if (a.hasAttribute('download')) return;
+    if (a.hasAttribute('data-bs-toggle')) return;
+    if (/^(javascript:|mailto:|tel:|whatsapp:)/i.test(href)) return;
+    // hanya same-origin
+    try {
+      var url = new URL(a.href, location.href);
+      if (url.origin !== location.origin) return;
+      if (url.pathname === location.pathname && url.hash) return;
+    } catch(e){ return; }
+    show('Memuat halaman…');
+  }, true);
+  // Form submit (CRUD) → preloader navigasi
+  document.addEventListener('submit', function(ev){
+    var f = ev.target;
+    if (!(f instanceof HTMLFormElement)) return;
+    if (f.hasAttribute('data-ajax')) return; // AJAX punya mini-loader sendiri
+    if (ev.defaultPrevented) return;
+    show('Mengirim data…');
+  }, true);
+  window.addEventListener('beforeunload', function(){ show('Memuat halaman…'); });
+  window.addEventListener('pageshow', finish);
+  window.addEventListener('load', finish);
+  // Pastikan disembunyikan saat halaman destinasi siap
+  if (document.readyState === 'complete') finish();
+  document.addEventListener('DOMContentLoaded', finish);
+  window.HFNavPreloader = { show: show, finish: finish };
+})();
+</script>
 <script>
 /* ===== Global Top Preloader =====
  * Tipis di atas layar + spinner kecil di pojok. Tampil di semua halaman saat:

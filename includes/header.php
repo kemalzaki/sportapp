@@ -171,6 +171,7 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
         <a class="list-group-item list-group-item-action" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
         <a class="list-group-item list-group-item-action" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
+        <a class="list-group-item list-group-item-action" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
         <a class="list-group-item list-group-item-action" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Lari</a>
         <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
@@ -191,8 +192,6 @@ if ($u) {
           <a class="list-group-item list-group-item-action" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
           <a class="list-group-item list-group-item-action" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
           <div class="px-3 pt-2 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">CMS &amp; Pengaturan</div>
-                    <a class="list-group-item list-group-item-action" href="/admin/menu.php"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS)</a>
-          <a class="list-group-item list-group-item-action" href="/admin/blok_index.php"><i class="bi bi-grid-3x3-gap text-success"></i> Blok Beranda</a>
           <a class="list-group-item list-group-item-action" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
                                                             <a class="list-group-item list-group-item-action" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
         <?php endif; ?>
@@ -224,6 +223,7 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
           <li class="nav-item"><a class="nav-link" href="/kalkulator.php"><i class="bi bi-heart-pulse"></i> Kalkulator Sehat</a></li>
+          <li class="nav-item"><a class="nav-link" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a></li>
           <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Lari</a></li>
           <li class="nav-item"><a class="nav-link" href="/dm.php"><i class="bi bi-chat-dots text-info"></i> Pesan</a></li>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
@@ -249,8 +249,6 @@ if ($u) {
               <li><hr class="dropdown-divider"></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">CMS &amp; Pengaturan</h6></li>
-                            <li><a class="dropdown-item" href="/admin/menu.php"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS)</a></li>
-              <li><a class="dropdown-item" href="/admin/blok_index.php"><i class="bi bi-grid-3x3-gap text-success"></i> Blok Beranda</a></li>
               <li><a class="dropdown-item" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a></li>
               <li><hr class="dropdown-divider"></li>
                                                                                     <li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li>

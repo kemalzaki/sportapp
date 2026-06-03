@@ -463,17 +463,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <div class="col-6 col-md-3">
-      <a href="/beasiswa.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0 info-card">
-          <div class="card-body text-center">
-            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-mortarboard fs-4"></i></div>
-            <div class="fw-semibold">Beasiswa</div>
-            <div class="small text-muted">Info beasiswa dalam &amp; luar negeri</div>
-          </div>
-        </div>
-      </a>
-    </div>
+    <?php /* Beasiswa dihapus sesuai revisi 3 Jun 2026. */ ?>
+
     <div class="col-6 col-md-3">
       <a href="/kesehatan.php" class="text-decoration-none">
         <div class="card h-100 shadow-sm border-0 info-card">
@@ -679,6 +670,13 @@ document.addEventListener('DOMContentLoaded', () => {
 </div></div>
 <?php endif; ?>
 
+<style>
+/* Revisi: jarak antar kartu di mobile agar Forum tidak tabrakan dengan Social Feed */
+@media (max-width: 991.98px){
+  #sec-social-feed, #sec-online, #forum, #sapaMemberCard { margin-bottom: 1rem !important; }
+  .row.g-3 > [class*="col-"] { margin-bottom: .25rem; }
+}
+</style>
 <div class="row g-3">
   <div class="col-lg-7">
     <?php /* Sentuhan Islami Hari Ini & kata-katanya dihapus sesuai revisi. */ ?>
