@@ -138,8 +138,7 @@ if ($u) {
   <?php if ($u): ?>
     <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill"></i>Lari</a>
     <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill"></i>Upload</a>
-    <a class="gt-chip" href="/jajanan.php" data-sfx="tap"><i class="bi bi-shop"></i>Jajan</a>
-    <a class="gt-chip" href="/kurir.php" data-sfx="tap"><i class="bi bi-scooter"></i>Kurir</a>
+    <?php /* Menu Jajan & Kurir dihilangkan dari navigasi pengguna sesuai revisi. */ ?>
     <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat</a>
     <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event</a>
     <a class="gt-chip" href="/checkin.php" data-sfx="tap"><i class="bi bi-qr-code-scan"></i>Check-in</a>
@@ -176,8 +175,6 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
         <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
-        <a class="list-group-item list-group-item-action" href="/jajanan.php"><i class="bi bi-shop"></i> Jajanan</a>
-        <a class="list-group-item list-group-item-action" href="/kurir.php"><i class="bi bi-scooter"></i> Kurir Jajan</a>
         <?php if ($u['role']==='admin'): ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
           <a class="list-group-item list-group-item-action" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
@@ -237,7 +234,6 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/dm.php"><i class="bi bi-chat-dots text-info"></i> Pesan</a></li>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
           <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami</a></li>
-          <li class="nav-item"><a class="nav-link" href="/kurir.php"><i class="bi bi-scooter text-warning"></i> Kurir Jajan</a></li>
         <?php endif; ?>
         <?php if ($u && $u['role']==='admin'): ?>
           <li class="nav-item dropdown">

@@ -2,6 +2,7 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
+require __DIR__.'/../includes/wa_notify.php';
 require_role('admin');
 $pageTitle='Input Absensi';
 
@@ -46,6 +47,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("INSERT INTO member_eksternal(jadwal_id,nama_tamu,dibawa_oleh_id) VALUES($1,$2,$3)",
                 [$jadwalId, $n, $dibawa]);
     }
+    // Revisi: kirim notifikasi WA + in-app + FCM ke semua peserta + admin PIC
+    try {
+      $j = db_one("SELECT jenis, tanggal, tempat FROM jadwal WHERE id=$1", [$jadwalId]);
+      if ($j) {
+        $judul = 'Absensi '.($j['jenis'] ?? 'Event').' tanggal '.date('d M Y', strtotime($j['tanggal']));
+        $isi   = 'Absensi telah diinput admin untuk kegiatan "'.$j['jenis'].'" di '.($j['tempat'] ?? '-').'. Cek riwayat kamu di aplikasi.';
+        wa_notify_event($jadwalId, $judul, $isi);
+        wa_notify_pic_admins('Reminder PIC: '.$judul, 'Mohon ingatkan member kamu untuk cek hasil absensi & jadwal berikutnya.');
+      }
+    } catch (Throwable $e) {}
+
     header("Location: absensi.php?id={$jadwalId}&saved=1"); exit;
 }
 

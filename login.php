@@ -242,6 +242,11 @@ body{
       <i class="bi bi-arrow-right-circle"></i> Lanjut ke Dashboard tanpa Login
     </a>
 
+    <!-- Revisi: Tombol Pintasan ke HP (PWA install) di halaman login -->
+    <button type="button" id="installBtn" class="btn-lg-outline mt-2" data-sfx="tap">
+      <i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu
+    </button>
+
     <div class="lg-footer-note mt-3">
       &copy; 2026 HapFam SportApp · By Yuk-Mari CyberLab
     </div>
@@ -288,6 +293,19 @@ document.getElementById('loginForm').addEventListener('submit', function(){
   attachLoader(document.querySelector('a[href="/register.php"]'), 'Memproses…');
   attachLoader(document.getElementById('btnGuest'), 'Memproses…');
 })();
+</script>
+<!-- Revisi: Pintasan ke HP (PWA install) — sama seperti tombol di index.php -->
+<script>
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); _deferredInstall = e; });
+document.addEventListener('DOMContentLoaded', () => {
+  const _installBtn = document.getElementById('installBtn');
+  if (!_installBtn) return;
+  _installBtn.addEventListener('click', async () => {
+    if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; }
+    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon HapFam akan muncul di home screen HP kamu.'); }
+  });
+});
 </script>
 </body>
 </html>

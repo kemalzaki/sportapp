@@ -235,36 +235,7 @@ $xp = (int)$me['xp']; $level = (int)$me['level'];
 $xpInLevel = $xp % 200; $xpToNext = 200 - $xpInLevel;
 include __DIR__.'/includes/header.php';
 ?>
-<section class="container my-3" id="temaWarna">
-  <div class="card shadow-sm">
-    <div class="card-header"><i class="bi bi-palette-fill text-primary"></i> Tema Warna Aplikasi</div>
-    <form data-ajax method="post" class="card-body">
-      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-      <input type="hidden" name="_action" value="update_tema">
-      <p class="small text-muted mb-2">Pilih warna utama tampilan aplikasi. Perubahan akan terlihat setelah halaman dimuat ulang.</p>
-      <?php
-        $temaSekarang = 'sky';
-        try { $rr = db_one("SELECT COALESCE(tema_warna,'sky') AS t FROM users WHERE id=$1",[(int)$u['id']]); if ($rr) $temaSekarang = $rr['t']; } catch (Throwable $e) {}
-        $opsi = [
-          'sky'=>['Langit','#0ea5e9'], 'indigo'=>['Indigo','#6366f1'], 'emerald'=>['Emerald','#10b981'],
-          'rose'=>['Mawar','#f43f5e'], 'amber'=>['Amber','#f59e0b'], 'violet'=>['Violet','#8b5cf6'], 'slate'=>['Slate','#475569'],
-        ];
-      ?>
-      <div class="d-flex flex-wrap gap-2">
-        <?php foreach ($opsi as $k=>$v): ?>
-          <label class="border rounded p-2 d-flex align-items-center gap-2" style="cursor:pointer;<?= $temaSekarang===$k?'border-color:#0ea5e9;border-width:2px;':'' ?>">
-            <input type="radio" name="tema_warna" value="<?= $k ?>" <?= $temaSekarang===$k?'checked':'' ?> class="form-check-input m-0">
-            <span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:<?= $v[1] ?>;"></span>
-            <span class="small"><?= $v[0] ?></span>
-          </label>
-        <?php endforeach; ?>
-      </div>
-      <button class="btn btn-primary btn-sm mt-3"><i class="bi bi-save"></i> Simpan Tema</button>
-    </form>
-  </div>
-</section>
-<?php
-?>
+<?php /* Tema Warna Aplikasi dipindahkan ke bagian bawah halaman sesuai revisi. */ ?>
 <h2 class="mb-3"><i class="bi bi-person-circle text-primary"></i> Profil Saya</h2>
 
 <div class="row g-3">
@@ -755,5 +726,75 @@ function pengEdit(p){document.getElementById('pengAction').value='peng_edit';doc
 function perlReset(){document.getElementById('perlAction').value='perl_add';document.getElementById('perlId').value='';document.getElementById('perlForm').reset();document.getElementById('perlJumlah').value=1;}
 function perlEdit(p){document.getElementById('perlAction').value='perl_edit';document.getElementById('perlId').value=p.id;document.getElementById('perlJenisId').value=p.jenis_olahraga_id||0;document.getElementById('perlJenisNama').value=p.jenis_nama||'';document.getElementById('perlNama').value=p.nama||'';document.getElementById('perlJumlah').value=p.jumlah||1;document.getElementById('perlCatatan').value=p.catatan||'';new bootstrap.Modal(document.getElementById('perlModal')).show();}
 </script>
+
+<!-- ===== Revisi: WA Reminder untuk lengkapi Pengalaman Hiking/Camping & Perlengkapan ===== -->
+<?php
+try {
+  $cntPeng = (int)db_val("SELECT COUNT(*) FROM user_pengalaman WHERE user_id=$1", [(int)$u['id']]);
+  $cntPerl = (int)db_val("SELECT COUNT(*) FROM user_perlengkapan WHERE user_id=$1", [(int)$u['id']]);
+} catch (Throwable $e) { $cntPeng = 0; $cntPerl = 0; }
+$waSelf = preg_replace('/\D+/','', (string)($me['nomor_wa'] ?? ''));
+if ($waSelf && str_starts_with($waSelf,'0')) $waSelf = '62'.substr($waSelf,1);
+if ($waSelf && !$cntPeng) {
+  $msg = rawurlencode("Halo ".$me['nama'].", lengkapi pengalaman hiking/camping kamu di profil HapFam SportApp ya! Buka: https://".($_SERVER['HTTP_HOST']??'hapfam.app')."/profile.php");
+  echo '<div class="container my-3"><div class="alert alert-warning d-flex justify-content-between align-items-center"><div><i class="bi bi-mountain"></i> Belum ada pengalaman hiking/camping. Yuk lengkapi!</div>'
+     . '<a class="btn btn-sm btn-success" target="_blank" href="https://wa.me/'.$waSelf.'?text='.$msg.'"><i class="bi bi-whatsapp"></i> Ingatkan via WA</a></div></div>';
+}
+if ($waSelf && !$cntPerl) {
+  $msg = rawurlencode("Halo ".$me['nama'].", lengkapi data perlengkapan olahraga kamu di profil HapFam SportApp ya! Buka: https://".($_SERVER['HTTP_HOST']??'hapfam.app')."/profile.php");
+  echo '<div class="container my-3"><div class="alert alert-info d-flex justify-content-between align-items-center"><div><i class="bi bi-bag-check"></i> Belum ada data perlengkapan olahraga. Yuk lengkapi!</div>'
+     . '<a class="btn btn-sm btn-success" target="_blank" href="https://wa.me/'.$waSelf.'?text='.$msg.'"><i class="bi bi-whatsapp"></i> Ingatkan via WA</a></div></div>';
+}
+?>
+
+<!-- ===== Revisi: Integrasi Strava ===== -->
+<?php
+$stravaConnected = false;
+try { $stravaConnected = (bool)db_one("SELECT 1 FROM user_strava WHERE user_id=$1", [(int)$u['id']]); }
+catch (Throwable $e) { /* tabel belum ada — lihat strava_connect.php */ }
+?>
+<section class="container my-3" id="stravaSection">
+  <div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-activity text-warning"></i> Integrasi Strava</div>
+    <div class="card-body">
+      <?php if ($stravaConnected): ?>
+        <p class="small text-success mb-2"><i class="bi bi-check-circle"></i> Akun Strava sudah terhubung. Aktivitas baru akan otomatis masuk ke aplikasi.</p>
+      <?php else: ?>
+        <p class="small text-muted mb-2">Sambungkan akun Strava agar setiap aktivitas yang kamu posting di Strava (lari, bersepeda, dll) otomatis masuk ke feed HapFam SportApp.</p>
+        <a href="/strava_connect.php" class="btn btn-warning btn-sm"><i class="bi bi-link-45deg"></i> Sambungkan Strava</a>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Revisi: Tema Warna Aplikasi dipindahkan ke BAGIAN BAWAH halaman ===== -->
+<section class="container my-3" id="temaWarna">
+  <div class="card shadow-sm">
+    <div class="card-header"><i class="bi bi-palette-fill text-primary"></i> Tema Warna Aplikasi</div>
+    <form data-ajax method="post" class="card-body">
+      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+      <input type="hidden" name="_action" value="update_tema">
+      <p class="small text-muted mb-2">Pilih warna utama tampilan aplikasi. Perubahan akan terlihat setelah halaman dimuat ulang.</p>
+      <?php
+        $temaSekarang = 'sky';
+        try { $rr = db_one("SELECT COALESCE(tema_warna,'sky') AS t FROM users WHERE id=$1",[(int)$u['id']]); if ($rr) $temaSekarang = $rr['t']; } catch (Throwable $e) {}
+        $opsi = [
+          'sky'=>['Langit','#0ea5e9'], 'indigo'=>['Indigo','#6366f1'], 'emerald'=>['Emerald','#10b981'],
+          'rose'=>['Mawar','#f43f5e'], 'amber'=>['Amber','#f59e0b'], 'violet'=>['Violet','#8b5cf6'], 'slate'=>['Slate','#475569'],
+        ];
+      ?>
+      <div class="d-flex flex-wrap gap-2">
+        <?php foreach ($opsi as $k=>$v): ?>
+          <label class="border rounded p-2 d-flex align-items-center gap-2" style="cursor:pointer;<?= $temaSekarang===$k?'border-color:#0ea5e9;border-width:2px;':'' ?>">
+            <input type="radio" name="tema_warna" value="<?= $k ?>" <?= $temaSekarang===$k?'checked':'' ?> class="form-check-input m-0">
+            <span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:<?= $v[1] ?>;"></span>
+            <span class="small"><?= $v[0] ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+      <button class="btn btn-primary btn-sm mt-3"><i class="bi bi-save"></i> Simpan Tema</button>
+    </form>
+  </div>
+</section>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

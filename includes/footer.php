@@ -675,4 +675,19 @@ document.addEventListener('submit', async function(ev){
   new MutationObserver(()=>initAll()).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+<!-- Revisi 3 Jun 2026: Keep-alive ping untuk Render free-tier agar tidak cold-start.
+     Frontend nge-ping /api_ping.php tiap 4 menit selama tab terbuka. Tambah juga
+     prefetch saat halaman pertama dibuka agar sesi berikutnya tidak terasa lambat. -->
+<script>
+(function(){
+  function ping(){ try{ fetch('/api_ping.php',{cache:'no-store',keepalive:true}); }catch(e){} }
+  // prefetch ringan saat splash/start app
+  if ('requestIdleCallback' in window) requestIdleCallback(ping); else setTimeout(ping, 800);
+  // interval 4 menit (Render free-tier sleep ~15 menit idle)
+  setInterval(ping, 4 * 60 * 1000);
+  // ping juga saat tab kembali aktif
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) ping(); });
+})();
+</script>
 </body></html>

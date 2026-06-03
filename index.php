@@ -412,10 +412,10 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </section>
 
-<!-- ============ Layanan Publik (Donasi Kegiatan + Pesan Jajan) — terlihat juga untuk guest ============ -->
+<!-- ============ Layanan Publik (Donasi Kegiatan) — terlihat juga untuk guest ============ -->
 <section class="mb-3">
   <div class="row g-2">
-    <div class="col-md-6">
+    <div class="col-md-12">
       <a href="/donasi.php" class="text-decoration-none">
         <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#fee2e2,#fff);">
           <div class="card-body d-flex align-items-center gap-3">
@@ -423,19 +423,6 @@ include __DIR__.'/includes/header.php'; ?>
             <div>
               <div class="fw-semibold text-dark">Donasi Kegiatan</div>
               <div class="small text-muted">Dukung kegiatan komunitas — transfer ke rekening resmi kami.</div>
-            </div>
-          </div>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6">
-      <a href="/jajanan.php" class="text-decoration-none">
-        <div class="card shadow-sm border-0 h-100" style="background:linear-gradient(135deg,#dcfce7,#fff);">
-          <div class="card-body d-flex align-items-center gap-3">
-            <img src="assets/img/card-jajanan.jpg" alt="Pesan jajanan" loading="lazy" width="64" height="64" class="rounded-3 flex-shrink-0" style="width:64px;height:64px;object-fit:cover;box-shadow:0 3px 8px rgba(0,0,0,.12);">
-            <div>
-              <div class="fw-semibold text-dark">Pesan Jajanan, Kuy!</div>
-              <div class="small text-muted">Pesan jajanan favorit & murah, diantar oleh kurir member komunitas. Tanpa perlu login.</div>
             </div>
           </div>
         </div>
@@ -465,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="hero-overlay">
       <span class="badge bg-light text-primary mb-2"><i class="bi bi-compass"></i> INFO &amp; WAWASAN</span>
       <h2 class="h4 mb-1 fw-bold">Belajar &amp; tetap update setiap hari</h2>
-      <p class="small mb-0 opacity-85">Berita 2026 · Beasiswa · Kesehatan · Buku · Kalistenik · Artikel Olahraga · Video IPTV</p>
+      <p class="small mb-0 opacity-85">Berita 2026 · Beasiswa · Kesehatan · Kalistenik · Artikel Olahraga</p>
     </div>
   </div>
   <div class="d-flex align-items-center justify-content-between mb-2">
@@ -478,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="card-body text-center py-5">
         <div class="mb-3" style="font-size:2.5rem"><i class="bi bi-lock-fill text-primary"></i></div>
         <h3 class="h5 mb-2">Login dulu untuk melihat topik</h3>
-        <p class="text-muted small mb-3">Berita 2026, Beasiswa, Kesehatan, Buku, Kalistenik, Artikel Olahraga, dan Video IPTV hanya bisa dibuka oleh member yang sudah login.</p>
+        <p class="text-muted small mb-3">Berita 2026, Beasiswa, Kesehatan, Kalistenik, dan Artikel Olahraga hanya bisa dibuka oleh member yang sudah login.</p>
         <a href="/login.php" class="btn btn-primary"><i class="bi bi-box-arrow-in-right"></i> Login</a>
         <a href="/register.php" class="btn btn-outline-primary ms-1"><i class="bi bi-person-plus"></i> Daftar</a>
       </div>
@@ -519,17 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
     </div>
     <div class="col-6 col-md-3">
-      <a href="/buku.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0 info-card">
-          <div class="card-body text-center">
-            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journals fs-4"></i></div>
-            <div class="fw-semibold">Koleksi Buku Terbaru</div>
-            <div class="small text-muted">Banyak kategori · Toko Bandung</div>
-          </div>
-        </div>
-      </a>
-    </div>
-    <div class="col-6 col-md-3">
       <a href="/kalistenik.php" class="text-decoration-none">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
@@ -552,263 +528,11 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <!-- Video Terbaru: IPTV (bukan YouTube) -->
-    <div class="col-6 col-md-3">
-      <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#videoTerbaruModal">
-        <div class="card h-100 shadow-sm border-0 info-card">
-          <div class="card-body text-center">
-            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-collection-play fs-4"></i></div>
-            <div class="fw-semibold">Video Terbaru</div>
-            <div class="small text-muted">Berita IPTV · Indonesia</div>
-          </div>
-        </div>
-      </a>
-    </div>
   </div>
   <?php endif; ?>
 </section>
 <!-- ============ /Info & Wawasan ============ -->
 
-<!-- ============ Modal: Video Terbaru (Berita IPTV — Indonesia) ============ -->
-<?php
-  // === Berita: IPTV stream dari iptv-org/iptv (Indonesia saja) ===
-  // Sumber playlist publik: https://iptv-org.github.io/iptv/countries/id.m3u
-  // Cache 6 jam ke sys temp dir agar tidak fetch tiap request.
-  if (!function_exists('iptv_fetch_news')) {
-    function iptv_fetch_news() {
-      $cacheFile = sys_get_temp_dir().'/iptv_id_cache.json';
-      if (is_file($cacheFile) && (time()-filemtime($cacheFile) < 21600)) {
-        $j = json_decode(@file_get_contents($cacheFile), true);
-        if (is_array($j) && count($j)) return $j;
-      }
-      // REVISI 30 Mei 2026: coba beberapa URL playlist (struktur repo iptv-org sering berubah),
-      // dan filter hanya stream HTTPS .m3u8 supaya bisa diputar di browser tanpa mixed-content block.
-      $urls = [
-        'https://iptv-org.github.io/iptv/countries/id.m3u',
-        'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u',
-        'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id_news.m3u',
-      ];
-      $ctx = stream_context_create([
-        'http'=>['timeout'=>8,'user_agent'=>'Mozilla/5.0','follow_location'=>1],
-        'ssl' =>['verify_peer'=>false,'verify_peer_name'=>false],
-      ]);
-      $raw = '';
-      foreach ($urls as $url) {
-        $r = @file_get_contents($url, false, $ctx);
-        if ($r && strpos($r, '#EXTM3U') !== false) { $raw = $r; break; }
-      }
-      $items = [];
-      if ($raw) {
-        $lines = preg_split('/\r?\n/', $raw);
-        $cur = null;
-        foreach ($lines as $ln) {
-          if (strpos($ln, '#EXTINF') === 0) {
-            $cur = ['nama'=>'', 'logo'=>'', 'grup'=>'', 'url'=>''];
-            if (preg_match('/tvg-logo="([^"]*)"/', $ln, $m)) $cur['logo'] = $m[1];
-            if (preg_match('/group-title="([^"]*)"/', $ln, $m)) $cur['grup'] = $m[1];
-            $p = strrpos($ln, ',');
-            if ($p !== false) $cur['nama'] = trim(substr($ln, $p+1));
-          } elseif ($cur !== null && $ln !== '' && $ln[0] !== '#') {
-            $u = trim($ln);
-            $cur['url'] = $u;
-            // Revisi 1 Jun 2026: terima HTTP maupun HTTPS (semua akan
-            // diputar lewat /iptv_proxy.php sehingga aman dari mixed-content
-            // dan CORS, termasuk di mobile browser).
-            if ($cur['nama'] && stripos($u,'.m3u8')!==false && preg_match('#^https?://#i',$u)) {
-              $items[] = $cur;
-            }
-            $cur = null;
-          }
-        }
-      }
-      // Fallback curated list — channel umum Indonesia yang masih aktif.
-      if (!$items) {
-        $items = [
-          ['nama'=>'TVRI Nasional','logo'=>'','grup'=>'Umum','url'=>'https://tvri-live.akamaized.net/hls/live/2014820/tvri-1/master.m3u8'],
-          ['nama'=>'CNN Indonesia','logo'=>'','grup'=>'Berita','url'=>'https://live.cnnindonesia.com/livecnn/smil:cnntv.smil/chunklist_b1500000.m3u8'],
-          ['nama'=>'Metro TV','logo'=>'','grup'=>'Berita','url'=>'https://liveterascasting.terasmedia.id/metrotv/index.m3u8'],
-          ['nama'=>'Kompas TV','logo'=>'','grup'=>'Berita','url'=>'https://serve.cast-helper.com/auth_token=1234-abcd/kompastv/index.m3u8'],
-          ['nama'=>'BeritaSatu','logo'=>'','grup'=>'Berita','url'=>'https://beritasatu-live-fa-lh.akamaihd.net/i/beritasatutv_1@76528/master.m3u8'],
-          ['nama'=>'Sample HLS (Apple)','logo'=>'','grup'=>'Demo','url'=>'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8'],
-          ['nama'=>'Big Buck Bunny (Demo)','logo'=>'','grup'=>'Demo','url'=>'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'],
-        ];
-      }
-      if (count($items)) @file_put_contents($cacheFile, json_encode($items));
-      return $items;
-    }
-  }
-  $IPTV_NEWS = iptv_fetch_news();
-  // Urutkan alfabetis berdasarkan nama channel, batasi 80 untuk performa UI.
-  usort($IPTV_NEWS, function($a,$b){ return strcasecmp($a['nama'],$b['nama']); });
-  $IPTV_NEWS = array_slice($IPTV_NEWS, 0, 80);
-
-  // Revisi 1 Jun 2026: helper untuk membungkus URL stream lewat proxy server.
-  // Tujuan: agar IPTV bisa diputar di mobile browser (Android/iOS) dan APK
-  // tanpa terhalang mixed-content atau CORS.
-  if (!function_exists('iptv_proxy_url')) {
-    function iptv_proxy_url($u){
-      $b = rtrim(strtr(base64_encode($u), '+/', '-_'), '=');
-      return '/iptv_proxy.php?u=' . $b;
-    }
-  }
-?>
-<div class="modal fade" id="videoTerbaruModal" tabindex="-1" aria-labelledby="videoTerbaruLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="videoTerbaruLabel"><i class="bi bi-collection-play text-danger"></i> Video Terbaru — Berita IPTV (Indonesia)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-      </div>
-      <div class="modal-body">
-        <div class="tab-content">
-          <!-- ===== Revisi 3 Jun 2026 #3: IPTV kini bisa diputar di MOBILE BROWSER (Chrome/Safari).
-                  Hanya aplikasi Android (Capacitor WebView) yang dinonaktifkan karena keterbatasan codec HLS. ===== -->
-          <div id="iptvMobileNotice" class="alert alert-warning small mb-3 d-none">
-            <i class="bi bi-phone"></i>
-            <strong>IPTV tidak tersedia di dalam aplikasi Android.</strong>
-            Pemutar IPTV dinonaktifkan pada APK Capacitor karena keterbatasan codec HLS &amp; mixed-content di WebView.
-            Silakan buka halaman ini melalui <strong>Chrome / Safari</strong> di handphone / laptop untuk menonton.
-          </div>
-          <div id="iptvMobileHint" class="alert alert-info small mb-3 d-none">
-            <i class="bi bi-info-circle-fill"></i>
-            Anda menonton dari handphone. Jika channel tidak dapat diputar, ketuk channel lain — sistem akan otomatis berpindah ke channel berikutnya.
-          </div>
-          <!-- ===== Berita (IPTV) ===== -->
-          <div id="vt-berita">
-            <?php if (empty($IPTV_NEWS)): ?>
-              <div class="alert alert-warning small mb-2">
-                Gagal memuat daftar channel IPTV Indonesia. Pastikan server bisa mengakses
-                <code>iptv-org.github.io</code>. Coba muat ulang halaman.
-              </div>
-            <?php else: ?>
-              <div id="iptvChannelList" class="d-flex flex-wrap gap-2 mb-3" style="max-height:180px; overflow-y:auto;">
-                <?php foreach ($IPTV_NEWS as $i => $ch): ?>
-                  <button type="button"
-                          class="btn btn-sm <?= $i===0?'btn-danger':'btn-outline-secondary' ?> iptv-src-btn"
-                          data-url="<?= htmlspecialchars(iptv_proxy_url($ch['url'])) ?>"
-                          data-name="<?= htmlspecialchars($ch['nama']) ?>"
-                          title="<?= htmlspecialchars($ch['grup']) ?>">
-                    <?= htmlspecialchars($ch['nama']) ?>
-                  </button>
-                <?php endforeach; ?>
-              </div>
-              <div id="iptvPlayerWrap" class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
-                <video id="iptvPlayer" controls autoplay muted playsinline></video>
-              </div>
-              <p class="small text-muted mt-2 mb-0">
-                <i class="bi bi-info-circle"></i> Sedang menonton: <strong id="iptvNow"><?= htmlspecialchars($IPTV_NEWS[0]['nama']) ?></strong>.
-                Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a> (negara <em>Indonesia</em>).
-                Beberapa stream mungkin offline / geo-block.
-              </p>
-            <?php endif; ?>
-          </div>
-
-        </div>
-      </div>
-      <div class="modal-footer">
-        <span class="small text-muted me-auto">Berita: IPTV (iptv-org) — channel Indonesia</span>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- HLS.js untuk memutar stream .m3u8 di browser non-Safari -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
-<script>
-(function(){
-  // [Fix 1 Jun 2026] Tag <script> duplikat di blok ini sebelumnya membuat
-  // seluruh IIFE pemutar IPTV gagal di-parse JS (SyntaxError) sehingga di
-  // mobile maupun desktop video tidak pernah dijalankan. Sekarang hanya
-  // ada satu pembuka <script> + satu IIFE.
-  // ---- IPTV HLS player ----
-  // ===== Revisi 1 Jun 2026: SEMUA stream sekarang lewat /iptv_proxy.php
-  // sehingga bisa diputar di mobile browser (Android Chrome, iOS Safari)
-  // maupun APK Capacitor. Tidak ada lagi mixed-content / CORS error.
-  var ua          = (navigator.userAgent || '').toLowerCase();
-  var isMobileUA  = /android|iphone|ipad|ipod|mobile/.test(ua);
-  var IPTV_BLOCKED = false; // tidak diblok di platform manapun
-
-  var notice     = document.getElementById('iptvMobileNotice');
-  var mobileHint = document.getElementById('iptvMobileHint');
-  var playerWrap = document.getElementById('iptvPlayerWrap');
-  var chanList   = document.getElementById('iptvChannelList');
-  if (notice) notice.classList.add('d-none');
-  if (isMobileUA && mobileHint) mobileHint.classList.remove('d-none');
-
-  var video = document.getElementById('iptvPlayer');
-  var nowEl = document.getElementById('iptvNow');
-  // Pastikan atribut yang dibutuhkan mobile autoplay aktif
-  if (video) {
-    video.setAttribute('playsinline','');
-    video.setAttribute('webkit-playsinline','');
-    video.muted = true;
-  }
-  var hls = null;
-  // Deteksi iOS Safari — hanya iOS yang punya pemutar HLS native andal.
-  // Android Chrome melaporkan "maybe" pada canPlayType('application/vnd.apple.mpegurl')
-  // tapi sebetulnya TIDAK bisa memutar — itulah penyebab IPTV gagal play di HP.
-  var isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  function loadStream(url, name){
-    if (IPTV_BLOCKED) return; // hanya APK yang diblok
-    if (!video) return;
-    if (nowEl && name) nowEl.textContent = name;
-    if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
-    var useHlsJs = window.Hls && window.Hls.isSupported() && !isIOS;
-    if (useHlsJs) {
-      hls = new window.Hls({ lowLatencyMode:true, enableWorker:true });
-      hls.loadSource(url);
-      hls.attachMedia(video);
-      hls.on(window.Hls.Events.MANIFEST_PARSED, function(){ video.play().catch(function(){}); });
-      hls.on(window.Hls.Events.ERROR, function(_, data){
-        if (data && data.fatal) {
-          console.warn('HLS error, switching to next channel', data);
-          var btns = Array.prototype.slice.call(document.querySelectorAll('.iptv-src-btn'));
-          var active = document.querySelector('.iptv-src-btn.btn-danger');
-          var idx = active ? btns.indexOf(active) : -1;
-          var nxt = btns[idx+1];
-          if (nxt) nxt.click();
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS (iOS Safari, macOS Safari)
-      video.src = url; video.play().catch(function(){});
-    } else {
-      video.src = url; video.play().catch(function(){});
-    }
-  }
-  document.querySelectorAll('.iptv-src-btn').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var url = this.getAttribute('data-url');
-      var nm  = this.getAttribute('data-name');
-      loadStream(url, nm);
-      document.querySelectorAll('.iptv-src-btn').forEach(function(b){
-        b.classList.remove('btn-danger'); b.classList.add('btn-outline-secondary');
-      });
-      this.classList.remove('btn-outline-secondary'); this.classList.add('btn-danger');
-    });
-  });
-  // Auto-load first IPTV channel saat modal pertama dibuka.
-  var modal = document.getElementById('videoTerbaruModal');
-  var firstBtn = document.querySelector('.iptv-src-btn');
-  var loaded = false;
-  if (modal) {
-    modal.addEventListener('shown.bs.modal', function(){
-      if (IPTV_BLOCKED) return; // skip autoplay di APK
-      if (!loaded && firstBtn) {
-        loadStream(firstBtn.getAttribute('data-url'), firstBtn.getAttribute('data-name'));
-        loaded = true;
-      }
-    });
-    modal.addEventListener('hidden.bs.modal', function(){
-      // Stop HLS
-      if (hls) { try { hls.destroy(); } catch(e){} hls = null; }
-      if (video) { try { video.pause(); video.removeAttribute('src'); video.load(); } catch(e){} }
-      loaded = false;
-    });
-  }
-})();
-</script>
-<!-- ============ /Modal Video Terbaru ============ -->
 
 <!-- Section "Nonton Streaming Live" dihapus sesuai revisi. -->
 
@@ -976,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <div class="row g-3">
   <div class="col-lg-7">
-    <?php include __DIR__.'/includes/islami_widget.php'; ?>
+    <?php /* Sentuhan Islami Hari Ini & kata-katanya dihapus sesuai revisi. */ ?>
     <?php if($newMembers): ?>
     <div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
