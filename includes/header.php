@@ -172,6 +172,7 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
         <a class="list-group-item list-group-item-action" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
         <a class="list-group-item list-group-item-action" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
+        <a class="list-group-item list-group-item-action" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
         <a class="list-group-item list-group-item-action" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Lari</a>
         <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
@@ -181,6 +182,7 @@ if ($u) {
           <a class="list-group-item list-group-item-action" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
           <a class="list-group-item list-group-item-action" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a>
           <a class="list-group-item list-group-item-action" href="/admin/absensi.php"><i class="bi bi-clipboard-check"></i> Input Absensi</a>
+          <a class="list-group-item list-group-item-action" href="/admin/event_absensi.php"><i class="bi bi-clipboard2-check text-warning"></i> Input Absensi Event</a>
           <a class="list-group-item list-group-item-action" href="/admin/qr_show.php"><i class="bi bi-qr-code"></i> QR Check-in</a>
           <a class="list-group-item list-group-item-action" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
           <a class="list-group-item list-group-item-action" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
