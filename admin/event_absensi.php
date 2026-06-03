@@ -14,6 +14,18 @@ require __DIR__.'/../includes/security.php';
 require_role('admin');
 $pageTitle = 'Input Absensi Event';
 
+// Pastikan tabel event_tamu tersedia (auto-migrate; tidak menghapus data).
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS event_tamu (
+        id BIGSERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+        nama_tamu VARCHAR(120) NOT NULL,
+        dibawa_oleh_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_event_tamu_event ON event_tamu(event_id)");
+} catch (Throwable $e) {}
+
 $eventId = (int)($_GET['id'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -21,15 +33,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $eventId = (int)$_POST['event_id'];
     $allowed = ['hadir','izin','sakit','telat','absen'];
 
-    // Tambah peserta baru (cepat) dari form
-    if (($_POST['_action'] ?? '') === 'add_peserta') {
-        $uid = (int)($_POST['user_id'] ?? 0);
-        $tid = (int)($_POST['tim_id'] ?? 0) ?: null;
-        if ($uid || $tid) {
+    // Tambah tamu eksternal (mirip absensi.php)
+    if (($_POST['_action'] ?? '') === 'add_tamu') {
+        $nama   = trim((string)($_POST['nama_tamu'] ?? ''));
+        $dibawa = (int)($_POST['dibawa_oleh_id'] ?? 0) ?: null;
+        if ($nama !== '') {
             try {
-                db_exec("INSERT INTO event_peserta(event_id,user_id,tim_id) VALUES($1,$2,$3)",
-                    [$eventId, $uid ?: null, $tid]);
+                db_exec("INSERT INTO event_tamu(event_id,nama_tamu,dibawa_oleh_id) VALUES($1,$2,$3)",
+                    [$eventId, substr($nama,0,120), $dibawa]);
             } catch (Throwable $e) {}
+        }
+        header("Location: event_absensi.php?id={$eventId}"); exit;
+    }
+    if (($_POST['_action'] ?? '') === 'del_tamu') {
+        $tid = (int)($_POST['tamu_id'] ?? 0);
+        if ($tid) {
+            try { db_exec("DELETE FROM event_tamu WHERE id=$1 AND event_id=$2", [$tid, $eventId]); } catch (Throwable $e) {}
         }
         header("Location: event_absensi.php?id={$eventId}"); exit;
     }
@@ -45,19 +64,31 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header("Location: event_absensi.php?id={$eventId}&saved=1"); exit;
 }
 
-$event = null; $peserta = []; $allMembers = []; $allTims = [];
+$event = null; $peserta = []; $allMembers = []; $allTims = []; $tamuList = [];
 if ($eventId) {
     $event = db_one("SELECT * FROM event WHERE id=$1", [$eventId]);
-    $peserta = db_all("SELECT ep.id, ep.status, ep.keterangan, ep.score,
-                              u.id AS user_id, u.nama AS user_nama, u.foto_url,
-                              t.id AS tim_id, t.nama AS tim_nama, t.jenis AS tim_jenis
-                       FROM event_peserta ep
-                       LEFT JOIN users u ON u.id=ep.user_id
-                       LEFT JOIN tim   t ON t.id=ep.tim_id
-                       WHERE ep.event_id=$1
-                       ORDER BY COALESCE(u.nama, t.nama)", [$eventId]);
+    // Dedupe: hanya 1 baris per (user_id,tim_id); pilih yang sudah berstatus jika ada.
+    $peserta = db_all(
+      "SELECT ep.id, ep.status, ep.keterangan, ep.score,
+              u.id AS user_id, u.nama AS user_nama, u.foto_url,
+              t.id AS tim_id, t.nama AS tim_nama, t.jenis AS tim_jenis
+       FROM (
+         SELECT DISTINCT ON (COALESCE(user_id,0), COALESCE(tim_id,0)) *
+         FROM event_peserta
+         WHERE event_id=$1
+         ORDER BY COALESCE(user_id,0), COALESCE(tim_id,0),
+           CASE WHEN status IS NOT NULL AND status<>'absen' THEN 0 ELSE 1 END, id
+       ) ep
+       LEFT JOIN users u ON u.id=ep.user_id
+       LEFT JOIN tim   t ON t.id=ep.tim_id
+       ORDER BY COALESCE(u.nama, t.nama)", [$eventId]);
     $allMembers = db_all("SELECT id,nama FROM users WHERE role IN ('member','admin') ORDER BY nama");
     $allTims    = db_all("SELECT id,nama,jenis FROM tim ORDER BY nama");
+    try {
+      $tamuList = db_all("SELECT et.*, u.nama AS dibawa_nama FROM event_tamu et
+                          LEFT JOIN users u ON u.id=et.dibawa_oleh_id
+                          WHERE et.event_id=$1 ORDER BY et.id", [$eventId]);
+    } catch (Throwable $e) { $tamuList = []; }
 }
 $eventList = db_all("SELECT id,nama,tanggal_mulai,jenis FROM event ORDER BY tanggal_mulai DESC");
 include __DIR__.'/../includes/header.php'; ?>
@@ -178,28 +209,48 @@ include __DIR__.'/../includes/header.php'; ?>
   </div>
 </form>
 
-<div class="card shadow-sm mb-4"><div class="card-header"><i class="bi bi-person-plus"></i> Tambah Peserta Cepat</div>
+<div class="card shadow-sm mb-4"><div class="card-header"><i class="bi bi-person-plus"></i> Tambah Tamu Eksternal</div>
 <div class="card-body">
+  <p class="small text-muted mb-2">Catat tamu yang bukan member (mis. tamu undangan, peserta dari luar). Untuk menambahkan member, gunakan halaman <a href="/admin/event.php">Kelola Event</a>.</p>
+  <?php if($tamuList): ?>
+    <div class="table-responsive mb-2"><table class="table table-sm align-middle mb-0">
+      <thead class="table-light small"><tr><th>#</th><th>Nama Tamu</th><th>Dibawa Oleh</th><th class="text-end"></th></tr></thead>
+      <tbody>
+      <?php $tno=1; foreach($tamuList as $tm): ?>
+        <tr>
+          <td class="small text-muted"><?= $tno++ ?></td>
+          <td><i class="bi bi-person-badge text-warning"></i> <?= htmlspecialchars($tm['nama_tamu']) ?></td>
+          <td class="small"><?= $tm['dibawa_nama'] ? htmlspecialchars($tm['dibawa_nama']) : '<span class="text-muted">—</span>' ?></td>
+          <td class="text-end">
+            <form method="post" class="d-inline" onsubmit="return confirm('Hapus tamu ini?')">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="del_tamu">
+              <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
+              <input type="hidden" name="tamu_id" value="<?= (int)$tm['id'] ?>">
+              <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-x-circle"></i></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody></table></div>
+  <?php endif; ?>
   <form method="post" class="row g-2">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-    <input type="hidden" name="_action" value="add_peserta">
+    <input type="hidden" name="_action" value="add_tamu">
     <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
-    <div class="col-md-5">
-      <label class="small fw-semibold">Member (individu)</label>
-      <select name="user_id" class="form-select form-select-sm">
-        <option value="">— Pilih member —</option>
+    <div class="col-md-6">
+      <label class="small fw-semibold">Nama Tamu</label>
+      <input class="form-control form-control-sm" name="nama_tamu" maxlength="120" placeholder="cth: Pak Budi (tamu dari RT 03)" required>
+    </div>
+    <div class="col-md-4">
+      <label class="small fw-semibold">Dibawa oleh (opsional)</label>
+      <select name="dibawa_oleh_id" class="form-select form-select-sm">
+        <option value="">— Tidak ada —</option>
         <?php foreach($allMembers as $m): ?><option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['nama']) ?></option><?php endforeach; ?>
       </select>
     </div>
-    <div class="col-md-5">
-      <label class="small fw-semibold">Atau Tim</label>
-      <select name="tim_id" class="form-select form-select-sm">
-        <option value="">— Pilih tim —</option>
-        <?php foreach($allTims as $t): ?><option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['nama']) ?> (<?= htmlspecialchars($t['jenis']) ?>)</option><?php endforeach; ?>
-      </select>
-    </div>
     <div class="col-md-2 d-flex align-items-end">
-      <button class="btn btn-primary btn-sm w-100"><i class="bi bi-plus-lg"></i> Tambah</button>
+      <button class="btn btn-primary btn-sm w-100"><i class="bi bi-plus-lg"></i> Tambah Tamu</button>
     </div>
   </form>
 </div></div>

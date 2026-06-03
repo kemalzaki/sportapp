@@ -353,6 +353,7 @@ $activeQr = db_all("SELECT q.token, j.id, j.tanggal, j.jenis, j.tempat
 // === Event Terdekat (untuk index.php) — diambil dari submit event admin ===
 $eventTerdekat = [];
 $myEventStatus = [];
+$eventPesertaByEvent = [];
 try {
     $eventTerdekat = db_all(
         "SELECT e.id, e.nama, e.jenis, e.tipe, e.tanggal_mulai, e.tanggal_selesai, e.jam_mulai, e.lokasi, e.status,
@@ -366,6 +367,31 @@ try {
         $myRows = db_all("SELECT event_id, status FROM event_peserta WHERE user_id=$1 AND event_id = ANY($2::int[])",
             [(int)$u['id'], '{'.implode(',',$eids).'}']);
         foreach ($myRows as $r) $myEventStatus[(int)$r['event_id']] = $r['status'];
+    }
+    // Detail peserta + status per event terdekat (dedup: prefer baris ber-status)
+    if ($eventTerdekat) {
+        $_eids2 = array_map(fn($e)=>(int)$e['id'], $eventTerdekat);
+        $_perows = db_all(
+          "SELECT ep.event_id, ep.status, ep.keterangan,
+                  u.id AS uid, u.nama AS user_nama, u.foto_url,
+                  t.id AS tim_id, t.nama AS tim_nama
+           FROM (
+             SELECT DISTINCT ON (event_id, COALESCE(user_id,0), COALESCE(tim_id,0)) *
+             FROM event_peserta
+             WHERE event_id = ANY($1::int[])
+             ORDER BY event_id, COALESCE(user_id,0), COALESCE(tim_id,0),
+               CASE WHEN status IS NOT NULL AND status<>'absen' THEN 0 ELSE 1 END, id
+           ) ep
+           LEFT JOIN users u ON u.id=ep.user_id
+           LEFT JOIN tim t ON t.id=ep.tim_id
+           ORDER BY ep.event_id,
+             CASE COALESCE(ep.status,'belum')
+               WHEN 'hadir' THEN 1 WHEN 'telat' THEN 2 WHEN 'izin' THEN 3
+               WHEN 'sakit' THEN 4 ELSE 5 END,
+             COALESCE(u.nama, t.nama)",
+          ['{'.implode(',', $_eids2).'}']
+        );
+        foreach ($_perows as $r) $eventPesertaByEvent[(int)$r['event_id']][] = $r;
     }
 } catch (Throwable $e) { $eventTerdekat = []; }
 
@@ -728,16 +754,29 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
       <div data-live="event_terdekat">
       <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
-        <thead><tr><th>Tanggal</th><th>Nama Event</th><th>Jenis</th><th>Lokasi</th><th class="text-end">Aksi</th></tr></thead><tbody>
+        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Nama Event</th><th>Jenis</th><th>Lokasi</th><th>Absensi</th><th class="text-end">Aksi</th></tr></thead><tbody>
         <?php foreach($eventTerdekat as $ev):
           $eid=(int)$ev['id']; $myS = $myEventStatus[$eid] ?? null;
+          $epList = $eventPesertaByEvent[$eid] ?? [];
+          $eCnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0,'belum'=>0];
+          foreach($epList as $ep){ $s = $ep['status'] ?: 'belum'; if(isset($eCnt[$s])) $eCnt[$s]++; else $eCnt['belum']++; }
         ?>
           <tr>
+            <td data-label=""><button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#edetail<?= $eid ?>" title="Lihat absensi"><i class="bi bi-chevron-down"></i></button></td>
             <td data-label="Tanggal"><?= htmlspecialchars($ev['tanggal_mulai']) ?><?php if(!empty($ev['jam_mulai'])): ?> <span class="text-muted small"><?= htmlspecialchars(substr($ev['jam_mulai'],0,5)) ?></span><?php endif; ?></td>
             <td data-label="Nama"><a class="text-decoration-none fw-semibold" href="/event.php?id=<?= $eid ?>"><?= htmlspecialchars($ev['nama']) ?></a>
               <div class="small text-muted"><i class="bi bi-people"></i> <?= (int)$ev['jml'] ?> peserta</div></td>
             <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($ev['jenis'] ?: ($ev['tipe']??'-')) ?></span></td>
             <td data-label="Lokasi"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($ev['lokasi'] ?: '-') ?></td>
+            <td data-label="Absensi" class="small">
+              <?php if($eCnt['hadir']): ?><span class="badge bg-success-subtle text-success" title="Hadir">H <?= $eCnt['hadir'] ?></span> <?php endif; ?>
+              <?php if($eCnt['telat']): ?><span class="badge bg-warning-subtle text-warning" title="Telat">T <?= $eCnt['telat'] ?></span> <?php endif; ?>
+              <?php if($eCnt['izin']): ?><span class="badge bg-info-subtle text-info" title="Izin">I <?= $eCnt['izin'] ?></span> <?php endif; ?>
+              <?php if($eCnt['sakit']): ?><span class="badge bg-secondary-subtle text-secondary" title="Sakit">S <?= $eCnt['sakit'] ?></span> <?php endif; ?>
+              <?php if($eCnt['absen']): ?><span class="badge bg-danger-subtle text-danger" title="Absen">A <?= $eCnt['absen'] ?></span> <?php endif; ?>
+              <?php if($eCnt['belum']): ?><span class="badge bg-light text-muted border" title="Belum diabsen">- <?= $eCnt['belum'] ?></span><?php endif; ?>
+              <?php if(!array_sum($eCnt)): ?><span class="text-muted">—</span><?php endif; ?>
+            </td>
             <td data-label="Aksi" class="text-end">
               <?php if($u):
                 $mk = function($st,$cls,$label,$icon) use($myS,$eid){
@@ -755,6 +794,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 $mk('sakit','secondary','Sakit','bandaid');
                 if($myS): ?><div class="small text-muted mt-1">Status: <b><?= htmlspecialchars(strtoupper($myS)) ?></b></div><?php endif;
               else: ?><a href="/login.php" class="small">Login untuk daftar</a><?php endif; ?>
+            </td>
+          </tr>
+          <tr class="collapse" id="edetail<?= $eid ?>">
+            <td colspan="7" class="bg-light">
+              <?php if(!$epList): ?>
+                <div class="text-muted small">Belum ada peserta / data absensi event ini.</div>
+              <?php else: ?>
+                <div class="table-responsive"><table class="table table-sm mb-0" data-paginate="8">
+                  <thead><tr><th>Peserta</th><th>Status</th><th>Catatan</th></tr></thead>
+                  <tbody>
+                  <?php foreach($epList as $ep):
+                    $st = $ep['status'] ?: 'belum';
+                    $stMap = ['hadir'=>'success','telat'=>'warning','izin'=>'info','sakit'=>'secondary','absen'=>'danger','belum'=>'light'];
+                    $cls = $stMap[$st] ?? 'secondary';
+                    $label = $ep['user_nama'] ?: ($ep['tim_nama'] ? 'Tim: '.$ep['tim_nama'] : '—');
+                  ?>
+                    <tr>
+                      <td>
+                        <?php if(!empty($ep['user_nama'])): ?>
+                          <a class="text-decoration-none" href="/user.php?id=<?= (int)$ep['uid'] ?>"><?= user_name_with_avatar($ep['foto_url'] ?? null, $ep['user_nama'], false, 22) ?></a>
+                          <?php if(!empty($ep['tim_nama'])): ?> <small class="text-muted">· <?= htmlspecialchars($ep['tim_nama']) ?></small><?php endif; ?>
+                        <?php else: ?>
+                          <i class="bi bi-people-fill text-warning"></i> <?= htmlspecialchars($label) ?>
+                        <?php endif; ?>
+                      </td>
+                      <td><span class="badge bg-<?= $cls ?>-subtle text-<?= $cls==='light'?'muted':$cls ?> text-uppercase border"><?= htmlspecialchars($st) ?></span></td>
+                      <td class="small"><?= $ep['keterangan'] ? htmlspecialchars($ep['keterangan']) : '<span class="text-muted">—</span>' ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                  </tbody>
+                </table></div>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>

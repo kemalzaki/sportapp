@@ -30,11 +30,18 @@ $events = db_all("SELECT e.*, (SELECT COUNT(*) FROM event_peserta p WHERE p.even
 $timsUser = db_all("SELECT t.id, t.nama, t.jenis FROM tim t JOIN tim_member tm ON tm.tim_id=t.id WHERE tm.user_id=$1", [(int)$u['id']]);
 
 $detail = $detailId ? db_one("SELECT * FROM event WHERE id=$1", [$detailId]) : null;
-$peserta = $detail ? db_all("SELECT ep.*, u.nama, u.foto_url, t.nama AS tim_nama
-                             FROM event_peserta ep
-                             LEFT JOIN users u ON u.id=ep.user_id
-                             LEFT JOIN tim t ON t.id=ep.tim_id
-                             WHERE ep.event_id=$1 ORDER BY ep.score DESC", [$detailId]) : [];
+$peserta = $detail ? db_all(
+    "SELECT ep.*, u.nama, u.foto_url, t.nama AS tim_nama
+     FROM (
+       SELECT DISTINCT ON (COALESCE(user_id,0), COALESCE(tim_id,0)) *
+       FROM event_peserta
+       WHERE event_id=$1
+       ORDER BY COALESCE(user_id,0), COALESCE(tim_id,0),
+         CASE WHEN status IS NOT NULL AND status<>'absen' THEN 0 ELSE 1 END, id
+     ) ep
+     LEFT JOIN users u ON u.id=ep.user_id
+     LEFT JOIN tim   t ON t.id=ep.tim_id
+     ORDER BY ep.score DESC, COALESCE(u.nama, t.nama)", [$detailId]) : [];
 $matches = $detail ? db_all("SELECT m.*, a.nama AS a_nama, b.nama AS b_nama FROM event_match m
                              LEFT JOIN tim a ON a.id=m.tim_a LEFT JOIN tim b ON b.id=m.tim_b
                              WHERE m.event_id=$1 ORDER BY round, id", [$detailId]) : [];
@@ -87,16 +94,49 @@ include __DIR__.'/includes/header.php';
   <?php endif; ?>
 </div></div>
 
+<?php
+  $eOpts = [
+    'hadir' => ['Hadir','success','bi-check-circle'],
+    'telat' => ['Telat','warning','bi-clock-history'],
+    'izin'  => ['Izin','info','bi-envelope'],
+    'sakit' => ['Sakit','danger','bi-bandaid'],
+    'absen' => ['Absen','secondary','bi-x-circle'],
+  ];
+  $eCnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0,'belum'=>0];
+  foreach($peserta as $p){ $s = $p['status'] ?: 'belum'; if(isset($eCnt[$s])) $eCnt[$s]++; else $eCnt['belum']++; }
+?>
+<div class="card shadow-sm mb-3"><div class="card-body py-2">
+  <strong class="small text-muted me-2">Ringkasan absensi:</strong>
+  <?php foreach($eOpts as $k=>$o): if($eCnt[$k]): ?>
+    <span class="badge bg-<?= $o[1] ?>-subtle text-<?= $o[1] ?> me-1"><i class="bi <?= $o[2] ?>"></i> <?= $o[0] ?>: <?= $eCnt[$k] ?></span>
+  <?php endif; endforeach; ?>
+  <?php if($eCnt['belum']): ?><span class="badge bg-light text-muted border me-1">Belum diabsen: <?= $eCnt['belum'] ?></span><?php endif; ?>
+</div></div>
+
 <div class="row g-3">
-  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header">Peserta & Score</div>
-    <ol class="list-group list-group-flush list-group-numbered">
-    <?php foreach($peserta as $p): ?>
-      <li class="list-group-item d-flex justify-content-between">
-        <span><?= htmlspecialchars($p['tim_nama'] ?? $p['nama'] ?? '—') ?></span>
-        <span class="badge bg-warning text-dark"><?= number_format((float)$p['score'],2) ?></span>
-      </li>
-    <?php endforeach; if(!$peserta): ?><li class="list-group-item text-muted small">Belum ada peserta.</li><?php endif; ?>
-    </ol></div></div>
+  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-people text-primary"></i> Peserta &amp; Kehadiran</div>
+    <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+      <thead class="table-light small"><tr><th>#</th><th>Peserta</th><th>Status</th><th>Catatan</th><th class="text-end">Score</th></tr></thead>
+      <tbody>
+      <?php $no=1; foreach($peserta as $p):
+        $st = $p['status'] ?: 'belum';
+        $stMap = ['hadir'=>'success','telat'=>'warning','izin'=>'info','sakit'=>'secondary','absen'=>'danger','belum'=>'light'];
+        $cls = $stMap[$st] ?? 'secondary';
+        $label = $p['nama'] ?: ($p['tim_nama'] ? 'Tim: '.$p['tim_nama'] : '—');
+      ?>
+        <tr>
+          <td class="small text-muted"><?= $no++ ?></td>
+          <td><?= htmlspecialchars($label) ?><?php if(!empty($p['nama']) && !empty($p['tim_nama'])): ?> <small class="text-muted">· <?= htmlspecialchars($p['tim_nama']) ?></small><?php endif; ?></td>
+          <td><span class="badge bg-<?= $cls ?>-subtle text-<?= $cls==='light'?'muted':$cls ?> text-uppercase border"><?= htmlspecialchars($st) ?></span></td>
+          <td class="small"><?= $p['keterangan'] ? htmlspecialchars($p['keterangan']) : '<span class="text-muted">—</span>' ?></td>
+          <td class="text-end"><span class="badge bg-warning text-dark"><?= number_format((float)$p['score'],2) ?></span></td>
+        </tr>
+      <?php endforeach; if(!$peserta): ?>
+        <tr><td colspan="5" class="text-center text-muted small py-3">Belum ada peserta.</td></tr>
+      <?php endif; ?>
+      </tbody>
+    </table></div>
+  </div></div>
   <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header">Bracket / Match</div>
     <ul class="list-group list-group-flush">
     <?php foreach($matches as $m): ?>

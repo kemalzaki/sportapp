@@ -80,6 +80,43 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $win = $sa > $sb ? (int)$_POST['tim_a'] : ($sb > $sa ? (int)$_POST['tim_b'] : null);
         db_exec("UPDATE event_match SET score_a=$1, score_b=$2, pemenang=$3 WHERE id=$4",
             [$sa, $sb, $win, (int)$_POST['id']]);
+    } elseif ($a==='save_absensi') {
+        // CRUD absensi langsung dari halaman admin event (mirip event_absensi.php)
+        $eid = (int)($_POST['event_id'] ?? 0);
+        $allowed = ['hadir','izin','sakit','telat','absen'];
+        foreach (($_POST['status'] ?? []) as $pid => $st) {
+            $pid = (int)$pid;
+            $st = in_array($st, $allowed, true) ? $st : 'absen';
+            $ket = trim((string)($_POST['keterangan'][$pid] ?? ''));
+            try {
+                db_exec("UPDATE event_peserta SET status=$1, keterangan=$2 WHERE id=$3 AND event_id=$4",
+                    [$st, $ket ?: null, $pid, $eid]);
+            } catch (Throwable $e) {}
+        }
+    } elseif ($a==='upload_banner') {
+        $eid = (int)($_POST['event_id'] ?? 0);
+        if ($eid && !empty($_FILES['banner']['tmp_name']) && is_uploaded_file($_FILES['banner']['tmp_name'])) {
+            $mime = mime_content_type($_FILES['banner']['tmp_name']);
+            if (in_array($mime, ['image/jpeg','image/png','image/webp'], true) && $_FILES['banner']['size'] < 5*1024*1024) {
+                $ext = $mime==='image/png'?'png':($mime==='image/webp'?'webp':'jpg');
+                $safe = 'event-'.$eid.'-'.time().'.'.$ext;
+                require_once __DIR__.'/../config/imagekit.php';
+                global $imageKit;
+                try {
+                    $upl = $imageKit->uploadFile([
+                        'file' => base64_encode(file_get_contents($_FILES['banner']['tmp_name'])),
+                        'fileName' => $safe,
+                        'folder' => '/sportapp/event'
+                    ]);
+                    if (!$upl->error) {
+                        db_exec("UPDATE event SET banner_url=$1 WHERE id=$2", [$upl->result->url, $eid]);
+                    }
+                } catch (Throwable $e) {}
+            }
+        }
+    } elseif ($a==='delete_banner') {
+        $eid = (int)($_POST['event_id'] ?? 0);
+        if ($eid) db_exec("UPDATE event SET banner_url=NULL WHERE id=$1", [$eid]);
     }
     header('Location: event.php'); exit;
 }
@@ -171,12 +208,19 @@ include __DIR__.'/../includes/header.php';
   $ms = db_all("SELECT m.*, a.nama AS a_n, b.nama AS b_n FROM event_match m
                 LEFT JOIN tim a ON a.id=m.tim_a LEFT JOIN tim b ON b.id=m.tim_b
                 WHERE m.event_id=$1 ORDER BY round,id", [(int)$e['id']]);
-  $ps = db_all("SELECT ep.id, ep.user_id, ep.tim_id, u.nama AS user_nama, u.foto_url, t.nama AS tim_nama
-                FROM event_peserta ep
-                LEFT JOIN users u ON u.id=ep.user_id
-                LEFT JOIN tim t ON t.id=ep.tim_id
-                WHERE ep.event_id=$1
-                ORDER BY ep.id", [(int)$e['id']]);
+  $ps = db_all(
+    "SELECT ep.id, ep.user_id, ep.tim_id, ep.status, ep.keterangan,
+            u.nama AS user_nama, u.foto_url, t.nama AS tim_nama
+     FROM (
+       SELECT DISTINCT ON (COALESCE(user_id,0), COALESCE(tim_id,0)) *
+       FROM event_peserta
+       WHERE event_id=$1
+       ORDER BY COALESCE(user_id,0), COALESCE(tim_id,0),
+         CASE WHEN status IS NOT NULL AND status<>'absen' THEN 0 ELSE 1 END, id
+     ) ep
+     LEFT JOIN users u ON u.id=ep.user_id
+     LEFT JOIN tim   t ON t.id=ep.tim_id
+     ORDER BY COALESCE(u.nama, t.nama)", [(int)$e['id']]);
   $pesertaUidSet = array_filter(array_map(fn($r)=>(int)$r['user_id'], $ps));
 ?>
 <div class="card shadow-sm mb-3"><div class="card-body">
@@ -194,6 +238,36 @@ include __DIR__.'/../includes/header.php';
       </form>
       <form method="post" onsubmit="return confirm('Hapus event?')"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<?= $e['id'] ?>">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div>
+  </div>
+
+  <!-- BANNER / GAMBAR EVENT (ImageKit) -->
+  <div class="row g-2 mt-2 align-items-center border-top pt-2">
+    <div class="col-md-3">
+      <?php if(!empty($e['banner_url'])): ?>
+        <img src="<?= htmlspecialchars($e['banner_url']) ?>" alt="Banner" class="img-fluid rounded" style="max-height:90px;object-fit:cover;width:100%">
+      <?php else: ?>
+        <div class="rounded bg-light text-muted small text-center py-4"><i class="bi bi-image"></i> Belum ada gambar</div>
+      <?php endif; ?>
+    </div>
+    <div class="col-md-9">
+      <form method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="upload_banner">
+        <input type="hidden" name="event_id" value="<?= (int)$e['id'] ?>">
+        <div class="col-md-7"><label class="small fw-semibold">Upload / Ganti Gambar Event (max 5MB, JPG/PNG/WEBP)</label>
+          <input type="file" name="banner" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm" required>
+        </div>
+        <div class="col-md-2"><button class="btn btn-sm btn-primary w-100"><i class="bi bi-upload"></i> Upload</button></div>
+      </form>
+      <?php if(!empty($e['banner_url'])): ?>
+        <form method="post" class="mt-1" onsubmit="return confirm('Hapus gambar event ini?')">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="delete_banner">
+          <input type="hidden" name="event_id" value="<?= (int)$e['id'] ?>">
+          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Hapus Gambar</button>
+        </form>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -268,6 +342,62 @@ include __DIR__.'/../includes/header.php';
       <?php endif; ?>
     </div>
   </div>
+
+  <!-- CRUD ABSENSI INLINE (terintegrasi dari event_absensi.php) -->
+  <details class="mt-3 border-top pt-3">
+    <summary class="small fw-semibold text-success" style="cursor:pointer">
+      <i class="bi bi-clipboard2-check"></i> Input / Kelola Absensi Kehadiran Peserta
+      <a href="/admin/event_absensi.php?id=<?= (int)$e['id'] ?>" class="ms-2 small text-decoration-none">(buka di halaman penuh →)</a>
+    </summary>
+    <?php
+      $absOpts = [
+        'hadir' => ['Hadir','success','bi-check-circle'],
+        'telat' => ['Telat','warning','bi-clock-history'],
+        'izin'  => ['Izin','info','bi-envelope'],
+        'sakit' => ['Sakit','danger','bi-bandaid'],
+        'absen' => ['Absen','secondary','bi-x-circle'],
+      ];
+      $absCnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
+      foreach($ps as $pp){ $ss=$pp['status']?:'absen'; if(isset($absCnt[$ss])) $absCnt[$ss]++; }
+    ?>
+    <div class="mt-2 mb-2">
+      <?php foreach($absOpts as $k=>$o): if($absCnt[$k]): ?>
+        <span class="badge bg-<?= $o[1] ?>-subtle text-<?= $o[1] ?>"><?= $o[0] ?>: <?= $absCnt[$k] ?></span>
+      <?php endif; endforeach; ?>
+    </div>
+    <?php if($ps): ?>
+    <form method="post">
+      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+      <input type="hidden" name="_action" value="save_absensi">
+      <input type="hidden" name="event_id" value="<?= (int)$e['id'] ?>">
+      <div class="table-responsive"><table class="table table-sm align-middle mb-2">
+        <thead class="table-light small"><tr><th>Peserta</th><th>Status</th><th>Catatan</th></tr></thead>
+        <tbody>
+        <?php foreach($ps as $pp):
+          $cur = $pp['status'] ?: 'absen';
+          $lab = $pp['user_nama'] ?? ($pp['tim_nama'] ? 'Tim: '.$pp['tim_nama'] : '—');
+        ?>
+          <tr>
+            <td class="small"><?= htmlspecialchars($lab) ?></td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+              <?php foreach($absOpts as $k=>$o): $rid='es_'.$pp['id'].'_'.$k; ?>
+                <input type="radio" class="btn-check" name="status[<?= $pp['id'] ?>]" id="<?= $rid ?>" value="<?= $k ?>" <?= $cur===$k?'checked':'' ?>>
+                <label class="btn btn-outline-<?= $o[1] ?>" for="<?= $rid ?>" title="<?= $o[0] ?>"><i class="bi <?= $o[2] ?>"></i></label>
+              <?php endforeach; ?>
+              </div>
+            </td>
+            <td><input class="form-control form-control-sm" name="keterangan[<?= $pp['id'] ?>]" value="<?= htmlspecialchars($pp['keterangan'] ?? '') ?>" placeholder="(opsional)"></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table></div>
+      <button class="btn btn-sm btn-success"><i class="bi bi-save"></i> Simpan Absensi</button>
+    </form>
+    <?php else: ?>
+      <div class="text-muted small">Tambah peserta dulu di atas sebelum input absensi.</div>
+    <?php endif; ?>
+  </details>
 </div></div>
 <?php endforeach; ?>
 
