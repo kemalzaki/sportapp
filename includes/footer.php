@@ -503,6 +503,12 @@ document.addEventListener('change', async function(ev){
   const origSize = inp.files[0].size;
   const lbl = inp.parentElement && inp.parentElement.querySelector('.compress-info');
   if(lbl) lbl.textContent = 'Mengoptimasi gambar...';
+  // Revisi 4 Jun 2026: blokir submit selama kompresi berjalan agar form tidak ter-submit
+  // dengan file lama (penyebab "gagal submit" pada Posting/Story).
+  const formC = inp.closest('form');
+  const btnC  = formC && formC.querySelector('button[type=submit],button:not([type])');
+  if (formC) formC.setAttribute('data-compressing','1');
+  if (btnC)  btnC.disabled = true;
   const compressed = await window.compressImageFile(inp.files[0]);
   if(compressed !== inp.files[0]){
     const dt = new DataTransfer(); dt.items.add(compressed); inp.files = dt.files;
@@ -512,6 +518,8 @@ document.addEventListener('change', async function(ev){
     const oKb = (origSize/1024).toFixed(0);
     lbl.textContent = origSize>inp.files[0].size ? ('Optimasi: '+oKb+' KB → '+kb+' KB') : ('Ukuran: '+kb+' KB');
   }
+  if (formC) formC.removeAttribute('data-compressing');
+  if (btnC)  btnC.disabled = false;
 });
 
 /* ===== AJAX submit (forms[data-ajax]) =====
@@ -534,6 +542,11 @@ document.addEventListener('submit', async function(ev){
   // Hormati onsubmit yang sudah preventDefault (mis. confirm() dibatalkan)
   if(ev.defaultPrevented) return;
   ev.preventDefault();
+  // Revisi 4 Jun 2026: jika ada kompresi gambar berjalan, tunda submit sampai selesai.
+  if (f.hasAttribute('data-compressing')) {
+    alert('Gambar masih dioptimasi, coba lagi 1-2 detik.');
+    return;
+  }
   const btn = f.querySelector('button[type=submit],button:not([type])');
   if(btn) btn.disabled = true;
   showMiniLoader(f.getAttribute('data-ajax-label')||'Menyimpan...');
@@ -549,19 +562,31 @@ document.addEventListener('submit', async function(ev){
       // Reuse body dari response (sudah halaman terbaru setelah redirect) → lebih cepat & pasti up-to-date
       let html = null;
       try { html = await r.text(); } catch(_) {}
-      if(typeof window.softRefresh==='function'){
-        await window.softRefresh(html ? {html, force:true} : {force:true});
-      }
+      try {
+        if(typeof window.softRefresh==='function'){
+          await window.softRefresh(html ? {html, force:true} : {force:true});
+        }
+      } catch(_) { /* refresh boleh gagal — data sudah tersimpan */ }
       // Bersihkan input teks pesan/komentar
       f.querySelectorAll('input[name="pesan"],input[name="isi"],textarea[name="caption"],textarea[name="pesan"],textarea[name="isi"]').forEach(i=>{ i.value=''; });
       // Tutup modal bila ada
       const md = f.closest('.modal');
-      if(md){ const inst = bootstrap.Modal.getInstance(md); if(inst) inst.hide(); }
+      if(md && window.bootstrap){
+        const inst = bootstrap.Modal.getInstance(md) || bootstrap.Modal.getOrCreateInstance(md);
+        if(inst) inst.hide();
+      }
       // Reset file input
       f.querySelectorAll('input[type=file]').forEach(i=>{ i.value=''; });
       const prev = f.querySelector('img[id$="Preview"]'); if(prev){ prev.style.display='none'; prev.src=''; }
+    } else {
+      // Revisi 4 Jun 2026: tampilkan error agar user tahu submit gagal (mis. 413/429/CSRF)
+      let msg = 'Gagal submit (HTTP '+r.status+').';
+      try { const t = await r.text(); if(t && t.length<400) msg += ' '+t; } catch(_) {}
+      alert(msg);
     }
-  }catch(e){ /* silent */ }
+  }catch(e){
+    alert('Gagal submit: '+(e && e.message ? e.message : 'koneksi terputus'));
+  }
   finally{
     if(btn) btn.disabled = false;
     hideMiniLoader();

@@ -35,6 +35,13 @@ include __DIR__.'/includes/header.php';
       </div>
       <div id="runStatus" class="small text-muted mt-2 text-center"></div>
       <div id="wakeStatus" class="small text-success mt-1 text-center"></div>
+      <div class="small text-muted mt-2">
+        <i class="bi bi-info-circle"></i>
+        Untuk tracking saat HP layar mati / pindah halaman seperti Strava, install aplikasi versi
+        APK (Capacitor) dan aktifkan plugin <code>@capacitor-community/background-geolocation</code>.
+        Di browser biasa, JS dihentikan OS saat layar mati — gunakan tombol <strong>Posisi Sekarang</strong>
+        setelah kembali untuk menyambungkan rute.
+      </div>
     </div></div>
   </div>
 
@@ -225,6 +232,10 @@ include __DIR__.'/includes/header.php';
       await acquireWakeLock();
       // Paksa baca posisi sekali untuk menyambung rute dengan akurat (anti rute kacau)
       navigator.geolocation.getCurrentPosition(onPos, onErr, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+      // Restart watch supaya stream GPS yang ter-throttle di background kembali fresh.
+      stopWatch(); startWatch();
+      // Flush titik yang menumpuk di buffer
+      flushPointBuffer();
     }
   });
 
@@ -254,37 +265,82 @@ include __DIR__.'/includes/header.php';
   function onPos(pos){
     if (paused) return; // abaikan titik selama jeda
     var p={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy,spd:pos.coords.speed};
-    // Filter akurasi buruk (>50m) supaya rute tidak meliuk-liuk saat sinyal GPS lemah/HP mati layar
-    if (p.acc && p.acc > 50 && points.length > 0) {
-      document.getElementById('runStatus').textContent='GPS akurasi rendah ('+Math.round(p.acc)+' m) — titik diabaikan';
-      return;
-    }
-    // Filter jump tidak masuk akal (>200m sekali tick) — anti glitch saat resume dari background
-    if (points.length) {
-      var d = haversine(points[points.length-1], p);
-      if (d > 200) {
+    // Revisi 4 Jun 2026 — filter GPS lebih cerdas (anti rute kacau):
+    // 1) Titik pertama: tolak jika akurasi >100m (tunggu fix yg lebih baik)
+    // 2) Titik berikutnya: tolak jika akurasi >35m
+    // 3) Tolak lompatan jarak >150m antar tick (glitch / pindah cell)
+    // 4) Tolak kecepatan tidak masuk akal (>10 m/s = >36 km/jam utk lari)
+    // 5) Minimum gerak 5m supaya berdiri diam tidak menambah jarak (drift GPS)
+    var nowT = pos.timestamp || Date.now();
+    if (points.length === 0) {
+      if (p.acc && p.acc > 100) {
+        document.getElementById('runStatus').textContent='Menunggu fix GPS akurat… ('+Math.round(p.acc)+' m)';
+        return;
+      }
+    } else {
+      if (p.acc && p.acc > 35) {
+        document.getElementById('runStatus').textContent='GPS akurasi rendah ('+Math.round(p.acc)+' m) — titik diabaikan';
+        return;
+      }
+      var last = points[points.length-1];
+      var d = haversine(last, p);
+      if (d > 150) {
         document.getElementById('runStatus').textContent='Lompatan tidak masuk akal ('+Math.round(d)+' m) — titik diabaikan';
+        return;
+      }
+      var dtSec = last.t ? Math.max(1,(nowT-last.t)/1000) : 1;
+      var speed = d / dtSec; // m/s
+      if (speed > 10) {
+        document.getElementById('runStatus').textContent='Kecepatan tidak realistis ('+speed.toFixed(1)+' m/s) — titik diabaikan';
+        return;
+      }
+      if (d < 5) {
+        // gerakan terlalu kecil — kemungkinan drift GPS saat diam. Update marker tanpa
+        // menambah jarak/poin agar peta tetap responsif.
+        if (marker) marker.setLatLng([p.lat,p.lng]);
+        document.getElementById('runStatus').textContent='GPS stabil — drift '+d.toFixed(1)+' m diabaikan ('+Math.round(p.acc)+' m)';
         return;
       }
       totalM += d;
     }
+    p.t = nowT;
     points.push(p);
     line.addLatLng([p.lat,p.lng]);
     if (!marker) marker = L.marker([p.lat,p.lng]).addTo(map);
     else marker.setLatLng([p.lat,p.lng]);
     map.setView([p.lat,p.lng], Math.max(map.getZoom(),16));
     document.getElementById('runStatus').textContent='GPS akurasi: '+Math.round(p.acc)+' m';
-    if (sessionId) {
-      var fd=new FormData();
-      fd.append('csrf',csrf); fd.append('_action','point'); fd.append('session_id',sessionId);
-      fd.append('lat',p.lat); fd.append('lng',p.lng); fd.append('acc',p.acc); fd.append('spd',p.spd||'');
-      fd.append('total_m', totalM);
-      fetch('/api_run.php',{method:'POST',body:fd, keepalive:true});
-    }
+    if (sessionId) sendPointToServer(p);
     updateUI();
     saveState();
   }
   function onErr(e){ document.getElementById('runStatus').textContent='Error GPS: '+e.message; }
+
+  // Revisi 4 Jun 2026: buffer titik yang gagal dikirim (offline / koneksi terputus),
+  // lalu retry otomatis. Mencegah hilangnya data saat jaringan goyang.
+  var pointBuffer = [];
+  function sendPointToServer(p){
+    var pl = {lat:p.lat,lng:p.lng,acc:p.acc,spd:p.spd||'',total_m:totalM};
+    pointBuffer.push(pl);
+    flushPointBuffer();
+  }
+  async function flushPointBuffer(){
+    if (!sessionId || !pointBuffer.length) return;
+    var batch = pointBuffer.slice(0, 20);
+    for (var i=0; i<batch.length; i++) {
+      var pl = batch[i];
+      var fd=new FormData();
+      fd.append('csrf',csrf); fd.append('_action','point'); fd.append('session_id',sessionId);
+      fd.append('lat',pl.lat); fd.append('lng',pl.lng); fd.append('acc',pl.acc);
+      fd.append('spd',pl.spd); fd.append('total_m',pl.total_m);
+      try {
+        var r = await fetch('/api_run.php',{method:'POST',body:fd, keepalive:true});
+        if (!r.ok) return; // tinggalkan di buffer, coba lagi nanti
+        pointBuffer.shift();
+      } catch(e){ return; }
+    }
+  }
+  setInterval(flushPointBuffer, 5000);
 
   function startWatch(){
     watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
