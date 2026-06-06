@@ -43,6 +43,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         notify_all('event', '🎉 Event baru: '.$_POST['nama'], 'Detail di menu Event.', '/event.php?id='.$newId);
     } elseif ($a==='delete') {
         db_exec("DELETE FROM event WHERE id=$1", [(int)$_POST['id']]);
+    } elseif ($a==='update') {
+        // Revisi 6 Juni 2026 — edit event (termasuk waktu)
+        $eid = (int)$_POST['id'];
+        $jenisFinal = trim($_POST['jenis_custom'] ?? '') !== '' ? trim($_POST['jenis_custom']) : ($_POST['jenis'] ?? 'Lainnya');
+        $tipeFinal  = trim($_POST['tipe_custom']  ?? '') !== '' ? trim($_POST['tipe_custom'])  : ($_POST['tipe']  ?? 'sosial');
+        db_exec("UPDATE event SET nama=$1, jenis=$2, tipe=$3, deskripsi=$4,
+                    tanggal_mulai=$5, tanggal_selesai=$6, jam_mulai=$7, jam_selesai=$8,
+                    lokasi=$9, batas_daftar=$10, hadiah=$11
+                 WHERE id=$12",
+            [trim($_POST['nama']), $jenisFinal, $tipeFinal, $_POST['deskripsi'] ?? '',
+             $_POST['tanggal_mulai'], $_POST['tanggal_selesai'] ?: null,
+             $_POST['jam_mulai'] ?: null, $_POST['jam_selesai'] ?: null,
+             trim($_POST['lokasi'] ?? '') ?: null, $_POST['batas_daftar'] ?: null,
+             $_POST['hadiah'] ?? '', $eid]);
     } elseif ($a==='status') {
         db_exec("UPDATE event SET status=$1 WHERE id=$2", [$_POST['status'], (int)$_POST['id']]);
     } elseif ($a==='add_match') {
@@ -238,6 +252,65 @@ include __DIR__.'/../includes/header.php';
       </form>
       <form method="post" onsubmit="return confirm('Hapus event?')"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<?= $e['id'] ?>">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editEvt<?= (int)$e['id'] ?>" title="Edit event (termasuk waktu)">
+        <i class="bi bi-pencil-square"></i> Edit
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Edit Event (revisi 6 Juni 2026) -->
+  <div class="modal fade" id="editEvt<?= (int)$e['id'] ?>" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <form method="post" class="modal-content">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="update">
+        <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Event</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body row g-2">
+          <div class="col-md-12"><label class="small fw-semibold">Nama Event</label>
+            <input class="form-control" name="nama" required value="<?= htmlspecialchars($e['nama']) ?>"></div>
+          <div class="col-md-4"><label class="small fw-semibold">Jenis (preset)</label>
+            <select name="jenis" class="form-select">
+              <optgroup label="Olahraga">
+                <?php foreach($jenisList as $j): ?><option value="<?= htmlspecialchars($j) ?>" <?= $e['jenis']===$j?'selected':'' ?>><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
+              </optgroup>
+              <optgroup label="Non-Olahraga / Sosial">
+                <?php foreach($jenisNonOlahraga as $j): ?><option value="<?= htmlspecialchars($j) ?>" <?= $e['jenis']===$j?'selected':'' ?>><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-4"><label class="small fw-semibold">Jenis Kustom</label>
+            <input class="form-control" name="jenis_custom" placeholder="(opsional, override preset)"></div>
+          <div class="col-md-4"><label class="small fw-semibold">Tipe</label>
+            <select name="tipe" class="form-select">
+              <?php foreach(['challenge','tournament','sparring','mini','sosial','kuliner','lainnya'] as $tp): ?>
+                <option value="<?= $tp ?>" <?= $e['tipe']===$tp?'selected':'' ?>><?= $tp ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-md-3"><label class="small fw-semibold">Tanggal Mulai</label>
+            <input type="date" name="tanggal_mulai" class="form-control" required value="<?= htmlspecialchars($e['tanggal_mulai']) ?>"></div>
+          <div class="col-md-3"><label class="small fw-semibold">Tanggal Selesai</label>
+            <input type="date" name="tanggal_selesai" class="form-control" value="<?= htmlspecialchars($e['tanggal_selesai'] ?? '') ?>"></div>
+          <div class="col-md-2"><label class="small fw-semibold">Jam Mulai</label>
+            <input type="time" name="jam_mulai" class="form-control" value="<?= htmlspecialchars(substr($e['jam_mulai']??'',0,5)) ?>"></div>
+          <div class="col-md-2"><label class="small fw-semibold">Jam Selesai</label>
+            <input type="time" name="jam_selesai" class="form-control" value="<?= htmlspecialchars(substr($e['jam_selesai']??'',0,5)) ?>"></div>
+          <div class="col-md-2"><label class="small fw-semibold">Batas Daftar</label>
+            <input type="date" name="batas_daftar" class="form-control" value="<?= htmlspecialchars($e['batas_daftar'] ?? '') ?>"></div>
+          <div class="col-md-8"><label class="small fw-semibold">Lokasi</label>
+            <input class="form-control" name="lokasi" value="<?= htmlspecialchars($e['lokasi'] ?? '') ?>"></div>
+          <div class="col-md-4"><label class="small fw-semibold">Hadiah</label>
+            <input class="form-control" name="hadiah" value="<?= htmlspecialchars($e['hadiah'] ?? '') ?>"></div>
+          <div class="col-md-12"><label class="small fw-semibold">Deskripsi</label>
+            <textarea class="form-control" name="deskripsi" rows="3"><?= htmlspecialchars($e['deskripsi'] ?? '') ?></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button>
+        </div>
+      </form>
     </div>
   </div>
 

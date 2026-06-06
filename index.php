@@ -526,6 +526,36 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
     </div>
   </div>
+  <!-- Revisi 6 Juni 2026: Panduan Olahraga (Video YouTube) -->
+  <div class="card shadow-sm mt-3 border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-youtube text-danger"></i> <strong>Panduan Olahraga &amp; Teknik (Video)</strong></span>
+      <small class="text-muted">Sumber: YouTube</small>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <?php
+        $panduanVideos = [
+          ['Teknik Lari yang Benar untuk Pemula','brFHyOtTwH4'],
+          ['Warm-Up & Stretching Sebelum Olahraga','g_tea8ZNk5A'],
+          ['Latihan Kalistenik Dasar di Rumah','aYG6e3-uoa0'],
+          ['Teknik Smash & Footwork Badminton','jvxkwhSr3Jw'],
+        ];
+        foreach($panduanVideos as $pv): ?>
+          <div class="col-md-6">
+            <div class="ratio ratio-16x9 rounded overflow-hidden border">
+              <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/<?= htmlspecialchars($pv[1]) ?>"
+                title="<?= htmlspecialchars($pv[0]) ?>"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </div>
+            <div class="small fw-semibold mt-1"><?= htmlspecialchars($pv[0]) ?></div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Daftar video bisa ditambah/kurangi di <code>index.php</code> bagian <em>Panduan Olahraga</em>.</div>
+    </div>
+  </div>
   <?php endif; ?>
 </section>
 <!-- ============ /Info & Wawasan ============ -->

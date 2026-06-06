@@ -129,13 +129,29 @@ include __DIR__.'/includes/header.php'; ?>
         </div>
         <div class="row g-2">
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Durasi</label>
-            <input type="number" class="form-control" name="durasi" min="0" required placeholder="cth: 30 (menit)"></div>
+            <input list="durasiOpt" type="number" class="form-control" name="durasi" min="0" required placeholder="pilih / ketik (menit)">
+            <datalist id="durasiOpt">
+              <?php foreach([10,15,20,25,30,40,45,60,75,90,120] as $v): ?><option value="<?= $v ?>"><?= $v ?> menit</option><?php endforeach; ?>
+            </datalist>
+          </div>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Jarak</label>
-            <input type="number" step="0.01" class="form-control" name="jarak" min="0" required placeholder="cth: 5.20 (km)"></div>
+            <input list="jarakOpt" type="number" step="0.01" class="form-control" name="jarak" min="0" required placeholder="pilih / ketik (km)">
+            <datalist id="jarakOpt">
+              <?php foreach([1,1.5,2,3,3.5,5,7,10,15,21.1,42.2] as $v): ?><option value="<?= $v ?>"><?= $v ?> km</option><?php endforeach; ?>
+            </datalist>
+          </div>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Pace</label>
-            <input type="text" class="form-control" name="pace" placeholder="cth: 6'00&quot;/km"></div>
+            <input list="paceOpt" type="text" class="form-control" name="pace" placeholder="pilih / ketik">
+            <datalist id="paceOpt">
+              <?php foreach(["4'30\"/km","5'00\"/km","5'30\"/km","6'00\"/km","6'30\"/km","7'00\"/km","7'30\"/km","8'00\"/km","9'00\"/km"] as $v): ?><option value="<?= htmlspecialchars($v) ?>"><?= htmlspecialchars($v) ?></option><?php endforeach; ?>
+            </datalist>
+          </div>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Kalori</label>
-            <input type="number" class="form-control" name="kalori" min="0" placeholder="cth: 250"></div>
+            <input list="kaloriOpt" type="number" class="form-control" name="kalori" min="0" placeholder="pilih / ketik (kkal)">
+            <datalist id="kaloriOpt">
+              <?php foreach([100,150,200,250,300,400,500,600,750,1000] as $v): ?><option value="<?= $v ?>"><?= $v ?> kkal</option><?php endforeach; ?>
+            </datalist>
+          </div>
         </div>
         <div class="my-2"><label class="form-label small fw-semibold">Deskripsi</label><textarea class="form-control" name="deskripsi" rows="2" placeholder="Rute, perasaan, dll."></textarea></div>
         <div class="mb-3"><label class="form-label small fw-semibold">Bukti (screenshot smartwatch/Strava/foto)</label>
@@ -219,13 +235,13 @@ include __DIR__.'/includes/header.php'; ?>
           <input type="date" class="form-control" name="tanggal" value="<?= htmlspecialchars($m['tanggal']) ?>" required></div>
         <div class="row g-2">
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Durasi</label>
-            <input type="number" name="durasi" class="form-control" value="<?= (int)$m['durasi_menit'] ?>" placeholder="menit"></div>
+            <input list="durasiOpt" type="number" name="durasi" class="form-control" value="<?= (int)$m['durasi_menit'] ?>" placeholder="menit"></div>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Jarak (km)</label>
-            <input type="number" step="0.01" name="jarak" class="form-control" value="<?= htmlspecialchars($m['jarak_km']) ?>" placeholder="5.20"></div>
+            <input list="jarakOpt" type="number" step="0.01" name="jarak" class="form-control" value="<?= htmlspecialchars($m['jarak_km']) ?>" placeholder="5.20"></div>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Pace</label>
-            <input type="text" name="pace" class="form-control" value="<?= htmlspecialchars($m['pace'] ?? '') ?>" placeholder="6'00&quot;/km"></div>
+            <input list="paceOpt" type="text" name="pace" class="form-control" value="<?= htmlspecialchars($m['pace'] ?? '') ?>" placeholder="6'00&quot;/km"></div>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Kalori</label>
-            <input type="number" name="kalori" class="form-control" value="<?= (int)$m['kalori'] ?>" placeholder="kkal"></div>
+            <input list="kaloriOpt" type="number" name="kalori" class="form-control" value="<?= (int)$m['kalori'] ?>" placeholder="kkal"></div>
         </div>
         <div class="my-2"><label class="form-label small fw-semibold">Deskripsi</label><textarea name="deskripsi" class="form-control" rows="2"><?= htmlspecialchars($m['deskripsi'] ?? '') ?></textarea></div>
         <div class="mb-1"><label class="form-label small fw-semibold">Ganti Bukti (opsional)</label>

@@ -5,7 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); require_login();
 $u = current_user(); $uid = (int)$u['id'];
-$pageTitle = 'Tracking Lari';
+$pageTitle = 'Tracking Jalur / Rute';
 
 // Riwayat
 $history = db_all("SELECT * FROM run_sessions WHERE user_id=$1 ORDER BY mulai_at DESC LIMIT 20", [$uid]);
@@ -13,7 +13,7 @@ $active = db_one("SELECT * FROM run_sessions WHERE user_id=$1 AND status='aktif'
 
 include __DIR__.'/includes/header.php';
 ?>
-<h4 class="mb-3"><i class="bi bi-stopwatch text-danger"></i> Tracking Lari Realtime</h4>
+<h4 class="mb-3"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur / Rute Realtime</h4>
 
 <div class="row g-3">
   <div class="col-md-7">
@@ -47,7 +47,7 @@ include __DIR__.'/includes/header.php';
 
   <div class="col-md-5">
     <div class="card shadow-sm"><div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-clock-history"></i> Riwayat Lari</span>
+      <span><i class="bi bi-clock-history"></i> Riwayat Tracking</span>
       <small class="text-muted">Export: GPX / KML untuk Google Maps</small>
     </div>
     <div class="list-group list-group-flush">

@@ -189,6 +189,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $favList = db_all("SELECT id, nama FROM user_olahraga_favorit WHERE user_id=$1 ORDER BY nama ASC", [(int)$u['id']]);
 $kondisi = db_one("SELECT status,keterangan,updated_at FROM user_kondisi WHERE user_id=$1", [(int)$u['id']]) ?: ['status'=>'sehat','keterangan'=>null,'updated_at'=>null];
 $pengList = db_all("SELECT * FROM user_pengalaman WHERE user_id=$1 ORDER BY tanggal DESC NULLS LAST, id DESC", [(int)$u['id']]);
+// Daftar member lain untuk fitur "Lihat tampilan sebagai Member lain" (revisi 6 Juni 2026)
+$lihatMemberLain = db_all("SELECT id, nama FROM users WHERE id<>$1 AND role IN ('member','admin') ORDER BY nama", [(int)$u['id']]);
 $perlList = db_all("SELECT p.*, jo.nama AS jenis_resmi FROM user_perlengkapan p LEFT JOIN jenis_olahraga jo ON jo.id=p.jenis_olahraga_id WHERE p.user_id=$1 ORDER BY p.jenis_nama, p.nama", [(int)$u['id']]);
 $jenisOR = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 
@@ -258,6 +260,43 @@ include __DIR__.'/includes/header.php';
         <a href="/logout.php" class="btn btn-outline-danger w-100" onclick="return confirm('Keluar dari akun?')">
           <i class="bi bi-box-arrow-right"></i> Keluar / Logout
         </a>
+        <!-- Revisi 6 Juni 2026: tombol lihat tampilan sebagai member lain -->
+        <button type="button" class="btn btn-outline-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#lihatMemberLainModal">
+          <i class="bi bi-eye"></i> Lihat tampilan sebagai Member lain
+        </button>
+        <div class="modal fade" id="lihatMemberLainModal" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header"><h5 class="modal-title"><i class="bi bi-people"></i> Pilih Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+              <div class="modal-body">
+                <p class="small text-muted">Anda akan diarahkan ke halaman publik profil member terpilih.</p>
+                <input type="text" id="lmlSearch" class="form-control mb-2" placeholder="🔍 Cari nama member…">
+                <div style="max-height:300px;overflow:auto" class="border rounded">
+                  <ul class="list-group list-group-flush" id="lmlList">
+                    <?php foreach($lihatMemberLain as $lm): ?>
+                      <li class="list-group-item d-flex justify-content-between align-items-center"
+                          data-name="<?= htmlspecialchars(strtolower($lm['nama'])) ?>">
+                        <span><?= htmlspecialchars($lm['nama']) ?></span>
+                        <a href="/user.php?id=<?= (int)$lm['id'] ?>" class="btn btn-sm btn-outline-primary">
+                          <i class="bi bi-arrow-right"></i> Lihat
+                        </a>
+                      </li>
+                    <?php endforeach; ?>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>
+          document.getElementById('lmlSearch')?.addEventListener('input', function(){
+            var q = this.value.trim().toLowerCase();
+            document.querySelectorAll('#lmlList li').forEach(li=>{
+              li.style.display = (!q || li.dataset.name.includes(q)) ? '' : 'none';
+            });
+          });
+        </script>
       </div>
 
       <form data-ajax method="post" enctype="multipart/form-data" class="mt-3 text-start">

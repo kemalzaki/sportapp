@@ -4,6 +4,8 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle='Manajemen Member';
+// Revisi 6 Juni 2026 — idempotent migration kolom koordinator_id
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS koordinator_id INTEGER REFERENCES users(id) ON DELETE SET NULL"); } catch (Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -13,6 +15,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='update_pic') {
         $pic = ($_POST['pic_admin_id'] ?? '') !== '' ? (int)$_POST['pic_admin_id'] : null;
         db_exec("UPDATE users SET pic_admin_id=$1 WHERE id=$2", [$pic, (int)$_POST['id']]);
+    } elseif ($a==='update_koor') {
+        $koor = ($_POST['koordinator_id'] ?? '') !== '' ? (int)$_POST['koordinator_id'] : null;
+        db_exec("UPDATE users SET koordinator_id=$1 WHERE id=$2", [$koor, (int)$_POST['id']]);
     } elseif ($a==='delete') {
         db_exec("DELETE FROM users WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='create') {
@@ -65,10 +70,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header('Location: members.php'); exit;
 }
 
-$users = db_all("SELECT u.*, p.nama AS pic_nama FROM users u
+$users = db_all("SELECT u.*, p.nama AS pic_nama, k.nama AS koor_nama
+                 FROM users u
                  LEFT JOIN users p ON p.id = u.pic_admin_id
+                 LEFT JOIN users k ON k.id = u.koordinator_id
                  ORDER BY u.role, u.nama");
 $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
+$koordinatorCandidates = db_all("SELECT id, nama FROM users WHERE role IN ('admin','member') ORDER BY nama");
 $flash = $_SESSION['flash'] ?? null; $flashE = $_SESSION['flash_err'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_err']);
 include __DIR__.'/../includes/header.php'; ?>
@@ -107,7 +115,7 @@ include __DIR__.'/../includes/header.php'; ?>
     </div>
   </div>
   <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable" data-paginate="10">
-  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
+  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Koordinator Penghubung</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null);
     $waDigits = preg_replace('/\D+/', '', $u['wa'] ?? '');
     if ($waDigits && str_starts_with($waDigits, '0')) $waDigits = '62'.substr($waDigits,1);
@@ -127,6 +135,19 @@ include __DIR__.'/../includes/header.php'; ?>
             <option value="">— belum —</option>
             <?php foreach($admins as $ad): ?>
               <option value="<?= (int)$ad['id'] ?>" <?= (string)$u['pic_admin_id']===(string)$ad['id']?'selected':'' ?>><?= htmlspecialchars($ad['nama']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </form>
+      </td>
+      <td>
+        <form method="post" class="d-flex">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="update_koor">
+          <input type="hidden" name="id" value="<?= $u['id'] ?>">
+          <select name="koordinator_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:150px" title="Koordinator Penghubung antar member">
+            <option value="">— belum —</option>
+            <?php foreach($koordinatorCandidates as $kc): if((int)$kc['id']===(int)$u['id']) continue; ?>
+              <option value="<?= (int)$kc['id'] ?>" <?= (string)($u['koordinator_id']??'')===(string)$kc['id']?'selected':'' ?>><?= htmlspecialchars($kc['nama']) ?></option>
             <?php endforeach; ?>
           </select>
         </form>

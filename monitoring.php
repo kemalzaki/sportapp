@@ -81,9 +81,73 @@ $jogRows = db_all("SELECT tanggal, jarak_km, pace_detik FROM upload_harian
 $jogLabels=[]; $jogDist=[]; $jogPace=[];
 foreach($jogRows as $r){ $jogLabels[]=$r['tanggal']; $jogDist[]=(float)$r['jarak_km']; $jogPace[]=(int)$r['pace_detik']; }
 
+// Revisi 6 Juni 2026 — Rekomendasi kesehatan dari hasil statistik
+$rekomendasi = [];
+// 1) Pace trend
+if (count($pacePoints) >= 4) {
+    $half = (int) floor(count($pacePoints)/2);
+    $earlyAvg = array_sum(array_map(fn($p)=>$p['v'], array_slice($pacePoints,0,$half))) / max(1,$half);
+    $lateAvg  = array_sum(array_map(fn($p)=>$p['v'], array_slice($pacePoints,$half))) / max(1,(count($pacePoints)-$half));
+    if ($lateAvg < $earlyAvg - 5) $rekomendasi[] = ['success','speedometer2','Pace Anda makin cepat 🚀','Pace lari membaik ('.round($earlyAvg).'s/km → '.round($lateAvg).'s/km). Lanjutkan latihan & jaga recovery.'];
+    elseif ($lateAvg > $earlyAvg + 10) $rekomendasi[] = ['warning','exclamation-triangle','Pace melambat ⚠️','Pace cenderung melambat. Tambah variasi interval & cek pola istirahat / nutrisi.'];
+    else $rekomendasi[] = ['info','arrow-left-right','Pace stabil','Tambahkan 1 sesi interval/minggu untuk progres lebih lanjut.'];
+}
+// 2) Kalori per minggu
+if (!empty($calVals)) {
+    $lastCal = (int)end($calVals);
+    if ($lastCal < 1000)   $rekomendasi[] = ['warning','fire','Pembakaran kalori rendah','Total kalori minggu ini hanya '.$lastCal.' kkal. Target ideal 1500-3000 kkal/minggu untuk pemeliharaan kebugaran.'];
+    elseif ($lastCal > 4500) $rekomendasi[] = ['danger','exclamation-octagon','Latihan berlebih','Kalori terbakar '.$lastCal.' kkal/minggu — pastikan asupan & istirahat cukup untuk hindari overtraining.'];
+    else $rekomendasi[] = ['success','check-circle','Pembakaran kalori sehat','Pembakaran '.$lastCal.' kkal/minggu berada di rentang ideal.'];
+}
+// 3) Tren kehadiran komunitas
+if (count($wkVals) >= 4) {
+    $lateWk  = array_sum(array_slice($wkVals,-2)) / 2;
+    $earlyWk = array_sum(array_slice($wkVals,0,2)) / 2;
+    if ($lateWk > $earlyWk * 1.1) $rekomendasi[] = ['success','people-fill','Komunitas makin aktif','Tren kehadiran naik — momentum bagus untuk ajakan event bersama.'];
+    elseif ($lateWk < $earlyWk * 0.9) $rekomendasi[] = ['warning','people','Kehadiran komunitas turun','Coba kirim pengingat & buat event ringan untuk menarik partisipasi.'];
+}
+// 4) Tren performa jogging (jarak)
+if (count($jogDist) >= 4) {
+    $earlyD = array_sum(array_slice($jogDist,0,(int)floor(count($jogDist)/2))) / max(1,floor(count($jogDist)/2));
+    $lateD  = array_sum(array_slice($jogDist,(int)floor(count($jogDist)/2))) / max(1,ceil(count($jogDist)/2));
+    if ($lateD > $earlyD * 1.15) $rekomendasi[] = ['success','graph-up-arrow','Endurance meningkat','Rata-rata jarak jogging Anda naik '.round(($lateD/$earlyD-1)*100).'%. Pertahankan progressive overload (+10%/minggu).'];
+    elseif ($lateD < $earlyD * 0.85) $rekomendasi[] = ['warning','graph-down-arrow','Endurance menurun','Jarak rata-rata turun. Periksa kualitas tidur, hidrasi & beban kerja harian.'];
+}
+// 5) VO2 advisory
+if ($vo2) {
+    if     ($vo2 < 30) $rekomendasi[] = ['danger','heart-pulse','VO₂ rendah','VO₂ '.number_format($vo2,1).' (di bawah rata-rata). Mulai program aerobik ringan 3×/minggu (jalan cepat / jogging zona 2).'];
+    elseif ($vo2 < 40) $rekomendasi[] = ['info','heart-pulse','VO₂ rata-rata','VO₂ '.number_format($vo2,1).' — tambahkan latihan interval & long run mingguan.'];
+    else               $rekomendasi[] = ['success','heart-pulse','VO₂ baik','VO₂ '.number_format($vo2,1).' — kebugaran aerobik bagus, jaga konsistensi.'];
+}
+if (!$rekomendasi) $rekomendasi[] = ['info','info-circle','Data belum cukup','Upload aktivitas & hadiri sesi olahraga beberapa minggu agar rekomendasi muncul.'];
+
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-graph-up-arrow text-primary"></i> Monitoring Performa</h2>
+
+<!-- Revisi 6 Juni 2026: Rekomendasi Kesehatan otomatis -->
+<div class="card shadow-sm mb-3 border-success">
+  <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-clipboard2-pulse"></i> <strong>Rekomendasi Kesehatan</strong> (otomatis dari statistik Anda)</span>
+    <small class="text-muted d-none d-md-inline">Pace · Kalori · Kehadiran · Performa Jogging · VO₂</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-2">
+      <?php foreach($rekomendasi as $r): ?>
+        <div class="col-md-6">
+          <div class="d-flex align-items-start gap-2 p-2 border rounded">
+            <span class="badge bg-<?= $r[0] ?>-subtle text-<?= $r[0] ?>-emphasis"><i class="bi bi-<?= $r[1] ?>"></i></span>
+            <div class="small">
+              <div class="fw-semibold"><?= htmlspecialchars($r[2]) ?></div>
+              <div class="text-muted"><?= htmlspecialchars($r[3]) ?></div>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Rekomendasi ini bersifat umum, bukan pengganti konsultasi tenaga medis.</div>
+  </div>
+</div>
 
 <!-- KPI cards -->
 <div class="row g-3 mb-3">
