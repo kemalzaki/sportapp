@@ -141,7 +141,7 @@ if ($u) {
     <?php /* Menu Jajan & Kurir dihilangkan dari navigasi pengguna sesuai revisi. */ ?>
     <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat</a>
     <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event</a>
-    <a class="gt-chip" href="/checkin.php" data-sfx="tap"><i class="bi bi-qr-code-scan"></i>Check-in</a>
+    <?php /* Revisi 6 Juni 2026: menu Check-in via barcode dihapus. */ ?>
     <a class="gt-chip" href="/dm.php" data-sfx="tap"><i class="bi bi-chat-dots-fill"></i>Pesan</a>
     <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami</a>
     <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-heart-pulse-fill"></i>Sehat</a>
@@ -165,7 +165,7 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a>
         <a class="list-group-item list-group-item-action" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
         <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
-        <a class="list-group-item list-group-item-action" href="/checkin.php"><i class="bi bi-qr-code-scan"></i> Check-in</a>
+        <?php /* Revisi 6 Juni 2026: Check-in via barcode dihapus dari drawer. */ ?>
         <a class="list-group-item list-group-item-action" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
         <a class="list-group-item list-group-item-action" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a>
         <a class="list-group-item list-group-item-action" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
@@ -183,7 +183,7 @@ if ($u) {
           <a class="list-group-item list-group-item-action" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a>
           <a class="list-group-item list-group-item-action" href="/admin/absensi.php"><i class="bi bi-clipboard-check"></i> Input Absensi</a>
           <a class="list-group-item list-group-item-action" href="/admin/event_absensi.php"><i class="bi bi-clipboard2-check text-warning"></i> Input Absensi Event</a>
-          <a class="list-group-item list-group-item-action" href="/admin/qr_show.php"><i class="bi bi-qr-code"></i> QR Check-in</a>
+          <?php /* Revisi 6 Juni 2026: QR Check-in admin dihapus. */ ?>
           <a class="list-group-item list-group-item-action" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
           <a class="list-group-item list-group-item-action" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
           <a class="list-group-item list-group-item-action" href="/admin/tempat.php"><i class="bi bi-geo-alt-fill"></i> CRUD Tempat</a>
@@ -219,7 +219,7 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a></li>
           <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
-          <li class="nav-item"><a class="nav-link" href="/checkin.php"><i class="bi bi-qr-code-scan"></i> Check-in</a></li>
+          <?php /* Revisi 6 Juni 2026: Check-in via barcode dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a></li>
           <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a></li>
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
@@ -238,7 +238,7 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/jadwal.php">Manajemen Jadwal</a></li>
               <li><a class="dropdown-item" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a></li>
               <li><a class="dropdown-item" href="/admin/absensi.php">Input Absensi</a></li>
-              <li><a class="dropdown-item" href="/admin/qr_show.php">QR Check-in</a></li>
+              <?php /* Revisi 6 Juni 2026: QR Check-in admin dihapus dari dropdown. */ ?>
               <li><a class="dropdown-item" href="/admin/members.php">Member</a></li>
               <li><a class="dropdown-item" href="/admin/tim.php">Tim</a></li>
               <li><a class="dropdown-item" href="/admin/tempat.php">Tempat</a></li>

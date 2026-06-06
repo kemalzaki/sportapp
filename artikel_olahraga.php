@@ -14,19 +14,21 @@ send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Artikel Olahraga & Teknik';
 
 // Daftar topik (judul artikel di Wikipedia bahasa Indonesia).
+// Revisi 6 Juni 2026: ditampilkan hanya 6 artikel pilihan
+// (Lari, Bulu tangkis/Badminton, Renang, Hiking, Tenis meja/PingPong, Futsal).
 $TOPIK = [
   'Cabang Olahraga' => [
-    'Sepak_bola','Bulu_tangkis','Bola_basket','Bola_voli','Tenis_meja',
-    'Lari','Renang','Bersepeda','Yoga','Senam','Tinju','Karate','Pencak_silat',
-    'Angkat_besi','Panahan','Catur',
-  ],
-  'Teknik & Latihan' => [
-    'Peregangan','Push-up','Pull-up','Lari_jarak_jauh','Kalistenik','Aerobik',
+    'Lari',
+    'Bulu_tangkis',
+    'Renang',
+    'Hiking',
+    'Tenis_meja',
+    'Futsal',
   ],
 ];
 
 // Slug yang gambar thumbnail-nya disembunyikan (pakai ikon).
-$HIDE_IMG = ['Senam','Tinju','Renang','Peregangan'];
+$HIDE_IMG = ['Renang'];
 
 $slug = preg_replace('/[^A-Za-z0-9_()\-\.]/','', $_GET['t'] ?? '');
 $detail = null;

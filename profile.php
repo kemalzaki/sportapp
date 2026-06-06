@@ -274,6 +274,14 @@ include __DIR__.'/includes/header.php';
                 <input type="text" id="lmlSearch" class="form-control mb-2" placeholder="🔍 Cari nama member…">
                 <div style="max-height:300px;overflow:auto" class="border rounded">
                   <ul class="list-group list-group-flush" id="lmlList">
+                    <!-- Revisi: opsi lihat profil sendiri -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-light"
+                        data-name="<?= htmlspecialchars(strtolower($me['nama'])) ?> (saya)">
+                      <span><i class="bi bi-person-check text-primary"></i> <strong><?= htmlspecialchars($me['nama']) ?></strong> <span class="text-muted small">(profil saya)</span></span>
+                      <a href="/user.php?id=<?= (int)$me['id'] ?>" class="btn btn-sm btn-primary">
+                        <i class="bi bi-arrow-right"></i> Lihat
+                      </a>
+                    </li>
                     <?php foreach($lihatMemberLain as $lm): ?>
                       <li class="list-group-item d-flex justify-content-between align-items-center"
                           data-name="<?= htmlspecialchars(strtolower($lm['nama'])) ?>">

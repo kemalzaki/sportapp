@@ -8,8 +8,9 @@ send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Paket Bugar Kalistenik';
 $pageSkeleton = 'grid'; // Skeleton sesuai data: grid gerakan
 
-// Katalog gerakan kalistenik + ilustrasi muslimah berhijab (asset lokal)
-// + langkah detail untuk modal "Lihat Gerakan"
+// Revisi 6 Juni 2026:
+//  - Setiap gerakan kini punya video YouTube embed yang langsung play di modal.
+//  - Tombol "Cari Video Tutorial" dihapus.
 $GERAKAN = [
   'push_up'    => [
     'nama'=>'Push-up','icon'=>'bi-arrow-down-up','target'=>'Dada, trisep, bahu',
@@ -21,7 +22,7 @@ $GERAKAN = [
       'Dorong kembali ke atas dengan kuat tanpa mengunci siku.',
       'Jaga inti perut & glutes aktif agar pinggul tidak turun.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+push+up+benar',
+    'yt_id'=>'bTJIkQRsmaE',
   ],
   'pull_up'    => [
     'nama'=>'Pull-up','icon'=>'bi-arrow-up','target'=>'Punggung, bisep',
@@ -33,7 +34,7 @@ $GERAKAN = [
       'Turunkan secara terkontrol hingga lengan lurus penuh.',
       'Hindari mengayun; gunakan band elastis jika belum kuat.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+pull+up+pemula',
+    'yt_id'=>'DC42x5z0aeE',
   ],
   'squat'      => [
     'nama'=>'Squat','icon'=>'bi-arrows-vertical','target'=>'Paha, bokong',
@@ -45,7 +46,7 @@ $GERAKAN = [
       'Turun sampai paha sejajar lantai (atau senyaman mungkin).',
       'Dorong kembali berdiri dengan tumit menapak penuh.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+squat+benar',
+    'yt_id'=>'aCQCvOfkXQY',
   ],
   'lunge'      => [
     'nama'=>'Lunge','icon'=>'bi-shoe-prints','target'=>'Paha, glutes',
@@ -57,7 +58,7 @@ $GERAKAN = [
       'Lutut depan tegak lurus pergelangan kaki, tidak melewati ujung jari.',
       'Dorong tumit depan untuk kembali berdiri. Ulangi sisi lain.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+lunge+benar',
+    'yt_id'=>'1DDTUeuQ9Eo',
   ],
   'plank'      => [
     'nama'=>'Plank','icon'=>'bi-dash-lg','target'=>'Core (perut)',
@@ -69,7 +70,7 @@ $GERAKAN = [
       'Kencangkan perut & glutes, tarik pusar ke arah tulang belakang.',
       'Tahan sambil bernapas normal. Hindari pinggul turun atau naik.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+plank+benar',
+    'yt_id'=>'eS2NxmIjSmU',
   ],
   'dip'        => [
     'nama'=>'Dip','icon'=>'bi-arrow-down','target'=>'Trisep, dada bawah',
@@ -81,7 +82,7 @@ $GERAKAN = [
       'Tekuk siku ke belakang sampai ±90°, jangan turun terlalu dalam.',
       'Dorong kembali ke atas tanpa mengunci siku.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+tricep+dip',
+    'yt_id'=>'gYojD_1WiBI',
   ],
   'burpee'     => [
     'nama'=>'Burpee','icon'=>'bi-lightning','target'=>'Full body + kardio',
@@ -93,7 +94,7 @@ $GERAKAN = [
       'Lakukan satu push-up (opsional untuk pemula).',
       'Lompat kedua kaki kembali ke tangan, lalu lompat ke atas dengan tangan terangkat.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+burpee+benar',
+    'yt_id'=>'Uo_OPlN2YHA',
   ],
   'mountain'   => [
     'nama'=>'Mountain Climber','icon'=>'bi-speedometer','target'=>'Core + kardio',
@@ -105,7 +106,7 @@ $GERAKAN = [
       'Bergantian dengan lutut kiri seperti berlari di tempat.',
       'Jaga pinggul tetap rendah dan inti aktif.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+mountain+climber',
+    'yt_id'=>'boBoWvFdjnI',
   ],
   'jumping'    => [
     'nama'=>'Jumping Jack','icon'=>'bi-arrows-fullscreen','target'=>'Pemanasan, kardio',
@@ -117,7 +118,7 @@ $GERAKAN = [
       'Lompat kembali ke posisi awal.',
       'Lakukan dengan irama stabil, mendarat dengan lembut.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+jumping+jack',
+    'yt_id'=>'gPIib9cgmU8',
   ],
   'leg_raise'  => [
     'nama'=>'Leg Raise','icon'=>'bi-arrow-up-short','target'=>'Perut bawah',
@@ -129,7 +130,7 @@ $GERAKAN = [
       'Turunkan perlahan tanpa menyentuh lantai (jaga tegangan perut).',
       'Hindari mengangkat punggung bawah; kencangkan inti.',
     ],
-    'yt'=>'https://www.youtube.com/results?search_query=cara+leg+raise',
+    'yt_id'=>'IrxfZzRDjwk',
   ],
 ];
 
@@ -289,7 +290,12 @@ include __DIR__.'/includes/header.php'; ?>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
-        <img id="mgImg" src="" alt="" class="img-fluid rounded mb-3 d-none" style="width:100%;max-height:360px;object-fit:cover;background:#f4f4f4;">
+        <!-- Revisi 6 Juni 2026: Video YouTube langsung play di modal (gambar statis dihilangkan). -->
+        <div class="ratio ratio-16x9 rounded overflow-hidden border mb-3" id="mgVideoWrap">
+          <iframe id="mgVideo" src="" title="Tutorial Gerakan"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
         <div class="mb-2"><span class="badge bg-primary-subtle text-primary"><i class="bi bi-bullseye"></i> Target: <span id="mgTarget">-</span></span></div>
         <h6 class="mt-3">Langkah-langkah:</h6>
         <ol id="mgLangkah" class="ps-3"></ol>
@@ -299,9 +305,7 @@ include __DIR__.'/includes/header.php'; ?>
         </div>
       </div>
       <div class="modal-footer">
-        <a id="mgYT" href="#" target="_blank" rel="noopener" class="btn btn-outline-danger">
-          <i class="bi bi-youtube"></i> Cari Video Tutorial
-        </a>
+        <!-- Tombol "Cari Video Tutorial" dihapus sesuai revisi 6 Juni 2026. -->
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
       </div>
     </div>
@@ -314,6 +318,7 @@ window.addEventListener('load', function(){
   var el = document.getElementById('modalGerakan');
   if (!el || typeof bootstrap === 'undefined') return;
   var modal = new bootstrap.Modal(el);
+  var iframe = document.getElementById('mgVideo');
   document.querySelectorAll('.btn-lihat-gerakan').forEach(function(btn){
     btn.addEventListener('click', function(){
       var key = this.getAttribute('data-key');
@@ -324,12 +329,17 @@ window.addEventListener('load', function(){
       document.getElementById('mgTips').textContent   = g.tips   || '-';
       var ol = document.getElementById('mgLangkah'); ol.innerHTML='';
       (g.langkah||[]).forEach(function(s){ var li=document.createElement('li'); li.textContent=s; ol.appendChild(li); });
-      var img = document.getElementById('mgImg');
-      if (g.img) { img.src=g.img; img.classList.remove('d-none'); } else { img.classList.add('d-none'); img.src=''; }
-      document.getElementById('mgYT').href = g.yt || '#';
+      // Set video YouTube embed dengan autoplay
+      if (g.yt_id) {
+        iframe.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(g.yt_id) + '?autoplay=1&rel=0';
+      } else {
+        iframe.src = '';
+      }
       modal.show();
     });
   });
+  // Hentikan video saat modal ditutup
+  el.addEventListener('hidden.bs.modal', function(){ iframe.src=''; });
 });
 </script>
 

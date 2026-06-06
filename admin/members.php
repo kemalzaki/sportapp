@@ -76,7 +76,9 @@ $users = db_all("SELECT u.*, p.nama AS pic_nama, k.nama AS koor_nama
                  LEFT JOIN users k ON k.id = u.koordinator_id
                  ORDER BY u.role, u.nama");
 $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
-$koordinatorCandidates = db_all("SELECT id, nama FROM users WHERE role IN ('admin','member') ORDER BY nama");
+// Revisi 6 Juni 2026 — perluas daftar kandidat Koordinator Penghubung
+// agar semua user (apapun role-nya) bisa dipilih sebagai penghubung antar member.
+$koordinatorCandidates = db_all("SELECT id, nama FROM users WHERE nama IS NOT NULL AND nama <> '' ORDER BY nama");
 $flash = $_SESSION['flash'] ?? null; $flashE = $_SESSION['flash_err'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_err']);
 include __DIR__.'/../includes/header.php'; ?>

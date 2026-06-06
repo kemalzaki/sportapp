@@ -513,47 +513,137 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <!-- BARU (31 Mei 2026): Artikel Olahraga & Teknik (Wikipedia API) -->
+    <!-- BARU (31 Mei 2026): Artikel Olahraga & Teknik (Wikipedia API)
+         Revisi 6 Juni 2026: kotak diseragamkan menjadi putih (tanpa info-card-accent / warna kuning). -->
     <div class="col-6 col-md-3">
       <a href="/artikel_olahraga.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0 info-card info-card-accent">
+        <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journal-richtext fs-4"></i></div>
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journal-richtext fs-4"></i></div>
             <div class="fw-semibold">Artikel Olahraga &amp; Teknik</div>
             <div class="small text-muted">Macam olahraga &amp; teknik yang benar</div>
           </div>
         </div>
       </a>
     </div>
-  </div>
-  <!-- Revisi 6 Juni 2026: Panduan Olahraga (Video YouTube) -->
-  <div class="card shadow-sm mt-3 border-0">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-youtube text-danger"></i> <strong>Panduan Olahraga &amp; Teknik (Video)</strong></span>
-      <small class="text-muted">Sumber: YouTube</small>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <?php
-        $panduanVideos = [
-          ['Teknik Lari yang Benar untuk Pemula','brFHyOtTwH4'],
-          ['Warm-Up & Stretching Sebelum Olahraga','g_tea8ZNk5A'],
-          ['Latihan Kalistenik Dasar di Rumah','aYG6e3-uoa0'],
-          ['Teknik Smash & Footwork Badminton','jvxkwhSr3Jw'],
-        ];
-        foreach($panduanVideos as $pv): ?>
-          <div class="col-md-6">
-            <div class="ratio ratio-16x9 rounded overflow-hidden border">
-              <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/<?= htmlspecialchars($pv[1]) ?>"
-                title="<?= htmlspecialchars($pv[0]) ?>"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-            </div>
-            <div class="small fw-semibold mt-1"><?= htmlspecialchars($pv[0]) ?></div>
+    <!-- Revisi 6 Juni 2026: Menu Panduan Olahraga + Paket Pemanasan/Pendinginan (popup video YouTube) -->
+    <?php
+      $ytId = function($url){
+        if (preg_match('~[?&]v=([A-Za-z0-9_\-]{6,})~', $url, $m)) return $m[1];
+        if (preg_match('~youtu\.be/([A-Za-z0-9_\-]{6,})~', $url, $m)) return $m[1];
+        return '';
+      };
+      $panduanList = [
+        ['Teknik Lari',      'https://www.youtube.com/watch?v=A3D0ONk17dg&t=76s'],
+        ['Teknik Badminton', 'https://www.youtube.com/watch?v=f9jsnYh6CCE&t=82s'],
+        ['Teknik Renang',    'https://www.youtube.com/watch?v=LVy9mwWfXxc&t=101s'],
+        ['Teknik Hiking',    'https://www.youtube.com/watch?v=w_4K5Pm0Qsc&t=143s'],
+        ['Teknik PingPong',  'https://www.youtube.com/watch?v=MasmG88gzFA'],
+        ['Teknik Futsal',    'https://www.youtube.com/watch?v=tRrEHQSsfiA&t=8s'],
+        ['Teknik Biliard',   'https://www.youtube.com/watch?v=taf9JBG9iLA'],
+      ];
+      $pemanasanId  = $ytId('https://www.youtube.com/watch?v=Ks5dz69gsDk&t=19s');
+      $pendinginanId = $ytId('https://www.youtube.com/watch?v=uXznjq2BLMI&t=54s');
+    ?>
+    <div class="col-6 col-md-3">
+      <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalPanduanOlahraga">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-youtube fs-4"></i></div>
+            <div class="fw-semibold">Panduan Olahraga</div>
+            <div class="small text-muted">7 video teknik dasar</div>
           </div>
-        <?php endforeach; ?>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalPemanasan">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-fire fs-4"></i></div>
+            <div class="fw-semibold">Paket Pemanasan Olahraga</div>
+            <div class="small text-muted">Warm-up sebelum olahraga</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalPendinginan">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-snow fs-4"></i></div>
+            <div class="fw-semibold">Paket Pendinginan Olahraga</div>
+            <div class="small text-muted">Cool-down setelah olahraga</div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Modal: Panduan Olahraga -->
+  <div class="modal fade" id="modalPanduanOlahraga" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-youtube text-danger"></i> Panduan Olahraga &amp; Teknik</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <?php foreach($panduanList as $pv): $vid = $ytId($pv[1]); if(!$vid) continue; ?>
+              <div class="col-md-6">
+                <div class="ratio ratio-16x9 rounded overflow-hidden border">
+                  <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/<?= htmlspecialchars($vid) ?>"
+                    title="<?= htmlspecialchars($pv[0]) ?>"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
+                <div class="small fw-semibold mt-1"><?= htmlspecialchars($pv[0]) ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
       </div>
-      <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Daftar video bisa ditambah/kurangi di <code>index.php</code> bagian <em>Panduan Olahraga</em>.</div>
+    </div>
+  </div>
+
+  <!-- Modal: Paket Pemanasan -->
+  <div class="modal fade" id="modalPemanasan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-fire text-warning"></i> Paket Pemanasan Olahraga</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-16x9 rounded overflow-hidden border">
+            <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/<?= htmlspecialchars($pemanasanId) ?>"
+              title="Paket Pemanasan Olahraga"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Paket Pendinginan -->
+  <div class="modal fade" id="modalPendinginan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-snow text-info"></i> Paket Pendinginan Olahraga</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-16x9 rounded overflow-hidden border">
+            <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/<?= htmlspecialchars($pendinginanId) ?>"
+              title="Paket Pendinginan Olahraga"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <?php endif; ?>
@@ -621,36 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-<?php if ($u): ?>
-<div class="card shadow-sm mb-3 border-0" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;">
-  <div class="card-body d-flex align-items-center gap-3 flex-wrap">
-    <div style="font-size:2rem"><i class="bi bi-qr-code-scan"></i></div>
-    <div class="flex-grow-1">
-      <div class="fw-bold">QR Check-in Sesi Olahraga</div>
-      <small>Scan QR di lokasi, sistem otomatis catat hadir + validasi GPS.</small>
-    </div>
-    <a href="/checkin.php" class="btn btn-light fw-semibold"><i class="bi bi-camera"></i> Scan QR</a>
-  </div>
-  <?php if($activeQr): ?>
-  <div class="card-body pt-0">
-    <div class="swipe-row">
-      <?php foreach($activeQr as $aq):
-        $_qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data='.urlencode($aq['token']);
-      ?>
-        <a href="#" onclick="event.preventDefault();showQR('<?= htmlspecialchars($aq['token'],ENT_QUOTES) ?>','<?= htmlspecialchars($aq['jenis'],ENT_QUOTES) ?>','<?= htmlspecialchars($aq['tanggal'],ENT_QUOTES) ?>','<?= htmlspecialchars($aq['tempat'],ENT_QUOTES) ?>')" class="swipe-card text-decoration-none" style="background:#ffffff22;color:#fff;flex-basis:240px;">
-          <div class="p-3">
-            <div class="small opacity-75"><?= htmlspecialchars($aq['tanggal']) ?></div>
-            <div class="fw-bold"><?= htmlspecialchars($aq['jenis']) ?></div>
-            <div class="small"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($aq['tempat']) ?></div>
-            <div class="mt-2"><span class="badge bg-light text-dark"><i class="bi bi-qr-code"></i> Klik untuk lihat QR</span></div>
-          </div>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </div>
-  <?php endif; ?>
-</div>
-<?php endif; ?>
+<?php /* Revisi 6 Juni 2026: Kartu "QR Check-in Sesi Olahraga" dihapus dari index. */ ?>
 
 <!-- REVISI 31 Mei 2026: Total Visitor -->
 <div class="row g-3 mb-3">
@@ -1199,40 +1260,7 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 <?php endif; ?>
 
-<!-- QR Modal -->
-<div class="modal fade" id="qrModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
-  <div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-qr-code"></i> <span id="qrTitle">QR Sesi</span></h5>
-      <button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body text-center">
-      <div class="small text-muted mb-2" id="qrMeta"></div>
-      <img id="qrImg" src="" alt="QR" class="img-fluid" style="max-width:340px;border:1px solid #eee;border-radius:8px;">
-      <div class="small text-muted mt-2"><code id="qrToken"></code></div>
-    </div>
-    <div class="modal-footer">
-      <a id="qrDownload" download="qr-checkin.png" class="btn btn-primary"><i class="bi bi-download"></i> Unduh QR Code</a>
-      <a id="qrCheckin" href="/checkin.php" class="btn btn-outline-secondary"><i class="bi bi-camera"></i> Buka Check-in</a>
-    </div>
-  </div>
-</div></div>
-
-<!-- Story Modal -->
-<div class="modal fade" id="storyModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
-  <div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-collection-play"></i> Story <small id="storyName" class="text-muted ms-2"></small></h5>
-      <button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body text-center">
-      <img id="storyImg" src="" alt="" class="img-fluid mb-2" style="max-height:60vh;border-radius:8px;display:none;">
-      <div id="storyCaption" class="text-start"></div>
-      <div class="small text-muted mt-2" id="storyTime"></div>
-      <hr>
-      <div class="text-start">
-        <strong class="small"><i class="bi bi-eye"></i> Dilihat oleh <span id="storyViewCount">0</span></strong>
-        <div id="storyViewers" class="mt-2 small" style="max-height:160px;overflow:auto"></div>
-      </div>
-    </div>
-  </div>
-</div></div>
+<?php /* Revisi 6 Juni 2026: Modal QR Check-in dihapus. */ ?>
 
 <script>
 let _qrM=null,_stM=null;
