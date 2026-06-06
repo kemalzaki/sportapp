@@ -489,6 +489,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
+    <!-- Revisi 6 Juni 2026 (revisi-2): menu IPTV di samping Berita Terkini 2026 -->
+    <div class="col-6 col-md-3">
+      <a href="/iptv.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-tv-fill fs-4"></i></div>
+            <div class="fw-semibold">IPTV Indonesia</div>
+            <div class="small text-muted">Channel TV streaming (iptv-org)</div>
+          </div>
+        </div>
+      </a>
+    </div>
     <?php /* Beasiswa dihapus sesuai revisi 3 Jun 2026. */ ?>
 
     <div class="col-6 col-md-3">

@@ -86,6 +86,19 @@ if ($u) {
   nav.navbar.sticky-top{ position: fixed !important; top:0; left:0; right:0; z-index:1050;
     box-shadow: 0 2px 8px rgba(0,0,0,.15); }
 }
+/* Revisi 6 Jun 2026 — Logo HapFam SportApp berwarna (tidak biru semua) */
+.brand-logo-colored{font-family:'Plus Jakarta Sans',system-ui,sans-serif;letter-spacing:.2px;}
+.brand-logo-colored .bi-lightning-charge-fill{filter:drop-shadow(0 0 6px rgba(250,204,21,.55));}
+.brand-logo-colored .bl-1{color:#ef4444;}   /* Hap   - merah */
+.brand-logo-colored .bl-2{color:#f59e0b;}   /* Fam   - oranye */
+.brand-logo-colored .bl-3{color:#10b981;}   /* Sport - hijau */
+.brand-logo-colored .bl-4{color:#6366f1;}   /* App   - indigo */
+.navbar-dark .brand-logo-colored .bl-1,.bg-dark .brand-logo-colored .bl-1{color:#fda4af;}
+.navbar-dark .brand-logo-colored .bl-2,.bg-dark .brand-logo-colored .bl-2{color:#fcd34d;}
+.navbar-dark .brand-logo-colored .bl-3,.bg-dark .brand-logo-colored .bl-3{color:#6ee7b7;}
+.navbar-dark .brand-logo-colored .bl-4,.bg-dark .brand-logo-colored .bl-4{color:#a5b4fc;}
+
+
 </style>
 <style id="userTheme"><?= user_theme_css() ?></style>
 </head>
@@ -155,7 +168,7 @@ if ($u) {
         di avatar header atas dan ikon "Saya" di bottom nav). */ ?>
 <div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill"></i> HapFam SportApp</h5>
+    <h5 class="offcanvas-title brand-logo-colored" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Hap</span><span class="bl-2">Fam</span> <span class="bl-3">Sport</span><span class="bl-4">App</span></h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
   </div>
   <div class="offcanvas-body p-0">
@@ -210,7 +223,7 @@ if ($u) {
 
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> HapFam <span class="opacity-75">SportApp</span></a>
+    <a class="navbar-brand fw-bold brand-logo-colored" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Hap</span><span class="bl-2">Fam</span> <span class="bl-3">Sport</span><span class="bl-4">App</span></a>
     <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">
