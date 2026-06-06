@@ -292,9 +292,16 @@ include __DIR__.'/includes/header.php'; ?>
       <div class="modal-body">
         <!-- Revisi 6 Juni 2026: Video YouTube langsung play di modal (gambar statis dihilangkan). -->
         <div class="ratio ratio-16x9 rounded overflow-hidden border mb-3" id="mgVideoWrap">
-          <iframe id="mgVideo" src="" title="Tutorial Gerakan"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          <iframe id="mgVideo"
+  width="100%"
+  height="100%"
+  src=""
+  title="YouTube video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerpolicy="strict-origin-when-cross-origin"
+  allowfullscreen>
+</iframe>
         </div>
         <div class="mb-2"><span class="badge bg-primary-subtle text-primary"><i class="bi bi-bullseye"></i> Target: <span id="mgTarget">-</span></span></div>
         <h6 class="mt-3">Langkah-langkah:</h6>
@@ -331,7 +338,8 @@ window.addEventListener('load', function(){
       (g.langkah||[]).forEach(function(s){ var li=document.createElement('li'); li.textContent=s; ol.appendChild(li); });
       // Set video YouTube embed dengan autoplay
       if (g.yt_id) {
-        iframe.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(g.yt_id) + '?autoplay=1&rel=0';
+        iframe.src = 'https://www.youtube.com/embed/' +
+             encodeURIComponent(g.yt_id);
       } else {
         iframe.src = '';
       }

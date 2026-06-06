@@ -11,13 +11,18 @@ function send_security_headers(): void {
     header("Permissions-Policy: geolocation=(self), camera=(self)");
     // CSP: izinkan CDN yang sudah dipakai (bootstrap/quill/chartjs/fcm)
     $csp = "default-src 'self'; "
-         . "img-src 'self' data: blob: https: http: https://*.googleapis.com https://*.gstatic.com https://*.google.com; "
-         . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://fonts.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com; "
-         . "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
-         . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://www.gstatic.com https://www.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com; "
-         . "connect-src 'self' https://fcmregistrations.googleapis.com https://fcm.googleapis.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://api.alquran.cloud https://equran.id https://api.quran.com https://everyayah.com https://cdn.islamic.network wss: https:; "
-         . "frame-ancestors 'self'; "
-         . "base-uri 'self'; form-action 'self';";
+     . "img-src 'self' data: blob: https: http: https://*.googleapis.com https://*.gstatic.com https://*.google.com; "
+     . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://fonts.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com; "
+     . "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
+     . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.quilljs.com https://www.gstatic.com https://www.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com; "
+     . "connect-src 'self' https://fcmregistrations.googleapis.com https://fcm.googleapis.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://api.alquran.cloud https://equran.id https://api.quran.com https://everyayah.com https://cdn.islamic.network wss: https:; "
+
+     /* TAMBAHKAN INI */
+     . "frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com; "
+
+     . "frame-ancestors 'self'; "
+     . "base-uri 'self'; "
+     . "form-action 'self';";
     header("Content-Security-Policy: $csp");
 }
 
