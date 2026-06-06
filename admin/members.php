@@ -76,8 +76,21 @@ $users = db_all("SELECT u.*, p.nama AS pic_nama, k.nama AS koor_nama
                  LEFT JOIN users k ON k.id = u.koordinator_id
                  ORDER BY u.role, u.nama");
 $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
-// Revisi 6 Juni 2026 (revisi-2) — Koordinator Penghubung dibatasi 5 nama tetap:
-// Alya, Umy, Devi, Yuni, Medew. Cocokkan case-insensitive berdasar kolom users.nama.
+// Revisi 6 Juni 2026 (revisi-3) — Koordinator Penghubung dibatasi 5 nama tetap:
+// Alya, Umy, Devi, Yuni, Medew. Auto-create user placeholder bila belum ada
+// agar select box selalu menampilkan 5 opsi tersebut.
+$_koorFixed = ['Alya','Umy','Devi','Yuni','Medew'];
+foreach ($_koorFixed as $_kn) {
+  try {
+    $exists = db_one("SELECT id FROM users WHERE LOWER(nama)=LOWER($1) LIMIT 1", [$_kn]);
+    if (!$exists) {
+      $_email = 'koor_'.strtolower($_kn).'@hapfam.local';
+      db_exec("INSERT INTO users(nama,email,password_hash,role) VALUES($1,$2,$3,'member')
+               ON CONFLICT (email) DO NOTHING",
+              [$_kn, $_email, password_hash(bin2hex(random_bytes(8)), PASSWORD_BCRYPT)]);
+    }
+  } catch (Throwable $e) { /* abaikan, mis. tabel users belum punya kolom email unique */ }
+}
 $koordinatorCandidates = db_all("SELECT id, nama FROM users WHERE LOWER(nama) IN ('alya','umy','devi','yuni','medew') ORDER BY nama");
 $flash = $_SESSION['flash'] ?? null; $flashE = $_SESSION['flash_err'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_err']);

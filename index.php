@@ -477,21 +477,56 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
   <?php else: ?>
+  <?php
+    // Revisi 6 Juni 2026 (revisi-3): IPTV jadi modal popup di index.php.
+    // Ambil & parse playlist M3U dari iptv-org, cache 6 jam di sys_get_temp_dir().
+    $iptvChannels = [];
+    try {
+      $cacheDir = sys_get_temp_dir().'/sportapp_iptv';
+      if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
+      $cacheFile = $cacheDir.'/id.m3u';
+      $rawIptv = null;
+      if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 6*3600) {
+        $rawIptv = @file_get_contents($cacheFile);
+      }
+      if (!$rawIptv) {
+        $ctx = stream_context_create(['http'=>['timeout'=>8,'user_agent'=>'HapFamSportApp/1.0']]);
+        $rawIptv = @file_get_contents('https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u', false, $ctx);
+        if ($rawIptv) @file_put_contents($cacheFile, $rawIptv);
+      }
+      if ($rawIptv) {
+        $cur = null;
+        foreach (preg_split('/\r?\n/', $rawIptv) as $ln) {
+          $ln = trim($ln);
+          if ($ln==='' || $ln==='#EXTM3U') continue;
+          if (strpos($ln,'#EXTINF')===0) {
+            $name=''; $logo=''; $group='';
+            if (preg_match('/,(.+)$/',$ln,$m)) $name=trim($m[1]);
+            if (preg_match('/tvg-logo="([^"]*)"/',$ln,$m)) $logo=$m[1];
+            if (preg_match('/group-title="([^"]*)"/',$ln,$m)) $group=$m[1];
+            $cur = ['name'=>$name,'logo'=>$logo,'group'=>$group,'url'=>''];
+          } elseif (strpos($ln,'#')===0) {
+            // skip
+          } else if ($cur) { $cur['url']=$ln; $iptvChannels[]=$cur; $cur=null; }
+        }
+      }
+    } catch (Throwable $e) { $iptvChannels = []; }
+  ?>
   <div class="row g-2">
     <div class="col-6 col-md-3">
       <a href="/berita.php" class="text-decoration-none">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-newspaper fs-4"></i></div>
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-newspaper fs-4"></i></div>
             <div class="fw-semibold">Berita Terkini 2026</div>
             <div class="small text-muted">CNN · Detik · Kompas · Antara</div>
           </div>
         </div>
       </a>
     </div>
-    <!-- Revisi 6 Juni 2026 (revisi-2): menu IPTV di samping Berita Terkini 2026 -->
+    <!-- Revisi 6 Juni 2026 (revisi-3): IPTV dibuat popup modal, bukan halaman baru -->
     <div class="col-6 col-md-3">
-      <a href="/iptv.php" class="text-decoration-none">
+      <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalIPTV">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
             <div class="rounded-circle bg-success-subtle text-success mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-tv-fill fs-4"></i></div>
@@ -518,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <a href="/kalistenik.php" class="text-decoration-none">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-person-arms-up fs-4"></i></div>
+            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-person-arms-up fs-4"></i></div>
             <div class="fw-semibold">Paket Bugar Kalistenik</div>
             <div class="small text-muted">Push-up, pull-up, plank, dll</div>
           </div>
@@ -531,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <a href="/artikel_olahraga.php" class="text-decoration-none">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journal-richtext fs-4"></i></div>
+            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-journal-richtext fs-4"></i></div>
             <div class="fw-semibold">Artikel Olahraga &amp; Teknik</div>
             <div class="small text-muted">Macam olahraga &amp; teknik yang benar</div>
           </div>
@@ -561,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalPanduanOlahraga">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-youtube fs-4"></i></div>
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-youtube fs-4"></i></div>
             <div class="fw-semibold">Panduan Olahraga</div>
             <div class="small text-muted">7 video teknik dasar</div>
           </div>
@@ -572,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalPemanasan">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-fire fs-4"></i></div>
+            <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-fire fs-4"></i></div>
             <div class="fw-semibold">Paket Pemanasan Olahraga</div>
             <div class="small text-muted">Warm-up sebelum olahraga</div>
           </div>
@@ -583,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalPendinginan">
         <div class="card h-100 shadow-sm border-0 info-card">
           <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-snow fs-4"></i></div>
+            <div class="rounded-circle bg-info-subtle text-info mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-snow fs-4"></i></div>
             <div class="fw-semibold">Paket Pendinginan Olahraga</div>
             <div class="small text-muted">Cool-down setelah olahraga</div>
           </div>
@@ -658,6 +693,109 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
   </div>
+  <?php endif; ?>
+
+  <?php if ($u): ?>
+  <!-- Modal: IPTV Indonesia (Revisi 6 Juni 2026 revisi-3) -->
+  <div class="modal fade" id="modalIPTV" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-tv-fill text-success"></i> IPTV Indonesia
+            <span class="badge bg-secondary ms-1"><?= (int)count($iptvChannels) ?> channel</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <?php if (empty($iptvChannels)): ?>
+            <div class="alert alert-warning small mb-0">
+              <i class="bi bi-exclamation-triangle"></i> Gagal memuat daftar channel dari iptv-org.
+              Pastikan server bisa mengakses <code>raw.githubusercontent.com</code> lalu refresh.
+            </div>
+          <?php else: ?>
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <small class="text-muted">Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a></small>
+              <input id="iptvSearch" type="search" class="form-control form-control-sm" placeholder="Cari channel…" style="max-width:240px">
+            </div>
+            <div id="iptvPlayerCard" class="mb-3" style="display:none">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 mb-0" id="iptvNowPlaying">—</h2>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="iptvClose()"><i class="bi bi-x-lg"></i> Tutup player</button>
+              </div>
+              <div style="background:#000;border-radius:12px;overflow:hidden;">
+                <video id="iptvPlayer" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000"></video>
+              </div>
+              <div class="small text-muted mt-1"><i class="bi bi-info-circle"></i> Beberapa channel bisa geo-blocked / butuh DRM.</div>
+            </div>
+            <div class="row g-2" id="iptvGrid" style="max-height:60vh; overflow:auto;">
+              <?php foreach($iptvChannels as $i=>$c): ?>
+                <div class="col-6 col-md-4 col-lg-3 iptv-item"
+                     data-name="<?= htmlspecialchars(strtolower($c['name'])) ?>"
+                     data-group="<?= htmlspecialchars(strtolower($c['group'])) ?>">
+                  <div class="card h-100 border-0 shadow-sm iptv-card" style="cursor:pointer" onclick="iptvPlay(<?= $i ?>)">
+                    <div class="card-body d-flex align-items-center gap-2 py-2 px-2">
+                      <?php if (!empty($c['logo'])): ?>
+                        <img src="<?= htmlspecialchars($c['logo']) ?>" alt="" loading="lazy"
+                             style="width:42px;height:42px;object-fit:contain;background:#f1f5f9;border-radius:8px;padding:3px"
+                             onerror="this.outerHTML='<div style=\'width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem\'><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>'">
+                      <?php else: ?>
+                        <div style="width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem"><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>
+                      <?php endif; ?>
+                      <div class="flex-grow-1 min-w-0">
+                        <div class="fw-semibold text-truncate small"><?= htmlspecialchars($c['name'] ?: 'Channel') ?></div>
+                        <?php if (!empty($c['group'])): ?>
+                          <div class="small text-muted text-truncate" style="font-size:.7rem"><?= htmlspecialchars($c['group']) ?></div>
+                        <?php endif; ?>
+                      </div>
+                      <i class="bi bi-play-circle-fill text-success"></i>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+  <script>
+  (function(){
+    const IPTV_CHANNELS = <?= json_encode(array_map(fn($c)=>['name'=>$c['name'],'url'=>$c['url']], $iptvChannels), JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?>;
+    let _hls = null;
+    window.iptvPlay = function(idx){
+      const c = IPTV_CHANNELS[idx]; if(!c) return;
+      const card = document.getElementById('iptvPlayerCard');
+      const v = document.getElementById('iptvPlayer');
+      document.getElementById('iptvNowPlaying').textContent = c.name;
+      card.style.display = 'block';
+      card.scrollIntoView({behavior:'smooth', block:'start'});
+      if (_hls) { try{_hls.destroy();}catch(e){} _hls=null; }
+      v.removeAttribute('src'); v.load();
+      const url = c.url;
+      if (window.Hls && Hls.isSupported() && /\.m3u8(\?|$)/i.test(url)) {
+        _hls = new Hls({ maxBufferLength: 20 });
+        _hls.loadSource(url); _hls.attachMedia(v);
+      } else { v.src = url; }
+      v.play().catch(()=>{});
+    };
+    window.iptvClose = function(){
+      const v = document.getElementById('iptvPlayer');
+      if (_hls) { try{_hls.destroy();}catch(e){} _hls=null; }
+      v.pause(); v.removeAttribute('src'); v.load();
+      document.getElementById('iptvPlayerCard').style.display = 'none';
+    };
+    document.getElementById('iptvSearch')?.addEventListener('input', (e)=>{
+      const q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('#modalIPTV .iptv-item').forEach(el=>{
+        const hay = (el.dataset.name||'') + ' ' + (el.dataset.group||'');
+        el.style.display = (!q || hay.includes(q)) ? '' : 'none';
+      });
+    });
+    // Stop playback when modal closes
+    document.getElementById('modalIPTV')?.addEventListener('hidden.bs.modal', window.iptvClose);
+  })();
+  </script>
   <?php endif; ?>
 </section>
 <!-- ============ /Info & Wawasan ============ -->
