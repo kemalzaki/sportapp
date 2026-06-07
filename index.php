@@ -478,8 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   <?php else: ?>
   <?php
-    // Revisi 6 Juni 2026 (revisi-3): IPTV jadi modal popup di index.php.
-    // Ambil & parse playlist M3U dari iptv-org, cache 6 jam di sys_get_temp_dir().
+    // Revisi 7 Juni 2026 (revisi-4): IPTV — tandai aktif/tidak, dedupe, total counter.
     $iptvChannels = [];
     try {
       $cacheDir = sys_get_temp_dir().'/sportapp_iptv';
@@ -511,6 +510,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } catch (Throwable $e) { $iptvChannels = []; }
+
+    // Daftar channel AKTIF (manual curation 7 Juni 2026).
+    $iptvActiveList = [
+      'Alwafa Tarim TV','Astha TV','Astro Blitar TV','Banjar TV','BN Channel','BRTV','Bungo TV',
+      'Caruban TV','DAAI TV','DM TV Malang','Garuda TV','I Am Channel','Indonesiana TV','Jogja TV',
+      'KTV','Lingkar TV','Madani TV','Madu TV','Magna Channel','Matrix TV Yogyakarta','Metro TV',
+      'MQTV','Music Information Channel','Nusantara TV','Rajawali TV','Rakyat bengkulu TV','RCTV',
+      'Rinjani TV','Rodja TV','RRI Net','Sakti TV','Salam TV','Salira TV','Sampit TV','Selaparang TV',
+      'SMTV','Sriwijaya TV','Stara TV','Stara TV Bandung','Stara TV Cianjur','Stara TV Jakarta',
+      'Stara TV Malang','Stara TV Parahyangan','Surabaya TV','TV9 Nuasantara','TV Mu','TVKU','TVRI',
+      'TVRI Aceh','TVRI Bali','TVRI Bangka Belitung','TVRI Bengkulu','TVRI Gorontalo','TVRI Jakarta',
+      'TVRI Jambi','TVRI Jawa Barat','TVRI Jawa Tengah','TVRI Jawa Timur','TVRI Kalimantan Barat',
+      'TVRI Kalimantan Selatan','TVRI Kalimantan Tengah','TVRI Lampung','TVRI Maluku',
+      'TVRI North Sumatera','TVRI NTB','TVRI NTT','TVRI Papua','TVRI Riau','TVRO Sport',
+      'TVRI Sulbar','TVRI Sulawesi Tengah','TVRI Sulawesi Tenggara','TVRI Sumbar','TVRI Sumsel',
+      'TVRI West Papua','TVRI World','TVRI Yogyakarta','U Channel','UGTV','VTV',
+      'Stara TV Bojonegoro','PKTV','BeritaSatu','BTV',
+    ];
+    $iptvNorm = function($s){
+      $s = strtolower(trim((string)$s));
+      // buang resolusi seperti " (720p)", " 720p", " hd"
+      $s = preg_replace('/\s*\((?:\d{3,4}p|hd|sd|fhd)\)\s*/i','',$s);
+      $s = preg_replace('/\s+(?:\d{3,4}p|hd|sd|fhd)\b/i','',$s);
+      $s = preg_replace('/\s+/',' ',$s);
+      return trim($s);
+    };
+    $iptvActiveSet = [];
+    foreach ($iptvActiveList as $n) $iptvActiveSet[$iptvNorm($n)] = true;
+
+    // Dedupe + tandai status, channel aktif diurutkan di atas.
+    $seen = [];
+    $deduped = [];
+    foreach ($iptvChannels as $c) {
+      $key = $iptvNorm($c['name']);
+      if ($key === '' || isset($seen[$key])) continue;
+      $seen[$key] = true;
+      $c['active'] = isset($iptvActiveSet[$key]);
+      $deduped[] = $c;
+    }
+    usort($deduped, function($a,$b){
+      if ($a['active'] !== $b['active']) return $a['active'] ? -1 : 1;
+      return strcasecmp($a['name'], $b['name']);
+    });
+    $iptvChannels = $deduped;
+    $iptvTotal  = count($iptvChannels);
+    $iptvActive = 0; foreach ($iptvChannels as $c) if (!empty($c['active'])) $iptvActive++;
+    $iptvInactive = $iptvTotal - $iptvActive;
   ?>
   <div class="row g-2">
     <div class="col-6 col-md-3">
@@ -702,7 +748,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title"><i class="bi bi-tv-fill text-success"></i> IPTV Indonesia
-            <span class="badge bg-secondary ms-1"><?= (int)count($iptvChannels) ?> channel</span>
+            <span class="badge bg-secondary ms-1" title="Total"><?= (int)$iptvTotal ?></span>
+            <span class="badge bg-success ms-1" title="Aktif"><i class="bi bi-broadcast"></i> <?= (int)$iptvActive ?> aktif</span>
+            <span class="badge bg-secondary-subtle text-secondary ms-1" title="Tidak aktif"><?= (int)$iptvInactive ?> tidak aktif</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
         </div>
@@ -721,6 +769,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <small class="text-muted"><i class="bi bi-broadcast"></i> Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a></small>
               <div class="d-flex gap-2 flex-wrap">
+                <select id="iptvStatusFilter" class="form-select form-select-sm" style="max-width:140px">
+                  <option value="">Semua status</option>
+                  <option value="1" selected>Hanya aktif</option>
+                  <option value="0">Tidak aktif</option>
+                </select>
                 <select id="iptvGroupFilter" class="form-select form-select-sm" style="max-width:160px">
                   <option value="">Semua grup</option>
                   <?php foreach($iptvGroups as $g): ?>
@@ -746,13 +799,23 @@ document.addEventListener('DOMContentLoaded', () => {
               .iptv-row:last-child{border-bottom:0}
               .iptv-row:hover,.iptv-row:focus{background:#f8fafc}
               .iptv-row.active{background:#ecfdf5}
+              .iptv-row.inactive{opacity:.55;cursor:not-allowed;background:#fafafa}
+              .iptv-row.inactive:hover{background:#fafafa}
               .iptv-row .iptv-logo{width:40px;height:40px;flex:0 0 40px;object-fit:contain;background:#f1f5f9;border-radius:8px;padding:3px}
+              .iptv-row.inactive .iptv-logo,.iptv-row.inactive .iptv-fallback{filter:grayscale(1)}
               .iptv-row .iptv-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem}
               .iptv-row .iptv-meta{flex:1 1 auto;min-width:0}
-              .iptv-row .iptv-name{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+              .iptv-row .iptv-name{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:.4rem}
               .iptv-row .iptv-group{font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
               .iptv-row .iptv-num{font-size:.72rem;color:#94a3b8;min-width:28px;text-align:right}
               .iptv-row .iptv-play{color:#10b981;font-size:1.15rem}
+              .iptv-row.inactive .iptv-play{color:#cbd5e1}
+              .iptv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+              .iptv-dot.on{background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+              .iptv-dot.off{background:#cbd5e1}
+              .iptv-status{font-size:.62rem;padding:.1rem .4rem;border-radius:999px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+              .iptv-status.on{background:#d1fae5;color:#047857}
+              .iptv-status.off{background:#e2e8f0;color:#64748b}
               @media (max-width: 480px){
                 .iptv-row{padding:.55rem .6rem;gap:.55rem}
                 .iptv-row .iptv-num{display:none}
@@ -760,11 +823,12 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             </style>
             <div id="iptvList" role="list">
-              <?php foreach($iptvChannels as $i=>$c): ?>
-                <div class="iptv-row iptv-item" role="listitem" tabindex="0"
+              <?php foreach($iptvChannels as $i=>$c): $isAct = !empty($c['active']); ?>
+                <div class="iptv-row iptv-item <?= $isAct ? '' : 'inactive' ?>" role="listitem" tabindex="0"
                      data-idx="<?= $i ?>"
                      data-name="<?= htmlspecialchars(strtolower($c['name'])) ?>"
                      data-group="<?= htmlspecialchars(strtolower($c['group'])) ?>"
+                     data-active="<?= $isAct ? '1' : '0' ?>"
                      onclick="iptvPlay(<?= $i ?>)"
                      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();iptvPlay(<?= $i ?>);}">
                   <span class="iptv-num"><?= $i+1 ?></span>
@@ -775,19 +839,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="iptv-fallback"><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>
                   <?php endif; ?>
                   <div class="iptv-meta">
-                    <div class="iptv-name"><?= htmlspecialchars($c['name'] ?: 'Channel') ?></div>
+                    <div class="iptv-name">
+                      <span class="iptv-dot <?= $isAct ? 'on' : 'off' ?>" aria-hidden="true"></span>
+                      <span class="text-truncate"><?= htmlspecialchars($c['name'] ?: 'Channel') ?></span>
+                      <span class="iptv-status <?= $isAct ? 'on' : 'off' ?>"><?= $isAct ? 'Aktif' : 'Tidak aktif' ?></span>
+                    </div>
                     <?php if (!empty($c['group'])): ?>
                       <div class="iptv-group"><?= htmlspecialchars($c['group']) ?></div>
                     <?php endif; ?>
                   </div>
-                  <i class="bi bi-play-circle-fill iptv-play"></i>
+                  <i class="bi <?= $isAct ? 'bi-play-circle-fill' : 'bi-slash-circle' ?> iptv-play"></i>
                 </div>
               <?php endforeach; ?>
               <div id="iptvEmpty" class="text-center text-muted small py-4" style="display:none">
                 <i class="bi bi-search"></i> Tidak ada channel cocok.
               </div>
             </div>
-            <div class="small text-muted mt-2"><span id="iptvCount"><?= count($iptvChannels) ?></span> channel ditampilkan</div>
+            <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
+              <span><i class="bi bi-collection"></i> Total: <strong><?= (int)$iptvTotal ?></strong></span>
+              <span class="text-success"><i class="bi bi-broadcast"></i> Aktif: <strong><?= (int)$iptvActive ?></strong></span>
+              <span><i class="bi bi-slash-circle"></i> Tidak aktif: <strong><?= (int)$iptvInactive ?></strong></span>
+              <span class="ms-auto"><span id="iptvCount"><?= (int)$iptvActive ?></span> ditampilkan</span>
+            </div>
           <?php endif; ?>
         </div>
       </div>
@@ -796,10 +869,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script>
   (function(){
-    const IPTV_CHANNELS = <?= json_encode(array_map(fn($c)=>['name'=>$c['name'],'url'=>$c['url']], $iptvChannels), JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?>;
+    const IPTV_CHANNELS = <?= json_encode(array_map(fn($c)=>['name'=>$c['name'],'url'=>$c['url'],'active'=>!empty($c['active'])], $iptvChannels), JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?>;
     let _hls = null;
     window.iptvPlay = function(idx){
       const c = IPTV_CHANNELS[idx]; if(!c) return;
+      if (!c.active) {
+        alert('Channel "'+c.name+'" sedang tidak aktif / tidak tersedia.');
+        return;
+      }
       const card = document.getElementById('iptvPlayerCard');
       const v = document.getElementById('iptvPlayer');
       document.getElementById('iptvNowPlaying').textContent = c.name;
@@ -827,12 +904,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function iptvFilter(){
       const q = (document.getElementById('iptvSearch')?.value||'').trim().toLowerCase();
       const g = (document.getElementById('iptvGroupFilter')?.value||'').trim().toLowerCase();
+      const s = (document.getElementById('iptvStatusFilter')?.value||'').trim();
       let shown = 0;
       document.querySelectorAll('#iptvList .iptv-row').forEach(el=>{
-        const name = el.dataset.name||'', grp = el.dataset.group||'';
+        const name = el.dataset.name||'', grp = el.dataset.group||'', act = el.dataset.active||'0';
         const okQ = !q || (name+' '+grp).includes(q);
         const okG = !g || grp === g;
-        const ok = okQ && okG;
+        const okS = s==='' || act === s;
+        const ok = okQ && okG && okS;
         el.style.display = ok ? '' : 'none';
         if (ok) shown++;
       });
@@ -843,6 +922,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('iptvSearch')?.addEventListener('input', iptvFilter);
     document.getElementById('iptvGroupFilter')?.addEventListener('change', iptvFilter);
+    document.getElementById('iptvStatusFilter')?.addEventListener('change', iptvFilter);
+    document.getElementById('modalIPTV')?.addEventListener('shown.bs.modal', iptvFilter);
     document.getElementById('modalIPTV')?.addEventListener('hidden.bs.modal', window.iptvClose);
   })();
   </script>
