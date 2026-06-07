@@ -713,46 +713,81 @@ document.addEventListener('DOMContentLoaded', () => {
               Pastikan server bisa mengakses <code>raw.githubusercontent.com</code> lalu refresh.
             </div>
           <?php else: ?>
+            <?php
+              $iptvGroups = [];
+              foreach ($iptvChannels as $c) { if (!empty($c['group'])) $iptvGroups[$c['group']] = true; }
+              $iptvGroups = array_keys($iptvGroups); sort($iptvGroups);
+            ?>
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-              <small class="text-muted">Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a></small>
-              <input id="iptvSearch" type="search" class="form-control form-control-sm" placeholder="Cari channel…" style="max-width:240px">
+              <small class="text-muted"><i class="bi bi-broadcast"></i> Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a></small>
+              <div class="d-flex gap-2 flex-wrap">
+                <select id="iptvGroupFilter" class="form-select form-select-sm" style="max-width:160px">
+                  <option value="">Semua grup</option>
+                  <?php foreach($iptvGroups as $g): ?>
+                    <option value="<?= htmlspecialchars(strtolower($g)) ?>"><?= htmlspecialchars($g) ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <input id="iptvSearch" type="search" class="form-control form-control-sm" placeholder="Cari channel…" style="max-width:200px">
+              </div>
             </div>
             <div id="iptvPlayerCard" class="mb-3" style="display:none">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <h2 class="h6 mb-0" id="iptvNowPlaying">—</h2>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="iptvClose()"><i class="bi bi-x-lg"></i> Tutup player</button>
+                <h2 class="h6 mb-0 text-truncate" id="iptvNowPlaying">—</h2>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="iptvClose()"><i class="bi bi-x-lg"></i> Tutup</button>
               </div>
               <div style="background:#000;border-radius:12px;overflow:hidden;">
                 <video id="iptvPlayer" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000"></video>
               </div>
               <div class="small text-muted mt-1"><i class="bi bi-info-circle"></i> Beberapa channel bisa geo-blocked / butuh DRM.</div>
             </div>
-            <div class="row g-2" id="iptvGrid" style="max-height:60vh; overflow:auto;">
+            <style>
+              #iptvList{max-height:60vh;overflow:auto;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+              .iptv-row{display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .15s;text-decoration:none;color:inherit}
+              .iptv-row:last-child{border-bottom:0}
+              .iptv-row:hover,.iptv-row:focus{background:#f8fafc}
+              .iptv-row.active{background:#ecfdf5}
+              .iptv-row .iptv-logo{width:40px;height:40px;flex:0 0 40px;object-fit:contain;background:#f1f5f9;border-radius:8px;padding:3px}
+              .iptv-row .iptv-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem}
+              .iptv-row .iptv-meta{flex:1 1 auto;min-width:0}
+              .iptv-row .iptv-name{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+              .iptv-row .iptv-group{font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+              .iptv-row .iptv-num{font-size:.72rem;color:#94a3b8;min-width:28px;text-align:right}
+              .iptv-row .iptv-play{color:#10b981;font-size:1.15rem}
+              @media (max-width: 480px){
+                .iptv-row{padding:.55rem .6rem;gap:.55rem}
+                .iptv-row .iptv-num{display:none}
+                .iptv-row .iptv-name{font-size:.88rem}
+              }
+            </style>
+            <div id="iptvList" role="list">
               <?php foreach($iptvChannels as $i=>$c): ?>
-                <div class="col-6 col-md-4 col-lg-3 iptv-item"
+                <div class="iptv-row iptv-item" role="listitem" tabindex="0"
+                     data-idx="<?= $i ?>"
                      data-name="<?= htmlspecialchars(strtolower($c['name'])) ?>"
-                     data-group="<?= htmlspecialchars(strtolower($c['group'])) ?>">
-                  <div class="card h-100 border-0 shadow-sm iptv-card" style="cursor:pointer" onclick="iptvPlay(<?= $i ?>)">
-                    <div class="card-body d-flex align-items-center gap-2 py-2 px-2">
-                      <?php if (!empty($c['logo'])): ?>
-                        <img src="<?= htmlspecialchars($c['logo']) ?>" alt="" loading="lazy"
-                             style="width:42px;height:42px;object-fit:contain;background:#f1f5f9;border-radius:8px;padding:3px"
-                             onerror="this.outerHTML='<div style=\'width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem\'><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>'">
-                      <?php else: ?>
-                        <div style="width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem"><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>
-                      <?php endif; ?>
-                      <div class="flex-grow-1 min-w-0">
-                        <div class="fw-semibold text-truncate small"><?= htmlspecialchars($c['name'] ?: 'Channel') ?></div>
-                        <?php if (!empty($c['group'])): ?>
-                          <div class="small text-muted text-truncate" style="font-size:.7rem"><?= htmlspecialchars($c['group']) ?></div>
-                        <?php endif; ?>
-                      </div>
-                      <i class="bi bi-play-circle-fill text-success"></i>
-                    </div>
+                     data-group="<?= htmlspecialchars(strtolower($c['group'])) ?>"
+                     onclick="iptvPlay(<?= $i ?>)"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();iptvPlay(<?= $i ?>);}">
+                  <span class="iptv-num"><?= $i+1 ?></span>
+                  <?php if (!empty($c['logo'])): ?>
+                    <img src="<?= htmlspecialchars($c['logo']) ?>" alt="" loading="lazy" class="iptv-logo"
+                         onerror="this.outerHTML='<div class=&quot;iptv-fallback&quot;><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>'">
+                  <?php else: ?>
+                    <div class="iptv-fallback"><?= htmlspecialchars(mb_substr($c['name'],0,2)) ?></div>
+                  <?php endif; ?>
+                  <div class="iptv-meta">
+                    <div class="iptv-name"><?= htmlspecialchars($c['name'] ?: 'Channel') ?></div>
+                    <?php if (!empty($c['group'])): ?>
+                      <div class="iptv-group"><?= htmlspecialchars($c['group']) ?></div>
+                    <?php endif; ?>
                   </div>
+                  <i class="bi bi-play-circle-fill iptv-play"></i>
                 </div>
               <?php endforeach; ?>
+              <div id="iptvEmpty" class="text-center text-muted small py-4" style="display:none">
+                <i class="bi bi-search"></i> Tidak ada channel cocok.
+              </div>
             </div>
+            <div class="small text-muted mt-2"><span id="iptvCount"><?= count($iptvChannels) ?></span> channel ditampilkan</div>
           <?php endif; ?>
         </div>
       </div>
@@ -770,6 +805,9 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('iptvNowPlaying').textContent = c.name;
       card.style.display = 'block';
       card.scrollIntoView({behavior:'smooth', block:'start'});
+      document.querySelectorAll('#iptvList .iptv-row').forEach(el=>el.classList.remove('active'));
+      const cur = document.querySelector('#iptvList .iptv-row[data-idx="'+idx+'"]');
+      if (cur) cur.classList.add('active');
       if (_hls) { try{_hls.destroy();}catch(e){} _hls=null; }
       v.removeAttribute('src'); v.load();
       const url = c.url;
@@ -784,15 +822,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (_hls) { try{_hls.destroy();}catch(e){} _hls=null; }
       v.pause(); v.removeAttribute('src'); v.load();
       document.getElementById('iptvPlayerCard').style.display = 'none';
+      document.querySelectorAll('#iptvList .iptv-row').forEach(el=>el.classList.remove('active'));
     };
-    document.getElementById('iptvSearch')?.addEventListener('input', (e)=>{
-      const q = e.target.value.trim().toLowerCase();
-      document.querySelectorAll('#modalIPTV .iptv-item').forEach(el=>{
-        const hay = (el.dataset.name||'') + ' ' + (el.dataset.group||'');
-        el.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    function iptvFilter(){
+      const q = (document.getElementById('iptvSearch')?.value||'').trim().toLowerCase();
+      const g = (document.getElementById('iptvGroupFilter')?.value||'').trim().toLowerCase();
+      let shown = 0;
+      document.querySelectorAll('#iptvList .iptv-row').forEach(el=>{
+        const name = el.dataset.name||'', grp = el.dataset.group||'';
+        const okQ = !q || (name+' '+grp).includes(q);
+        const okG = !g || grp === g;
+        const ok = okQ && okG;
+        el.style.display = ok ? '' : 'none';
+        if (ok) shown++;
       });
-    });
-    // Stop playback when modal closes
+      const empty = document.getElementById('iptvEmpty');
+      if (empty) empty.style.display = shown ? 'none' : '';
+      const cnt = document.getElementById('iptvCount');
+      if (cnt) cnt.textContent = shown;
+    }
+    document.getElementById('iptvSearch')?.addEventListener('input', iptvFilter);
+    document.getElementById('iptvGroupFilter')?.addEventListener('change', iptvFilter);
     document.getElementById('modalIPTV')?.addEventListener('hidden.bs.modal', window.iptvClose);
   })();
   </script>
