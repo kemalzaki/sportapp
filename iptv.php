@@ -1,9 +1,7 @@
 <?php
-// iptv.php — Revisi 11 Juni 2026
-// - Sumber playlist diganti ke: https://github.com/mgi24/tvdigital (idwork.m3u)
-// - Tambahan blocklist channel yang diminta (Music Information Channel, UGTV,
-//   U CHANNEL, semua TVRI, TV Mu, semua Stara TV, Selaparang TV, Rakyat Bengkulu TV,
-//   MQTV, PKTV, KTV, Caruban TV, BN Channel) — diblokir/disembunyikan.
+// iptv.php — Revisi 7 Juni 2026 (revisi-3): tampilan tabel list, responsive mobile, klik untuk putar
+// Menampilkan daftar channel IPTV Indonesia dari repo iptv-org
+// Sumber: https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
@@ -16,10 +14,9 @@ if (!$u) { header('Location: /login.php'); exit; }
 /* ---------- Ambil & parse playlist M3U dengan cache 6 jam ---------- */
 $cacheDir = sys_get_temp_dir().'/sportapp_iptv';
 if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
-$cacheFile = $cacheDir.'/idwork.m3u';
+$cacheFile = $cacheDir.'/id.m3u';
 $cacheTtl  = 6 * 3600;
-// Sumber baru — mgi24/tvdigital
-$src = 'https://raw.githubusercontent.com/mgi24/tvdigital/main/idwork.m3u';
+$src = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u';
 $raw = null;
 if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTtl) {
     $raw = @file_get_contents($cacheFile);
@@ -52,41 +49,93 @@ if ($raw) {
     }
 }
 
-/* ---------- Blocklist (revisi 11 Juni 2026) ---------- */
-function iptv_norm_name($s){
-    $s = strtolower(trim((string)$s));
-    $s = preg_replace('/\s*\((?:\d{3,4}p|hd|sd|fhd)\)\s*/i','',$s);
-    $s = preg_replace('/\s+(?:\d{3,4}p|hd|sd|fhd)\b/i','',$s);
-    $s = preg_replace('/\s+/',' ',$s);
-    return trim($s);
-}
-function iptv_is_blocked($name){
-    $n = iptv_norm_name($name);
-    if ($n === '') return false;
-    // exact / contains exact tokens
-    $blockExact = [
-        'music information channel','ugtv','u channel','tv mu',
-        'selaparang tv','rakyat bengkulu tv','mqtv','pktv','ktv',
-        'caruban tv','bn channel',
-    ];
-    foreach ($blockExact as $b) {
-        if ($n === $b) return true;
-        // tangani sufiks resolusi/variant tipis
-        if (strpos($n, $b) === 0) return true;
+/* ---------- Revisi 11 Juni 2026 (rev-2): tambahan channel custom (digabung tanpa hapus yg ada) ---------- */
+$EXTRA_M3U = <<<'M3U'
+#EXTINF:0 tvg-country="ID" tvg-logo="" group-title="lokal",ANTV (720p) [Geo-blocked]
+http://210.210.155.35/qwr9ew/s/s07/index1.m3u8
+#EXTINF:-1 group-title="lokal",BACKUP ANTV
+http://210.210.155.35/qwr9ew/s/s07/01.m3u8
+#EXTINF:-1 group-title="lokal" tvg-logo="https://www.transtv.co.id/livetv/anytv/INDOSIAR_live_streaming_tv.jpg", INDOSIAR
+http://210.210.155.35/session/9ec7c73c-099b-11ea-aff4-b82a72d63267/qwr9ew/s/s04/01.m3u8
+#EXTINF:-1 group-title="lokal",BACKUP INDOSIAR
+http://210.210.155.35/qwr9ew/s/s04/01.m3u8
+#EXTINF:-1 group-title="lokal",BACKUP INDOSIAR 2
+http://210.210.155.35/qwr9ew/s/s04/index10.m3u8
+#EXTINF:-1 group-title="lokal", SCTV
+http://210.210.155.35/qwr9ew/s/s03/02.m3u8
+#EXTINF:-1 group-title="lokal",BACKUP SCTV
+http://210.210.155.37/qwr9ew/s/s03/index.m3u8
+#EXTINF:-1 group-title="news;lokal" tvg-logo="",TVOne
+http://210.210.155.37/qwr9ew/s/s105/01.m3u8
+#EXTINF:-1 group-title="lokal" tvg-logo="https://www.transtv.co.id/livetv/anytv/NET_TV_live_streaming_tv.jpg",BACKUP NET TV SD
+http://210.210.155.35/qwr9ew/s/s08/01.m3u8
+#EXTINF:-1 group-title="lokal" tvg-logo="https://www.transtv.co.id/livetv/anytv/NET_TV_live_streaming_tv.jpg",BACKUP NET TV LOW
+http://210.210.155.37/qwr9ew/s/s08/index.m3u8
+#EXTINF:-1 group-title="lokal;news" tvg-logo="https://www.transtv.co.id/livetv/anytv/KOMPAS_TV_live_streaming_tv.jpg",KompasTV
+http://210.210.155.35/qwr9ew/s/s104/index.m3u8
+#EXTINF:0 tvg-country="ID" tvg-logo="https://cdn.cnbcindonesia.com/cnbc/images/logo_hitam.png?w=650" group-title="news",CNBC Indonesia
+http://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/chunklist_w528900641_b384000_sleng.m3u8
+#EXTINF:-1 group-title="news",BACKUP CNBC Indonesia
+http://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/master.m3u8
+#EXTINF:-1 group-title="news;lokal" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_International_logo.svg/1200px-CNN_International_logo.svg.png",CNN INDONESIA
+http://live.cnnindonesia.com/livecnn/smil:cnntv.smil/chunklist_b384000_sleng.m3u8
+#EXTINF:-1 group-title="lokal" tvg-logo="https://i.imgur.com/bD2odoR.png",TVRI Sport HD
+http://210.210.155.35/qwr9ew/s/s107/index.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/bD2odoR.png" group-title="lokal",(ID) TVRI OLAHRAGA
+http://ott.tvri.co.id/Content/HLS/Live/Channel(TVRI4)/index.m3u8
+M3U;
+$extraLines = preg_split('/\r?\n/', $EXTRA_M3U);
+$curE = null;
+foreach ($extraLines as $ln) {
+    $ln = trim($ln);
+    if ($ln === '') continue;
+    if (strpos($ln, '#EXTINF') === 0) {
+        $name = ''; if (preg_match('/,(.+)$/', $ln, $m)) $name = trim($m[1]);
+        $logo = ''; if (preg_match('/tvg-logo="([^"]*)"/', $ln, $m)) $logo = $m[1];
+        $group= ''; if (preg_match('/group-title="([^"]*)"/', $ln, $m)) $group = $m[1];
+        $curE = ['name'=>$name,'logo'=>$logo,'group'=>$group,'url'=>''];
+    } elseif (strpos($ln,'#') === 0) {
+        continue;
+    } else {
+        if ($curE !== null) { $curE['url'] = $ln; $channels[] = $curE; $curE = null; }
     }
-    // semua TVRI (apa pun variannya)
-    if (preg_match('/\btvri\b/i', $n)) return true;
-    // semua Stara TV (apa pun varian kota)
-    if (preg_match('/\bstara\s*tv\b/i', $n)) return true;
-    return false;
 }
-$channels = array_values(array_filter($channels, fn($c) => !iptv_is_blocked($c['name'] ?? '')));
 
-// Urutkan alfabet
+/* ---------- Revisi 11 Juni 2026 (rev-2): blokir (sembunyikan) channel tertentu tanpa menghapus ---------- */
+$BLOCKED_PATTERNS = [
+    'music information channel',
+    'ugtv',
+    'u channel',
+    'tvri',          // semua TVRI (termasuk variannya)
+    'tv mu',
+    'stara tv',      // semua stara tv
+    'selaparang tv',
+    'rakyat bengkulu',
+    'mqtv',
+    'pktv',
+    'ktv',
+    'caruban tv',
+    'bn channel',
+];
+$channels = array_values(array_filter($channels, function($c) use ($BLOCKED_PATTERNS){
+    $n = mb_strtolower(trim((string)$c['name']));
+    if ($n === '') return true;
+    foreach ($BLOCKED_PATTERNS as $p) {
+        // 'ktv' harus tepat sebagai kata utuh agar tidak ikut blok 'TVRI Sport' dll
+        if ($p === 'ktv') {
+            if (preg_match('/(^|[^a-z])ktv($|[^a-z])/i', $c['name'])) return false;
+            continue;
+        }
+        if (strpos($n, $p) !== false) return false;
+    }
+    return true;
+}));
+
+// Urutkan alfabet berdasarkan nama channel agar list rapi
 usort($channels, fn($a,$b)=>strcasecmp($a['name'] ?: '', $b['name'] ?: ''));
 $total = count($channels);
 
-// Daftar grup untuk filter
+// Kumpulkan daftar grup untuk filter
 $groups = [];
 foreach ($channels as $c) {
     $g = trim((string)$c['group']);
@@ -97,6 +146,7 @@ sort($groups, SORT_NATURAL | SORT_FLAG_CASE);
 include __DIR__.'/includes/header.php';
 ?>
 <style>
+/* ====== IPTV — tampilan tabel list, responsive ====== */
 .iptv-toolbar{position:sticky;top:0;z-index:5;background:#fff;padding:.5rem 0;border-bottom:1px solid #eef2f7;}
 .iptv-logo{width:40px;height:40px;object-fit:contain;background:#f1f5f9;border-radius:8px;padding:3px;}
 .iptv-logo-fallback{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;}
@@ -112,6 +162,8 @@ include __DIR__.'/includes/header.php';
 .iptv-sub{font-size:.78rem;color:#64748b;}
 #iptvPlayerWrap{position:relative;background:#000;border-radius:12px;overflow:hidden;}
 #iptvPlayer{width:100%;aspect-ratio:16/9;background:#000;}
+
+/* Mobile: sembunyikan kolom sekunder, padatkan tabel jadi list */
 @media (max-width: 575.98px){
   .iptv-table .col-no,
   .iptv-table .col-group,
@@ -134,7 +186,7 @@ include __DIR__.'/includes/header.php';
     <div>
       <h1 class="h4 mb-1"><i class="bi bi-tv-fill text-success"></i> IPTV Indonesia</h1>
       <div class="small text-muted">
-        Sumber: <a href="https://github.com/mgi24/tvdigital" target="_blank" rel="noopener">mgi24/tvdigital · idwork.m3u</a>
+        Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a>
         · <span id="iptvCount"><?= (int)$total ?></span> dari <?= (int)$total ?> channel
       </div>
     </div>
@@ -143,11 +195,12 @@ include __DIR__.'/includes/header.php';
   <?php if ($total === 0): ?>
     <div class="alert alert-warning">
       <i class="bi bi-exclamation-triangle"></i>
-      Gagal memuat daftar channel. Pastikan server bisa mengakses
+      Gagal memuat daftar channel dari iptv-org. Pastikan server bisa mengakses
       <code>raw.githubusercontent.com</code>, lalu refresh halaman ini.
     </div>
   <?php else: ?>
 
+  <!-- Player -->
   <div class="card border-0 shadow-sm mb-3" id="iptvPlayerCard" style="display:none">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
@@ -158,11 +211,12 @@ include __DIR__.'/includes/header.php';
         <video id="iptvPlayer" controls autoplay playsinline></video>
       </div>
       <div class="small text-muted mt-2">
-        <i class="bi bi-info-circle"></i> Beberapa channel mungkin tidak bisa diputar di browser jika geo-blocked atau membutuhkan DRM.
+        <i class="bi bi-info-circle"></i> Beberapa channel mungkin tidak bisa diputar di browser jika geo-blocked atau membutuhkan DRM. Coba channel lain bila gagal.
       </div>
     </div>
   </div>
 
+  <!-- Toolbar: search + filter grup -->
   <div class="iptv-toolbar">
     <div class="row g-2 align-items-center">
       <div class="col-12 col-sm">
@@ -184,6 +238,7 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 
+  <!-- Tabel list channel -->
   <div class="table-responsive">
     <table class="table table-hover align-middle iptv-table" id="iptvTable">
       <thead class="table-light d-none d-sm-table-header-group">

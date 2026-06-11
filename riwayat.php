@@ -153,7 +153,7 @@ $belumOlahraga = db_all("
   SELECT u.id, u.nama, u.foto_url,
          (SELECT MAX(uh.tanggal) FROM upload_harian uh WHERE uh.user_id=u.id) AS terakhir
   FROM users u
-  WHERE COALESCE(u.aktif,1)=1
+  WHERE TRUE  -- Revisi 11 Juni 2026 (rev-2): kolom u.aktif tidak ada di tabel users; filter dilonggarkan
     AND NOT EXISTS (
       SELECT 1 FROM upload_harian uh
        WHERE uh.user_id=u.id

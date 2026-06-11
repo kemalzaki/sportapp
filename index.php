@@ -704,28 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </a>
     </div>
-    <div class="col-6 col-md-3">
-      <a href="/kalkulator_jantung.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0 info-card">
-          <div class="card-body text-center">
-            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-heart-pulse fs-4"></i></div>
-            <div class="fw-semibold">Kalkulator Detak Jantung</div>
-            <div class="small text-muted">HRmax · zona · tanda kesehatan</div>
-          </div>
-        </div>
-      </a>
-    </div>
-    <div class="col-6 col-md-3">
-      <a href="/kalkulator_kesehatan.php" class="text-decoration-none">
-        <div class="card h-100 shadow-sm border-0 info-card">
-          <div class="card-body text-center">
-            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-clipboard2-pulse fs-4"></i></div>
-            <div class="fw-semibold">Kalkulator Kesehatan</div>
-            <div class="small text-muted">Ritme lari saat sakit (pilek/flu/dll)</div>
-          </div>
-        </div>
-      </a>
-    </div>
+    <?php /* Revisi 11 Juni 2026 (rev-2): Kalkulator Detak Jantung & Kalkulator Kesehatan dipindah ke menu navigasi (lihat header). */ ?>
   </div>
 
   <!-- Modal: Panduan Olahraga -->
