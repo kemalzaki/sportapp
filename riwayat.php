@@ -220,7 +220,7 @@ include __DIR__.'/includes/header.php';
     <?php if(!$belumOlahraga): ?>
       <div class="p-3 text-success small"><i class="bi bi-check-circle"></i> Semua member sudah upload aktivitas minimal 1× dalam 7 hari terakhir. 👏</div>
     <?php else: ?>
-      <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+      <div class="table-responsive"><table class="table table-sm mb-0 align-middle" data-paginate="5">
         <thead class="table-light"><tr><th>Nama</th><th>Terakhir Upload</th><th class="text-end">Aksi</th></tr></thead>
         <tbody>
         <?php foreach($belumOlahraga as $b): ?>
@@ -236,15 +236,33 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
-<!-- ====== (2) Kalender Aktivitas ====== -->
+<!-- ====== (2) Kalender Aktivitas — per bulan, dengan pilihan bulan ====== -->
 <div class="row g-3 mb-3">
   <div class="col-md-6">
-    <div class="card shadow-sm h-100"><div class="card-header"><i class="bi bi-calendar2-week text-primary"></i> Kalender Aktivitas Publik</div>
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-calendar2-week text-primary"></i> Kalender Aktivitas Publik</span>
+        <div class="d-flex gap-1 align-items-center">
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="shiftCal('public',-1)" title="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></button>
+          <select id="calPublicMonth" class="form-select form-select-sm" style="width:auto"></select>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="shiftCal('public',1)" title="Bulan berikutnya"><i class="bi bi-chevron-right"></i></button>
+        </div>
+      </div>
       <div class="card-body" id="calPublicWrap"></div>
     </div>
   </div>
   <div class="col-md-6">
-    <div class="card shadow-sm h-100"><div class="card-header"><i class="bi bi-calendar2-heart text-success"></i> Kalender Aktivitas Saya</div>
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-calendar2-heart text-success"></i> Kalender Aktivitas Saya</span>
+        <?php if($u): ?>
+        <div class="d-flex gap-1 align-items-center">
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="shiftCal('mine',-1)" title="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></button>
+          <select id="calMineMonth" class="form-select form-select-sm" style="width:auto"></select>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="shiftCal('mine',1)" title="Bulan berikutnya"><i class="bi bi-chevron-right"></i></button>
+        </div>
+        <?php endif; ?>
+      </div>
       <div class="card-body" id="calMineWrap"><?php if(!$u): ?><div class="text-muted small">Login dulu untuk melihat kalender pribadi.</div><?php endif; ?></div>
     </div>
   </div>
@@ -293,7 +311,7 @@ include __DIR__.'/includes/header.php';
 
     <!-- ====== Riwayat Aktivitas Publik dengan Like/Comment/Share ====== -->
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-globe text-primary"></i> Riwayat Aktivitas Publik</div>
-    <div class="list-group list-group-flush" id="publicFeed">
+    <div class="list-group list-group-flush" id="publicFeed" data-paginate-list="5">
       <?php foreach($publicActs as $a): ?>
       <div class="list-group-item" data-up="<?= (int)$a['id'] ?>">
         <div class="d-flex gap-2">
@@ -311,7 +329,7 @@ include __DIR__.'/includes/header.php';
                 <div class="small text-muted"><?= htmlspecialchars($a['tanggal']) ?> · <span class="pill"><?= htmlspecialchars($a['jenis']) ?></span> · <?= (int)$a['durasi_menit'] ?> mnt · <?= htmlspecialchars($a['jarak_km'] ?? '0') ?> km</div>
               </div>
               <?php if(!empty($a['file_path'])): ?>
-                <a href="#" onclick="showBukti(event,'<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>','<?= htmlspecialchars($a['tanggal']) ?>')">
+                <a href="#" onclick="showBukti(event,this.dataset.src,this.dataset.date)" data-src="<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>" data-date="<?= htmlspecialchars($a['tanggal']) ?>">
                   <img src="<?= htmlspecialchars($a['file_path']) ?>" alt="bukti" style="height:50px;width:50px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:1px solid #ddd">
                 </a>
               <?php endif; ?>
@@ -378,7 +396,7 @@ include __DIR__.'/includes/header.php';
   <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Bukti Aktivitas <small id="bDate" class="text-muted ms-2"></small></h5>
       <button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body text-center"><img id="bImg" src="" style="max-width:100%;border-radius:8px;"></div>
+    <div class="modal-body text-center" style="overflow:auto"><img id="bImg" src="" style="max-width:100%;border-radius:8px;cursor:zoom-in;transition:transform .2s ease;transform-origin:center center;" onclick="toggleZoom(this)"></div>
     <div class="modal-footer"><a id="bOpen" href="#" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i> Buka di tab baru</a></div>
   </div></div>
 </div>
@@ -510,60 +528,132 @@ const MINE_DAYS   = <?= json_encode(array_column($myDays,null,'d'), JSON_UNESCAP
 const HAS_USER    = <?= $u ? 'true':'false' ?>;
 let _dayModal=null;
 
-function buildCalendar(rootId, days, kind){
+/* state per-kind: {year, month0} */
+const CAL_STATE = { public:null, mine:null };
+function _fmtMonth(y,m){
+  return new Date(y,m,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+}
+function _fillMonthOptions(selId, kind){
+  const sel = document.getElementById(selId); if(!sel) return;
+  const now = new Date();
+  // 24 bulan: 23 ke belakang + bulan ini
+  let html = '';
+  for (let i=0; i<24; i++){
+    const ref = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const v = `${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}`;
+    html += `<option value="${v}">${_fmtMonth(ref.getFullYear(),ref.getMonth())}</option>`;
+  }
+  sel.innerHTML = html;
+  sel.onchange = ()=>{
+    const [y,m] = sel.value.split('-').map(Number);
+    CAL_STATE[kind] = { y, m: m-1 };
+    renderCal(kind);
+  };
+}
+function buildCalendar(rootId, days, kind, Y, M){
   const root = document.getElementById(rootId);
   if (!root) return;
   if (kind==='mine' && !HAS_USER) return;
-  const now = new Date();
-  const monthsToShow = 3;
-  let html='';
-  for (let m=monthsToShow-1; m>=0; m--){
-    const ref = new Date(now.getFullYear(), now.getMonth()-m, 1);
-    const Y = ref.getFullYear(), M = ref.getMonth();
-    const monthName = ref.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-    const firstDow = new Date(Y,M,1).getDay(); // 0=Sun
-    const daysInMonth = new Date(Y,M+1,0).getDate();
-    html += `<div class="mb-3"><div class="small fw-semibold mb-1">${monthName}</div>`;
-    html += `<table class="table table-sm table-bordered text-center mb-0" style="font-size:.75rem"><thead><tr>`;
-    ['M','S','S','R','K','J','S'].forEach(d=>html+=`<th>${d}</th>`);
-    html+=`</tr></thead><tbody><tr>`;
-    for(let i=0;i<firstDow;i++) html+='<td></td>';
-    for(let d=1; d<=daysInMonth; d++){
-      const ds = `${Y}-${String(M+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const hit = days[ds];
-      const cls = hit ? (kind==='mine'?'bg-success-subtle text-success-emphasis fw-bold':'bg-primary-subtle text-primary-emphasis fw-bold') : '';
-      const click = hit ? `onclick="openDay('${ds}','${kind}')" style="cursor:pointer"` : '';
-      const badge = hit ? `<sup class="ms-1">${hit.n}</sup>` : '';
-      html += `<td class="${cls}" ${click}>${d}${badge}</td>`;
-      if ((firstDow + d) % 7 === 0 && d<daysInMonth) html+='</tr><tr>';
-    }
-    html += `</tr></tbody></table></div>`;
+  const monthName = new Date(Y,M,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  const firstDow = new Date(Y,M,1).getDay();
+  const daysInMonth = new Date(Y,M+1,0).getDate();
+  let html = `<div class="small fw-semibold mb-2 text-center">${monthName}</div>`;
+  html += `<table class="table table-sm table-bordered text-center mb-0" style="font-size:.8rem"><thead><tr>`;
+  ['M','S','S','R','K','J','S'].forEach(d=>html+=`<th>${d}</th>`);
+  html+=`</tr></thead><tbody><tr>`;
+  for(let i=0;i<firstDow;i++) html+='<td></td>';
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = `${Y}-${String(M+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hit = days[ds];
+    const cls = hit ? (kind==='mine'?'bg-success-subtle text-success-emphasis fw-bold':'bg-primary-subtle text-primary-emphasis fw-bold') : '';
+    const click = hit ? `onclick="openDay('${ds}','${kind}')" style="cursor:pointer"` : '';
+    const badge = hit ? `<sup class="ms-1">${hit.n}</sup>` : '';
+    html += `<td class="${cls}" ${click}>${d}${badge}</td>`;
+    if ((firstDow + d) % 7 === 0 && d<daysInMonth) html+='</tr><tr>';
   }
+  html += `</tr></tbody></table>`;
   root.innerHTML = html;
 }
-function openDay(date, kind){
-  if(!_dayModal) _dayModal = new bootstrap.Modal(document.getElementById('dayModal'));
-  document.getElementById('dayTitle').textContent = (kind==='mine'?'Aktivitas Saya — ':'Aktivitas Publik — ')+date;
-  document.getElementById('dayBody').innerHTML = '<div class="text-center text-muted small py-3">Memuat…</div>';
-  _dayModal.show();
-  const act = kind==='mine' ? 'day_mine_detail' : 'day_public_detail';
-  fetch('riwayat.php?action='+act+'&date='+encodeURIComponent(date)).then(r=>r.json()).then(j=>{
-    if(!j.ok){ document.getElementById('dayBody').innerHTML='<div class="text-danger">'+(j.msg||'gagal')+'</div>'; return; }
-    if(!j.rows || !j.rows.length){ document.getElementById('dayBody').innerHTML='<div class="text-muted small">Tidak ada data.</div>'; return; }
-    let html='<div class="list-group list-group-flush">';
-    j.rows.forEach(r=>{
-      const who = r.nama ? `<a href="/user.php?id=${r.uid}" class="text-decoration-none">${escapeHtml(r.nama)}</a> · ` : '';
-      const img = r.file_path ? `<img src="${r.file_path}" style="width:42px;height:42px;border-radius:6px;object-fit:cover;border:1px solid #ddd" class="ms-2">` : '';
-      html += `<div class="list-group-item d-flex justify-content-between align-items-start">
-        <div><div class="small">${who}<span class="pill">${escapeHtml(r.jenis||'')}</span></div>
-        <div class="small text-muted">${r.durasi_menit||0} mnt · ${r.jarak_km||0} km · ${r.kalori||0} kkal</div>
-        ${r.deskripsi?('<div class="small mt-1">'+escapeHtml(r.deskripsi)+'</div>'):''}</div>${img}</div>`;
-    });
-    html+='</div>';
-    document.getElementById('dayBody').innerHTML = html;
-  });
+function renderCal(kind){
+  const st = CAL_STATE[kind]; if(!st) return;
+  if (kind==='public') buildCalendar('calPublicWrap', PUBLIC_DAYS, 'public', st.y, st.m);
+  else buildCalendar('calMineWrap', MINE_DAYS, 'mine', st.y, st.m);
+  const sel = document.getElementById(kind==='public'?'calPublicMonth':'calMineMonth');
+  if (sel) sel.value = `${st.y}-${String(st.m+1).padStart(2,'0')}`;
 }
-buildCalendar('calPublicWrap', PUBLIC_DAYS, 'public');
-buildCalendar('calMineWrap',   MINE_DAYS,   'mine');
+function shiftCal(kind, delta){
+  const st = CAL_STATE[kind]; if(!st) return;
+  const ref = new Date(st.y, st.m + delta, 1);
+  CAL_STATE[kind] = { y: ref.getFullYear(), m: ref.getMonth() };
+  renderCal(kind);
+}
+(function initCalendars(){
+  const now = new Date();
+  CAL_STATE.public = { y: now.getFullYear(), m: now.getMonth() };
+  CAL_STATE.mine   = { y: now.getFullYear(), m: now.getMonth() };
+  _fillMonthOptions('calPublicMonth','public');
+  renderCal('public');
+  if (HAS_USER) { _fillMonthOptions('calMineMonth','mine'); renderCal('mine'); }
+})();
+
+/* ===== Zoom-on-click untuk gambar bukti ===== */
+function toggleZoom(img){
+  if (img.dataset.zoom === '1') {
+    img.style.transform = 'scale(1)';
+    img.style.cursor = 'zoom-in';
+    img.dataset.zoom = '0';
+  } else {
+    img.style.transform = 'scale(2)';
+    img.style.cursor = 'zoom-out';
+    img.dataset.zoom = '1';
+  }
+}
+
+/* ===== Pagination generik (tabel & list) ===== */
+function paginate(items, n, mountFn){
+  if (!items.length || items.length <= n) return null;
+  let page = 1;
+  const pages = Math.ceil(items.length / n);
+  function render(){
+    items.forEach((el,i)=>{ el.style.display = (i>=(page-1)*n && i<page*n) ? '' : 'none'; });
+    return page+'/'+pages;
+  }
+  render();
+  return { next:()=>{ if(page<pages){page++; render();} }, prev:()=>{ if(page>1){page--; render();} }, info:()=>page+'/'+pages, pages:()=>pages, page:()=>page };
+}
+function _ctlHtml(p){
+  return `<button class="btn btn-sm btn-outline-secondary me-2" data-pg="prev"><i class="bi bi-chevron-left"></i></button>
+          <span class="text-muted">Hal. ${p.info()}</span>
+          <button class="btn btn-sm btn-outline-secondary ms-2" data-pg="next"><i class="bi bi-chevron-right"></i></button>`;
+}
+function bindPager(ctlEl, p, redraw){
+  function rerender(){ ctlEl.innerHTML = _ctlHtml(p);
+    ctlEl.querySelector('[data-pg="prev"]').onclick = ()=>{ p.prev(); rerender(); redraw && redraw(); };
+    ctlEl.querySelector('[data-pg="next"]').onclick = ()=>{ p.next(); rerender(); redraw && redraw(); };
+  }
+  rerender();
+}
+document.querySelectorAll('table[data-paginate]').forEach(tbl=>{
+  const n = parseInt(tbl.dataset.paginate||'0',10); if(!n) return;
+  const tbody = tbl.tBodies[0]; if(!tbody) return;
+  const rows = Array.from(tbody.rows);
+  const p = paginate(rows, n); if(!p) return;
+  const ctl = document.createElement('tr');
+  const td  = document.createElement('td');
+  td.colSpan = (tbl.tHead?.rows?.[0]?.cells?.length) || (rows[0]?.cells?.length || 1);
+  td.className = 'text-center small bg-light';
+  ctl.appendChild(td); tbody.appendChild(ctl);
+  bindPager(td, p);
+});
+document.querySelectorAll('[data-paginate-list]').forEach(root=>{
+  const n = parseInt(root.dataset.paginateList||'0',10); if(!n) return;
+  const items = Array.from(root.children);
+  const p = paginate(items, n); if(!p) return;
+  const ctl = document.createElement('div');
+  ctl.className = 'text-center small py-2 border-top bg-light';
+  root.appendChild(ctl);
+  bindPager(ctl, p);
+});
+
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>
