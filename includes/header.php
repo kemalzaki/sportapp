@@ -175,46 +175,96 @@ if ($u) {
     <div class="list-group list-group-flush">
       <a class="list-group-item list-group-item-action" href="/index.php"><i class="bi bi-house-door-fill"></i> Beranda</a>
       <?php if ($u): ?>
-        <a class="list-group-item list-group-item-action" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a>
-        <a class="list-group-item list-group-item-action" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
         <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
-        <?php /* Revisi 6 Juni 2026: Check-in via barcode dihapus dari drawer. */ ?>
-        <a class="list-group-item list-group-item-action" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
-        <a class="list-group-item list-group-item-action" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a>
-        <a class="list-group-item list-group-item-action" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
-        <a class="list-group-item list-group-item-action" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
+        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
+        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
+        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
+        <a class="list-group-item list-group-item-action" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Gaya Hidup</a>
+
+        <?php /* Grup: Jogging Progress */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpJogging" role="button" aria-expanded="false">
+          <span><i class="bi bi-activity text-success"></i> Jogging Progress</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpJogging">
+          <a class="list-group-item list-group-item-action ps-4" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur</a>
+        </div>
+
+        <?php /* Grup: Perhitungan Kalori Olahraga */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpKalori" role="button" aria-expanded="false">
+          <span><i class="bi bi-fire text-danger"></i> Perhitungan Kalori Olahraga</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpKalori">
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)</a>
+        </div>
+
+        <?php /* Grup: Agenda Kita */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpAgenda" role="button" aria-expanded="false">
+          <span><i class="bi bi-calendar-week-fill text-primary"></i> Agenda Kita</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpAgenda">
+          <a class="list-group-item list-group-item-action ps-4" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
+        </div>
+
         <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em"><i class="bi bi-calculator-fill"></i> Kalkulator</div>
         <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
         <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
         <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)</a>
-        <a class="list-group-item list-group-item-action" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Gaya Hidup</a>
-        <a class="list-group-item list-group-item-action" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur</a>
-        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
-        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
-        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
+
         <?php if ($u['role']==='admin'): ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
-          <a class="list-group-item list-group-item-action" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
-          <a class="list-group-item list-group-item-action" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a>
-          <a class="list-group-item list-group-item-action" href="/admin/absensi.php"><i class="bi bi-clipboard-check"></i> Input Absensi</a>
-          <a class="list-group-item list-group-item-action" href="/admin/event_absensi.php"><i class="bi bi-clipboard2-check text-warning"></i> Input Absensi Event</a>
-          <?php /* Revisi 6 Juni 2026: QR Check-in admin dihapus. */ ?>
-          <a class="list-group-item list-group-item-action" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
-          <a class="list-group-item list-group-item-action" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
-          <a class="list-group-item list-group-item-action" href="/admin/tempat.php"><i class="bi bi-geo-alt-fill"></i> CRUD Tempat</a>
-          <a class="list-group-item list-group-item-action" href="/admin/event.php"><i class="bi bi-trophy"></i> Pengaturan Event</a>
-          <a class="list-group-item list-group-item-action" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a>
-          <a class="list-group-item list-group-item-action" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a>
-          <a class="list-group-item list-group-item-action" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
-          <a class="list-group-item list-group-item-action" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
-          <div class="px-3 pt-2 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">CMS &amp; Pengaturan</div>
-          <a class="list-group-item list-group-item-action" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
-                                                            <a class="list-group-item list-group-item-action" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
+
+          <?php /* Admin > Giat Olahraga */ ?>
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpGiat" role="button" aria-expanded="false">
+            <span><i class="bi bi-clipboard-data text-primary"></i> Giat Olahraga</span><i class="bi bi-chevron-down small"></i>
+          </a>
+          <div class="collapse" id="grpGiat">
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/jadwal.php"><i class="bi bi-shield-lock"></i> Manajemen Jadwal</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/absensi.php"><i class="bi bi-clipboard-check"></i> Input Absensi</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/tempat.php"><i class="bi bi-geo-alt-fill"></i> CRUD Tempat</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a>
+          </div>
+
+          <?php /* Admin > Event Organize */ ?>
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpEventOrg" role="button" aria-expanded="false">
+            <span><i class="bi bi-trophy text-warning"></i> Event Organize</span><i class="bi bi-chevron-down small"></i>
+          </a>
+          <div class="collapse" id="grpEventOrg">
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/event_absensi.php"><i class="bi bi-clipboard2-check text-warning"></i> Input Absensi Event</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/event.php"><i class="bi bi-trophy"></i> Pengaturan Event</a>
+          </div>
+
+          <?php /* Admin > Member Organize */ ?>
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpMember" role="button" aria-expanded="false">
+            <span><i class="bi bi-people-fill text-info"></i> Member Organize</span><i class="bi bi-chevron-down small"></i>
+          </a>
+          <div class="collapse" id="grpMember">
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
+          </div>
+
+          <?php /* Admin > Pengaturan Lainnya */ ?>
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpLainnya" role="button" aria-expanded="false">
+            <span><i class="bi bi-gear-fill text-secondary"></i> Pengaturan Lainnya</span><i class="bi bi-chevron-down small"></i>
+          </a>
+          <div class="collapse" id="grpLainnya">
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
+          </div>
+
+          <a class="list-group-item list-group-item-action" href="/admin/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
         <?php endif; ?>
 
         <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
