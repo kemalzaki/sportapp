@@ -483,14 +483,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       $cacheDir = sys_get_temp_dir().'/sportapp_iptv';
       if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
-      $cacheFile = $cacheDir.'/id.m3u';
+      $cacheFile = $cacheDir.'/idwork.m3u';
       $rawIptv = null;
       if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 6*3600) {
         $rawIptv = @file_get_contents($cacheFile);
       }
       if (!$rawIptv) {
         $ctx = stream_context_create(['http'=>['timeout'=>8,'user_agent'=>'HapFamSportApp/1.0']]);
-        $rawIptv = @file_get_contents('https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u', false, $ctx);
+        $rawIptv = @file_get_contents('https://raw.githubusercontent.com/mgi24/tvdigital/main/idwork.m3u', false, $ctx);
         if ($rawIptv) @file_put_contents($cacheFile, $rawIptv);
       }
       if ($rawIptv) {
@@ -510,6 +510,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } catch (Throwable $e) { $iptvChannels = []; }
+
+
+    // Blocklist (revisi 11 Juni 2026) — sembunyikan channel yang diminta diblokir.
+    $iptvBlockedExact = [
+      'music information channel','ugtv','u channel','tv mu',
+      'selaparang tv','rakyat bengkulu tv','mqtv','pktv','ktv',
+      'caruban tv','bn channel',
+    ];
+    $iptvIsBlocked = function($name) use ($iptvBlockedExact) {
+      $n = strtolower(trim((string)$name));
+      $n = preg_replace('/\s*\((?:\d{3,4}p|hd|sd|fhd)\)\s*/i','',$n);
+      $n = preg_replace('/\s+(?:\d{3,4}p|hd|sd|fhd)\b/i','',$n);
+      $n = trim(preg_replace('/\s+/',' ',$n));
+      if ($n === '') return false;
+      foreach ($iptvBlockedExact as $b) { if ($n === $b || strpos($n, $b) === 0) return true; }
+      if (preg_match('/\btvri\b/i', $n)) return true;
+      if (preg_match('/\bstara\s*tv\b/i', $n)) return true;
+      return false;
+    };
+    $iptvChannels = array_values(array_filter($iptvChannels, fn($c) => !$iptvIsBlocked($c['name'] ?? '')));
 
     // Daftar channel AKTIF (manual curation 7 Juni 2026).
     $iptvActiveList = [
@@ -667,6 +687,41 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="rounded-circle bg-info-subtle text-info mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-snow fs-4"></i></div>
             <div class="fw-semibold">Paket Pendinginan Olahraga</div>
             <div class="small text-muted">Cool-down setelah olahraga</div>
+          </div>
+        </div>
+      </a>
+      </a>
+    </div>
+    <!-- Revisi 11 Juni 2026: Cedera Olahraga, Kalkulator Detak Jantung, Kalkulator Kesehatan -->
+    <div class="col-6 col-md-3">
+      <a href="/cedera_olahraga.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-bandaid fs-4"></i></div>
+            <div class="fw-semibold">Cedera Olahraga &amp; Penanganan</div>
+            <div class="small text-muted">Termasuk pingsan &amp; mitigasi</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/kalkulator_jantung.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-heart-pulse fs-4"></i></div>
+            <div class="fw-semibold">Kalkulator Detak Jantung</div>
+            <div class="small text-muted">HRmax · zona · tanda kesehatan</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/kalkulator_kesehatan.php" class="text-decoration-none">
+        <div class="card h-100 shadow-sm border-0 info-card">
+          <div class="card-body text-center">
+            <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-clipboard2-pulse fs-4"></i></div>
+            <div class="fw-semibold">Kalkulator Kesehatan</div>
+            <div class="small text-muted">Ritme lari saat sakit (pilek/flu/dll)</div>
           </div>
         </div>
       </a>

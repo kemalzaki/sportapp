@@ -1,7 +1,9 @@
 <?php
-// iptv.php — Revisi 7 Juni 2026 (revisi-3): tampilan tabel list, responsive mobile, klik untuk putar
-// Menampilkan daftar channel IPTV Indonesia dari repo iptv-org
-// Sumber: https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u
+// iptv.php — Revisi 11 Juni 2026
+// - Sumber playlist diganti ke: https://github.com/mgi24/tvdigital (idwork.m3u)
+// - Tambahan blocklist channel yang diminta (Music Information Channel, UGTV,
+//   U CHANNEL, semua TVRI, TV Mu, semua Stara TV, Selaparang TV, Rakyat Bengkulu TV,
+//   MQTV, PKTV, KTV, Caruban TV, BN Channel) — diblokir/disembunyikan.
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
@@ -14,9 +16,10 @@ if (!$u) { header('Location: /login.php'); exit; }
 /* ---------- Ambil & parse playlist M3U dengan cache 6 jam ---------- */
 $cacheDir = sys_get_temp_dir().'/sportapp_iptv';
 if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
-$cacheFile = $cacheDir.'/id.m3u';
+$cacheFile = $cacheDir.'/idwork.m3u';
 $cacheTtl  = 6 * 3600;
-$src = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/id.m3u';
+// Sumber baru — mgi24/tvdigital
+$src = 'https://raw.githubusercontent.com/mgi24/tvdigital/main/idwork.m3u';
 $raw = null;
 if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTtl) {
     $raw = @file_get_contents($cacheFile);
@@ -48,11 +51,42 @@ if ($raw) {
         }
     }
 }
-// Urutkan alfabet berdasarkan nama channel agar list rapi
+
+/* ---------- Blocklist (revisi 11 Juni 2026) ---------- */
+function iptv_norm_name($s){
+    $s = strtolower(trim((string)$s));
+    $s = preg_replace('/\s*\((?:\d{3,4}p|hd|sd|fhd)\)\s*/i','',$s);
+    $s = preg_replace('/\s+(?:\d{3,4}p|hd|sd|fhd)\b/i','',$s);
+    $s = preg_replace('/\s+/',' ',$s);
+    return trim($s);
+}
+function iptv_is_blocked($name){
+    $n = iptv_norm_name($name);
+    if ($n === '') return false;
+    // exact / contains exact tokens
+    $blockExact = [
+        'music information channel','ugtv','u channel','tv mu',
+        'selaparang tv','rakyat bengkulu tv','mqtv','pktv','ktv',
+        'caruban tv','bn channel',
+    ];
+    foreach ($blockExact as $b) {
+        if ($n === $b) return true;
+        // tangani sufiks resolusi/variant tipis
+        if (strpos($n, $b) === 0) return true;
+    }
+    // semua TVRI (apa pun variannya)
+    if (preg_match('/\btvri\b/i', $n)) return true;
+    // semua Stara TV (apa pun varian kota)
+    if (preg_match('/\bstara\s*tv\b/i', $n)) return true;
+    return false;
+}
+$channels = array_values(array_filter($channels, fn($c) => !iptv_is_blocked($c['name'] ?? '')));
+
+// Urutkan alfabet
 usort($channels, fn($a,$b)=>strcasecmp($a['name'] ?: '', $b['name'] ?: ''));
 $total = count($channels);
 
-// Kumpulkan daftar grup untuk filter
+// Daftar grup untuk filter
 $groups = [];
 foreach ($channels as $c) {
     $g = trim((string)$c['group']);
@@ -63,7 +97,6 @@ sort($groups, SORT_NATURAL | SORT_FLAG_CASE);
 include __DIR__.'/includes/header.php';
 ?>
 <style>
-/* ====== IPTV — tampilan tabel list, responsive ====== */
 .iptv-toolbar{position:sticky;top:0;z-index:5;background:#fff;padding:.5rem 0;border-bottom:1px solid #eef2f7;}
 .iptv-logo{width:40px;height:40px;object-fit:contain;background:#f1f5f9;border-radius:8px;padding:3px;}
 .iptv-logo-fallback{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;}
@@ -79,8 +112,6 @@ include __DIR__.'/includes/header.php';
 .iptv-sub{font-size:.78rem;color:#64748b;}
 #iptvPlayerWrap{position:relative;background:#000;border-radius:12px;overflow:hidden;}
 #iptvPlayer{width:100%;aspect-ratio:16/9;background:#000;}
-
-/* Mobile: sembunyikan kolom sekunder, padatkan tabel jadi list */
 @media (max-width: 575.98px){
   .iptv-table .col-no,
   .iptv-table .col-group,
@@ -103,7 +134,7 @@ include __DIR__.'/includes/header.php';
     <div>
       <h1 class="h4 mb-1"><i class="bi bi-tv-fill text-success"></i> IPTV Indonesia</h1>
       <div class="small text-muted">
-        Sumber: <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org/iptv</a>
+        Sumber: <a href="https://github.com/mgi24/tvdigital" target="_blank" rel="noopener">mgi24/tvdigital · idwork.m3u</a>
         · <span id="iptvCount"><?= (int)$total ?></span> dari <?= (int)$total ?> channel
       </div>
     </div>
@@ -112,12 +143,11 @@ include __DIR__.'/includes/header.php';
   <?php if ($total === 0): ?>
     <div class="alert alert-warning">
       <i class="bi bi-exclamation-triangle"></i>
-      Gagal memuat daftar channel dari iptv-org. Pastikan server bisa mengakses
+      Gagal memuat daftar channel. Pastikan server bisa mengakses
       <code>raw.githubusercontent.com</code>, lalu refresh halaman ini.
     </div>
   <?php else: ?>
 
-  <!-- Player -->
   <div class="card border-0 shadow-sm mb-3" id="iptvPlayerCard" style="display:none">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
@@ -128,12 +158,11 @@ include __DIR__.'/includes/header.php';
         <video id="iptvPlayer" controls autoplay playsinline></video>
       </div>
       <div class="small text-muted mt-2">
-        <i class="bi bi-info-circle"></i> Beberapa channel mungkin tidak bisa diputar di browser jika geo-blocked atau membutuhkan DRM. Coba channel lain bila gagal.
+        <i class="bi bi-info-circle"></i> Beberapa channel mungkin tidak bisa diputar di browser jika geo-blocked atau membutuhkan DRM.
       </div>
     </div>
   </div>
 
-  <!-- Toolbar: search + filter grup -->
   <div class="iptv-toolbar">
     <div class="row g-2 align-items-center">
       <div class="col-12 col-sm">
@@ -155,7 +184,6 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 
-  <!-- Tabel list channel -->
   <div class="table-responsive">
     <table class="table table-hover align-middle iptv-table" id="iptvTable">
       <thead class="table-light d-none d-sm-table-header-group">
