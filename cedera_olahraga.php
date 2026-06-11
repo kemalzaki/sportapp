@@ -1,7 +1,5 @@
 <?php
-// cedera_olahraga.php — Revisi 11 Juni 2026 (rev-2)
-// Info cedera olahraga umum + penanganan + mitigasi sebelum cedera (termasuk pingsan).
-// Revisi: tambahan video edukasi per cedera (YouTube embed).
+// cedera_olahraga.php — Revisi (video YouTube diperbarui)
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
@@ -10,7 +8,6 @@ send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Cedera Olahraga & Penanganan';
 $u = current_user();
 
-// Helper: ekstrak ID YouTube dari URL/ID apapun
 $ytId = function($s){
   $s = trim((string)$s);
   if ($s === '') return '';
@@ -33,8 +30,8 @@ $CEDERA = [
     ],
     'mitigasi'=>['Pemanasan dinamis 5-10 menit','Gunakan sepatu sesuai aktivitas','Latihan keseimbangan & propriosepsi','Hindari permukaan tidak rata'],
     'videos'=>[
-      ['Penanganan Keseleo (RICE)','https://www.youtube.com/watch?v=aGiKZ4WIQbY'],
-      ['Latihan Rehab Ankle Sprain','https://www.youtube.com/watch?v=Kc6oC9P9JdU'],
+      ['Penanganan Keseleo (RICE)','https://www.youtube.com/watch?v=pdBX5lKW-hg'],
+      ['Latihan Rehab Ankle Sprain','https://www.youtube.com/watch?v=C5ettc0onck'],
     ],
   ],
   [
@@ -48,8 +45,8 @@ $CEDERA = [
     ],
     'mitigasi'=>['Hidrasi cukup sebelum & selama olahraga','Pemanasan & peregangan','Cukup elektrolit (natrium, kalium, magnesium)','Tidak overtraining'],
     'videos'=>[
-      ['Cara Mengatasi Kram Otot','https://www.youtube.com/watch?v=2bcNFp-A6jE'],
-      ['Stretching Anti Kram Betis','https://www.youtube.com/watch?v=YgKip4lW9wA'],
+      ['Cara Mengatasi Kram Otot','https://www.youtube.com/watch?v=rjxEfbBwj30'],
+      ['Stretching Anti Kram Betis','https://www.youtube.com/watch?v=9twPWWIGu-o'],
     ],
   ],
   [
@@ -59,19 +56,19 @@ $CEDERA = [
     'penanganan'=>['RICE 48-72 jam pertama','Hindari aktivitas memicu nyeri','Setelah 3 hari mulai mobilisasi ringan & peregangan'],
     'mitigasi'=>['Pemanasan dinamis','Tingkatkan beban latihan bertahap (≤10%/minggu)','Latihan kekuatan rutin'],
     'videos'=>[
-      ['Muscle Strain: Penyebab & Penanganan','https://www.youtube.com/watch?v=BIzHCgWHsQk'],
-      ['Rehab Hamstring Strain','https://www.youtube.com/watch?v=_lt7eMNxJv8'],
+      ['Muscle Strain: Penyebab & Penanganan','https://www.youtube.com/watch?v=sGKHzfdzs2A'],
+      ['Rehab Hamstring Strain','https://www.youtube.com/watch?v=hBcmkInzZKE'],
     ],
   ],
   [
-    'nama'=>'Cedera Lutut (Runner\'s Knee)',
+    'nama'=>"Cedera Lutut (Runner's Knee)",
     'icon'=>'bi-person-walking', 'warna'=>'info',
     'gejala'=>['Nyeri di sekitar tempurung lutut','Bertambah sakit saat naik/turun tangga'],
     'penanganan'=>['Istirahat & kurangi beban','Ice 15-20 menit setelah aktivitas','Latihan penguat quadriceps & glutes','Konsultasi fisioterapi bila menetap'],
     'mitigasi'=>['Ganti sepatu lari tiap 500-800 km','Hindari menambah jarak >10%/minggu','Latihan core & hip strength'],
     'videos'=>[
-      ['Apa itu Runner\'s Knee?','https://www.youtube.com/watch?v=qQ8Y9oSx5Vw'],
-      ['5 Latihan Penguat Lutut','https://www.youtube.com/watch?v=Aj6sR4nMNCM'],
+      ["Apa itu Runner's Knee?",'https://www.youtube.com/watch?v=q59peAoaCSo'],
+      ['5 Latihan Penguat Lutut','https://www.youtube.com/watch?v=ekdpK5FsqiY'],
     ],
   ],
   [
@@ -81,7 +78,7 @@ $CEDERA = [
     'penanganan'=>['Jangan dipecahkan kecuali sangat besar','Tutup dengan plester blister/hydrocolloid','Jaga kebersihan, ganti plester rutin'],
     'mitigasi'=>['Pakai kaus kaki olahraga (anti gesek)','Sepatu pas, tidak longgar','Gunakan vaseline pada titik gesekan'],
     'videos'=>[
-      ['Cara Merawat Blister di Kaki','https://www.youtube.com/watch?v=Q0c5dQk0wPg'],
+      ['Cara Merawat Blister di Kaki','https://www.youtube.com/watch?v=s4Qj8w5wxDo'],
     ],
   ],
   [
@@ -96,8 +93,8 @@ $CEDERA = [
     ],
     'mitigasi'=>['Olahraga di pagi/sore','Hidrasi 500 ml 1 jam sebelumnya','Pakaian ringan & breathable','Aklimatisasi bertahap di cuaca panas'],
     'videos'=>[
-      ['Heat Exhaustion vs Heat Stroke','https://www.youtube.com/watch?v=H4n7Z3iVOY8'],
-      ['Pertolongan Pertama Kelelahan Panas','https://www.youtube.com/watch?v=mY2QYNGY1EE'],
+      ['Heat Exhaustion vs Heat Stroke','https://www.youtube.com/watch?v=oynSAL8v8aY'],
+      ['Pertolongan Pertama Kelelahan Panas','https://www.youtube.com/watch?v=Ev78iB4PE40'],
     ],
   ],
   [
@@ -120,8 +117,8 @@ $CEDERA = [
       'Awasi tanda kelelahan: hentikan bila pusing, dada berdebar, atau pandangan kabur.',
     ],
     'videos'=>[
-      ['Pertolongan Pertama Pingsan','https://www.youtube.com/watch?v=Plse2FOkV4Q'],
-      ['CPR Dewasa (BHD)','https://www.youtube.com/watch?v=cosVBV96E2g'],
+      ['Pertolongan Pertama Pingsan','https://www.youtube.com/watch?v=wMiXQeV84AY'],
+      ['CPR Dewasa (BHD)','https://www.youtube.com/watch?v=Rn6c6F88vc4'],
     ],
   ],
   [
@@ -131,8 +128,8 @@ $CEDERA = [
     'penanganan'=>['Istirahat aktif (tetap bergerak ringan)','Kompres dingin 48 jam pertama lalu hangat','Penguatan core & peregangan hamstring','Konsultasi bila menjalar ke kaki'],
     'mitigasi'=>['Teknik mengangkat yang benar (jongkok, bukan membungkuk)','Latihan core (plank, bird-dog)','Hindari beban berlebih'],
     'videos'=>[
-      ['Latihan Aman untuk Nyeri Punggung Bawah','https://www.youtube.com/watch?v=2yzMUs3badc'],
-      ['Stretching Low Back Pain','https://www.youtube.com/watch?v=DWmGArQBtFI'],
+      ['Latihan Aman untuk Nyeri Punggung Bawah','https://www.youtube.com/watch?v=e91iGG39KLM'],
+      ['Stretching Low Back Pain','https://www.youtube.com/watch?v=ZpBOwQaxBZc'],
     ],
   ],
 ];
