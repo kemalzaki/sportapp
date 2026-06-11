@@ -45,7 +45,10 @@ CREATE TABLE IF NOT EXISTS kalori_target (
   updated_at     TIMESTAMP NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS kalori_log (
+-- Catatan: kalori_log (workout) sudah dipakai kalori_badminton/renang/pingpong/futsal
+-- dengan kolom: jenis, intensitas, berat_kg, menit, met, kalori, dibuat_pada.
+-- Pencatatan MAKANAN dipindah ke tabel terpisah agar tidak bentrok skema.
+CREATE TABLE IF NOT EXISTS kalori_makanan_log (
   id            SERIAL PRIMARY KEY,
   user_id       INT NOT NULL,
   tanggal       DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -57,4 +60,4 @@ CREATE TABLE IF NOT EXISTS kalori_log (
   catatan       TEXT,
   created_at    TIMESTAMP NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_kalori_user_tgl ON kalori_log(user_id, tanggal DESC);
+CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC);

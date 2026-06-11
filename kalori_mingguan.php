@@ -11,6 +11,28 @@ $u = current_user();
 if (!$u) { header('Location: /login.php'); exit; }
 $uid = (int)$u['id'];
 
+// Auto-buat tabel (idempotent) — dipisah dari kalori_log (workout) agar tidak bentrok skema.
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS kalori_target (
+        user_id        INT PRIMARY KEY,
+        target_harian  INT NOT NULL DEFAULT 2000,
+        updated_at     TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE TABLE IF NOT EXISTS kalori_makanan_log (
+        id            SERIAL PRIMARY KEY,
+        user_id       INT NOT NULL,
+        tanggal       DATE NOT NULL DEFAULT CURRENT_DATE,
+        waktu         TIME NOT NULL DEFAULT CURRENT_TIME,
+        nama_makanan  VARCHAR(200) NOT NULL,
+        kalori        INT NOT NULL DEFAULT 0,
+        foto_url      TEXT,
+        ai_estimasi   BOOLEAN NOT NULL DEFAULT FALSE,
+        catatan       TEXT,
+        created_at    TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC)");
+} catch (Throwable $e) {}
+
 // === Helper AI ===
 function ai_estimate_kalori($imagePath, $hint=''){
     $key = getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : '');
@@ -90,12 +112,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
         if ($nama === '') $nama = 'Tanpa nama';
         if ($kal < 0) $kal = 0;
-        db_exec("INSERT INTO kalori_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,ai_estimasi,catatan)
+        db_exec("INSERT INTO kalori_makanan_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,ai_estimasi,catatan)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
             [$uid,$tgl,$jam,$nama,$kal,$foto,$aiUsed?'t':'f',$cat]);
         if (!isset($_SESSION['flash_err'])) $_SESSION['flash_ok'] = "Makanan ditambahkan ($kal kkal)".($aiUsed?' [AI]':'').".";
     } elseif ($a==='delete') {
-        db_exec("DELETE FROM kalori_log WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
+        db_exec("DELETE FROM kalori_makanan_log WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
     }
     header('Location: kalori_mingguan.php'); exit;
 }
@@ -104,10 +126,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $target = (int)(db_one("SELECT target_harian FROM kalori_target WHERE user_id=$1",[$uid])['target_harian'] ?? 2000);
 $weekStart = date('Y-m-d', strtotime('monday this week'));
 $weekEnd   = date('Y-m-d', strtotime('sunday this week'));
-$logs = db_all("SELECT * FROM kalori_log WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3 ORDER BY tanggal DESC, waktu DESC",
+$logs = db_all("SELECT * FROM kalori_makanan_log WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3 ORDER BY tanggal DESC, waktu DESC",
     [$uid,$weekStart,$weekEnd]);
 $byDay = db_all("SELECT tanggal::text AS tgl, SUM(kalori)::int AS total
-                 FROM kalori_log WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3
+                 FROM kalori_makanan_log WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3
                  GROUP BY tanggal ORDER BY tanggal",[$uid,$weekStart,$weekEnd]);
 $map = [];
 foreach($byDay as $r) $map[$r['tgl']] = (int)$r['total'];

@@ -480,6 +480,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <?php
     // Revisi 7 Juni 2026 (revisi-4): IPTV — tandai aktif/tidak, dedupe, total counter.
     $iptvChannels = [];
+    $iptvFromDb = false;
+    // Revisi 11 Juni 2026: jika admin sudah CRUD channel via /admin/iptv.php,
+    // gunakan data DB (iptv_channels) sebagai sumber utama. Fallback ke playlist
+    // eksternal hanya jika tabel kosong / tidak ada.
+    try {
+      $dbRows = db_all("SELECT nama, url, logo_url, group_name, aktif
+                        FROM iptv_channels
+                        ORDER BY aktif DESC, COALESCE(sort_order,9999), LOWER(nama)");
+      if ($dbRows && count($dbRows) > 0) {
+        foreach ($dbRows as $r) {
+          $aktif = ($r['aktif']==='t' || $r['aktif']===true || $r['aktif']==='1' || $r['aktif']===1);
+          $iptvChannels[] = [
+            'name'   => $r['nama'],
+            'url'    => $r['url'],
+            'logo'   => $r['logo_url'] ?? '',
+            'group'  => $r['group_name'] ?? '',
+            'active' => $aktif,
+            '_db'    => true,
+          ];
+        }
+        $iptvFromDb = true;
+      }
+    } catch (Throwable $e) { /* tabel belum dibuat, fallback ke playlist */ }
+
+    if (!$iptvFromDb) {
     try {
       $cacheDir = sys_get_temp_dir().'/sportapp_iptv';
       if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
@@ -510,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } catch (Throwable $e) { $iptvChannels = []; }
+    }
 
 
     // Blocklist (revisi 11 Juni 2026) — sembunyikan channel yang diminta diblokir.
@@ -529,7 +555,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (preg_match('/\bstara\s*tv\b/i', $n)) return true;
       return false;
     };
-    $iptvChannels = array_values(array_filter($iptvChannels, fn($c) => !$iptvIsBlocked($c['name'] ?? '')));
+    // Saat sumber dari DB admin, jangan diblokir/diubah — admin yang berwenang
+    // memilih channel apa yang tampil di index.
+    if (!$iptvFromDb) {
+      $iptvChannels = array_values(array_filter($iptvChannels, fn($c) => !$iptvIsBlocked($c['name'] ?? '')));
+    }
 
     // Daftar channel AKTIF (manual curation 7 Juni 2026).
     $iptvActiveList = [
@@ -566,7 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
       $key = $iptvNorm($c['name']);
       if ($key === '' || isset($seen[$key])) continue;
       $seen[$key] = true;
-      $c['active'] = isset($iptvActiveSet[$key]);
+      // Saat dari DB admin: 'active' sudah diisi dari kolom aktif.
+      if (!isset($c['active'])) $c['active'] = isset($iptvActiveSet[$key]);
       $deduped[] = $c;
     }
     usort($deduped, function($a,$b){
