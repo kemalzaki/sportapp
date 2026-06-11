@@ -27,84 +27,8 @@ if (!$raw) {
     if ($raw) @file_put_contents($cacheFile, $raw);
 }
 $channels = [];
-// ===== Channel tambahan (Revisi 11 Juni 2026 rev-3) — selalu aktif, tidak terhapus =====
-$EXTRA_M3U = <<<'M3U'
-#EXTM3U
-#EXTINF:0 tvg-country="ID" tvg-logo="" group-title="lokal",ANTV (720p) [Geo-blocked]
-http://210.210.155.35/qwr9ew/s/s07/index1.m3u8
-#EXTINF:-1 group-title="lokal",BACKUP ANTV
-http://210.210.155.35/qwr9ew/s/s07/01.m3u8
-#EXTINF:-1 group-title="lokal" tvg-logo="https://www.transtv.co.id/livetv/anytv/INDOSIAR_live_streaming_tv.jpg",INDOSIAR
-http://210.210.155.35/session/9ec7c73c-099b-11ea-aff4-b82a72d63267/qwr9ew/s/s04/01.m3u8
-#EXTINF:-1 group-title="lokal",BACKUP INDOSIAR
-http://210.210.155.35/qwr9ew/s/s04/01.m3u8
-#EXTINF:-1 group-title="lokal",BACKUP INDOSIAR 2
-http://210.210.155.35/qwr9ew/s/s04/index10.m3u8
-#EXTINF:-1 group-title="lokal",SCTV
-http://210.210.155.35/qwr9ew/s/s03/02.m3u8
-#EXTINF:-1 group-title="lokal",BACKUP SCTV
-http://210.210.155.37/qwr9ew/s/s03/index.m3u8
-#EXTINF:-1 group-title="news;lokal" tvg-logo="",TVOne
-http://210.210.155.37/qwr9ew/s/s105/01.m3u8
-#EXTINF:-1 group-title="lokal" tvg-logo="https://www.transtv.co.id/livetv/anytv/NET_TV_live_streaming_tv.jpg",BACKUP NET TV SD
-http://210.210.155.35/qwr9ew/s/s08/01.m3u8
-#EXTINF:-1 group-title="lokal" tvg-logo="https://www.transtv.co.id/livetv/anytv/NET_TV_live_streaming_tv.jpg",BACKUP NET TV LOW
-http://210.210.155.37/qwr9ew/s/s08/index.m3u8
-#EXTINF:-1 group-title="lokal;news" tvg-logo="https://www.transtv.co.id/livetv/anytv/KOMPAS_TV_live_streaming_tv.jpg",KompasTV
-http://210.210.155.35/qwr9ew/s/s104/index.m3u8
-#EXTINF:0 tvg-country="ID" tvg-logo="https://cdn.cnbcindonesia.com/cnbc/images/logo_hitam.png?w=650" group-title="news",CNBC Indonesia
-http://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/chunklist_w528900641_b384000_sleng.m3u8
-#EXTINF:-1 group-title="news",BACKUP CNBC Indonesia
-http://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/master.m3u8
-#EXTINF:-1 group-title="news;lokal" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_International_logo.svg/1200px-CNN_International_logo.svg.png",CNN INDONESIA
-http://live.cnnindonesia.com/livecnn/smil:cnntv.smil/chunklist_b384000_sleng.m3u8
-#EXTINF:-1 group-title="lokal" tvg-logo="https://i.imgur.com/bD2odoR.png",TVRI Sport HD
-http://210.210.155.35/qwr9ew/s/s107/index.m3u8
-#EXTINF:-1 tvg-logo="https://i.imgur.com/bD2odoR.png" group-title="olahraga",(ID) TVRI OLAHRAGA
-http://ott.tvri.co.id/Content/HLS/Live/Channel(TVRI4)/index.m3u8
-M3U;
-
-// ===== Blokir channel berdasarkan pola nama (Revisi 11 Juni 2026 rev-3) =====
-// Catatan: pattern dicocokkan via mb_strtolower + strpos, kecuali yang ditandai 'word' (cocok kata utuh).
-$BLOCKED_PATTERNS = [
-  ['mode'=>'contains','q'=>'music information channel'],
-  ['mode'=>'word',    'q'=>'ugtv'],
-  ['mode'=>'word',    'q'=>'u channel'],
-  ['mode'=>'word',    'q'=>'u-channel'],
-  // "Semua TVRI" — namun TVRI Sport HD & TVRI OLAHRAGA harus tetap aktif (whitelist di bawah)
-  ['mode'=>'contains','q'=>'tvri'],
-  ['mode'=>'word',    'q'=>'tv mu'],
-  ['mode'=>'contains','q'=>'stara tv'],
-  ['mode'=>'contains','q'=>'selaparang'],
-  ['mode'=>'contains','q'=>'rakyat bengkulu'],
-  ['mode'=>'word',    'q'=>'mqtv'],
-  ['mode'=>'word',    'q'=>'pktv'],
-  ['mode'=>'word',    'q'=>'ktv'],
-  ['mode'=>'contains','q'=>'caruban'],
-  ['mode'=>'contains','q'=>'bn channel'],
-];
-// Whitelist (jangan diblokir meski cocok pola di atas):
-$BLOCK_WHITELIST = ['tvri sport','tvri olahraga'];
-
-function _iptv_is_blocked(string $name, array $patterns, array $whitelist): bool {
-  $n = mb_strtolower(trim($name));
-  if ($n === '') return false;
-  foreach ($whitelist as $w) { if (strpos($n, $w) !== false) return false; }
-  foreach ($patterns as $p) {
-    $q = $p['q'];
-    if ($p['mode'] === 'word') {
-      if (preg_match('/(^|[^a-z0-9])'.preg_quote($q,'/').'($|[^a-z0-9])/i', $n)) return true;
-    } else {
-      if (strpos($n, $q) !== false) return true;
-    }
-  }
-  return false;
-}
-
-// Parse playlist (gabung sumber utama + tambahan)
-$rawAll = ($raw ?: '') . "\n" . $EXTRA_M3U;
-if ($rawAll) {
-    $lines = preg_split('/\r?\n/', $rawAll);
+if ($raw) {
+    $lines = preg_split('/\r?\n/', $raw);
     $cur = null;
     foreach ($lines as $ln) {
         $ln = trim($ln);
@@ -118,15 +42,9 @@ if ($rawAll) {
             if (preg_match('/group-title="([^"]*)"/', $ln, $m)) $group = $m[1];
             $cur = ['name'=>$name, 'logo'=>$logo, 'group'=>$group, 'url'=>''];
         } elseif (strpos($ln, '#') === 0) {
-            // skip komentar/atribut lain
+            // skip
         } else {
-            if ($cur !== null) {
-                $cur['url'] = $ln;
-                if (!_iptv_is_blocked($cur['name'], $BLOCKED_PATTERNS, $BLOCK_WHITELIST)) {
-                    $channels[] = $cur;
-                }
-                $cur = null;
-            }
+            if ($cur !== null) { $cur['url'] = $ln; $channels[] = $cur; $cur = null; }
         }
     }
 }

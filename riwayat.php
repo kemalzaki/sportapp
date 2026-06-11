@@ -102,31 +102,44 @@ $uPeriodSql = str_replace('j.tanggal','uh.tanggal',$periodSql);
 
 $lb = [];
 if ($cat === 'konsisten') {
-    $lb = db_all("SELECT u.id,u.nama,u.foto_url, COUNT(*) AS skor
-                  FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id JOIN users u ON u.id=a.user_id
-                  WHERE a.hadir=1 AND $periodSql
-                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+    // Revisi: konsisten = jumlah hari unik upload aktivitas dalam periode
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url, COUNT(DISTINCT uh.tanggal) AS skor
+                  FROM upload_harian uh JOIN users u ON u.id=uh.user_id
+                  WHERE $uPeriodSql
+                  GROUP BY u.id,u.nama,u.foto_url
+                  HAVING COUNT(DISTINCT uh.tanggal) > 0
+                  ORDER BY skor DESC LIMIT 20");
 } elseif ($cat === 'jarak') {
     $lb = db_all("SELECT u.id,u.nama,u.foto_url, COALESCE(SUM(uh.jarak_km),0) AS skor
                   FROM upload_harian uh JOIN users u ON u.id=uh.user_id
-                  WHERE $uPeriodSql
-                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+                  WHERE $uPeriodSql AND uh.jarak_km IS NOT NULL
+                  GROUP BY u.id,u.nama,u.foto_url
+                  HAVING COALESCE(SUM(uh.jarak_km),0) > 0
+                  ORDER BY skor DESC LIMIT 20");
 } elseif ($cat === 'pace') {
     $lb = db_all("SELECT u.id,u.nama,u.foto_url, MIN(uh.pace_detik) AS skor
                   FROM upload_harian uh JOIN users u ON u.id=uh.user_id
-                  WHERE $uPeriodSql AND uh.pace_detik IS NOT NULL
+                  WHERE $uPeriodSql AND uh.pace_detik IS NOT NULL AND uh.pace_detik > 0
                   GROUP BY u.id,u.nama,u.foto_url ORDER BY skor ASC LIMIT 20");
 } elseif ($cat === 'kalori') {
     $lb = db_all("SELECT u.id,u.nama,u.foto_url, COALESCE(SUM(uh.kalori),0) AS skor
                   FROM upload_harian uh JOIN users u ON u.id=uh.user_id
                   WHERE $uPeriodSql
-                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+                  GROUP BY u.id,u.nama,u.foto_url
+                  HAVING COALESCE(SUM(uh.kalori),0) > 0
+                  ORDER BY skor DESC LIMIT 20");
 } else {
+    // All Rounder: skor gabungan dari variasi jenis + hari aktif + total jarak + kalori
     $lb = db_all("SELECT u.id,u.nama,u.foto_url,
-                    (COUNT(DISTINCT j.jenis)*10 + COUNT(*)) AS skor
-                  FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id JOIN users u ON u.id=a.user_id
-                  WHERE a.hadir=1 AND $periodSql
-                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor DESC LIMIT 20");
+                    (COUNT(DISTINCT uh.jenis)*20
+                     + COUNT(DISTINCT uh.tanggal)*5
+                     + COALESCE(SUM(uh.jarak_km),0)
+                     + COALESCE(SUM(uh.kalori),0)/100.0) AS skor
+                  FROM upload_harian uh JOIN users u ON u.id=uh.user_id
+                  WHERE $uPeriodSql
+                  GROUP BY u.id,u.nama,u.foto_url
+                  HAVING COUNT(*) > 0
+                  ORDER BY skor DESC LIMIT 20");
 }
 
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
@@ -150,7 +163,7 @@ if ($jids) {
 
 /* ---------- (1) Monitoring upload harian — yg BELUM olahraga 1× / 7 hari ---------- */
 $belumOlahraga = db_all("
-  SELECT u.id, u.nama, u.foto_url,
+  SELECT u.id, u.nama, u.foto_url, u.nomor_wa,
          (SELECT MAX(uh.tanggal) FROM upload_harian uh WHERE uh.user_id=u.id) AS terakhir
   FROM users u
   WHERE TRUE  -- Revisi 11 Juni 2026 (rev-2): kolom u.aktif tidak ada di tabel users; filter dilonggarkan
@@ -227,7 +240,19 @@ include __DIR__.'/includes/header.php';
           <tr>
             <td><a href="/user.php?id=<?= (int)$b['id'] ?>" class="text-decoration-none"><?= user_name_with_avatar($b['foto_url']??null, $b['nama'], false, 24) ?></a></td>
             <td class="small"><?= $b['terakhir'] ? htmlspecialchars($b['terakhir']).' <span class="text-muted">('.(int)((time()-strtotime($b['terakhir']))/86400).' hari lalu)</span>' : '<span class="text-danger">Belum pernah</span>' ?></td>
-            <td class="text-end"><a class="btn btn-sm btn-outline-warning" href="/dm.php?to=<?= (int)$b['id'] ?>"><i class="bi bi-chat-dots"></i> Ingatkan</a></td>
+            <td class="text-end">
+              <?php
+                $waRaw = preg_replace('/\D+/','', (string)($b['nomor_wa'] ?? ''));
+                if ($waRaw !== '') {
+                    if (str_starts_with($waRaw,'0')) $waRaw = '62'.substr($waRaw,1);
+                    elseif (!str_starts_with($waRaw,'62')) $waRaw = '62'.$waRaw;
+                    $msg = rawurlencode('Halo '.($b['nama']??'').", yuk olahraga lagi! Kamu belum upload aktivitas minggu ini di HapFam SportApp.");
+                    echo '<a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="https://wa.me/'.htmlspecialchars($waRaw).'?text='.$msg.'"><i class="bi bi-whatsapp"></i> Ingatkan</a>';
+                } else {
+                    echo '<a class="btn btn-sm btn-outline-secondary" href="/dm.php?to='.(int)$b['id'].'" title="Nomor WA belum diisi, kirim via DM"><i class="bi bi-chat-dots"></i> Ingatkan</a>';
+                }
+              ?>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -527,6 +552,38 @@ const PUBLIC_DAYS = <?= json_encode(array_column($publicDays,null,'d'), JSON_UNE
 const MINE_DAYS   = <?= json_encode(array_column($myDays,null,'d'), JSON_UNESCAPED_UNICODE) ?>;
 const HAS_USER    = <?= $u ? 'true':'false' ?>;
 let _dayModal=null;
+
+function openDay(dateStr, kind){
+  if(!_dayModal) _dayModal = new bootstrap.Modal(document.getElementById('dayModal'));
+  document.getElementById('dayTitle').textContent =
+    (kind==='mine' ? 'Aktivitas Saya · ' : 'Aktivitas Publik · ') + dateStr;
+  const body = document.getElementById('dayBody');
+  body.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-arrow-clockwise"></i> Memuat…</div>';
+  _dayModal.show();
+  const act = kind==='mine' ? 'day_mine_detail' : 'day_public_detail';
+  fetch('riwayat.php?action='+act+'&date='+encodeURIComponent(dateStr))
+    .then(r=>r.json()).then(j=>{
+      if(!j.ok){ body.innerHTML = '<div class="text-danger small">'+(j.msg||'Gagal memuat')+'</div>'; return; }
+      if(!j.rows || !j.rows.length){ body.innerHTML = '<div class="text-muted small">Tidak ada aktivitas pada tanggal ini.</div>'; return; }
+      let html = '<div class="list-group list-group-flush">';
+      j.rows.forEach(r=>{
+        const ava = (kind!=='mine' && r.foto_url) ? `<img src="${r.foto_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" class="me-2">` : '';
+        const who = (kind!=='mine') ? `<a class="fw-semibold text-decoration-none" href="/user.php?id=${r.uid}">${escapeHtml(r.nama||'')}</a>` : '';
+        const img = r.file_path ? `<a href="#" onclick="showBukti(event,'${(r.file_path||'').replace(/'/g,"\\'")}','${dateStr}')"><img src="${r.file_path}" style="height:56px;width:56px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:1px solid #ddd"></a>` : '';
+        const meta = `<span class="pill">${escapeHtml(r.jenis||'-')}</span> · ${parseInt(r.durasi_menit||0)} mnt · ${r.jarak_km||0} km · ${parseInt(r.kalori||0)} kkal`;
+        html += `<div class="list-group-item d-flex gap-2">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center mb-1">${ava}${who}</div>
+            <div class="small text-muted">${meta}</div>
+            ${r.deskripsi ? '<div class="small mt-1">'+escapeHtml(r.deskripsi)+'</div>' : ''}
+          </div>
+          <div class="flex-shrink-0">${img}</div>
+        </div>`;
+      });
+      html += '</div>';
+      body.innerHTML = html;
+    }).catch(e=>{ body.innerHTML = '<div class="text-danger small">Gagal memuat: '+e+'</div>'; });
+}
 
 /* state per-kind: {year, month0} */
 const CAL_STATE = { public:null, mine:null };

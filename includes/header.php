@@ -157,7 +157,7 @@ if ($u) {
     <?php /* Revisi 6 Juni 2026: menu Check-in via barcode dihapus. */ ?>
     <a class="gt-chip" href="/dm.php" data-sfx="tap"><i class="bi bi-chat-dots-fill"></i>Pesan</a>
     <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami</a>
-    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-heart-pulse-fill"></i>Sehat</a>
+    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-calculator-fill"></i>Kalkulator</a>
   <?php else: ?>
     <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i>Masuk</a>
     <a class="gt-chip" href="/register.php" data-sfx="tap"><i class="bi bi-person-plus-fill"></i>Daftar</a>
@@ -183,11 +183,12 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a>
         <a class="list-group-item list-group-item-action" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
         <a class="list-group-item list-group-item-action" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
-        <a class="list-group-item list-group-item-action" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
-        <a class="list-group-item list-group-item-action" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
-        <a class="list-group-item list-group-item-action" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
-        <a class="list-group-item list-group-item-action" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
-        <a class="list-group-item list-group-item-action" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
+        <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em"><i class="bi bi-calculator-fill"></i> Kalkulator</div>
+        <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
+        <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
+        <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
+        <a class="list-group-item list-group-item-action ps-4" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
+        <a class="list-group-item list-group-item-action ps-4" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
         <a class="list-group-item list-group-item-action" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur</a>
         <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
@@ -205,7 +206,6 @@ if ($u) {
           <a class="list-group-item list-group-item-action" href="/admin/event.php"><i class="bi bi-trophy"></i> Pengaturan Event</a>
           <a class="list-group-item list-group-item-action" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a>
           <a class="list-group-item list-group-item-action" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a>
-          <a class="list-group-item list-group-item-action" href="/admin/challenge.php"><i class="bi bi-trophy-fill text-warning"></i> Kelola Challenge Islami</a>
           <a class="list-group-item list-group-item-action" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
           <a class="list-group-item list-group-item-action" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
           <div class="px-3 pt-2 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">CMS &amp; Pengaturan</div>
@@ -239,10 +239,19 @@ if ($u) {
           <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a></li>
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
-          <li class="nav-item"><a class="nav-link" href="/kalkulator.php"><i class="bi bi-heart-pulse"></i> Kalkulator Sehat</a></li>
-          <li class="nav-item"><a class="nav-link" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a></li>
-          <li class="nav-item"><a class="nav-link" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a></li>
-          <li class="nav-item"><a class="nav-link" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-calculator-fill"></i> Kalkulator</a>
+            <ul class="dropdown-menu shadow">
+              <li><h6 class="dropdown-header">Kalkulator</h6></li>
+              <li><a class="dropdown-item" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a></li>
+              <li><a class="dropdown-item" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a></li>
+              <li><a class="dropdown-item" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><h6 class="dropdown-header">Kalori</h6></li>
+              <li><a class="dropdown-item" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a></li>
+              <li><a class="dropdown-item" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur</a></li>
           <li class="nav-item"><a class="nav-link" href="/dm.php"><i class="bi bi-chat-dots text-info"></i> Pesan</a></li>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
@@ -263,7 +272,6 @@ if ($u) {
               <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>
               <li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li>
-              <li><a class="dropdown-item" href="/admin/challenge.php"><i class="bi bi-trophy text-warning"></i> Kelola Challenge Islami</a></li>
               <li><a class="dropdown-item" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><hr class="dropdown-divider"></li>
