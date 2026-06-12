@@ -179,7 +179,6 @@ if ($u) {
         <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
         <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
-        <a class="list-group-item list-group-item-action" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Gaya Hidup</a>
 
         <?php /* Grup: Jogging Progress */ ?>
         <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpJogging" role="button" aria-expanded="false">
@@ -218,6 +217,23 @@ if ($u) {
         <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
         <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
         <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
+        <a class="list-group-item list-group-item-action ps-4" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup</a>
+
+        <?php /* Grup: Info dan Wawasan (revisi 12 Juni 2026) — dipindah dari index.php */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpInfoWawasan" role="button" aria-expanded="false">
+          <span><i class="bi bi-compass text-primary"></i> Info dan Wawasan</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpInfoWawasan">
+          <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-heart-pulse text-danger"></i> Kesehatan</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik</a>
+          <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/results?search_query=panduan+olahraga+teknik" target="_blank" rel="noopener"><i class="bi bi-youtube text-danger"></i> Panduan Olahraga</a>
+          <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/watch?v=Ks5dz69gsDk" target="_blank" rel="noopener"><i class="bi bi-fire text-warning"></i> Paket Pemanasan Olahraga</a>
+          <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/watch?v=uXznjq2BLMI" target="_blank" rel="noopener"><i class="bi bi-snow text-info"></i> Paket Pendinginan Olahraga</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
+        </div>
 
         <?php if ($u['role']==='admin'): ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
@@ -262,9 +278,9 @@ if ($u) {
           <div class="collapse" id="grpLainnya">
             <a class="list-group-item list-group-item-action ps-4" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
           </div>
 
-          <a class="list-group-item list-group-item-action" href="/admin/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
         <?php endif; ?>
 
         <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
@@ -308,7 +324,7 @@ if ($u) {
               <li><a class="dropdown-item" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a></li>
               <li><a class="dropdown-item" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Gaya Hidup</a></li>
+              <li><a class="dropdown-item" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup</a></li>
             </ul>
           </li>
           <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur</a></li>
