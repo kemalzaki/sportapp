@@ -46,10 +46,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
             log_login_attempt($emailKey, $ok);
             if ($ok) {
-                session_regenerate_id(true);
+                // Revisi 13 Juni 2026: set data session DULU sebelum regenerate_id agar
+                // tidak ada race-condition pada save handler tertentu.
                 $_SESSION['user'] = ['id'=>(int)$u['id'],'nama'=>$u['nama'],'email'=>$u['email']??'','role'=>$u['role']];
                 $_SESSION['last_activity'] = time();
                 unset($_SESSION['captcha_answer']);
+                session_regenerate_id(true);
                 
       // Revisi 13 Juni 2026: catat login ke login_logs
       // Revisi 13 Juni 2026: catat login ke login_logs
@@ -63,6 +65,7 @@ try {
     // Tetap silent sesuai code awal jika terjadi error pada database
 }
 
+session_write_close();
 header('Location: /index.php'); 
 exit;
             }

@@ -22,17 +22,9 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax',
     ]);
     session_start();
-    // Perpanjang cookie tiap request agar tidak expired di tengah pemakaian
-    if (!empty($_COOKIE[session_name()])) {
-        setcookie(session_name(), session_id(), [
-            'expires'  => time() + 60*60*24*30,
-            'path'     => '/',
-            'domain'   => $_cp['domain'] ?? '',
-            'secure'   => !empty($_SERVER['HTTPS']),
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-    }
+    // Revisi 13 Juni 2026: cookie session sudah persistent via session_set_cookie_params di atas.
+    // Manual setcookie() di sini menyebabkan dua header Set-Cookie ketika login memanggil
+    // session_regenerate_id(true) -> browser memakai session ID lama -> user balik ke /login.php.
 }
 
 $DATABASE_URL = getenv('DATABASE_URL');
