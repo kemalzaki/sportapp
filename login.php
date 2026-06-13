@@ -52,8 +52,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 unset($_SESSION['captcha_answer']);
                 
       // Revisi 13 Juni 2026: catat login ke login_logs
-      try { db_exec("INSERT INTO login_logs(user_id,ip,user_agent) VALUES(\$1,\$2,\$3)", [(int)\$u['id'], \$_SERVER['REMOTE_ADDR']??null, substr(\$_SERVER['HTTP_USER_AGENT']??'',0,250)]); } catch (Throwable \$e) {}
-header('Location: /index.php'); exit;
+      // Revisi 13 Juni 2026: catat login ke login_logs
+try { 
+    db_exec("INSERT INTO login_logs(user_id, ip, user_agent) VALUES($1, $2, $3)", [
+        (int)$u['id'], 
+        $_SERVER['REMOTE_ADDR'] ?? null, 
+        substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 250)
+    ]); 
+} catch (Throwable $e) {
+    // Tetap silent sesuai code awal jika terjadi error pada database
+}
+
+header('Location: /index.php'); 
+exit;
             }
             $err = 'Nama atau password salah.';
         }
