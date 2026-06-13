@@ -1,35 +1,28 @@
-# Revisi 13 Juni 2026 — Perbaikan Login
+# Catatan Revisi Login - 13 Juni 2026 Fix 2
 
 ## Masalah
-Setelah submit form login dengan data benar, user kembali ke halaman `/login.php`
-(tidak masuk ke `/index.php`).
+Setelah login benar, aplikasi tetap diarahkan kembali dari `/index.php` ke `/login.php`.
 
-## Penyebab
-File `config/db.php` memanggil `setcookie(session_name(), session_id(), ...)`
-di setiap awal request untuk memperpanjang cookie session 30 hari.
-Pada request POST login, `login.php` memanggil `session_regenerate_id(true)`
-sehingga PHP mengirim header `Set-Cookie: PHPSESSID=<ID_BARU>`.
-Akibatnya response berisi DUA header `Set-Cookie` (ID lama dari db.php
-+ ID baru dari regenerate). Browser sering memakai ID lama, sehingga
-pada redirect ke `/index.php` session kosong → user dipantulkan balik ke
-`/login.php`.
+## Penyebab tambahan yang diperbaiki
+Pada beberapa server lokal, `$_SERVER['HTTPS']` bisa bernilai string `off`.
+Kode lama memakai `!empty($_SERVER['HTTPS'])`, sehingga `off` tetap dianggap HTTPS.
+Akibatnya cookie `PHPSESSID` dibuat dengan flag `Secure` saat aplikasi dibuka lewat HTTP lokal.
+Browser tidak mengirim cookie Secure pada HTTP, sehingga session tidak terbaca di `/index.php`.
 
-## Perbaikan
-1. **`config/db.php`** — hilangkan blok manual `setcookie(session_name()...)`.
-   Lifetime 30 hari tetap aktif via `session_set_cookie_params([...])` di atasnya.
-2. **`login.php`** —
-   - Set `$_SESSION['user']` DULU baru `session_regenerate_id(true)`
-     agar data session pasti ikut termigrasi.
-   - Tambah `session_write_close()` sebelum `header('Location: /index.php')`
-     supaya session benar-benar tersimpan sebelum redirect.
-
-## File yang diubah dalam zip ini
-- `login.php`
+## File yang direvisi
 - `config/db.php`
-
-Cukup timpa kedua file tersebut di project lokal.
+  - Deteksi HTTPS dibuat benar: `off` tidak lagi dianggap HTTPS.
+  - Blok manual `setcookie(session_name(), session_id(), ...)` tetap dihapus agar tidak mengirim session ID lama.
+- `login.php`
+  - Alur login dirapikan.
+  - `session_write_close()` tetap dipanggil sebelum redirect ke `/index.php`.
 
 ## PostgreSQL
-Tidak ada migrasi baru yang perlu dijalankan untuk perbaikan ini.
-(Migrasi `migrations_revisi_13juni2026.sql` dari paket sebelumnya tetap
-berlaku jika belum dijalankan, tapi tidak terkait bug ini.)
+Tidak ada tabel atau kolom baru yang perlu ditambahkan untuk revisi ini.
+
+## Cara pasang
+Replace file berikut di project lokal:
+1. `login.php`
+2. `config/db.php`
+
+Setelah replace, tutup browser atau hapus cookie `PHPSESSID` untuk domain lokal aplikasi, lalu login ulang.

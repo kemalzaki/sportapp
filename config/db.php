@@ -13,18 +13,29 @@ if (session_status() === PHP_SESSION_NONE) {
     $_cp = session_get_cookie_params();
     @ini_set('session.gc_maxlifetime', 60*60*24*30);
     @ini_set('session.cookie_lifetime', 60*60*24*30);
+
+    // Revisi 13 Juni 2026 fix-2:
+    // Di beberapa server lokal, $_SERVER['HTTPS'] berisi string "off".
+    // !empty('off') bernilai true sehingga cookie menjadi Secure di HTTP lokal,
+    // browser tidak mengirim PHPSESSID ke /index.php, lalu user balik ke /login.php.
+    $isHttps = (
+        (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+        || (($_SERVER['SERVER_PORT'] ?? '') === '443')
+        || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https')
+    );
+
     session_set_cookie_params([
         'lifetime' => 60*60*24*30,
         'path'     => '/',
         'domain'   => $_cp['domain'] ?? '',
-        'secure'   => !empty($_SERVER['HTTPS']),
+        'secure'   => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
     session_start();
-    // Revisi 13 Juni 2026: cookie session sudah persistent via session_set_cookie_params di atas.
-    // Manual setcookie() di sini menyebabkan dua header Set-Cookie ketika login memanggil
-    // session_regenerate_id(true) -> browser memakai session ID lama -> user balik ke /login.php.
+    // Jangan manual setcookie(session_name(), session_id()) di sini.
+    // Saat login memakai session_regenerate_id(true), setcookie manual bisa membuat
+    // dua header PHPSESSID (ID lama + ID baru) dan session di index.php menjadi kosong.
 }
 
 $DATABASE_URL = getenv('DATABASE_URL');
