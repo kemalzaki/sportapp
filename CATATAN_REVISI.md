@@ -1,28 +1,34 @@
-# Catatan Revisi Login - 13 Juni 2026 Fix 2
+# Catatan Revisi Login - 13 Juni 2026
 
-## Masalah
-Setelah login benar, aplikasi tetap diarahkan kembali dari `/index.php` ke `/login.php`.
-
-## Penyebab tambahan yang diperbaiki
-Pada beberapa server lokal, `$_SERVER['HTTPS']` bisa bernilai string `off`.
-Kode lama memakai `!empty($_SERVER['HTTPS'])`, sehingga `off` tetap dianggap HTTPS.
-Akibatnya cookie `PHPSESSID` dibuat dengan flag `Secure` saat aplikasi dibuka lewat HTTP lokal.
-Browser tidak mengirim cookie Secure pada HTTP, sehingga session tidak terbaca di `/index.php`.
+Isi ZIP ini hanya file yang direvisi, bukan seluruh aplikasi.
 
 ## File yang direvisi
-- `config/db.php`
-  - Deteksi HTTPS dibuat benar: `off` tidak lagi dianggap HTTPS.
-  - Blok manual `setcookie(session_name(), session_id(), ...)` tetap dihapus agar tidak mengirim session ID lama.
-- `login.php`
-  - Alur login dirapikan.
-  - `session_write_close()` tetap dipanggil sebelum redirect ke `/index.php`.
+
+1. `config/db.php`
+   - Memperbaiki deteksi HTTPS agar cookie session tidak salah menjadi `Secure` saat dijalankan di local HTTP.
+   - Menghapus pengiriman ulang cookie session manual yang bisa bentrok dengan `session_regenerate_id()`.
+
+2. `includes/auth.php`
+   - Menambahkan cookie login cadangan `hf_auth` yang ditandatangani HMAC.
+   - Jika session PHP tidak terbaca di `index.php`, aplikasi otomatis memulihkan user dari cookie cadangan dan mengambil data user terbaru dari tabel `users`.
+
+3. `login.php`
+   - Setelah login berhasil, aplikasi menyimpan session PHP dan cookie cadangan, lalu memanggil `session_write_close()` sebelum redirect ke `/index.php`.
+
+4. `logout.php`
+   - Logout sekarang menghapus session dan cookie cadangan.
+
+5. `includes/security.php`
+   - Saat session expired, cookie cadangan juga ikut dihapus.
+
+6. `service-worker.js`
+   - Halaman navigasi dan file `.php` tidak lagi di-cache oleh service worker, supaya `/index.php` dan `/login.php` selalu mengambil response terbaru dari server.
+   - Cache lama `sportapp-v3` akan dibersihkan otomatis.
 
 ## PostgreSQL
-Tidak ada tabel atau kolom baru yang perlu ditambahkan untuk revisi ini.
 
-## Cara pasang
-Replace file berikut di project lokal:
-1. `login.php`
-2. `config/db.php`
+Tidak perlu menambahkan tabel/kolom PostgreSQL untuk revisi ini. Data SQL yang sudah ada tetap dipakai dan tidak dihapus.
 
-Setelah replace, tutup browser atau hapus cookie `PHPSESSID` untuk domain lokal aplikasi, lalu login ulang.
+## Catatan penggunaan
+
+Ekstrak ZIP ini ke root project dan timpa file lama sesuai path masing-masing. Setelah mengganti `service-worker.js`, jika browser masih memakai cache lama, lakukan hard refresh atau clear site data sekali.

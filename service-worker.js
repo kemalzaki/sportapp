@@ -1,6 +1,6 @@
 // SportApp v3 — minimal service worker (PWA shell)
-const CACHE = 'sportapp-v3';
-const ASSETS = ['/', '/index.php', '/assets/css/app.css', '/assets/css/app-v3.css'];
+const CACHE = 'sportapp-v4-loginfix';
+const ASSETS = ['/assets/css/app.css', '/assets/css/app-v3.css', '/assets/icon-192.png', '/assets/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{})));
@@ -8,13 +8,18 @@ self.addEventListener('install', e => {
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    Promise.all(keys.filter(k => k !== CACHE && k.startsWith('sportapp-')).map(k => caches.delete(k)))
   ));
   self.clients.claim();
 });
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (req.mode === 'navigate' || url.pathname.endsWith('.php') || url.pathname === '/') {
+    e.respondWith(fetch(req));
+    return;
+  }
   e.respondWith(
     fetch(req).then(r => {
       const copy = r.clone();

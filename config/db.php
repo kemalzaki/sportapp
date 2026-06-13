@@ -10,29 +10,20 @@ if (is_file(__DIR__ . '/env.local.php')) {
 }
 if (session_status() === PHP_SESSION_NONE) {
     // === Member tetap login (cookie persistent 30 hari) ===
-    $_cp = session_get_cookie_params();
+    $_https = strtolower((string)($_SERVER['HTTPS'] ?? ''));
+    $_isSecure = (!empty($_SERVER['HTTPS']) && $_https !== 'off')
+        || (($_SERVER['SERVER_PORT'] ?? '') === '443')
+        || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
     @ini_set('session.gc_maxlifetime', 60*60*24*30);
     @ini_set('session.cookie_lifetime', 60*60*24*30);
     session_set_cookie_params([
         'lifetime' => 60*60*24*30,
         'path'     => '/',
-        'domain'   => $_cp['domain'] ?? '',
-        'secure'   => !empty($_SERVER['HTTPS']),
+        'secure'   => $_isSecure,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
     session_start();
-    // Perpanjang cookie tiap request agar tidak expired di tengah pemakaian
-    if (!empty($_COOKIE[session_name()])) {
-        setcookie(session_name(), session_id(), [
-            'expires'  => time() + 60*60*24*30,
-            'path'     => '/',
-            'domain'   => $_cp['domain'] ?? '',
-            'secure'   => !empty($_SERVER['HTTPS']),
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-    }
 }
 
 $DATABASE_URL = getenv('DATABASE_URL');

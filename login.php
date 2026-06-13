@@ -50,6 +50,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 $_SESSION['user'] = ['id'=>(int)$u['id'],'nama'=>$u['nama'],'email'=>$u['email']??'','role'=>$u['role']];
                 $_SESSION['last_activity'] = time();
                 unset($_SESSION['captcha_answer']);
+                app_login_cookie_set($_SESSION['user']);
+                session_write_close();
                 header('Location: /index.php'); exit;
             }
             $err = 'Nama atau password salah.';

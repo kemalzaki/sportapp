@@ -34,6 +34,7 @@ function enforce_session_timeout(int $minutes = 43200): void {
     if (!isset($_SESSION['user'])) return;
     $now = time();
     if (isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity'] > $minutes * 60)) {
+        app_login_cookie_clear();
         session_unset(); session_destroy();
         header('Location: /login.php?expired=1'); exit;
     }
