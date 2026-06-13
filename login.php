@@ -46,27 +46,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
             log_login_attempt($emailKey, $ok);
             if ($ok) {
-                // Revisi 13 Juni 2026 fix-2: buat session ID baru, lalu isi data login.
-                // session_write_close() wajib sebelum redirect agar data tersimpan
-                // sebelum request berikutnya membuka /index.php.
                 session_regenerate_id(true);
                 $_SESSION['user'] = ['id'=>(int)$u['id'],'nama'=>$u['nama'],'email'=>$u['email']??'','role'=>$u['role']];
                 $_SESSION['last_activity'] = time();
                 unset($_SESSION['captcha_answer']);
-
-                try {
-                    db_exec("INSERT INTO login_logs(user_id, ip, user_agent) VALUES($1, $2, $3)", [
-                        (int)$u['id'],
-                        $_SERVER['REMOTE_ADDR'] ?? null,
-                        substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 250)
-                    ]);
-                } catch (Throwable $e) {
-                    // Tetap silent sesuai code awal jika terjadi error pada database
-                }
-
-                session_write_close();
-                header('Location: /index.php');
-                exit;
+                header('Location: /index.php'); exit;
             }
             $err = 'Nama atau password salah.';
         }
