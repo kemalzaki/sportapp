@@ -159,13 +159,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
 $totalSesi    = (int) db_val("SELECT COUNT(*) FROM jadwal");
 $totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1");
 $totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
-// Revisi 13 Juni 2026: hitung member aktif & non-aktif (auto-migrasi kolom aktif).
+// Revisi 13 Juni 2026 (fix 2): hitung member aktif & non-aktif.
+// Auto-migrasi kolom aktif/nonaktif_catatan jika belum ada.
+// Catatan: di beberapa instalasi lama, kolom "aktif" ter-create sebagai SMALLINT
+// (mis. 0/1) bukan BOOLEAN. Agar query kompatibel keduanya, kita normalisasi
+// nilainya lewat ekspresi teks: '1','t','true','y' dianggap aktif.
 try {
   db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS aktif BOOLEAN NOT NULL DEFAULT TRUE");
   db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nonaktif_catatan TEXT");
 } catch (Throwable $e) {}
-$memberAktif    = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND COALESCE(aktif,TRUE)=TRUE");
-$memberNonaktif = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND COALESCE(aktif,TRUE)=FALSE");
+
+// Ekspresi tahan-tipe: aman untuk kolom BOOLEAN maupun SMALLINT/INT.
+$aktifExpr = "(LOWER(COALESCE(aktif::text,'true')) IN ('1','t','true','y','yes'))";
+$memberAktif    = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND $aktifExpr");
+$memberNonaktif = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND NOT $aktifExpr");
 
 // ====== REVISI 31 Mei 2026: Total Visitor ======
 // Tabel auto-create (tidak menghapus data lama). Lihat catatan SQL di README.
