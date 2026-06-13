@@ -63,7 +63,6 @@ function db_query(string $sql, array $params = []) {
     if ($res === false) {
         $err = pg_last_error(db());
         error_log('DB ERROR: ' . $err . " | SQL: $sql");
-        // Tampilkan popup error ke user (non-fatal jika ada try/catch)
         if (session_status() === PHP_SESSION_ACTIVE) {
             $_SESSION['error_popup'] = "SQL: $sql\n\n" . $err;
         }
@@ -88,14 +87,38 @@ function db_exec(string $sql, array $params = []): int {
     $r = db_query($sql, $params); return pg_affected_rows($r);
 }
 
-/* ---------- Global handler: tangkap query error fatal ---------- */
+/* ---------- Global handler: tangkap query error fatal ----------
+ * Revisi 13 Juni 2026 (loginfix-2):
+ * Sebelumnya, handler ini mem-redirect ke HTTP_REFERER ketika ada
+ * exception. Akibatnya, ketika user berhasil login lalu dialihkan ke
+ * /index.php dan ada SATU query saja yang gagal (misalnya kolom belum
+ * ada di tabel lokal), handler mengembalikan user ke /login.php
+ * (karena referer-nya /login.php). User login lagi, error lagi, dan
+ * terjebak loop "balik ke login terus".
+ *
+ * Sekarang: handler TIDAK redirect. Cukup tampilkan halaman error
+ * agar penyebab sebenarnya kelihatan dan login berhasil tetap valid.
+ * Untuk production, ubah $SHOW_DETAIL menjadi false.
+ */
 set_exception_handler(function(Throwable $e) {
+    $SHOW_DETAIL = true; // ubah false saat production
     if (session_status() === PHP_SESSION_ACTIVE) {
         $_SESSION['error_popup'] = $e->getMessage();
     }
     error_log('UNCAUGHT: '.$e->getMessage());
-    if (!headers_sent()) header('Location: '.($_SERVER['HTTP_REFERER'] ?? '/index.php'));
-    echo "<pre style='padding:20px;font-family:monospace;background:#fee;color:#900'>Terjadi error: ".htmlspecialchars($e->getMessage())."</pre>";
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
+    }
+    $msg = $SHOW_DETAIL ? htmlspecialchars($e->getMessage()) : 'Terjadi kesalahan server.';
+    $trace = $SHOW_DETAIL ? htmlspecialchars($e->getFile().':'.$e->getLine()."\n\n".$e->getTraceAsString()) : '';
+    echo "<!doctype html><meta charset='utf-8'><title>Error</title>";
+    echo "<div style='max-width:880px;margin:40px auto;font-family:system-ui,sans-serif;padding:20px;'>";
+    echo "<h2 style='color:#b91c1c'>Terjadi error pada server</h2>";
+    echo "<pre style='padding:16px;background:#fef2f2;color:#7f1d1d;border:1px solid #fecaca;border-radius:8px;white-space:pre-wrap;'>$msg</pre>";
+    if ($trace) echo "<details style='margin-top:10px'><summary>Detail (file & trace)</summary><pre style='padding:12px;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:8px;white-space:pre-wrap;'>$trace</pre></details>";
+    echo "<p style='margin-top:16px'><a href='/index.php' style='color:#0ea5e9'>&larr; Ke beranda</a> &middot; <a href='/login.php' style='color:#0ea5e9'>Login ulang</a></p>";
+    echo "</div>";
 });
 
 /* ---------- Auto-migration: tambah kolom jika belum ada ---------- */
