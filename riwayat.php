@@ -10,6 +10,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require_once __DIR__.'/includes/notifications.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Riwayat & Leaderboard';
 $u = current_user();
@@ -49,6 +50,17 @@ if (($_GET['action'] ?? '') !== '' || ($_POST['action'] ?? '') !== '') {
       } else {
         db_exec("INSERT INTO upload_harian_likes(upload_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[$upId,$uid]);
         $liked = true;
+        // Revisi 13 Juni 2026: notifikasi ke pemilik postingan (mirip FB/IG).
+        try {
+          $owner = db_one("SELECT user_id FROM upload_harian WHERE id=$1",[$upId]);
+          $oid = (int)($owner['user_id'] ?? 0);
+          if ($oid && $oid !== $uid) {
+            notify($oid, 'like_aktivitas',
+              '❤️ '.$u['nama'].' menyukai aktivitasmu',
+              'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.',
+              '/riwayat.php#act-'.$upId);
+          }
+        } catch (Throwable $e) {}
       }
       $cnt = (int)db_val("SELECT COUNT(*) FROM upload_harian_likes WHERE upload_id=$1",[$upId]);
       echo json_encode(['ok'=>true,'liked'=>$liked,'count'=>$cnt]); exit;
@@ -59,6 +71,17 @@ if (($_GET['action'] ?? '') !== '' || ($_POST['action'] ?? '') !== '') {
       if ($upId<=0 || $isi==='') throw new RuntimeException('input invalid');
       if (mb_strlen($isi) > 500) $isi = mb_substr($isi,0,500);
       db_exec("INSERT INTO upload_harian_comments(upload_id,user_id,isi) VALUES($1,$2,$3)",[$upId,$uid,$isi]);
+      // Revisi 13 Juni 2026: notifikasi komentar ke pemilik postingan.
+      try {
+        $owner = db_one("SELECT user_id FROM upload_harian WHERE id=$1",[$upId]);
+        $oid = (int)($owner['user_id'] ?? 0);
+        if ($oid && $oid !== $uid) {
+          notify($oid, 'komentar_aktivitas',
+            '💬 '.$u['nama'].' mengomentari aktivitasmu',
+            mb_substr($isi,0,120),
+            '/riwayat.php#act-'.$upId);
+        }
+      } catch (Throwable $e) {}
       $rows = db_all("SELECT c.id, c.isi, c.created_at, u.nama, u.foto_url
                       FROM upload_harian_comments c JOIN users u ON u.id=c.user_id
                       WHERE c.upload_id=$1 ORDER BY c.created_at ASC",[$upId]);
@@ -144,6 +167,7 @@ if ($cat === 'konsisten') {
 
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                           (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir,
+                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.status='telat') AS telat,
                           (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id) AS total,
                           (SELECT COUNT(*) FROM member_eksternal me WHERE me.jadwal_id=j.id) AS tamu
                    FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
@@ -156,6 +180,12 @@ if ($jids) {
     $absRows = db_all("SELECT a.jadwal_id, a.hadir, a.keterangan, u.nama, u.foto_url
                        FROM absensi a JOIN users u ON u.id=a.user_id
                        WHERE a.jadwal_id IN ($inList) ORDER BY a.hadir DESC, u.nama");
+    // Revisi 13 Juni 2026: tampilkan status "telat" terpisah dari "hadir" di Detail Sesi.
+    try {
+      $absRows = db_all("SELECT a.jadwal_id, a.hadir, a.status, a.keterangan, u.nama, u.foto_url
+                         FROM absensi a JOIN users u ON u.id=a.user_id
+                         WHERE a.jadwal_id IN ($inList) ORDER BY a.hadir DESC, u.nama");
+    } catch (Throwable $e) { /* fallback ke query lama jika kolom status belum ada */ }
     foreach ($absRows as $ar) $sesiDetail[(int)$ar['jadwal_id']]['anggota'][] = $ar;
     $tamuRows = db_all("SELECT jadwal_id, nama_tamu AS nama FROM member_eksternal WHERE jadwal_id IN ($inList)");
     foreach ($tamuRows as $tr) $sesiDetail[(int)$tr['jadwal_id']]['tamu'][] = $tr;
@@ -328,7 +358,12 @@ include __DIR__.'/includes/header.php';
           <td data-label="Koordinator"><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 22) ?></td>
           <td data-label="Durasi"><?= !empty($r['durasi_menit']) ? (int)$r['durasi_menit'].' mnt' : '<span class="text-muted small">—</span>' ?></td>
           <td data-label="Tamu"><a href="#" onclick="event.preventDefault();showSesi(<?= (int)$r['id'] ?>,'tamu')" class="badge bg-info-subtle text-info-emphasis text-decoration-none"><?= (int)$r['tamu'] ?> <i class="bi bi-zoom-in"></i></a></td>
-          <td data-label="Hadir"><a href="#" onclick="event.preventDefault();showSesi(<?= (int)$r['id'] ?>,'anggota')" class="text-decoration-none"><?= (int)$r['hadir'] ?>/<?= (int)$r['total'] ?> <i class="bi bi-zoom-in text-muted small"></i></a></td>
+          <td data-label="Hadir"><a href="#" onclick="event.preventDefault();showSesi(<?= (int)$r['id'] ?>,'anggota')" class="text-decoration-none">
+            <span class="badge bg-success-subtle text-success" title="Hadir">H <?= (int)$r['hadir'] ?></span>
+            <?php if((int)$r['telat']>0): ?><span class="badge bg-warning text-dark" title="Telat">T <?= (int)$r['telat'] ?></span><?php endif; ?>
+            <span class="text-muted small">/<?= (int)$r['total'] ?></span>
+            <i class="bi bi-zoom-in text-muted small"></i>
+          </a></td>
         </tr>
       <?php endforeach; ?>
       </tbody></table></div>
@@ -368,8 +403,8 @@ include __DIR__.'/includes/header.php';
               <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted" onclick="toggleComments(<?= (int)$a['id'] ?>)">
                 <i class="bi bi-chat"></i> <span class="lcs-comment-count"><?= (int)$a['comment_count'] ?></span>
               </button>
-              <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted" onclick="shareAct(<?= (int)$a['id'] ?>,<?= json_encode($a['nama']) ?>,<?= json_encode($a['jenis']) ?>)">
-                <i class="bi bi-share"></i> Share
+              <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-success" onclick="shareAct(<?= (int)$a['id'] ?>,<?= json_encode($a['nama']) ?>,<?= json_encode($a['jenis']) ?>)">
+                <i class="bi bi-whatsapp"></i> Share WA
               </button>
             </div>
             <div class="lcs-comments mt-2" id="cmt-<?= (int)$a['id'] ?>" style="display:none">
@@ -446,6 +481,12 @@ include __DIR__.'/includes/header.php';
 
 <script>
 let _bModal=null;
+// Revisi 13 Juni 2026: keyframes spinner ringan untuk tombol like.
+(function(){ if(!document.getElementById('riwSpinCss')){
+  const s=document.createElement('style'); s.id='riwSpinCss';
+  s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+  document.head.appendChild(s);
+}})();
 function showBukti(ev, src, date){
   if(ev) ev.preventDefault();
   if(!_bModal) _bModal = new bootstrap.Modal(document.getElementById('buktiModal'));
@@ -461,13 +502,22 @@ function _post(data){
   return fetch('riwayat.php', {method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
 }
 function toggleLike(id, btn){
+  // Revisi 13 Juni 2026: loading state mirip social feed di index.php
+  if (btn.dataset.busy === '1') return;
+  btn.dataset.busy = '1';
+  const ico = btn.querySelector('i');
+  const origCls = ico.className;
+  ico.className = 'bi bi-arrow-clockwise';
+  ico.style.animation = 'spin 1s linear infinite';
   _post({action:'like_toggle',upload_id:id}).then(j=>{
-    if(!j.ok){ alert(j.msg||'gagal'); return; }
+    if(!j.ok){ alert(j.msg||'gagal'); ico.className = origCls; ico.style.animation=''; btn.dataset.busy='0'; return; }
     btn.classList.toggle('text-danger', j.liked);
     btn.classList.toggle('text-muted', !j.liked);
-    btn.querySelector('i').className = 'bi ' + (j.liked?'bi-heart-fill':'bi-heart');
+    ico.className = 'bi ' + (j.liked?'bi-heart-fill':'bi-heart');
+    ico.style.animation='';
     btn.querySelector('.lcs-like-count').textContent = j.count;
-  });
+    btn.dataset.busy = '0';
+  }).catch(()=>{ ico.className = origCls; ico.style.animation=''; btn.dataset.busy='0'; });
 }
 function toggleComments(id){
   const w = document.getElementById('cmt-'+id);
@@ -492,20 +542,21 @@ function renderComments(id, list){
 function submitComment(e,id){
   e.preventDefault();
   const f=e.target; const isi=f.isi.value.trim(); if(!isi) return false;
+  const btn = f.querySelector('button[type=submit],button:not([type])');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn){ btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
   _post({action:'comment_add',upload_id:id,isi:isi}).then(j=>{
-    if(!j.ok){ alert(j.msg||'gagal'); return; }
-    f.isi.value=''; renderComments(id,j.comments);
-  });
+    if(!j.ok){ alert(j.msg||'gagal'); }
+    else { f.isi.value=''; renderComments(id,j.comments); }
+  }).finally(()=>{ if(btn){ btn.disabled=false; btn.innerHTML=orig; } });
   return false;
 }
 function shareAct(id, nama, jenis){
+  // Revisi 13 Juni 2026: share langsung ke WhatsApp (wa.me).
   const url = location.origin + '/riwayat.php#act-' + id;
-  const text = `${nama} baru saja olahraga ${jenis}`;
-  if (navigator.share) {
-    navigator.share({title:'Aktivitas '+nama, text:text, url:url}).catch(()=>{});
-  } else {
-    navigator.clipboard.writeText(url).then(()=>alert('Link disalin: '+url));
-  }
+  const text = `${nama} baru saja olahraga ${jenis} 💪\nLihat aktivitasnya: ${url}`;
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(wa, '_blank', 'noopener');
 }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 
@@ -534,7 +585,14 @@ function showSesi(id, focus){
     html+=`<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Nama</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>`;
     d.anggota.forEach(a=>{
       const ava=a.foto_url?`<img src="${a.foto_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover" class="me-1">`:'';
-      const st=a.hadir==1?'<span class="badge bg-success">Hadir</span>':'<span class="badge bg-secondary">Tidak hadir</span>';
+      // Revisi 13 Juni 2026: jika telat -> tampilkan "Telat" (bukan "Hadir").
+      let st;
+      const s = (a.status||'').toLowerCase();
+      if (s === 'telat')      st = '<span class="badge bg-warning text-dark">Telat</span>';
+      else if (s === 'izin')  st = '<span class="badge bg-info">Izin</span>';
+      else if (s === 'sakit') st = '<span class="badge bg-secondary">Sakit</span>';
+      else if (a.hadir == 1)  st = '<span class="badge bg-success">Hadir</span>';
+      else                    st = '<span class="badge bg-secondary">Tidak hadir</span>';
       html+=`<tr><td>${ava}${a.nama||'-'}</td><td>${st}</td><td class="small text-muted">${a.keterangan||''}</td></tr>`;
     });
     html+=`</tbody></table></div>`;

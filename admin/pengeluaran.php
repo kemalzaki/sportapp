@@ -5,6 +5,9 @@ require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle = 'Rekap Pengeluaran Kegiatan';
 
+// Revisi 13 Juni 2026 — kolom "Dana Dari Siapa" pada pengeluaran_kegiatan.
+try { db_exec("ALTER TABLE pengeluaran_kegiatan ADD COLUMN IF NOT EXISTS dana_dari VARCHAR(150)"); } catch (Throwable $e) {}
+
 /**
  * Revisi 1 Jun 2026 #8: upload bukti pengeluaran ke ImageKit.
  * Return ['url'=>, 'fileId'=>] atau null.
@@ -40,22 +43,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $jumlah    = max(0,(int)($_POST['jumlah'] ?? 0));
     $catatan   = trim($_POST['catatan'] ?? '');
     $bukti     = substr(trim($_POST['bukti_url'] ?? ''),0,500);
+    $danaDari  = substr(trim($_POST['dana_dari'] ?? ''),0,150);
 
     $upl = peng_upload_imagekit('bukti_file', $judul ?: 'bukti');
     if ($upl) { $bukti = $upl['url']; }
 
     if ($a==='add' && $judul!=='') {
-        db_exec("INSERT INTO pengeluaran_kegiatan(jadwal_id,tanggal,kategori,judul,jumlah,catatan,bukti_url,created_by)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-          [$jadwal_id,$tanggal,$kategori?:null,$judul,$jumlah,$catatan?:null,$bukti?:null,(int)current_user()['id']]);
+        db_exec("INSERT INTO pengeluaran_kegiatan(jadwal_id,tanggal,kategori,judul,jumlah,catatan,bukti_url,created_by,dana_dari)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+          [$jadwal_id,$tanggal,$kategori?:null,$judul,$jumlah,$catatan?:null,$bukti?:null,(int)current_user()['id'],$danaDari?:null]);
     } elseif ($a==='edit') {
         $id=(int)$_POST['id'];
         if (!$upl && $bukti==='') {
             $cur = db_one("SELECT bukti_url FROM pengeluaran_kegiatan WHERE id=$1",[$id]);
             $bukti = $cur['bukti_url'] ?? null;
         }
-        db_exec("UPDATE pengeluaran_kegiatan SET jadwal_id=$1,tanggal=$2,kategori=$3,judul=$4,jumlah=$5,catatan=$6,bukti_url=$7 WHERE id=$8",
-          [$jadwal_id,$tanggal,$kategori?:null,$judul,$jumlah,$catatan?:null,$bukti?:null,$id]);
+        db_exec("UPDATE pengeluaran_kegiatan SET jadwal_id=$1,tanggal=$2,kategori=$3,judul=$4,jumlah=$5,catatan=$6,bukti_url=$7,dana_dari=$8 WHERE id=$9",
+          [$jadwal_id,$tanggal,$kategori?:null,$judul,$jumlah,$catatan?:null,$bukti?:null,$danaDari?:null,$id]);
     } elseif ($a==='delete') {
         db_exec("DELETE FROM pengeluaran_kegiatan WHERE id=$1", [(int)$_POST['id']]);
     }
@@ -129,6 +133,8 @@ include __DIR__.'/../includes/header.php';
       <input class="form-control form-control-sm" name="judul" required></div>
     <div class="col-md-2"><label class="small">Jumlah (Rp)</label>
       <input type="number" class="form-control form-control-sm" name="jumlah" min="0" step="1000" required></div>
+    <div class="col-md-3"><label class="small">Dana Dari (siapa)</label>
+      <input class="form-control form-control-sm" name="dana_dari" placeholder="cth: Kas Tim / Pak Budi / Sponsor X"></div>
     <div class="col-md-6"><label class="small">Catatan</label>
       <input class="form-control form-control-sm" name="catatan"></div>
     <div class="col-md-3"><label class="small">URL Bukti (opsional, jika sudah punya)</label>
@@ -141,7 +147,7 @@ include __DIR__.'/../includes/header.php';
 </div></div>
 
 <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
-  <thead><tr><th>Tgl</th><th>Jadwal</th><th>Kategori</th><th>Judul</th><th class="text-end">Jumlah</th><th>Catatan</th><th>Bukti (ImageKit)</th><th>Pencatat</th><th class="text-end" style="min-width:130px">Aksi</th></tr></thead>
+  <thead><tr><th>Tgl</th><th>Jadwal</th><th>Kategori</th><th>Judul</th><th class="text-end">Jumlah</th><th>Dana Dari</th><th>Catatan</th><th>Bukti (ImageKit)</th><th>Pencatat</th><th class="text-end" style="min-width:130px">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $r): ?>
     <tr>
@@ -155,6 +161,7 @@ include __DIR__.'/../includes/header.php';
       <td><span class="badge bg-secondary-subtle text-secondary"><?= htmlspecialchars($r['kategori'] ?? '-') ?></span></td>
       <td><?= htmlspecialchars($r['judul']) ?></td>
       <td class="text-end text-danger">Rp <?= number_format((int)$r['jumlah'],0,',','.') ?></td>
+      <td class="small"><?= !empty($r['dana_dari']) ? '<span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-cash-coin"></i> '.htmlspecialchars($r['dana_dari']).'</span>' : '<span class="text-muted">—</span>' ?></td>
       <td class="small text-muted"><?= htmlspecialchars($r['catatan'] ?? '') ?></td>
       <td>
         <?php if(!empty($r['bukti_url'])):
@@ -178,6 +185,7 @@ include __DIR__.'/../includes/header.php';
                 data-judul="<?= htmlspecialchars($r['judul']) ?>"
                 data-jumlah="<?= (int)$r['jumlah'] ?>"
                 data-catatan="<?= htmlspecialchars($r['catatan'] ?? '') ?>"
+                data-dana_dari="<?= htmlspecialchars($r['dana_dari'] ?? '') ?>"
                 data-bukti_url="<?= htmlspecialchars($r['bukti_url'] ?? '') ?>">
           <i class="bi bi-pencil"></i>
         </button>
@@ -189,10 +197,10 @@ include __DIR__.'/../includes/header.php';
         </form>
       </td>
     </tr>
-  <?php endforeach; if(!$rows): ?><tr><td colspan="9" class="text-center text-muted small">Belum ada pengeluaran.</td></tr><?php endif; ?>
+  <?php endforeach; if(!$rows): ?><tr><td colspan="10" class="text-center text-muted small">Belum ada pengeluaran.</td></tr><?php endif; ?>
   </tbody>
   <?php if($rows): ?>
-  <tfoot><tr class="table-light"><th colspan="4" class="text-end">Total (semua halaman)</th><th class="text-end text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></th><th colspan="4"></th></tr></tfoot>
+  <tfoot><tr class="table-light"><th colspan="4" class="text-end">Total (semua halaman)</th><th class="text-end text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></th><th colspan="5"></th></tr></tfoot>
   <?php endif; ?>
 </table></div></div>
 
@@ -243,6 +251,8 @@ include __DIR__.'/../includes/header.php';
             <input class="form-control form-control-sm" name="kategori" id="ep_kategori"></div>
           <div class="col-md-8"><label class="small">Judul</label>
             <input class="form-control form-control-sm" name="judul" id="ep_judul" required></div>
+          <div class="col-md-6"><label class="small">Dana Dari (siapa)</label>
+            <input class="form-control form-control-sm" name="dana_dari" id="ep_dana_dari" placeholder="cth: Kas Tim / Pak Budi / Sponsor X"></div>
           <div class="col-12"><label class="small">Catatan</label>
             <input class="form-control form-control-sm" name="catatan" id="ep_catatan"></div>
           <div class="col-md-6"><label class="small">URL Bukti (ImageKit)</label>
@@ -273,6 +283,7 @@ include __DIR__.'/../includes/header.php';
       document.getElementById('ep_judul').value      = this.dataset.judul || '';
       document.getElementById('ep_jumlah').value     = this.dataset.jumlah || '0';
       document.getElementById('ep_catatan').value    = this.dataset.catatan || '';
+      document.getElementById('ep_dana_dari').value  = this.dataset.dana_dari || '';
       document.getElementById('ep_bukti_url').value  = this.dataset.bukti_url || '';
       if (modal) modal.show();
     });

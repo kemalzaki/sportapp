@@ -48,10 +48,10 @@ if (!function_exists('_gj_active')) {
     <span class="gj-fab-inner"><i class="bi bi-plus-lg"></i></span>
     <span class="gj-fab-label">Upload</span>
   </a>
-  <!-- Revisi 2 Jun 2026: dulu Event, sekarang Berita -->
-  <a href="/berita.php" class="gj-item <?= _gj_active(['berita.php'], $_cur) ?>">
-    <span class="gj-ico gj-c-event"><i class="bi bi-newspaper"></i></span>
-    <span class="gj-label">Berita</span>
+  <!-- Revisi 13 Juni 2026: dulu Berita, sekarang Kalori Mingguan (PWA) -->
+  <a href="/kalori_mingguan.php" class="gj-item <?= _gj_active(['kalori_mingguan.php'], $_cur) ?>">
+    <span class="gj-ico gj-c-event"><i class="bi bi-egg-fried"></i></span>
+    <span class="gj-label">Kalori</span>
   </a>
   <a href="/profile.php" class="gj-item position-relative <?= _gj_active(['profile.php','user.php'], $_cur) ?>">
     <span class="gj-ico gj-c-me">

@@ -175,10 +175,13 @@ if ($u) {
     <div class="list-group list-group-flush">
       <a class="list-group-item list-group-item-action" href="/index.php"><i class="bi bi-house-door-fill"></i> Beranda</a>
       <?php if ($u): ?>
-        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
-        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
-        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
-        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
+        <?php /* ============================================================
+              Revisi 13 Juni 2026:
+              - Semua grup yang punya tombol dropdown disimpan PALING ATAS.
+              - Menu Kalkulator dijadikan dropdown (collapse).
+              - Menu non-dropdown (Beranda, Tempat, Pesan, dst.) ditaruh
+                di bawah agar urutan grup berbelang dropdown rapi.
+           ============================================================ */ ?>
 
         <?php /* Grup: Jogging Progress */ ?>
         <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpJogging" role="button" aria-expanded="false">
@@ -213,11 +216,16 @@ if ($u) {
           <a class="list-group-item list-group-item-action ps-4" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
         </div>
 
-        <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em"><i class="bi bi-calculator-fill"></i> Kalkulator</div>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
-        <a class="list-group-item list-group-item-action ps-4" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup</a>
+        <?php /* Grup: Kalkulator (Revisi 13 Juni 2026 — sekarang dropdown seperti grup Kalori) */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpKalkulator" role="button" aria-expanded="false">
+          <span><i class="bi bi-calculator-fill text-primary"></i> Kalkulator</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpKalkulator">
+          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup</a>
+        </div>
 
         <?php /* Grup: Info dan Wawasan (revisi 12 Juni 2026) — dipindah dari index.php */ ?>
         <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpInfoWawasan" role="button" aria-expanded="false">
@@ -269,6 +277,7 @@ if ($u) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/login_logs.php"><i class="bi bi-clock-history text-primary"></i> Riwayat Login Member</a>
           </div>
 
           <?php /* Admin > Pengaturan Lainnya */ ?>
@@ -284,6 +293,12 @@ if ($u) {
         <?php endif; ?>
 
         <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
+        <?php /* Revisi 13 Juni 2026: menu non-dropdown disimpan PALING BAWAH agar
+               grup ber-dropdown selalu berada di paling atas drawer. */ ?>
+        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
+        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
+        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
+        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
       <?php else: ?>
         <a class="list-group-item list-group-item-action" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Masuk</a>
         <a class="list-group-item list-group-item-action" href="/register.php"><i class="bi bi-person-plus-fill"></i> Daftar</a>

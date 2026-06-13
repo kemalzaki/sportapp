@@ -159,6 +159,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
 $totalSesi    = (int) db_val("SELECT COUNT(*) FROM jadwal");
 $totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1");
 $totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
+// Revisi 13 Juni 2026: hitung member aktif & non-aktif (auto-migrasi kolom aktif).
+try {
+  db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS aktif BOOLEAN NOT NULL DEFAULT TRUE");
+  db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nonaktif_catatan TEXT");
+} catch (Throwable $e) {}
+$memberAktif    = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND COALESCE(aktif,TRUE)=TRUE");
+$memberNonaktif = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND COALESCE(aktif,TRUE)=FALSE");
 
 // ====== REVISI 31 Mei 2026: Total Visitor ======
 // Tabel auto-create (tidak menghapus data lama). Lihat catatan SQL di README.
@@ -550,6 +557,16 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="stat-label">Online</div><div class="stat-value"><?= count($onlineMembers) ?></div></div></div></div>
 </div>
 
+<?php /* Revisi 13 Juni 2026: status member aktif & tidak aktif */ ?>
+<div class="row g-2 mb-3">
+  <div class="col-6"><div class="card card-stat shadow-sm border-success-subtle"><div class="card-body">
+    <div class="stat-icon" style="background:#dcfce7;color:#166534"><i class="bi bi-person-check-fill"></i></div>
+    <div class="stat-label">Member Aktif</div><div class="stat-value text-success"><?= $memberAktif ?></div></div></div></div>
+  <div class="col-6"><div class="card card-stat shadow-sm border-danger-subtle"><div class="card-body">
+    <div class="stat-icon" style="background:#fee2e2;color:#991b1b"><i class="bi bi-person-x-fill"></i></div>
+    <div class="stat-label">Member Tidak Aktif</div><div class="stat-value text-danger"><?= $memberNonaktif ?></div></div></div></div>
+</div>
+
 
 <?php if($u): ?>
 <div class="card shadow-sm mb-3" id="feed"><div class="card-header d-flex justify-content-between">
@@ -739,7 +756,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ?>
           <tr>
             <td data-label=""><button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#jdetail<?= $jid ?>" title="Lihat absen"><i class="bi bi-chevron-down"></i></button></td>
-            <td data-label="Tanggal"><?= htmlspecialchars($j['tanggal']) ?></td>
+            <td data-label="Tanggal">
+              <?= htmlspecialchars($j['tanggal']) ?>
+              <?php
+                // Revisi 13 Juni 2026: tampilkan waktu (jam_mulai – jam_selesai) di Jadwal Terdekat.
+                $jm = !empty($j['jam_mulai']) ? substr($j['jam_mulai'],0,5) : '';
+                $js = !empty($j['jam_selesai']) ? substr($j['jam_selesai'],0,5) : '';
+                if ($jm !== '' || $js !== '') {
+                  echo '<div class="small text-muted"><i class="bi bi-clock"></i> '
+                     . htmlspecialchars($jm ?: '—')
+                     . ($js !== '' ? ' – '.htmlspecialchars($js) : '')
+                     . '</div>';
+                }
+              ?>
+            </td>
             <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($j['jenis']) ?></span></td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
             <td data-label="Lokasi">

@@ -118,6 +118,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if (!isset($_SESSION['flash_err'])) $_SESSION['flash_ok'] = "Makanan ditambahkan ($kal kkal)".($aiUsed?' [AI]':'').".";
     } elseif ($a==='delete') {
         db_exec("DELETE FROM kalori_makanan_log WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
+    } elseif ($a==='edit') {
+        // Revisi 13 Juni 2026 — CRUD Riwayat Minggu ini
+        $id  = (int)($_POST['id'] ?? 0);
+        $tgl = $_POST['tanggal'] ?: date('Y-m-d');
+        $jam = $_POST['waktu'] ?: date('H:i');
+        $nama= trim($_POST['nama_makanan'] ?? '') ?: 'Tanpa nama';
+        $kal = max(0,(int)($_POST['kalori'] ?? 0));
+        $cat = trim($_POST['catatan'] ?? '');
+        if ($id>0) {
+          db_exec("UPDATE kalori_makanan_log
+                      SET tanggal=$1, waktu=$2, nama_makanan=$3, kalori=$4, catatan=$5
+                    WHERE id=$6 AND user_id=$7",
+                  [$tgl,$jam,$nama,$kal,$cat?:null,$id,$uid]);
+          $_SESSION['flash_ok'] = "Entri diperbarui.";
+        }
     }
     header('Location: kalori_mingguan.php'); exit;
 }
@@ -234,6 +249,14 @@ include __DIR__.'/includes/header.php';
           <td class="text-end fw-semibold text-danger"><?= (int)$r['kalori'] ?></td>
           <td class="small text-muted"><?= htmlspecialchars($r['catatan']??'') ?></td>
           <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-primary btn-edit-kal"
+                    data-id="<?= (int)$r['id'] ?>"
+                    data-tanggal="<?= htmlspecialchars($r['tanggal']) ?>"
+                    data-waktu="<?= htmlspecialchars(substr($r['waktu'],0,5)) ?>"
+                    data-nama="<?= htmlspecialchars($r['nama_makanan']) ?>"
+                    data-kalori="<?= (int)$r['kalori'] ?>"
+                    data-catatan="<?= htmlspecialchars($r['catatan'] ?? '') ?>"
+                    title="Edit"><i class="bi bi-pencil"></i></button>
             <form method="post" class="d-inline" onsubmit="return confirm('Hapus?')">
               <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
               <input type="hidden" name="_action" value="delete">
@@ -249,6 +272,39 @@ include __DIR__.'/includes/header.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Modal Edit Riwayat Kalori (Revisi 13 Juni 2026) -->
+<div class="modal fade" id="editKalModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" class="modal-content">
+  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+  <input type="hidden" name="_action" value="edit">
+  <input type="hidden" name="id" id="ek_id">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Entri Kalori</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body row g-2">
+    <div class="col-7"><label class="form-label small">Tanggal</label><input type="date" name="tanggal" id="ek_tgl" class="form-control form-control-sm" required></div>
+    <div class="col-5"><label class="form-label small">Waktu</label><input type="time" name="waktu" id="ek_jam" class="form-control form-control-sm" required></div>
+    <div class="col-8"><label class="form-label small">Nama makanan</label><input name="nama_makanan" id="ek_nama" class="form-control form-control-sm" required></div>
+    <div class="col-4"><label class="form-label small">Kalori (kkal)</label><input type="number" min="0" name="kalori" id="ek_kal" class="form-control form-control-sm" required></div>
+    <div class="col-12"><label class="form-label small">Catatan</label><input name="catatan" id="ek_cat" class="form-control form-control-sm"></div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan</button></div>
+</form></div></div>
+<script>
+(function(){
+  var m = new bootstrap.Modal(document.getElementById('editKalModal'));
+  document.querySelectorAll('.btn-edit-kal').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.getElementById('ek_id').value   = this.dataset.id;
+      document.getElementById('ek_tgl').value  = this.dataset.tanggal;
+      document.getElementById('ek_jam').value  = this.dataset.waktu;
+      document.getElementById('ek_nama').value = this.dataset.nama;
+      document.getElementById('ek_kal').value  = this.dataset.kalori;
+      document.getElementById('ek_cat').value  = this.dataset.catatan;
+      m.show();
+    });
+  });
+})();
+</script>
+
 <script>
 new Chart(document.getElementById('weekChart'), {
   type:'bar',

@@ -231,15 +231,44 @@ include __DIR__.'/includes/header.php';
 </div></div></div>
 
 <?php if($lastPosts): ?>
-<div class="card shadow-sm"><div class="card-header"><i class="bi bi-images"></i> Postingan Terbaru</div>
-<div class="card-body"><div class="row g-2">
-<?php foreach($lastPosts as $p): ?>
-  <div class="col-6 col-md-4">
-    <?php if($p['foto_url']): ?><img src="<?= htmlspecialchars($p['foto_url']) ?>" class="img-fluid rounded zoomable"><?php endif; ?>
-    <div class="small mt-1"><?= htmlspecialchars(mb_substr($p['caption'] ?? '',0,80)) ?></div>
+<!-- Revisi 13 Juni 2026: tampilan Postingan Terbaru dirapihkan (grid seragam, aspek 1:1, caption rapi). -->
+<style>
+.post-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+@media (max-width:575px){.post-grid{grid-template-columns:repeat(2,1fr)}}
+.post-tile{position:relative;border-radius:10px;overflow:hidden;background:#f1f5f9;aspect-ratio:1/1;border:1px solid #e2e8f0;transition:transform .15s ease,box-shadow .15s ease}
+.post-tile:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.post-tile img{width:100%;height:100%;object-fit:cover;display:block}
+.post-tile .post-overlay{position:absolute;left:0;right:0;bottom:0;padding:.4rem .55rem;color:#fff;font-size:.75rem;line-height:1.2;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.65));display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post-tile.no-img{background:linear-gradient(135deg,#e0f2fe,#fef9c3);display:flex;align-items:center;justify-content:center;padding:.6rem;text-align:center;color:#334155;font-size:.8rem}
+.post-tile .post-date{position:absolute;top:.4rem;right:.4rem;background:rgba(15,23,42,.7);color:#fff;font-size:.65rem;padding:.1rem .4rem;border-radius:6px}
+</style>
+<div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-images text-primary"></i> Postingan Terbaru</span>
+  <span class="small text-muted"><?= count($lastPosts) ?> item</span>
+</div>
+<div class="card-body">
+  <div class="post-grid">
+    <?php foreach($lastPosts as $p):
+      $cap = trim((string)($p['caption'] ?? ''));
+      $tgl = !empty($p['created_at']) ? date('d M', strtotime($p['created_at'])) : '';
+    ?>
+      <?php if(!empty($p['foto_url'])): ?>
+        <div class="post-tile">
+          <img src="<?= htmlspecialchars($p['foto_url']) ?>" alt="" class="zoomable" loading="lazy">
+          <?php if($tgl): ?><span class="post-date"><?= htmlspecialchars($tgl) ?></span><?php endif; ?>
+          <?php if($cap !== ''): ?><div class="post-overlay"><?= htmlspecialchars(mb_substr($cap,0,120)) ?></div><?php endif; ?>
+        </div>
+      <?php else: ?>
+        <div class="post-tile no-img">
+          <div>
+            <?php if($tgl): ?><div class="small text-muted mb-1"><?= htmlspecialchars($tgl) ?></div><?php endif; ?>
+            <?= htmlspecialchars(mb_substr($cap !== '' ? $cap : '(tanpa caption)',0,140)) ?>
+          </div>
+        </div>
+      <?php endif; ?>
+    <?php endforeach; ?>
   </div>
-<?php endforeach; ?>
-</div></div></div>
+</div></div>
 <?php endif; ?>
 
 <!-- ===== Titip Pesan (Guestbook) ===== -->

@@ -204,6 +204,16 @@ include __DIR__.'/../includes/header.php'; ?>
 </div>
 
 <?php foreach($users as $u): ?>
+<div class="modal fade" id="na<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" class="modal-content">
+  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="toggle_aktif"><input type="hidden" name="id" value="<?= $u['id'] ?>"><input type="hidden" name="aktif" value="0">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-x text-danger"></i> Non-aktifkan: <?= htmlspecialchars($u['nama']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <label class="form-label small fw-semibold">Catatan / Alasan (wajib)</label>
+    <textarea name="nonaktif_catatan" class="form-control" rows="3" required placeholder="Misal: pindah domisili, cuti panjang, dst."></textarea>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-danger"><i class="bi bi-person-x"></i> Non-aktifkan</button></div>
+</form></div></div>
+
 <div class="modal fade" id="foto<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" enctype="multipart/form-data" class="modal-content">
   <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= $u['id'] ?>">
   <div class="modal-header"><h5 class="modal-title"><i class="bi bi-image"></i> Foto: <?= htmlspecialchars($u['nama']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
