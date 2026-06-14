@@ -549,6 +549,15 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<?php /* Revisi 13 Juni 2026: status member aktif & tidak aktif */ ?>
+<div class="row g-2 mb-3">
+  <div class="col-6"><div class="card card-stat shadow-sm border-success-subtle"><div class="card-body">
+    <div class="stat-icon" style="background:#dcfce7;color:#166534"><i class="bi bi-person-check-fill"></i></div>
+    <div class="stat-label">Member Aktif</div><div class="stat-value text-success"><?= $memberAktif ?></div></div></div></div>
+  <div class="col-6"><div class="card card-stat shadow-sm border-danger-subtle"><div class="card-body">
+    <div class="stat-icon" style="background:#fee2e2;color:#991b1b"><i class="bi bi-person-x-fill"></i></div>
+    <div class="stat-label">Member Tidak Aktif</div><div class="stat-value text-danger"><?= $memberNonaktif ?></div></div></div></div>
+</div>
 <div class="row g-3 mb-3" id="sec-dashboard-stats">
   <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
     <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
@@ -564,15 +573,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="stat-label">Online</div><div class="stat-value"><?= count($onlineMembers) ?></div></div></div></div>
 </div>
 
-<?php /* Revisi 13 Juni 2026: status member aktif & tidak aktif */ ?>
-<div class="row g-2 mb-3">
-  <div class="col-6"><div class="card card-stat shadow-sm border-success-subtle"><div class="card-body">
-    <div class="stat-icon" style="background:#dcfce7;color:#166534"><i class="bi bi-person-check-fill"></i></div>
-    <div class="stat-label">Member Aktif</div><div class="stat-value text-success"><?= $memberAktif ?></div></div></div></div>
-  <div class="col-6"><div class="card card-stat shadow-sm border-danger-subtle"><div class="card-body">
-    <div class="stat-icon" style="background:#fee2e2;color:#991b1b"><i class="bi bi-person-x-fill"></i></div>
-    <div class="stat-label">Member Tidak Aktif</div><div class="stat-value text-danger"><?= $memberNonaktif ?></div></div></div></div>
-</div>
 
 
 <?php if($u): ?>

@@ -552,11 +552,15 @@ function submitComment(e,id){
   return false;
 }
 function shareAct(id, nama, jenis){
-  // Revisi 13 Juni 2026: share langsung ke WhatsApp (wa.me).
+  // Revisi 14 Juni 2026: arahkan klik ke WhatsApp Web/App. window.open dulu
+  // (desktop) lalu fallback location.href (mobile yang memblok popup).
   const url = location.origin + '/riwayat.php#act-' + id;
   const text = `${nama} baru saja olahraga ${jenis} 💪\nLihat aktivitasnya: ${url}`;
   const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
-  window.open(wa, '_blank', 'noopener');
+  const win = window.open(wa, '_blank', 'noopener');
+  if (!win || win.closed || typeof win.closed === 'undefined') {
+    location.href = wa;
+  }
 }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 

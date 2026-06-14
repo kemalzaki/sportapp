@@ -5,7 +5,9 @@ require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle='Manajemen Member';
 // Revisi 6 Juni 2026 — idempotent migration kolom koordinator_id
-try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS koordinator_id INTEGER REFERENCES users(id) ON DELETE SET NULL"); } catch (Throwable $e) {}
+// Revisi 14 Juni 2026 — kolom aktif (BOOLEAN) untuk status member aktif/nonaktif
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT TRUE"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nonaktif_catatan TEXT"); } catch (Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -15,9 +17,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='update_pic') {
         $pic = ($_POST['pic_admin_id'] ?? '') !== '' ? (int)$_POST['pic_admin_id'] : null;
         db_exec("UPDATE users SET pic_admin_id=$1 WHERE id=$2", [$pic, (int)$_POST['id']]);
-    } elseif ($a==='update_koor') {
-        $koor = ($_POST['koordinator_id'] ?? '') !== '' ? (int)$_POST['koordinator_id'] : null;
-        db_exec("UPDATE users SET koordinator_id=$1 WHERE id=$2", [$koor, (int)$_POST['id']]);
+    } elseif ($a==='toggle_aktif') {
+        $aktif = ((int)($_POST['aktif'] ?? 1)) === 1;
+        $catatan = trim($_POST['nonaktif_catatan'] ?? '') ?: null;
+        try {
+          db_exec("UPDATE users SET aktif=$1, nonaktif_catatan=$2 WHERE id=$3",
+                  [$aktif ? 't' : 'f', $aktif ? null : $catatan, (int)$_POST['id']]);
+        } catch (Throwable $e) {
+          // fallback bila kolom aktif bertipe smallint (0/1)
+          db_exec("UPDATE users SET aktif=$1 WHERE id=$2", [$aktif ? 1 : 0, (int)$_POST['id']]);
+        }
     } elseif ($a==='delete') {
         db_exec("DELETE FROM users WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='create') {
@@ -70,28 +79,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header('Location: members.php'); exit;
 }
 
-$users = db_all("SELECT u.*, p.nama AS pic_nama, k.nama AS koor_nama
+$users = db_all("SELECT u.*, p.nama AS pic_nama
                  FROM users u
                  LEFT JOIN users p ON p.id = u.pic_admin_id
-                 LEFT JOIN users k ON k.id = u.koordinator_id
                  ORDER BY u.role, u.nama");
 $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
-// Revisi 6 Juni 2026 (revisi-3) — Koordinator Penghubung dibatasi 5 nama tetap:
-// Alya, Umy, Devi, Yuni, Medew. Auto-create user placeholder bila belum ada
-// agar select box selalu menampilkan 5 opsi tersebut.
-$_koorFixed = ['Alya','Umy','Devi','Yuni','Medew'];
-foreach ($_koorFixed as $_kn) {
-  try {
-    $exists = db_one("SELECT id FROM users WHERE LOWER(nama)=LOWER($1) LIMIT 1", [$_kn]);
-    if (!$exists) {
-      $_email = 'koor_'.strtolower($_kn).'@hapfam.local';
-      db_exec("INSERT INTO users(nama,email,password_hash,role) VALUES($1,$2,$3,'member')
-               ON CONFLICT (email) DO NOTHING",
-              [$_kn, $_email, password_hash(bin2hex(random_bytes(8)), PASSWORD_BCRYPT)]);
-    }
-  } catch (Throwable $e) { /* abaikan, mis. tabel users belum punya kolom email unique */ }
-}
-$koordinatorCandidates = db_all("SELECT id, nama FROM users WHERE LOWER(nama) IN ('alya','umy','devi','yuni','medew') ORDER BY nama");
+// Revisi 14 Juni 2026 — kolom Koordinator Penghubung dihapus, auto-create akun dummy dihapus.
 $flash = $_SESSION['flash'] ?? null; $flashE = $_SESSION['flash_err'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_err']);
 include __DIR__.'/../includes/header.php'; ?>
@@ -130,7 +123,7 @@ include __DIR__.'/../includes/header.php'; ?>
     </div>
   </div>
   <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable" data-paginate="10">
-  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Koordinator Penghubung</th><th>Role</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
+  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Role</th><th>Aktif</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null);
     $waDigits = preg_replace('/\D+/', '', $u['wa'] ?? '');
     if ($waDigits && str_starts_with($waDigits, '0')) $waDigits = '62'.substr($waDigits,1);
@@ -155,19 +148,6 @@ include __DIR__.'/../includes/header.php'; ?>
         </form>
       </td>
       <td>
-        <form method="post" class="d-flex">
-          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-          <input type="hidden" name="_action" value="update_koor">
-          <input type="hidden" name="id" value="<?= $u['id'] ?>">
-          <select name="koordinator_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:150px" title="Koordinator Penghubung antar member">
-            <option value="">— belum —</option>
-            <?php foreach($koordinatorCandidates as $kc): if((int)$kc['id']===(int)$u['id']) continue; ?>
-              <option value="<?= (int)$kc['id'] ?>" <?= (string)($u['koordinator_id']??'')===(string)$kc['id']?'selected':'' ?>><?= htmlspecialchars($kc['nama']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </form>
-      </td>
-      <td>
         <form method="post" class="d-flex gap-1">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
           <input type="hidden" name="_action" value="update_role">
@@ -176,6 +156,30 @@ include __DIR__.'/../includes/header.php'; ?>
             <?php foreach(['publik','member','admin'] as $r): ?><option <?= $u['role']===$r?'selected':'' ?>><?= $r ?></option><?php endforeach; ?>
           </select>
         </form>
+      </td>
+      <td>
+        <?php
+          $_aktifRaw = $u['aktif'] ?? null;
+          $_aktifBool = ($_aktifRaw === null) ? true : in_array(strtolower((string)$_aktifRaw), ['1','t','true','y','yes'], true);
+        ?>
+        <?php if ($_aktifBool): ?>
+          <form method="post" class="d-inline" onsubmit="return confirm('Non-aktifkan <?= htmlspecialchars($u['nama']) ?>?')">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="toggle_aktif">
+            <input type="hidden" name="id" value="<?= $u['id'] ?>">
+            <input type="hidden" name="aktif" value="0">
+            <input type="hidden" name="nonaktif_catatan" value="Dinonaktifkan oleh admin">
+            <button class="btn btn-sm btn-success" title="Klik untuk non-aktifkan"><i class="bi bi-person-check-fill"></i> Aktif</button>
+          </form>
+        <?php else: ?>
+          <form method="post" class="d-inline">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="toggle_aktif">
+            <input type="hidden" name="id" value="<?= $u['id'] ?>">
+            <input type="hidden" name="aktif" value="1">
+            <button class="btn btn-sm btn-outline-danger" title="Klik untuk aktifkan kembali"><i class="bi bi-person-x-fill"></i> Nonaktif</button>
+          </form>
+        <?php endif; ?>
       </td>
       <td><?= $on ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-secondary">Offline</span>' ?></td>
       <td class="text-end text-nowrap">

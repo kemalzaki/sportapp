@@ -806,4 +806,48 @@ document.addEventListener('submit', async function(ev){
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) ping(); });
 })();
 </script>
+
+<!-- Revisi 14 Juni 2026: instant navigation. Prefetch link saat user hover/touch
+     supaya perpindahan halaman terasa instan seperti aplikasi mobile native. -->
+<script>
+(function(){
+  if (!('fetch' in window)) return;
+  var seen = new Set();
+  function prefetch(href){
+    if (!href || seen.has(href)) return;
+    if (!/^https?:\/\//i.test(href) && href[0] !== '/') return;
+    try {
+      var u = new URL(href, location.href);
+      if (u.origin !== location.origin) return;
+      if (/\.(zip|pdf|jpg|jpeg|png|gif|mp4|webp)$/i.test(u.pathname)) return;
+    } catch(e){ return; }
+    seen.add(href);
+    var l = document.createElement('link');
+    l.rel = 'prefetch'; l.href = href; l.as = 'document';
+    document.head.appendChild(l);
+  }
+  function bind(e){
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    if (a.target === '_blank' || a.hasAttribute('download')) return;
+    if (a.getAttribute('href').startsWith('#')) return;
+    prefetch(a.getAttribute('href'));
+  }
+  document.addEventListener('mouseover', bind, {passive:true});
+  document.addEventListener('touchstart', bind, {passive:true});
+  // Tampilkan progress bar tipis saat klik link agar terasa responsif
+  var bar = document.createElement('div');
+  bar.style.cssText = 'position:fixed;top:0;left:0;height:2px;width:0;background:#0ea5e9;z-index:99999;transition:width .25s ease;pointer-events:none';
+  document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(bar); });
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+    var href = a.getAttribute('href') || '';
+    if (href.startsWith('#') || href.startsWith('javascript:')) return;
+    bar.style.width = '0';
+    requestAnimationFrame(function(){ bar.style.width = '80%'; });
+  }, true);
+  window.addEventListener('pageshow', function(){ bar.style.width = '0'; });
+})();
+</script>
 </body></html>

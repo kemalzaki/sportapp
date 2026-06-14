@@ -234,7 +234,8 @@ if ($u) {
         <div class="collapse" id="grpInfoWawasan">
           <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini</a>
           <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-heart-pulse text-danger"></i> Kesehatan</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
           <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik</a>
           <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/results?search_query=panduan+olahraga+teknik" target="_blank" rel="noopener"><i class="bi bi-youtube text-danger"></i> Panduan Olahraga</a>
@@ -242,6 +243,13 @@ if ($u) {
           <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/watch?v=uXznjq2BLMI" target="_blank" rel="noopener"><i class="bi bi-snow text-info"></i> Paket Pendinginan Olahraga</a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
         </div>
+
+        <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
+        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
+        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
+        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
+        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
+
 
         <?php if ($u['role']==='admin'): ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
@@ -295,10 +303,6 @@ if ($u) {
         <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
         <?php /* Revisi 13 Juni 2026: menu non-dropdown disimpan PALING BAWAH agar
                grup ber-dropdown selalu berada di paling atas drawer. */ ?>
-        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
-        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
-        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
-        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
       <?php else: ?>
         <a class="list-group-item list-group-item-action" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Masuk</a>
         <a class="list-group-item list-group-item-action" href="/register.php"><i class="bi bi-person-plus-fill"></i> Daftar</a>
