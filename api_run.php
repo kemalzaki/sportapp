@@ -90,6 +90,75 @@ if ($_SERVER['REQUEST_METHOD']!=='POST') { echo json_encode(['ok'=>false]); exit
 if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? '')) { echo json_encode(['ok'=>false,'err'=>'csrf']); exit; }
 $a = $_POST['_action'] ?? '';
 
+/* ===== Revisi 15 Juni 2026 — AI Route from Image =====
+ * Terima upload gambar (screenshot peta dengan rute), kirim ke OpenAI Vision (gpt-4o-mini).
+ * AI diminta mengembalikan urutan nama tempat/landmark di sepanjang rute. Server lalu
+ * geocode tiap nama via Nominatim (OpenStreetMap) menjadi koordinat [lat,lng].
+ * Mengembalikan { ok, coords:[[lat,lng],...], note }.
+ */
+if ($a === 'ai_route_from_image') {
+    rate_limit_or_die('ai_route:'.$uid, 5, 600);
+    $key = getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : '');
+    if (!$key) { echo json_encode(['ok'=>false,'err'=>'OPENAI_API_KEY belum di-set di server']); exit; }
+    if (empty($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) {
+        echo json_encode(['ok'=>false,'err'=>'gambar tidak ada']); exit;
+    }
+    $hint = trim((string)($_POST['hint'] ?? ''));
+    $mime = mime_content_type($_FILES['image']['tmp_name']) ?: 'image/jpeg';
+    $b64  = base64_encode(file_get_contents($_FILES['image']['tmp_name']));
+    $prompt = "Anda menerima screenshot peta yang menampilkan sebuah RUTE (lari/sepeda/jalan kaki). "
+            . "Tugas: identifikasi 5–12 tempat/landmark berurutan di sepanjang rute (jalan, simpang, alun-alun, GOR, masjid, halte, dst). "
+            . "Balas HANYA JSON valid berformat: {\"places\":[\"Nama 1\",\"Nama 2\", ...], \"note\":\"<1 kalimat>\"} "
+            . "Sertakan area kota di akhir tiap nama bila ambigu. "
+            . ($hint!=='' ? "Petunjuk area dari pengguna: $hint" : "");
+    $payload = [
+      'model' => 'gpt-4o-mini',
+      'messages' => [[
+        'role'=>'user',
+        'content'=>[
+          ['type'=>'text','text'=>$prompt],
+          ['type'=>'image_url','image_url'=>['url'=>"data:$mime;base64,$b64"]]
+        ]
+      ]],
+      'max_tokens'=>500, 'temperature'=>0.2,
+    ];
+    $ch = curl_init('https://api.openai.com/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>60, CURLOPT_POST=>true,
+        CURLOPT_POSTFIELDS=>json_encode($payload),
+        CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.$key]
+    ]);
+    $res = curl_exec($ch); $code = curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code!==200 || !$res) { echo json_encode(['ok'=>false,'err'=>"OpenAI HTTP $code"]); exit; }
+    $j = json_decode($res, true);
+    $text = $j['choices'][0]['message']['content'] ?? '';
+    $obj = null;
+    if (preg_match('/\{.*\}/s', $text, $m)) $obj = json_decode($m[0], true);
+    $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
+    if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan tempat']); exit; }
+    // Geocode via Nominatim
+    $coords = [];
+    foreach ($places as $place) {
+        $q = trim((string)$place); if ($q==='') continue;
+        $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='.urlencode($q);
+        $ch2 = curl_init($url);
+        curl_setopt_array($ch2, [
+            CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
+            CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'
+        ]);
+        $r2 = curl_exec($ch2); curl_close($ch2);
+        $arr = json_decode($r2 ?: '[]', true);
+        if (is_array($arr) && !empty($arr[0]['lat'])) {
+            $coords[] = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
+        }
+        usleep(1100*1000); // hormati rate-limit Nominatim 1 req/dtk
+    }
+    if (count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'Geocoding kurang dari 2 titik']); exit; }
+    echo json_encode(['ok'=>true, 'coords'=>$coords, 'places'=>$places, 'note'=>$obj['note'] ?? '']);
+    exit;
+}
+
+
 if ($a === 'start') {
     rate_limit_or_die('run_start:'.$uid, 10, 600);
     // close any aktif lama

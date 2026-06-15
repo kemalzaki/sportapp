@@ -75,11 +75,42 @@ $wkLabels=[]; $wkVals=[];
 foreach($wkRows as $r){ $wkLabels[]=$r['wk']; $wkVals[]=(int)$r['c']; }
 
 // ---- Tren Performa Jogging Harian saya (30 hari) ----
-$jogRows = db_all("SELECT tanggal, jarak_km, pace_detik FROM upload_harian
+$jogRows = db_all("SELECT tanggal, jarak_km, pace_detik, durasi_menit FROM upload_harian
                    WHERE user_id=$1 AND jenis ILIKE 'jogging' AND tanggal >= CURRENT_DATE - INTERVAL '30 days'
                    ORDER BY tanggal", [(int)$u['id']]);
-$jogLabels=[]; $jogDist=[]; $jogPace=[];
-foreach($jogRows as $r){ $jogLabels[]=$r['tanggal']; $jogDist[]=(float)$r['jarak_km']; $jogPace[]=(int)$r['pace_detik']; }
+$jogLabels=[]; $jogDist=[]; $jogPace=[]; $jogDur=[];
+foreach($jogRows as $r){
+    $jogLabels[]=$r['tanggal'];
+    $jogDist[]=(float)$r['jarak_km'];
+    $jogPace[]=(int)$r['pace_detik'];
+    $jogDur[]=(int)$r['durasi_menit'];
+}
+// ---- Revisi 15 Juni 2026: Statistik ringkas jogging (pace / durasi / jarak) ----
+$jogStat = ['count'=>count($jogRows), 'distAvg'=>0,'distTot'=>0,'distBest'=>0,
+            'paceAvg'=>0,'paceBest'=>0,'paceTrend'=>0,
+            'durAvg'=>0,'durTot'=>0,'durBest'=>0];
+if ($jogRows) {
+    $validPace = array_values(array_filter($jogPace, fn($v)=>$v>0));
+    $jogStat['distTot']  = array_sum($jogDist);
+    $jogStat['distAvg']  = $jogStat['distTot'] / max(1,count($jogDist));
+    $jogStat['distBest'] = max($jogDist);
+    $jogStat['durTot']   = array_sum($jogDur);
+    $jogStat['durAvg']   = $jogStat['durTot'] / max(1,count($jogDur));
+    $jogStat['durBest']  = max($jogDur);
+    if ($validPace) {
+        $jogStat['paceAvg']  = (int) round(array_sum($validPace)/count($validPace));
+        $jogStat['paceBest'] = (int) min($validPace);
+    }
+    // Tren: bandingkan paruh awal vs paruh akhir (turun = lebih cepat = lebih baik)
+    if (count($validPace) >= 4) {
+        $half = (int) floor(count($validPace)/2);
+        $earlyP = array_sum(array_slice($validPace,0,$half))/max(1,$half);
+        $lateP  = array_sum(array_slice($validPace,$half))/max(1,(count($validPace)-$half));
+        $jogStat['paceTrend'] = (int) round($lateP - $earlyP); // detik/km
+    }
+}
+$fmtPace = function($s){ if($s<=0) return '—'; $m=intdiv($s,60); $ss=$s%60; return $m."'".str_pad((string)$ss,2,'0',STR_PAD_LEFT).'"'; };
+$fmtDur  = function($menit){ if($menit<=0) return '—'; $h=intdiv($menit,60); $m=$menit%60; return $h>0?($h.'j '.$m.'m'):($m.' m'); };
 
 // Revisi 6 Juni 2026 — Rekomendasi kesehatan dari hasil statistik
 $rekomendasi = [];
@@ -208,6 +239,69 @@ include __DIR__.'/includes/header.php';
   <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-success"></i> Tren Performa Jogging Harian (saya)</div>
     <div class="card-body"><canvas id="jogChart" height="160"></canvas>
       <small class="text-muted d-block mt-2">Jarak (km) dan pace (detik/km) tiap sesi jogging — 30 hari terakhir.</small></div></div></div>
+</div>
+
+<!-- Revisi 15 Juni 2026 — Statistik tren performa jogging (pace · durasi · jarak) -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm border-success">
+      <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-speedometer2"></i> <strong>Statistik Tren Performa Jogging (30 hari)</strong></span>
+        <small class="text-muted"><?= (int)$jogStat['count'] ?> sesi</small>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 mb-3">
+          <!-- Pace -->
+          <div class="col-md-4">
+            <div class="border rounded p-3 h-100">
+              <div class="small text-muted mb-1"><i class="bi bi-stopwatch text-danger"></i> PACE</div>
+              <div class="d-flex justify-content-between"><span class="small">Rata-rata</span><strong><?= $fmtPace($jogStat['paceAvg']) ?>/km</strong></div>
+              <div class="d-flex justify-content-between"><span class="small">Tercepat</span><strong class="text-success"><?= $fmtPace($jogStat['paceBest']) ?>/km</strong></div>
+              <div class="d-flex justify-content-between"><span class="small">Tren</span>
+                <strong class="text-<?= $jogStat['paceTrend']<-3?'success':($jogStat['paceTrend']>3?'danger':'muted') ?>">
+                  <?= $jogStat['paceTrend']>0?'+':'' ?><?= (int)$jogStat['paceTrend'] ?> s/km
+                  <?= $jogStat['paceTrend']<-3?'⬇ lebih cepat':($jogStat['paceTrend']>3?'⬆ melambat':'≈ stabil') ?>
+                </strong>
+              </div>
+            </div>
+          </div>
+          <!-- Durasi -->
+          <div class="col-md-4">
+            <div class="border rounded p-3 h-100">
+              <div class="small text-muted mb-1"><i class="bi bi-hourglass-split text-warning"></i> DURASI</div>
+              <div class="d-flex justify-content-between"><span class="small">Total</span><strong><?= $fmtDur((int)$jogStat['durTot']) ?></strong></div>
+              <div class="d-flex justify-content-between"><span class="small">Rata-rata/sesi</span><strong><?= $fmtDur((int)round($jogStat['durAvg'])) ?></strong></div>
+              <div class="d-flex justify-content-between"><span class="small">Sesi terlama</span><strong class="text-primary"><?= $fmtDur((int)$jogStat['durBest']) ?></strong></div>
+            </div>
+          </div>
+          <!-- Jarak -->
+          <div class="col-md-4">
+            <div class="border rounded p-3 h-100">
+              <div class="small text-muted mb-1"><i class="bi bi-rulers text-info"></i> JARAK</div>
+              <div class="d-flex justify-content-between"><span class="small">Total</span><strong><?= number_format($jogStat['distTot'],2) ?> km</strong></div>
+              <div class="d-flex justify-content-between"><span class="small">Rata-rata/sesi</span><strong><?= number_format($jogStat['distAvg'],2) ?> km</strong></div>
+              <div class="d-flex justify-content-between"><span class="small">Terjauh</span><strong class="text-success"><?= number_format($jogStat['distBest'],2) ?> km</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info small mb-0">
+          <strong><i class="bi bi-question-circle"></i> Cara Baca Pace Trend:</strong>
+          <ul class="mb-0 ps-3">
+            <li><strong>Pace</strong> = waktu (detik) untuk menempuh 1 km. <em>Angka lebih kecil = lebih cepat.</em>
+                Contoh: <code>6'30"</code> = 6 menit 30 detik per km.</li>
+            <li>Pada grafik di atas, sumbu pace dibalik (reverse) — <strong>garis NAIK = makin cepat</strong>,
+                <strong>garis TURUN = makin lambat</strong>.</li>
+            <li><strong>Tren</strong> di kartu ini membandingkan rata-rata pace paruh pertama vs paruh kedua periode 30 hari:
+                negatif (mis. <code>-8 s/km</code>) berarti Anda <span class="text-success">membaik</span>,
+                positif berarti <span class="text-danger">melambat</span>.</li>
+            <li>Rentang umum pace jogging rekreasi: <code>6'30"–8'00"</code>/km · pelari berpengalaman: <code>5'00"–6'00"</code>/km.</li>
+            <li>Bila pace stabil/melambat, coba latihan <em>interval</em> 1×/minggu (lari cepat 1–2 menit, jeda 1–2 menit, ulang 6–8×) dan jaga tidur ≥7 jam.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="card shadow-sm mt-3"><div class="card-header">Heatmap Aktivitas (53 minggu)</div>

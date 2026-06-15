@@ -70,6 +70,10 @@ include __DIR__.'/includes/header.php';
         <button id="btnLocate" type="button" class="btn btn-outline-primary px-3" title="Posisikan peta ke lokasi Anda sekarang">
           <i class="bi bi-geo-alt-fill"></i> Posisi Sekarang
         </button>
+        <!-- Revisi 15 Juni 2026 — Popup melayang (Document Picture-in-Picture) agar GPS tetap aktif saat berpindah app/tab di HP -->
+        <button id="btnPip" type="button" class="btn btn-outline-info px-3" title="Tampilkan peta sebagai jendela melayang (PiP) seperti Google Maps">
+          <i class="bi bi-pip"></i> Popup Melayang
+        </button>
       </div>
       <div id="runStatus" class="small text-muted mt-2 text-center"></div>
       <div id="wakeStatus" class="small text-success mt-1 text-center"></div>
@@ -171,7 +175,24 @@ include __DIR__.'/includes/header.php';
   var wakeLock = null, audioCtx = null, silentOsc = null;
   var map = L.map('runMap').setView([-6.2,106.816666], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(map);
-  var line = L.polyline([], {color:'#dc2626', weight:5}).addTo(map);
+  // Revisi 15 Juni 2026 — multi-segment polyline. Setiap kali ada gap besar (layar mati lalu nyala),
+  // segmen baru dibuat sehingga TIDAK ada garis lurus dari titik mati ke titik nyala.
+  var segments = [];           // array of {poly:L.polyline, pts:[[lat,lng],...] }
+  function newSegment(){
+    var poly = L.polyline([], {color:'#dc2626', weight:5}).addTo(map);
+    segments.push({ poly: poly, pts: [] });
+    return segments[segments.length-1];
+  }
+  var seg = newSegment();
+  // Alias `line` untuk kompatibilitas dengan kode lama yang masih memanggil line.addLatLng / setLatLngs.
+  var line = {
+    addLatLng: function(ll){ seg.poly.addLatLng(ll); seg.pts.push(ll); },
+    setLatLngs: function(arr){
+      segments.forEach(function(s){ map.removeLayer(s.poly); });
+      segments = []; seg = newSegment();
+      if (arr && arr.length) { arr.forEach(function(ll){ seg.poly.addLatLng(ll); seg.pts.push(ll); }); }
+    }
+  };
   var marker=null;
   var trackingNotif = null;
 
@@ -322,12 +343,27 @@ include __DIR__.'/includes/header.php';
       }
       var last = points[points.length-1];
       var d = haversine(last, p);
-      if (d > 150) {
-        document.getElementById('runStatus').textContent='Lompatan tidak masuk akal ('+Math.round(d)+' m) — titik diabaikan';
-        return;
-      }
       var dtSec = last.t ? Math.max(1,(nowT-last.t)/1000) : 1;
       var speed = d / dtSec; // m/s
+      // Revisi 15 Juni 2026 — anti garis-lurus saat layar mati:
+      // jika gap waktu > 25 dtk ATAU jarak > 150 m, anggap "pen-lift":
+      // tutup segmen saat ini, mulai segmen baru, JANGAN tambah jarak (anti garis lurus
+      // dari titik mati layar ke titik nyala layar).
+      if (d > 150 || dtSec > 25) {
+        document.getElementById('runStatus').textContent =
+          'Gap GPS terdeteksi ('+Math.round(d)+' m / '+Math.round(dtSec)+' dtk) — segmen baru dimulai, jarak tidak ditambah.';
+        seg = newSegment();
+        // catat titik baru sebagai awal segmen, tanpa menambah jarak
+        p.t = nowT;
+        points.push(p);
+        seg.poly.addLatLng([p.lat,p.lng]); seg.pts.push([p.lat,p.lng]);
+        if (!marker) marker = L.marker([p.lat,p.lng]).addTo(map);
+        else marker.setLatLng([p.lat,p.lng]);
+        map.setView([p.lat,p.lng], Math.max(map.getZoom(),16));
+        if (sessionId) sendPointToServer(p);
+        updateUI(); saveState();
+        return;
+      }
       if (speed > 10) {
         document.getElementById('runStatus').textContent='Kecepatan tidak realistis ('+speed.toFixed(1)+' m/s) — titik diabaikan';
         return;
@@ -454,6 +490,58 @@ include __DIR__.'/includes/header.php';
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
 
+  // ===== Revisi 15 Juni 2026 — Document Picture-in-Picture (peta melayang) =====
+  // Saat user pindah ke app/tab lain di HP, jendela melayang ini tetap menampilkan
+  // peta + status, sehingga browser tidak men-throttle JavaScript & GPS tetap aktif.
+  // Mengikuti pola Google Maps PiP. Memerlukan Chromium 116+/HTTPS.
+  var pipWin = null;
+  document.getElementById('btnPip').addEventListener('click', async function(){
+    if (!('documentPictureInPicture' in window)) {
+      alert('Browser Anda belum mendukung Document Picture-in-Picture.\nGunakan Chrome/Edge versi terbaru di Android/Desktop, lalu jalankan dari HTTPS.');
+      return;
+    }
+    if (pipWin) { try { pipWin.close(); } catch(e){} pipWin = null; return; }
+    try {
+      pipWin = await window.documentPictureInPicture.requestWindow({ width: 340, height: 420 });
+      // Salin stylesheet ke jendela PiP
+      [...document.styleSheets].forEach(function(ss){
+        try {
+          var rules = [...ss.cssRules].map(function(r){return r.cssText;}).join('');
+          var s = pipWin.document.createElement('style'); s.textContent = rules;
+          pipWin.document.head.appendChild(s);
+        } catch(e) {
+          if (ss.href) {
+            var l = pipWin.document.createElement('link');
+            l.rel='stylesheet'; l.href=ss.href; pipWin.document.head.appendChild(l);
+          }
+        }
+      });
+      // Pindahkan elemen peta ke PiP window
+      var mapHost = document.getElementById('runMap');
+      var placeholder = document.createElement('div');
+      placeholder.id = 'runMapPiPPlaceholder';
+      placeholder.style.height = mapHost.style.height;
+      placeholder.className = 'd-flex align-items-center justify-content-center text-muted border rounded bg-light';
+      placeholder.innerHTML = '<div class="text-center small"><i class="bi bi-pip fs-2"></i><br>Peta sedang melayang. Tutup popup untuk mengembalikan.</div>';
+      mapHost.parentNode.insertBefore(placeholder, mapHost);
+      pipWin.document.body.style.margin = '0';
+      pipWin.document.body.appendChild(mapHost);
+      mapHost.style.height = '100%';
+      setTimeout(function(){ map.invalidateSize(); }, 80);
+
+      pipWin.addEventListener('pagehide', function(){
+        // Kembalikan peta ke halaman utama
+        mapHost.style.height = '380px';
+        placeholder.parentNode.replaceChild(mapHost, placeholder);
+        setTimeout(function(){ map.invalidateSize(); }, 80);
+        pipWin = null;
+      });
+    } catch(err) {
+      alert('Tidak dapat membuka popup melayang: '+err.message);
+    }
+  });
+
+
   // Jalankan auto-resume setelah DOM siap
   autoResumeIfActive();
   // Daftar service worker untuk dukungan notifikasi background
@@ -558,6 +646,24 @@ document.addEventListener('click', function(ev){
           <label class="btn btn-outline-primary" for="rbModeAuto"><i class="bi bi-magic"></i> Auto Generate</label>
           <input type="radio" class="btn-check" name="rbMode" id="rbModeManual" value="manual">
           <label class="btn btn-outline-primary" for="rbModeManual"><i class="bi bi-pencil-square"></i> Buat Sendiri</label>
+          <!-- Revisi 15 Juni 2026: Mode AI — import rute dari gambar peta tanpa input titik manual -->
+          <input type="radio" class="btn-check" name="rbMode" id="rbModeAI" value="ai">
+          <label class="btn btn-outline-success" for="rbModeAI"><i class="bi bi-robot"></i> AI Import dari Gambar</label>
+        </div>
+
+        <!-- ===== Panel AI Import Rute ===== -->
+        <div id="rbAIPanel" class="border rounded p-2 mb-2 bg-success-subtle" style="display:none">
+          <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Import Rute dari Gambar (AI)</div>
+          <div class="small text-muted mb-2">Unggah screenshot peta yang sudah berisi rute (Google Maps / Strava / dll). AI akan
+            mendeteksi <em>titik-titik penting</em> dan area; tidak perlu klik manual di peta. Membutuhkan
+            <code>OPENAI_API_KEY</code> di environment server.</div>
+          <input id="aiRouteImg" type="file" accept="image/*" class="form-control form-control-sm mb-2">
+          <input id="aiRouteHint" type="text" class="form-control form-control-sm mb-2"
+                 placeholder="Petunjuk area (opsional), cth: 'GOR Senayan Jakarta', 'Alun-alun Bandung'">
+          <button id="btnAIRoute" type="button" class="btn btn-success btn-sm w-100">
+            <i class="bi bi-stars"></i> Buat Rute Otomatis dengan AI
+          </button>
+          <div id="aiRouteStat" class="small text-muted mt-1"></div>
         </div>
 
         <div id="rbManualBox" class="d-none alert alert-info small py-2 mb-2">
@@ -1029,7 +1135,9 @@ document.addEventListener('click', function(ev){
   document.querySelectorAll('input[name=rbMode]').forEach(function(el){
     el.addEventListener('change', function(){
       var manual = document.getElementById('rbModeManual').checked;
+      var ai     = document.getElementById('rbModeAI') && document.getElementById('rbModeAI').checked;
       document.getElementById('rbManualBox').classList.toggle('d-none', !manual);
+      var aiPanel = document.getElementById('rbAIPanel'); if (aiPanel) aiPanel.style.display = ai ? '' : 'none';
       ensureBuilderMap();
       if (manual){
         bMap.on('click', manClickHandler);
@@ -1037,10 +1145,51 @@ document.addEventListener('click', function(ev){
       } else {
         bMap.off('click', manClickHandler);
         manReset();
-        document.getElementById('rbGen').disabled = false;
+        document.getElementById('rbGen').disabled = !!ai; // di mode AI, tombol Auto-Generate tidak relevan
       }
     });
   });
+
+  // ===== Revisi 15 Juni 2026 — Handler AI Import Rute dari Gambar =====
+  var btnAIRoute = document.getElementById('btnAIRoute');
+  if (btnAIRoute) {
+    btnAIRoute.addEventListener('click', async function(){
+      var f = document.getElementById('aiRouteImg').files[0];
+      var hint = document.getElementById('aiRouteHint').value.trim();
+      var stat = document.getElementById('aiRouteStat');
+      if (!f) { stat.textContent = 'Pilih gambar dulu.'; return; }
+      stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengirim ke AI…';
+      btnAIRoute.disabled = true;
+      try {
+        var fd = new FormData();
+        fd.append('csrf', csrf);
+        fd.append('_action', 'ai_route_from_image');
+        fd.append('hint', hint);
+        fd.append('image', f);
+        var r = await fetch('/api_run.php', { method:'POST', body: fd });
+        var d = await r.json();
+        if (!d.ok) { stat.textContent = 'Gagal: '+(d.err||'tidak diketahui'); btnAIRoute.disabled=false; return; }
+        if (!d.coords || d.coords.length < 2) { stat.textContent = 'AI tidak menemukan titik rute yang cukup.'; btnAIRoute.disabled=false; return; }
+        ensureBuilderMap();
+        if (bLine) { bMap.removeLayer(bLine); }
+        bLine = L.polyline(d.coords, {color:'#16a34a', weight:5}).addTo(bMap);
+        bMap.fitBounds(bLine.getBounds(), {padding:[40,40]});
+        // hitung jarak
+        var km = 0;
+        for (var i=1;i<d.coords.length;i++){
+          var a = d.coords[i-1], b = d.coords[i];
+          var R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
+          var s = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+          km += 2*R*Math.asin(Math.sqrt(s));
+        }
+        stat.innerHTML = 'Berhasil! '+d.coords.length+' titik · ~'+km.toFixed(2)+' km. '+(d.note?'<br><em>'+d.note+'</em>':'');
+        // simpan ke field untuk disimpan via tombol "Simpan Rute" yang sudah ada
+        window._aiRouteCoords = d.coords;
+      } catch(e) { stat.textContent = 'Error: '+e.message; }
+      btnAIRoute.disabled = false;
+    });
+  }
+
   document.getElementById('rbManUndo').addEventListener('click', function(){
     if (!manPts.length) return;
     manPts.pop();

@@ -139,8 +139,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 // Data
 $target = (int)(db_one("SELECT target_harian FROM kalori_target WHERE user_id=$1",[$uid])['target_harian'] ?? 2000);
-$weekStart = date('Y-m-d', strtotime('monday this week'));
-$weekEnd   = date('Y-m-d', strtotime('sunday this week'));
+
+// Revisi 15 Juni 2026 — dukung riwayat minggu sebelumnya via ?week=offset (0=ini, -1=mgg lalu, dst)
+$weekOffset = isset($_GET['week']) ? (int)$_GET['week'] : 0;
+if ($weekOffset > 0) $weekOffset = 0; // tidak boleh ke depan
+$weekStart = date('Y-m-d', strtotime('monday this week '.($weekOffset).' week'));
+$weekEnd   = date('Y-m-d', strtotime('sunday this week '.($weekOffset).' week'));
+
 $logs = db_all("SELECT * FROM kalori_makanan_log WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3 ORDER BY tanggal DESC, waktu DESC",
     [$uid,$weekStart,$weekEnd]);
 $byDay = db_all("SELECT tanggal::text AS tgl, SUM(kalori)::int AS total
@@ -161,6 +166,14 @@ $avgDay = round($totalWeek/7);
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 $aiEnabled = (bool)(getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : ''));
+
+// Daftar 8 minggu terakhir utk dropdown navigasi
+$weekChoices = [];
+for ($i=0; $i<=8; $i++){
+    $s = date('Y-m-d', strtotime('monday this week -'.$i.' week'));
+    $e = date('Y-m-d', strtotime('sunday this week -'.$i.' week'));
+    $weekChoices[-$i] = ($i===0?'Minggu Ini':($i===1?'Minggu Lalu':$i.' minggu lalu')).' ('.date('d M', strtotime($s)).' – '.date('d M', strtotime($e)).')';
+}
 include __DIR__.'/includes/header.php';
 ?>
 <nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
@@ -169,8 +182,22 @@ include __DIR__.'/includes/header.php';
 </ol></nav>
 
 <h2 class="mb-1"><i class="bi bi-egg-fried text-warning"></i> Pencatatan Kalori Mingguan</h2>
-<p class="text-muted small">Minggu <?= htmlspecialchars($weekStart) ?> – <?= htmlspecialchars($weekEnd) ?>. Target harian: <strong><?= $target ?></strong> kkal.
+<p class="text-muted small mb-2">Minggu <?= htmlspecialchars($weekStart) ?> – <?= htmlspecialchars($weekEnd) ?>. Target harian: <strong><?= $target ?></strong> kkal.
 <?= $aiEnabled ? '<span class="badge bg-success ms-2">AI Foto Aktif</span>' : '<span class="badge bg-secondary ms-2">AI Foto Nonaktif</span>' ?></p>
+
+<!-- Revisi 15 Juni 2026 — Navigasi minggu (riwayat minggu lalu, dsb) -->
+<form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
+  <a class="btn btn-outline-secondary btn-sm" href="?week=<?= $weekOffset-1 ?>"><i class="bi bi-chevron-left"></i> Minggu sebelumnya</a>
+  <select name="week" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+    <?php foreach($weekChoices as $off=>$lab): ?>
+      <option value="<?= $off ?>" <?= $off===$weekOffset?'selected':'' ?>><?= htmlspecialchars($lab) ?></option>
+    <?php endforeach; ?>
+  </select>
+  <?php if ($weekOffset < 0): ?>
+    <a class="btn btn-outline-secondary btn-sm" href="?week=<?= $weekOffset+1 ?>">Minggu berikutnya <i class="bi bi-chevron-right"></i></a>
+    <a class="btn btn-primary btn-sm" href="?week=0"><i class="bi bi-arrow-counterclockwise"></i> Kembali ke Minggu Ini</a>
+  <?php endif; ?>
+</form>
 
 <?php if($ok): ?><div class="alert alert-success py-2"><?= htmlspecialchars($ok) ?></div><?php endif; ?>
 <?php if($err): ?><div class="alert alert-warning py-2"><?= htmlspecialchars($err) ?></div><?php endif; ?>
@@ -233,7 +260,7 @@ include __DIR__.'/includes/header.php';
 </div>
 
 <div class="card shadow-sm">
-  <div class="card-header"><i class="bi bi-list-ul"></i> Riwayat Minggu Ini (<?= count($logs) ?> entri)</div>
+  <div class="card-header"><i class="bi bi-list-ul"></i> Riwayat <?= $weekOffset===0?'Minggu Ini':($weekOffset===-1?'Minggu Lalu':abs($weekOffset).' Minggu Lalu') ?> (<?= count($logs) ?> entri)</div>
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light"><tr><th>Tanggal</th><th>Waktu</th><th>Foto</th><th>Makanan</th><th class="text-end">Kalori</th><th>Catatan</th><th></th></tr></thead>

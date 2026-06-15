@@ -287,7 +287,7 @@ if ($u) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/login_logs.php"><i class="bi bi-clock-history text-primary"></i> Riwayat Login Member</a>
+            <?php /* Revisi 15 Juni 2026: menu "Riwayat Login Member" dihapus sesuai permintaan. */ ?>
           </div>
 
           <?php /* Admin > Pengaturan Lainnya */ ?>
@@ -298,6 +298,7 @@ if ($u) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/sistem.php"><i class="bi bi-cpu text-info"></i> Cek Sistem</a>
           </div>
 
         <?php endif; ?>

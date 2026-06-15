@@ -106,6 +106,8 @@ include __DIR__.'/includes/header.php';
             <a id="waShare" target="_blank" class="btn btn-success btn-sm"><i class="bi bi-whatsapp"></i> WhatsApp</a>
             <a id="tgShare" target="_blank" class="btn btn-info btn-sm text-white"><i class="bi bi-telegram"></i> Telegram</a>
             <a id="smsShare" class="btn btn-secondary btn-sm"><i class="bi bi-chat-dots"></i> SMS</a>
+            <!-- Revisi 15 Juni 2026 — popup melayang (PiP) agar GPS tetap aktif saat pindah app/tab -->
+            <button id="btnPipLive" type="button" class="btn btn-outline-info btn-sm"><i class="bi bi-pip"></i> Popup Melayang</button>
             <button id="btnStop" class="btn btn-outline-danger btn-sm ms-auto"><i class="bi bi-stop-circle"></i> Hentikan</button>
           </div>
           <div id="liveStat" class="small text-muted mt-2"></div>
@@ -284,6 +286,44 @@ function pushPoint(pos){
       'Terkirim '+ new Date().toLocaleTimeString() + (sendBuffer.length?' (buffer: '+sendBuffer.length+')':'');
   });
 }
+
+/* ===== Revisi 15 Juni 2026 — Document Picture-in-Picture (peta melayang) ===== */
+let pipWinLT = null;
+document.getElementById('btnPipLive').addEventListener('click', async ()=>{
+  if (!('documentPictureInPicture' in window)) {
+    alert('Browser belum mendukung Document Picture-in-Picture. Gunakan Chrome/Edge terbaru di HTTPS.');
+    return;
+  }
+  if (pipWinLT) { try { pipWinLT.close(); } catch(e){} pipWinLT = null; return; }
+  try {
+    pipWinLT = await window.documentPictureInPicture.requestWindow({ width: 340, height: 420 });
+    [...document.styleSheets].forEach(ss=>{
+      try {
+        const rules = [...ss.cssRules].map(r=>r.cssText).join('');
+        const s = pipWinLT.document.createElement('style'); s.textContent = rules;
+        pipWinLT.document.head.appendChild(s);
+      } catch(e){
+        if (ss.href){ const l = pipWinLT.document.createElement('link'); l.rel='stylesheet'; l.href=ss.href; pipWinLT.document.head.appendChild(l); }
+      }
+    });
+    const mh = document.getElementById('liveMap');
+    const ph = document.createElement('div');
+    ph.style.height = mh.style.height;
+    ph.className = 'd-flex align-items-center justify-content-center text-muted border rounded bg-light';
+    ph.innerHTML = '<div class="text-center small"><i class="bi bi-pip fs-2"></i><br>Peta sedang melayang.</div>';
+    mh.parentNode.insertBefore(ph, mh);
+    pipWinLT.document.body.style.margin='0';
+    pipWinLT.document.body.appendChild(mh);
+    mh.style.height='100%';
+    setTimeout(()=>map.invalidateSize(), 80);
+    pipWinLT.addEventListener('pagehide', ()=>{
+      mh.style.height='380px';
+      ph.parentNode.replaceChild(mh, ph);
+      setTimeout(()=>map.invalidateSize(), 80);
+      pipWinLT = null;
+    });
+  } catch(err){ alert('Tidak dapat membuka popup melayang: '+err.message); }
+});
 
 /* ---------- Kontak darurat ---------- */
 document.getElementById('frmContact').addEventListener('submit', async (e)=>{

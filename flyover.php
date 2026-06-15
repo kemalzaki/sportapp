@@ -176,7 +176,7 @@ $('selSession').addEventListener('change', async (e) => {
   if (!sessionId) { $('recStat').textContent = 'Menunggu pilihan sesi…'; return; }
   $('recStat').textContent = 'Mengunduh titik rute…';
   try {
-    const j = await (await fetch('/api_run.php?session_id='+sessionId, {credentials:'same-origin'})).json();
+    const j = await (await fetch('/api_run.php?route='+sessionId, {credentials:'same-origin'})).json();
     if (!j.ok || !j.points || j.points.length < 1) {
       $('recStat').textContent = 'Sesi tidak memiliki titik GPS sama sekali — tidak dapat dibuat video.'; return;
     }
