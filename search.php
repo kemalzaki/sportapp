@@ -16,7 +16,7 @@ if ($q !== '') {
     $aktivitas = db_all("SELECT uh.id,uh.tanggal,uh.jenis,uh.deskripsi,u.nama AS user FROM upload_harian uh JOIN users u ON u.id=uh.user_id
                          WHERE uh.jenis ILIKE $1 OR uh.deskripsi ILIKE $1 OR u.nama ILIKE $1 ORDER BY uh.tanggal DESC LIMIT 20",[$like]);
 }
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Search'); ?>
 <h2 class="mb-3"><i class="bi bi-search text-primary"></i> Pencarian Global</h2>
 <form class="mb-3"><div class="input-group">
   <input name="q" class="form-control" placeholder="Cari member, jadwal, aktivitas, tempat..." value="<?= htmlspecialchars($q) ?>" autofocus>
@@ -48,4 +48,4 @@ include __DIR__.'/includes/header.php'; ?>
 </div>
 <?php endif; ?>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

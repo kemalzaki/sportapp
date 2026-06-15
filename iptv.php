@@ -24,7 +24,7 @@ foreach ($channels as $c) {
 sort($groups, SORT_NATURAL | SORT_FLAG_CASE);
 
 $isAdmin = (($u['role'] ?? '') === 'admin');
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Iptv');
 ?>
 <style>
 .iptv-toolbar{position:sticky;top:0;z-index:5;background:#fff;padding:.5rem 0;border-bottom:1px solid #eef2f7;}
@@ -181,4 +181,4 @@ document.getElementById('iptvSearch')?.addEventListener('input',iptvFilter);
 document.getElementById('iptvGroup')?.addEventListener('change',iptvFilter);
 </script>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

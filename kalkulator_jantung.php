@@ -8,7 +8,7 @@ require __DIR__.'/includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kalkulator Detak Jantung';
 $u = current_user();
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalkulator Jantung');
 ?>
 <nav aria-label="breadcrumb" class="mb-2">
   <ol class="breadcrumb small mb-0">
@@ -116,4 +116,4 @@ function hitung(){
 }
 </script>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

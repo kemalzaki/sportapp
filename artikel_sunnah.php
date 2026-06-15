@@ -45,7 +45,7 @@ $rows = db_all("SELECT a.*, u.nama FROM islami_artikel a LEFT JOIN users u ON u.
 $editId = (int)($_GET['edit'] ?? 0);
 $editRow = ($editId && $u['role']==='admin') ? db_one("SELECT * FROM islami_artikel WHERE id=$1", [$editId]) : null;
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Artikel Sunnah');
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <h4 class="mb-3"><i class="bi bi-journal-text text-success"></i> Artikel Sunnah Menjaga Kesehatan</h4>
@@ -81,4 +81,4 @@ include __DIR__.'/includes/header.php';
   <div class="mt-2"><?= nl2br(htmlspecialchars($r['isi'])) ?></div>
 </div></div>
 <?php endforeach; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

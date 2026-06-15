@@ -180,7 +180,7 @@ $level = $_GET['lvl'] ?? 'pemula';
 if (!isset($PAKET[$level])) $level = 'pemula';
 $cur = $PAKET[$level];
 
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalistenik'); ?>
 
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
@@ -351,5 +351,5 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<?php include __DIR__.'/includes/bottom_nav.php'; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php?>
+<?php htmx_layout_end(); ?>

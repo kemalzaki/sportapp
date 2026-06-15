@@ -65,7 +65,7 @@ $allBooks = db_all("SELECT b.*, t.nama AS tnama, u.nama AS uname FROM booking b
                     WHERE b.status<>'canceled' AND b.tanggal >= CURRENT_DATE - INTERVAL '7 days'
                     ORDER BY b.tanggal DESC, b.jam_mulai DESC LIMIT $1 OFFSET $2",
                     [$bookPerPage, $bookOffset]);
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Tempat');
 ?>
 <h2 class="mb-3"><i class="bi bi-calendar2-week text-primary"></i> Booking Lapangan</h2>
 
@@ -158,4 +158,4 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

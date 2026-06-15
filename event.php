@@ -45,7 +45,7 @@ $peserta = $detail ? db_all(
 $matches = $detail ? db_all("SELECT m.*, a.nama AS a_nama, b.nama AS b_nama FROM event_match m
                              LEFT JOIN tim a ON a.id=m.tim_a LEFT JOIN tim b ON b.id=m.tim_b
                              WHERE m.event_id=$1 ORDER BY round, id", [$detailId]) : [];
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Event');
 ?>
 <h2 class="mb-3"><i class="bi bi-trophy-fill text-warning"></i> Event & Tournament</h2>
 
@@ -148,4 +148,4 @@ include __DIR__.'/includes/header.php';
     </ul></div></div>
 </div>
 <?php endif; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

@@ -102,7 +102,7 @@ $stats = db_one("SELECT
    FROM gaya_hidup_log
    WHERE user_id=$1 AND tanggal >= (CURRENT_DATE - INTERVAL '7 days')",[$uid]);
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Gaya Hidup');
 
 // Data chart 30 hari (asc) — fokus pada Pola Tidur, Mood & Psikologi
 $chart = db_all("SELECT tanggal, kualitas_tidur, tidur_menit, mood_skor,
@@ -319,4 +319,4 @@ $hasChartData = count(array_filter($chart, fn($r) =>
 })();
 </script>
 <?php endif; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

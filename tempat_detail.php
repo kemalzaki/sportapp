@@ -13,7 +13,7 @@ $pageTitle = 'Tempat: '.$r['nama'];
 $u = current_user();
 $isAdmin = $u && $u['role']==='admin';
 $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Tempat Detail');
 ?>
 <nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="/tempat_list.php">Daftar Tempat</a></li><li class="breadcrumb-item active"><?= htmlspecialchars($r['nama']) ?></li></ol></nav>
 <div class="card shadow-sm mb-3"><div class="card-body">
@@ -75,4 +75,4 @@ include __DIR__.'/includes/header.php';
       Koordinat lokasi belum diisi oleh admin.</div>
   <?php endif; ?>
 </div></div>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

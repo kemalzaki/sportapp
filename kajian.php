@@ -82,7 +82,7 @@ $editId = (int)($_GET['edit'] ?? 0);
 $editRow = $editId ? db_one("SELECT * FROM islami_kajian WHERE id=$1", [$editId]) : null;
 if ($editRow && (int)$editRow['user_id'] !== (int)$u['id'] && $u['role']!=='admin') $editRow = null;
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kajian');
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <h4 class="mb-3"><i class="bi bi-journal-bookmark text-info"></i> Kajian Literatur Buku</h4>
@@ -150,4 +150,4 @@ include __DIR__.'/includes/header.php';
   </div>
 </div></div>
 <?php endforeach; if (!$rows): ?><div class="text-muted">Belum ada literatur.</div><?php endif; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

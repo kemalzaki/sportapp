@@ -8,7 +8,7 @@ send_security_headers(); require_login();
 $pageTitle = 'Jadwal Sholat';
 $u = current_user();
 $pref = $u ? islami_pref((int)$u['id']) : ['kota'=>'Jakarta','negara'=>'Indonesia','mode_tenang'=>1];
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Jadwal Sholat');
 ?>
 <h4 class="mb-3"><i class="bi bi-mosque text-primary"></i> Jadwal Sholat Realtime</h4>
 <div id="prayerCard" data-kota="<?= htmlspecialchars($pref['kota']) ?>" data-negara="<?= htmlspecialchars($pref['negara']) ?>" data-mode-tenang="<?= (int)$pref['mode_tenang'] ?>" class="card shadow-sm"><div class="card-body">
@@ -22,4 +22,4 @@ include __DIR__.'/includes/header.php';
 // Tambahan: reminder notifikasi
 if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 </script>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

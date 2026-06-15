@@ -37,7 +37,7 @@ $pageTitle = 'Video Flyover 3D';
 $sessions = db_all("SELECT id, COALESCE(NULLIF(catatan,''), 'Sesi #'||id) AS nama, jarak_m, mulai_at
                     FROM run_sessions WHERE user_id=$1 ORDER BY id DESC LIMIT 30", [$uid]);
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Flyover');
 ?>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -277,4 +277,4 @@ $('btnRecord').onclick  = ()=> {
 };
 </script>
 
-<?php include __DIR__.'/includes/bottom_nav.php'; include __DIR__.'/includes/footer.php'; ?>
+<?phphtmx_layout_end(); ?>

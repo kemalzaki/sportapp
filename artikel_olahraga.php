@@ -37,7 +37,7 @@ if ($slug) {
     if (!empty($j['title'])) $detail = $j;
 }
 
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Artikel Olahraga'); ?>
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
 <div class="hero-sport-islami hero-artikel mb-3">
@@ -106,5 +106,5 @@ include __DIR__.'/includes/header.php'; ?>
 <?php endif; ?>
 
 <?php ip_card_close(); ?>
-<?php include __DIR__.'/includes/bottom_nav.php'; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php?>
+<?php htmx_layout_end(); ?>

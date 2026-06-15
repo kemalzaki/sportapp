@@ -97,7 +97,7 @@ $PENYAKIT = [
   ],
 ];
 
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kesehatan'); ?>
 
 <?php ip_card_open('Kesehatan: Penyakit Umum & Obat Herbal', 'bi-heart-pulse'); ?>
 
@@ -128,5 +128,5 @@ include __DIR__.'/includes/header.php'; ?>
   <?php endforeach; ?>
 </div>
 
-<?php include __DIR__.'/includes/bottom_nav.php'; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php?>
+<?php htmx_layout_end(); ?>

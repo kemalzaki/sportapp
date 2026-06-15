@@ -109,7 +109,7 @@ function fmt_pace($detik){
   return sprintf('%d:%02d /km', intdiv($detik,60), $detik%60);
 }
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalkulator Kesehatan');
 ?>
 <nav aria-label="breadcrumb" class="mb-2">
   <ol class="breadcrumb small mb-0">
@@ -168,4 +168,4 @@ include __DIR__.'/includes/header.php';
   </div>
 </form>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

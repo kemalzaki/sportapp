@@ -10,7 +10,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && $u){ csrf_check();
 $rows=db_all("SELECT d.*, u.nama, u.foto_url,
  (SELECT COUNT(*) FROM doa_aamiin a WHERE a.doa_id=d.id) AS jml_aamiin
  FROM doa_request d JOIN users u ON u.id=d.user_id ORDER BY d.created_at DESC LIMIT 100");
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Doa Antar Member'); ?>
 <h4 class="mb-3"><i class="bi bi-heart text-danger"></i> Saling Mendoakan Antar Member</h4>
 <?php if($u): ?>
 <form method="post" class="card card-body mb-3"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="post">
@@ -30,4 +30,4 @@ include __DIR__.'/includes/header.php'; ?>
  <?php else: ?><div class="small text-muted">🤲 <?= (int)$r['jml_aamiin'] ?> aamiin</div><?php endif; ?>
 </div></div>
 <?php endforeach; if(!$rows): ?><div class="text-muted">Belum ada permohonan doa.</div><?php endif; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

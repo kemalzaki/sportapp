@@ -232,7 +232,7 @@ $myDays = $u ? db_all("
     AND tanggal >= CURRENT_DATE - INTERVAL '90 days'
   GROUP BY tanggal ORDER BY tanggal", [(int)$u['id']]) : [];
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Riwayat');
 ?>
 <h2 class="mb-3"><i class="bi bi-clock-history text-primary"></i> Riwayat & Leaderboard</h2>
 
@@ -775,4 +775,4 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
 });
 
 </script>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

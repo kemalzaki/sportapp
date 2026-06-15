@@ -133,7 +133,7 @@ $totalPages = max(1, (int)ceil($total / $perPage));
 if ($page > $totalPages) $page = $totalPages;
 $pageData = array_slice($data, ($page-1)*$perPage, $perPage);
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Hadist');
 ?>
 <h4 class="mb-3"><i class="bi bi-book-half text-success"></i> Ensiklopedia Hadist</h4>
 <p class="text-muted small">Koleksi hadits dari <strong>Sahih Bukhari</strong> &amp; <strong>Sahih Muslim</strong> bertema
@@ -202,4 +202,4 @@ include __DIR__.'/includes/header.php';
 </ul></nav>
 <?php endif; ?>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

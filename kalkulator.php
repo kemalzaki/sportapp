@@ -20,7 +20,7 @@ if ($u) {
         }
     } catch (Throwable $e) {}
 }
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalkulator');
 ?>
 <h2 class="mb-3"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Sehat</h2>
 <p class="text-muted">Hitung skor kesehatan dasar dari <strong>umur</strong>, <strong>berat badan</strong>, dan <strong>tinggi badan</strong>. Hasil bersifat estimasi (BMI + zona usia), bukan diagnosis medis.</p>
@@ -266,4 +266,4 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
 });
 </script>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

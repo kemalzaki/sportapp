@@ -121,7 +121,7 @@ if ($vo2) {
 }
 if (!$rekomendasi) $rekomendasi[] = ['info','info-circle','Data belum cukup','Upload aktivitas & hadiri sesi olahraga beberapa minggu agar rekomendasi muncul.'];
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Monitoring');
 ?>
 <h2 class="mb-3"><i class="bi bi-graph-up-arrow text-primary"></i> Monitoring Performa</h2>
 
@@ -267,4 +267,4 @@ function _renderMonitoringCharts(){
 }
 document.addEventListener('DOMContentLoaded', _renderMonitoringCharts);
 </script>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

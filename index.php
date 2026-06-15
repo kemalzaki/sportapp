@@ -435,7 +435,7 @@ if (!function_exists('render_index_blok')) {
         }
     }
 }
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Index'); ?>
 <?php render_index_blok('top'); ?>
 
 <section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
@@ -1229,4 +1229,4 @@ function showStory(d){
 })();
 </script>
 
-<?php render_index_blok('bottom'); include __DIR__.'/includes/footer.php'; ?>
+<?php render_index_blok('bottom'); htmx_layout_end(); ?>

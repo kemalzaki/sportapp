@@ -7,9 +7,9 @@ send_security_headers(); require_login();
 $u = current_user();
 $tag = strtolower(preg_replace('/[^a-z0-9_]/i','', $_GET['t'] ?? ''));
 $pageTitle = '#'.$tag;
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Hashtag');
 
-if ($tag === '') { echo '<div class="alert alert-warning">Hashtag kosong.</div>'; include __DIR__.'/includes/footer.php'; exit; }
+if ($tag === '') { echo '<div class="alert alert-warning">Hashtag kosong.</div>'; htmx_layout_end(); exit; }
 
 $rows = db_all("SELECT p.*, u.nama, u.foto_url, u.id AS uid
                 FROM posts p
@@ -40,4 +40,4 @@ $count = (int)db_val("SELECT COUNT(*) FROM post_hashtags WHERE tag=$1", [$tag]);
     <div><?= nl2br(htmlspecialchars($p['caption'] ?? '')) ?></div>
   </div></div>
 <?php endforeach; endif; ?>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

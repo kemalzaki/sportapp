@@ -101,8 +101,17 @@ if ($u) {
 
 </style>
 <style id="userTheme"><?= user_theme_css() ?></style>
+<meta name="csrf-token" content="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+<!-- Revisi 16 Jun 2026: HTMX core + boot (NetworkFirst + SWR HTMX) -->
+<script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+<script defer src="/assets/js/htmx-boot.js?v=16jun2026"></script>
 </head>
-<body<?= !empty($pageSkeleton) ? ' data-skeleton="'.htmlspecialchars($pageSkeleton).'"' : '' ?>>
+<body<?= !empty($pageSkeleton) ? ' data-skeleton="'.htmlspecialchars($pageSkeleton).'"' : '' ?>
+      hx-boost="true"
+      hx-target="#app-content"
+      hx-select="#app-content"
+      hx-swap="innerHTML show:window:top transition:true"
+      hx-indicator="#appTopLoader">
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 
 <?php /* ===== TOP header (mobile only) — biru-kehitaman ===== */ ?>

@@ -22,7 +22,7 @@ $events = db_all("SELECT j.id,j.tanggal,j.jenis,j.tempat,j.jam_mulai,j.jam_seles
                   FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id ORDER BY j.tanggal");
 $upcoming = db_all("SELECT j.id,j.tanggal,j.jenis,j.tempat,j.jam_mulai,j.jam_selesai
                     FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC LIMIT 8");
-include __DIR__.'/includes/header.php'; ?>
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Calendar'); ?>
 
 <h2 class="mb-3"><i class="bi bi-calendar3 text-primary"></i> Kalender Jadwal</h2>
 <div class="row g-3">
@@ -112,4 +112,4 @@ document.addEventListener('DOMContentLoaded', () => {
   cal.render();
 });
 </script>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

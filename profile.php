@@ -235,7 +235,7 @@ foreach ($heatRows as $r) $heatMap[$r['d']] = (int)$r['c'];
 
 $xp = (int)$me['xp']; $level = (int)$me['level'];
 $xpInLevel = $xp % 200; $xpToNext = 200 - $xpInLevel;
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Profile');
 ?>
 <?php /* Tema Warna Aplikasi dipindahkan ke bagian bawah halaman sesuai revisi. */ ?>
 <h2 class="mb-3"><i class="bi bi-person-circle text-primary"></i> Profil Saya</h2>
@@ -824,4 +824,4 @@ if ($waSelf && !$cntPerl) {
   </div>
 </section>
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>

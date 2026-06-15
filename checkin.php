@@ -62,7 +62,7 @@ function haversine_m(float $a1, float $a2, float $b1, float $b2): float {
     return 2 * $R * asin(sqrt($h));
 }
 
-include __DIR__.'/includes/header.php';
+require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Checkin');
 ?>
 <h2 class="mb-3"><i class="bi bi-qr-code-scan text-primary"></i> Check-in QR</h2>
 <div class="alert alert-info py-2 small">
@@ -118,4 +118,4 @@ try {
   }).catch(e => { document.getElementById('reader').innerHTML = '<div class="alert alert-warning small">Kamera tidak tersedia — input kode manual.</div>'; });
 } catch(e) {}
 </script>
-<?php include __DIR__.'/includes/footer.php'; ?>
+<?php htmx_layout_end(); ?>
