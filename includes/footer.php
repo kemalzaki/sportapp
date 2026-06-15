@@ -165,6 +165,8 @@ document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto()
   var t = null, pct = 0;
   function show(label){
     if (!pop) return;
+    // Revisi 16 Jun 2026: jangan tampilkan fullscreen preloader saat HTMX boost aktif
+    if (window.htmx && document.body && document.body.getAttribute('hx-boost') === 'true') return;
     pop.style.display = 'flex';
     pop.setAttribute('aria-hidden','false');
     pct = 1; render();
@@ -222,6 +224,13 @@ document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto()
   // Pastikan disembunyikan saat halaman destinasi siap
   if (document.readyState === 'complete') finish();
   document.addEventListener('DOMContentLoaded', finish);
+
+  // Revisi 16 Jun 2026: integrasi dengan HTMX — pakai top-bar saja
+  document.addEventListener('htmx:beforeRequest', function(){ if (window.HFLoader) window.HFLoader.start(); });
+  document.addEventListener('htmx:afterRequest',  function(){ if (window.HFLoader) window.HFLoader.done(); finish(); });
+  document.addEventListener('htmx:afterSwap',     function(){ finish(); });
+  document.addEventListener('htmx:responseError', function(){ if (window.HFLoader) window.HFLoader.reset(); finish(); });
+  document.addEventListener('htmx:sendError',     function(){ if (window.HFLoader) window.HFLoader.reset(); finish(); });
   window.HFNavPreloader = { show: show, finish: finish };
 })();
 </script>
