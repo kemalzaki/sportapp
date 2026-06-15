@@ -47,6 +47,32 @@ include __DIR__.'/includes/header.php';
   install apa-apa.
 </p>
 
+
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
+  <div class="card-body py-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Live Tracking / Beacon</h6>
+    <ol class="small mb-2 ps-3">
+      <li><b>Tambahkan kontak darurat</b> di panel <em>Kontak Darurat</em> (Nama, No. WA, relasi).
+        Kontak ini hanya disimpan untuk Anda — bisa dibagikan ulang cepat.</li>
+      <li>Isi <b>Judul sesi</b> (misal "Lari sore di GBK") dan <b>durasi berlaku tautan</b> (jam).
+        Sesi otomatis kadaluarsa setelah durasi habis.</li>
+      <li>Tekan <b>Mulai &amp; buat tautan</b>. Izinkan akses GPS saat browser meminta.
+        Sebuah tautan publik akan dibuat (contoh: <code>/track_view.php?token=…</code>).</li>
+      <li>Klik tombol <b class="text-success">WhatsApp</b>, <b class="text-info">Telegram</b>, atau
+        <b>SMS</b> untuk mengirim tautan ke kontak darurat. Mereka <u>tidak perlu install apa-apa</u>,
+        cukup buka tautan lewat browser.</li>
+      <li><b>JANGAN tutup tab ini</b> selama berlari. Browser akan otomatis mengirim posisi GPS
+        setiap ±5 detik. Status pengiriman terlihat di bawah tautan.</li>
+      <li>Selesai berolahraga, klik <b class="text-danger">Hentikan</b>. Tautan akan berhenti
+        menerima titik baru (penerima tetap bisa melihat lintasan terakhir).</li>
+    </ol>
+    <div class="alert alert-warning small mb-0 py-2">
+      <i class="bi bi-exclamation-triangle"></i>
+      Tips: pakai HP dengan layar tetap menyala (atau aktifkan <em>Wake Lock</em> di
+      <code>/run.php</code>). Jika layar mati, browser akan menjeda pengiriman GPS sampai layar nyala lagi.
+    </div>
+  </div>
+</div>
 <div class="row g-3">
   <!-- KIRI: Kontrol sesi -->
   <div class="col-lg-5">
@@ -55,13 +81,11 @@ include __DIR__.'/includes/header.php';
         <h6 class="fw-bold mb-3"><i class="bi bi-play-circle text-success"></i> Mulai Sesi Berbagi</h6>
         <form id="frmStart" class="vstack gap-2">
           <input class="form-control form-control-sm" name="judul"    placeholder="Judul (mis. Lari sore taman)" value="Lari sore">
-          <select class="form-select form-select-sm" name="olahraga">
-            <option value="lari">Lari</option>
-            <option value="sepeda">Sepeda</option>
-            <option value="jalan">Jalan kaki</option>
-            <option value="hiking">Hiking</option>
-            <option value="lainnya">Lainnya</option>
-          </select>
+          <input type="hidden" name="olahraga" value="lari">
+          <div class="form-control form-control-sm bg-body-secondary text-muted d-flex align-items-center" style="cursor:not-allowed">
+            <i class="bi bi-lock-fill me-2"></i> Jenis aktivitas: <b class="ms-1">Lari</b>
+            <span class="ms-auto badge bg-danger-subtle text-danger">khusus lari</span>
+          </div>
           <input type="number" min="1" max="24" class="form-control form-control-sm" name="durasi_jam" value="6" title="Durasi berlaku tautan (jam)">
           <textarea class="form-control form-control-sm" name="pesan" rows="2" placeholder="Pesan untuk penerima (opsional)"></textarea>
           <button class="btn btn-danger"><i class="bi bi-broadcast"></i> Mulai &amp; buat tautan</button>

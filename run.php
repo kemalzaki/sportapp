@@ -30,6 +30,29 @@ include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur / Rute Realtime</h4>
 
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
+  <div class="card-body py-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Tracking Jalur / Rute Realtime</h6>
+    <ol class="small mb-2 ps-3">
+      <li>Tekan <b class="text-success">Mulai</b> &mdash; izinkan akses GPS saat diminta. Browser otomatis
+        merekam lintasan, jarak, durasi, dan pace Anda secara real-time di peta.</li>
+      <li>Saat istirahat, tekan <b class="text-warning">Jeda</b>. Lanjutkan kembali dengan
+        <b class="text-info">Lanjutkan</b>. Selesai berlari, tekan <b class="text-danger">Stop / Selesai</b>.</li>
+      <li>Tombol <b>Posisi Sekarang</b> memusatkan peta ke lokasi GPS aktif &mdash; pakai bila peta tertinggal
+        setelah HP sempat layar mati.</li>
+      <li>Riwayat tiap sesi tersimpan di panel kanan: <b>Lihat Rute</b> menampilkan lintasan;
+        <b>GPX</b>/<b>KML</b> bisa diimpor ke Google My Maps / Strava / Google Earth.</li>
+      <li>Browser mengaktifkan <b>Wake Lock</b> agar layar tidak mati. Untuk tracking saat layar HP
+        benar-benar mati, gunakan versi APK (Capacitor + background-geolocation).</li>
+    </ol>
+    <div class="alert alert-info small mb-0 py-2">
+      <i class="bi bi-shield-check"></i>
+      Filter anti-glitch otomatis: titik GPS dengan akurasi &gt;35&nbsp;m, lompatan &gt;150&nbsp;m, atau
+      kecepatan &gt;36&nbsp;km/jam <i>diabaikan</i> agar rute tidak kacau.
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
   <div class="col-md-7">
     <div class="card shadow-sm"><div class="card-body">
@@ -488,6 +511,31 @@ document.addEventListener('click', function(ev){
 <hr class="my-4">
 <h4 class="mb-3"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
 
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
+  <div class="card-body py-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-primary"></i> Cara Penggunaan Eksplorasi Rute &amp; Peta Canggih</h6>
+    <ul class="small mb-2 ps-3">
+      <li><b>Route Builder &middot; Auto Generate</b>: isi titik mulai (atau klik <i class="bi bi-geo-alt"></i> untuk lokasi sekarang),
+        target jarak, preferensi elevasi/jalan/tipe rute, lalu tekan <b>Generate Rute</b>.
+        Sistem akan men-<i>scale</i> hasil hingga jaraknya mendekati target dan mencoba beberapa kandidat
+        bearing untuk mencocokkan preferensi elevasi/permukaan.</li>
+      <li><b>Route Builder &middot; Buat Sendiri</b>: pilih mode <b>Manual</b>, lalu klik titik-titik di peta
+        untuk menyusun rute Anda sendiri. Tekan <b>Snap ke jalan</b> untuk menempelkan ke jaringan jalan,
+        atau <b>Hapus titik terakhir</b> untuk koreksi. Beri nama dan simpan.</li>
+      <li><b>Heatmaps</b>: visualisasi titik GPS yang sering Anda lewati (Pribadi), populer di komunitas
+        (Publik), atau khusus malam (Night) &mdash; cocok untuk memilih jalur aman saat lari malam.</li>
+      <li><b>Peta Offline</b>: pilih rute / riwayat &amp; level zoom, lalu unduh tile peta. Berguna saat trail
+        running / naik gunung tanpa sinyal. Hapus cache kapan saja untuk membebaskan ruang.</li>
+    </ul>
+    <div class="alert alert-warning small mb-0 py-2">
+      <i class="bi bi-info-circle"></i>
+      Server OSRM publik bersifat <i>best-effort</i> dan rate-limited. Bila gagal, ulangi atau pakai jarak
+      lebih kecil. Preferensi elevasi/permukaan diolah dengan API gratis (Open-Elevation/Overpass) &mdash; hasilnya
+      heuristik, bukan jaminan.
+    </div>
+  </div>
+</div>
+
 <ul class="nav nav-tabs" id="advTab" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="tab-builder-btn" data-bs-toggle="tab" data-bs-target="#tab-builder" type="button"><i class="bi bi-magic"></i> Route Builder</button>
@@ -505,6 +553,23 @@ document.addEventListener('click', function(ev){
   <div class="tab-pane fade show active" id="tab-builder" role="tabpanel">
     <div class="row g-3">
       <div class="col-md-4">
+        <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Mode Route Builder">
+          <input type="radio" class="btn-check" name="rbMode" id="rbModeAuto" value="auto" checked>
+          <label class="btn btn-outline-primary" for="rbModeAuto"><i class="bi bi-magic"></i> Auto Generate</label>
+          <input type="radio" class="btn-check" name="rbMode" id="rbModeManual" value="manual">
+          <label class="btn btn-outline-primary" for="rbModeManual"><i class="bi bi-pencil-square"></i> Buat Sendiri</label>
+        </div>
+
+        <div id="rbManualBox" class="d-none alert alert-info small py-2 mb-2">
+          <b><i class="bi bi-hand-index"></i> Mode Manual</b> &mdash; klik peta untuk menambahkan titik (mulai, transit, finish).
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            <button type="button" id="rbManSnap"  class="btn btn-sm btn-primary"><i class="bi bi-magnet"></i> Snap ke jalan</button>
+            <button type="button" id="rbManUndo"  class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Hapus titik terakhir</button>
+            <button type="button" id="rbManClear" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Reset</button>
+          </div>
+          <div class="small text-muted mt-1" id="rbManInfo">0 titik dipilih.</div>
+        </div>
+
         <label class="form-label small">Titik mulai</label>
         <div class="input-group input-group-sm mb-2">
           <input id="rbStart" class="form-control" placeholder="lat,lng atau kosongkan = lokasi sekarang">
@@ -687,6 +752,86 @@ document.addEventListener('click', function(ev){
     bMarkers.forEach(function(m){ bMap.removeLayer(m); }); bMarkers=[];
   }
 
+  // --- Helpers (preferensi elev/surface via API publik gratis, best-effort) ---
+  async function scoreElevation(coords){
+    // Sampel 12 titik sepanjang rute → Open-Elevation
+    try {
+      var n = coords.length; if (n<2) return 0;
+      var sample = [];
+      for (var i=0;i<12;i++){ sample.push(coords[Math.floor(i*(n-1)/11)]); }
+      var locs = sample.map(function(c){return c[0]+','+c[1];}).join('|');
+      var r = await fetch('https://api.open-elevation.com/api/v1/lookup?locations='+locs);
+      if (!r.ok) return null;
+      var d = await r.json();
+      var els = (d.results||[]).map(function(x){return x.elevation;});
+      var gain=0; for (var i=1;i<els.length;i++){ var dv=els[i]-els[i-1]; if (dv>0) gain+=dv; }
+      return gain; // total ascent in meters
+    } catch(e){ return null; }
+  }
+  async function scoreSurface(coords, surfPref){
+    if (surfPref==='apa-saja') return 1;
+    try {
+      var lats = coords.map(function(c){return c[0];}), lngs = coords.map(function(c){return c[1];});
+      var minLat=Math.min.apply(null,lats), maxLat=Math.max.apply(null,lats);
+      var minLng=Math.min.apply(null,lngs), maxLng=Math.max.apply(null,lngs);
+      var pad=0.002;
+      var bbox=(minLat-pad)+','+(minLng-pad)+','+(maxLat+pad)+','+(maxLng+pad);
+      var q='[out:json][timeout:10];way["highway"]["surface"]('+bbox+');out tags 200;';
+      var r = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:q});
+      if (!r.ok) return 0;
+      var d = await r.json();
+      var match=0,total=0;
+      (d.elements||[]).forEach(function(w){
+        var sf=(w.tags&&w.tags.surface)||''; total++;
+        if (surfPref==='aspal'   && /asphalt|paved|concrete/i.test(sf)) match++;
+        if (surfPref==='tanah'   && /ground|dirt|unpaved|gravel|earth|grass|sand/i.test(sf)) match++;
+        if (surfPref==='campuran'&& sf) match++;
+      });
+      return total ? match/total : 0;
+    } catch(e){ return 0; }
+  }
+
+  async function osrmRoute(waypoints){
+    var url = OSRM + waypoints.map(function(w){return w[0]+','+w[1];}).join(';') + '?overview=full&geometries=geojson';
+    var r = await fetch(url); if (!r.ok) throw new Error('OSRM '+r.status);
+    var d = await r.json();
+    if (!d.routes || !d.routes.length) throw new Error('OSRM kosong');
+    return { coords: d.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]];}), m: d.routes[0].distance };
+  }
+
+  function buildWaypoints(lat,lng,totalM,shape,bearing){
+    var waypoints=[[lng,lat]];
+    if (shape==='out'){
+      var dp = destPoint(lat,lng,totalM*0.5,bearing);
+      waypoints.push([dp.lng,dp.lat]); waypoints.push([lng,lat]);
+    } else {
+      var sideRadius=(totalM/3)*0.6;
+      var w1=destPoint(lat,lng,sideRadius,bearing);
+      var w2=destPoint(lat,lng,sideRadius,bearing+120);
+      var w3=destPoint(lat,lng,sideRadius,bearing+240);
+      waypoints.push([w1.lng,w1.lat]);
+      waypoints.push([w2.lng,w2.lat]);
+      waypoints.push([w3.lng,w3.lat]);
+      waypoints.push([lng,lat]);
+    }
+    return waypoints;
+  }
+
+  async function generateOne(lat,lng,totalM,shape,bearing){
+    // Iterative scaling: target → real OSRM distance, koreksi 3x max.
+    var scale = 1.0, last=null;
+    for (var i=0;i<3;i++){
+      var wps = buildWaypoints(lat,lng,totalM*scale,shape,bearing);
+      var res = await osrmRoute(wps);
+      last = res;
+      var err = (res.m - totalM)/totalM;
+      if (Math.abs(err) < 0.07) break;          // < 7% selisih → cukup
+      scale = scale * (totalM/res.m);
+      if (scale<0.3||scale>3) break;
+    }
+    return last;
+  }
+
   async function buildRoute(){
     var info = document.getElementById('rbInfo');
     var st = document.getElementById('rbStart').value.trim();
@@ -703,52 +848,129 @@ document.addEventListener('click', function(ev){
     clearBuilder();
 
     var distKm = parseFloat(document.getElementById('rbDist').value)||5;
-    var shape = document.getElementById('rbShape').value;
-    var elev = document.getElementById('rbElev').value;
+    var shape  = document.getElementById('rbShape').value;
+    var elev   = document.getElementById('rbElev').value;
+    var surf   = document.getElementById('rbSurface').value;
     var totalM = distKm*1000;
 
-    // Strategi:
-    //  - "out" : pilih bearing acak, lompat 0.5*total, lalu kembali.
-    //  - "loop": tiga waypoint berbentuk segitiga membentuk loop ~ totalM.
-    //  - elev "berbukit": gunakan bearing yang menjauh dari pusat kota (heuristik: pilih bearing acak — OSRM tidak tahu elevasi gratis).
-    var waypoints = [[lng,lat]];
-    var baseBearing = Math.random()*360;
-    if (shape === 'out') {
-      var dp = destPoint(lat,lng,totalM*0.5,baseBearing);
-      waypoints.push([dp.lng, dp.lat]); waypoints.push([lng,lat]);
-    } else {
-      // segitiga sama sisi → keliling 3*L, jadi L = totalM/3, jarak titik dari start ~ L*0.577
-      var sideRadius = (totalM/3)*0.6;
-      var b1 = baseBearing, b2 = baseBearing+120, b3 = baseBearing+240;
-      var w1 = destPoint(lat,lng,sideRadius,b1);
-      var w2 = destPoint(lat,lng,sideRadius,b2);
-      var w3 = destPoint(lat,lng,sideRadius,b3);
-      waypoints.push([w1.lng,w1.lat]); waypoints.push([w2.lng,w2.lat]); waypoints.push([w3.lng,w3.lat]); waypoints.push([lng,lat]);
+    info.textContent = 'Membuat 4 kandidat rute & menilai preferensi (bisa 5–15 detik)...';
+    var bearings=[Math.random()*360, Math.random()*360, Math.random()*360, Math.random()*360];
+    var candidates=[];
+    for (var i=0;i<bearings.length;i++){
+      try {
+        var r = await generateOne(lat,lng,totalM,shape,bearings[i]);
+        candidates.push(r);
+      } catch(e){ /* skip */ }
     }
+    if (!candidates.length){ info.textContent='Gagal generate rute (OSRM publik mungkin sibuk). Coba lagi.'; return; }
 
-    info.textContent = 'Menghubungi OSRM untuk men-snap rute ke jalan...';
-    var url = OSRM + waypoints.map(function(w){return w[0]+','+w[1];}).join(';') + '?overview=full&geometries=geojson';
+    // Skor: kombinasi (a) kedekatan jarak ke target, (b) elev pref, (c) surface pref
+    info.textContent = 'Menilai kandidat (elevasi & permukaan)...';
+    var scored = [];
+    for (var i=0;i<candidates.length;i++){
+      var c = candidates[i];
+      var distScore = 1 - Math.min(1, Math.abs(c.m-totalM)/totalM); // 1 = persis
+      var elevGain = null, surfScore = null;
+      if (elev !== 'apa-saja') elevGain = await scoreElevation(c.coords);
+      if (surf !== 'apa-saja') surfScore = await scoreSurface(c.coords, surf);
+      c.elevGain = elevGain; c.surfScore = surfScore;
+      // normalisasi elev (0..1) → 0 (datar) sampai 100m+ (berbukit)
+      var elevNorm = elevGain==null ? 0.5 : Math.min(1, elevGain/100);
+      var elevFit  = elev==='berbukit' ? elevNorm : elev==='datar' ? (1-elevNorm) : 0.5;
+      var surfFit  = surfScore==null ? 0.5 : surfScore;
+      // bobot: jarak 55%, elev 25%, surface 20%
+      c.score = distScore*0.55 + elevFit*0.25 + surfFit*0.20;
+      scored.push(c);
+    }
+    scored.sort(function(a,b){return b.score-a.score;});
+    var best = scored[0];
+
+    bLine = L.polyline(best.coords,{color:'#2563eb',weight:5}).addTo(bMap);
+    bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
+    bMarkers.push(L.marker(best.coords[0]).addTo(bMap).bindTooltip('Mulai'));
+    bMarkers.push(L.marker(best.coords[best.coords.length-1]).addTo(bMap).bindTooltip('Selesai'));
+    bCurrentRoute = { coords: best.coords, jarak_m: best.m };
+    var elevTxt  = best.elevGain==null ? '—' : Math.round(best.elevGain)+' m ascent';
+    var surfTxt  = best.surfScore==null ? '—' : Math.round(best.surfScore*100)+'% '+surf;
+    info.innerHTML = '✓ Rute terpilih: <strong>'+(best.m/1000).toFixed(2)+' km</strong> '+
+      '(target '+distKm.toFixed(2)+' km · selisih '+Math.abs(best.m-totalM).toFixed(0)+' m) · '+
+      'Elev: '+elevTxt+' · Surface: '+surfTxt+
+      ' <span class="badge bg-light text-dark border">'+candidates.length+' kandidat dinilai</span>';
+    document.getElementById('rbSave').disabled = false;
+    document.getElementById('rbExport').disabled = false;
+  }
+  document.getElementById('rbGen').addEventListener('click', function(){
+    if (document.querySelector('input[name=rbMode]:checked').value==='manual'){
+      alert('Mode Manual aktif — klik peta untuk menambah titik, lalu tekan "Snap ke jalan".'); return;
+    }
+    buildRoute();
+  });
+
+  // ====================== MANUAL ROUTE MODE ======================
+  var manPts = [], manMarkers = [], manLine = null;
+  function manRefresh(){
+    if (manLine){ bMap.removeLayer(manLine); manLine=null; }
+    if (manPts.length>=2){
+      manLine = L.polyline(manPts,{color:'#f59e0b',weight:4,dashArray:'6,6'}).addTo(bMap);
+    }
+    document.getElementById('rbManInfo').textContent = manPts.length+' titik dipilih.';
+  }
+  function manReset(){
+    manPts=[]; manMarkers.forEach(function(m){bMap.removeLayer(m);}); manMarkers=[];
+    if (manLine){ bMap.removeLayer(manLine); manLine=null; }
+    document.getElementById('rbManInfo').textContent='0 titik dipilih.';
+  }
+  function manClickHandler(e){
+    var ll = e.latlng;
+    manPts.push([ll.lat, ll.lng]);
+    var idx = manPts.length;
+    var mk = L.marker([ll.lat,ll.lng]).addTo(bMap).bindTooltip(String(idx));
+    manMarkers.push(mk);
+    manRefresh();
+  }
+  document.querySelectorAll('input[name=rbMode]').forEach(function(el){
+    el.addEventListener('change', function(){
+      var manual = document.getElementById('rbModeManual').checked;
+      document.getElementById('rbManualBox').classList.toggle('d-none', !manual);
+      ensureBuilderMap();
+      if (manual){
+        bMap.on('click', manClickHandler);
+        document.getElementById('rbGen').disabled = true;
+      } else {
+        bMap.off('click', manClickHandler);
+        manReset();
+        document.getElementById('rbGen').disabled = false;
+      }
+    });
+  });
+  document.getElementById('rbManUndo').addEventListener('click', function(){
+    if (!manPts.length) return;
+    manPts.pop();
+    var mk = manMarkers.pop(); if (mk) bMap.removeLayer(mk);
+    manRefresh();
+  });
+  document.getElementById('rbManClear').addEventListener('click', manReset);
+  document.getElementById('rbManSnap').addEventListener('click', async function(){
+    if (manPts.length<2){ alert('Minimal 2 titik (mulai & finish).'); return; }
+    var info = document.getElementById('rbInfo');
+    info.textContent = 'Snap '+manPts.length+' titik ke jalan via OSRM...';
     try {
-      var r = await fetch(url);
-      var d = await r.json();
-      if (!d.routes || !d.routes.length) throw new Error('OSRM tidak mengembalikan rute');
-      var coords = d.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]];}); // [lat,lng]
-      var realM  = d.routes[0].distance;
-      bLine = L.polyline(coords,{color:'#2563eb',weight:5}).addTo(bMap);
+      var wps = manPts.map(function(p){return [p[1],p[0]];});
+      var res = await osrmRoute(wps);
+      clearBuilder();
+      bLine = L.polyline(res.coords,{color:'#16a34a',weight:5}).addTo(bMap);
       bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
-      bMarkers.push(L.marker(coords[0]).addTo(bMap).bindTooltip('Mulai'));
-      bMarkers.push(L.marker(coords[coords.length-1]).addTo(bMap).bindTooltip('Selesai'));
-      bCurrentRoute = { coords: coords, jarak_m: realM };
-      info.innerHTML = '✓ Rute dibuat: <strong>'+(realM/1000).toFixed(2)+' km</strong> '+
-        '(target '+distKm.toFixed(2)+' km) · preferensi: '+elev+' / '+document.getElementById('rbSurface').value+
-        '. <em>Catatan: OSRM publik tidak membedakan aspal/tanah — preferensi disimpan sebagai metadata.</em>';
+      bMarkers.push(L.marker(res.coords[0]).addTo(bMap).bindTooltip('Mulai'));
+      bMarkers.push(L.marker(res.coords[res.coords.length-1]).addTo(bMap).bindTooltip('Selesai'));
+      bCurrentRoute = { coords: res.coords, jarak_m: res.m };
+      info.innerHTML = '✓ Rute manual ter-snap: <strong>'+(res.m/1000).toFixed(2)+' km</strong> dari '+manPts.length+' waypoint.';
       document.getElementById('rbSave').disabled = false;
       document.getElementById('rbExport').disabled = false;
     } catch(e){
-      info.textContent = 'Gagal generate rute: '+e.message+'. Coba ulangi atau pakai jarak yang lebih kecil.';
+      info.textContent = 'Gagal snap: '+e.message;
     }
-  }
-  document.getElementById('rbGen').addEventListener('click', buildRoute);
+  });
+
 
   document.getElementById('rbSave').addEventListener('click', async function(){
     if (!bCurrentRoute) return;

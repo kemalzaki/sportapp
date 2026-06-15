@@ -34,7 +34,7 @@ $pageTitle = 'Video Flyover 3D';
     file_url TEXT, created_at TIMESTAMP NOT NULL DEFAULT now()
 )");
 
-$sessions = db_all("SELECT id, COALESCE(nama_rute, 'Sesi #'||id) AS nama, jarak_m, mulai_at
+$sessions = db_all("SELECT id, COALESCE(NULLIF(catatan,''), 'Sesi #'||id) AS nama, jarak_m, mulai_at
                     FROM run_sessions WHERE user_id=$1 ORDER BY id DESC LIMIT 30", [$uid]);
 
 include __DIR__.'/includes/header.php';

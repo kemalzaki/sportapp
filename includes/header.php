@@ -192,6 +192,8 @@ if ($u) {
           <a class="list-group-item list-group-item-action ps-4" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
           <a class="list-group-item list-group-item-action ps-4" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D</a>
         </div>
 
         <?php /* Grup: Perhitungan Kalori Olahraga */ ?>
