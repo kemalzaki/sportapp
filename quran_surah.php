@@ -54,7 +54,7 @@ if ($jumpAyat > 0) {
     $page = (int)ceil($jumpAyat / $perPage);
 }
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Quran Surah');
+include __DIR__.'/includes/header.php';
 ?>
 <div class="mb-2">
   <a href="/quran.php" class="btn btn-sm btn-success"><i class="bi bi-arrow-left"></i> Kembali ke Daftar Surat</a>
@@ -363,4 +363,4 @@ $ayatTo   = min($totalAyat, $page*$perPage);
   }
 })();
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

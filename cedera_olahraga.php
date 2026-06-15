@@ -134,7 +134,7 @@ $CEDERA = [
   ],
 ];
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Cedera Olahraga');
+include __DIR__.'/includes/header.php';
 ?>
 <nav aria-label="breadcrumb" class="mb-2">
   <ol class="breadcrumb small mb-0">
@@ -195,4 +195,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Cede
   <i class="bi bi-telephone-fill"></i> <strong>Darurat medis:</strong> hubungi <strong>119</strong> (Layanan Gawat Darurat) atau <strong>118</strong> (Ambulans) bila terjadi tidak sadar &gt; 1 menit, sesak napas berat, nyeri dada, atau perdarahan tidak berhenti.
 </div>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

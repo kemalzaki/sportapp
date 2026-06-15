@@ -59,7 +59,7 @@ if ($q !== '') {
     }));
 }
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Doa');
+include __DIR__.'/includes/header.php';
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
@@ -141,4 +141,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Doa'
   </div></div></div>
 <?php endforeach; ?>
 </div>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

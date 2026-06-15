@@ -25,7 +25,7 @@ $rows = db_all("SELECT p.*, u.nama, u.foto_url AS u_foto, b.created_at AS saved_
                 JOIN users u ON u.id=p.user_id
                 WHERE b.user_id=$1
                 ORDER BY b.created_at DESC LIMIT 100", [$uid]);
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Bookmark');
+include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-bookmark-star text-warning"></i> Bookmark Saya</h4>
 <?php if(!$rows): ?>
@@ -47,4 +47,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Book
     </form>
   </div></div>
 <?php endforeach; endif; ?>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

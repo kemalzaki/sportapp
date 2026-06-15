@@ -139,7 +139,7 @@ if (!empty($user['tanggal_lahir'])) {
     try { $umur = (new DateTime($user['tanggal_lahir']))->diff(new DateTime('today'))->y; } catch (Throwable $e) {}
 }
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'User');
+include __DIR__.'/includes/header.php';
 ?>
 <div class="card shadow-sm mb-3"><div class="card-body d-flex gap-3 align-items-center">
   <?php $_avSrc = $user['foto_url'] ?? null; ?>
@@ -442,4 +442,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'User
   <?php endif; ?>
 </div></div>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

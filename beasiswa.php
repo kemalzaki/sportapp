@@ -55,7 +55,7 @@ foreach ($posts as $p) {
     if (str_contains($t, 'beasiswa') || str_contains($t, 'scholarship')) $beasiswaNews[] = $p;
 }
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Beasiswa'); ?>
+include __DIR__.'/includes/header.php'; ?>
 
 <?php ip_card_open('Info Beasiswa S1 / S2 / S3', 'bi-mortarboard'); ?>
 
@@ -108,5 +108,5 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Beas
 </div>
 <?php endif; ?>
 
-<?php?>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/bottom_nav.php'; ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

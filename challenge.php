@@ -45,7 +45,7 @@ if (!$challenges) {
       ['dzikir_petang','Dzikir Petang','Selesaikan rangkaian dzikir petang.','bi-moon-stars','dark'],
     ];
 }
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Challenge');
+include __DIR__.'/includes/header.php';
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <h4 class="mb-3"><i class="bi bi-trophy text-warning"></i> Challenge Islami</h4>
@@ -99,4 +99,4 @@ foreach ($challenges as $c):
   </div></div></div>
 <?php endforeach; ?>
 </div>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

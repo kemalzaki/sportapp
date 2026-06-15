@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !isset($_POST['_action'])) {
 }
 
 $mine = db_all("SELECT * FROM upload_harian WHERE user_id=$1 ORDER BY tanggal DESC, id DESC LIMIT 50", [$u['id']]);
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Upload'); ?>
+include __DIR__.'/includes/header.php'; ?>
 
 <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
   <h2 class="mb-0"><i class="bi bi-cloud-upload text-primary"></i> Upload Aktivitas Harian</h2>
@@ -269,4 +269,4 @@ function showBukti(src, date){
 }
 </script>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -19,7 +19,7 @@ $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_ur
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id $wsql ORDER BY t.nama ASC", $params);
 $jenisList = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Tempat List');
+include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Daftar Tempat Olahraga</h2>
 <p class="text-muted small">Tempat-tempat olahraga yang dikelola admin komunitas. Klik untuk melihat detail & arah lokasi.</p>
@@ -150,4 +150,4 @@ function showTempatDetail(d){
   _tmM.show();
 }
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

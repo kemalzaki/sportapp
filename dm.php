@@ -38,7 +38,7 @@ $threads = db_all("
   ORDER BY last_at DESC NULLS LAST
 ", [(int)$u['id']]);
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Dm');
+include __DIR__.'/includes/header.php';
 ?>
 <style>
 .dm-ticks{font-weight:700;letter-spacing:-1px;margin-left:4px;}
@@ -245,4 +245,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Dm')
   <?php endif; ?>
 })();
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

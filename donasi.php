@@ -72,7 +72,7 @@ $donasi = db_all("SELECT d.*, u.nama AS u_nama FROM donasi_krb d LEFT JOIN users
                   ORDER BY d.created_at DESC LIMIT $per OFFSET $off");
 $totalPages = max(1, (int)ceil($total/$per));
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Donasi');
+include __DIR__.'/includes/header.php';
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 
@@ -179,4 +179,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Dona
 </ul></nav>
 <?php endif; ?>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

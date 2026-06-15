@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $pageTitle = 'Laporkan Post';
 $pid = (int)($_GET['post_id'] ?? 0);
 $post = $pid ? db_one("SELECT p.*, u.nama FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=$1", [$pid]) : null;
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Report');
+include __DIR__.'/includes/header.php';
 ?>
 <div class="row justify-content-center"><div class="col-md-6">
 <div class="card shadow-sm"><div class="card-body p-4">
@@ -56,4 +56,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Repo
   <?php endif; ?>
 </div></div>
 </div></div>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

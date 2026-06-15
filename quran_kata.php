@@ -7,7 +7,7 @@ require __DIR__.'/includes/islami_data.php';
 require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login();
 $pageTitle = 'Jumlah Kata Bahasa Arab dalam Al-Qur\'an';
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Quran Kata');
+include __DIR__.'/includes/header.php';
 
 /**
  * Statistik kata-kata populer dalam Al-Qur'an (jumlah kemunculan menurut riset klasik:
@@ -169,4 +169,4 @@ document.getElementById('hitungForm').addEventListener('submit', async function(
   }
 });
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

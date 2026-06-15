@@ -3,7 +3,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/helpers.php';
 $pageTitle = 'Hidup Sehat';
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Hidup Sehat');
+include __DIR__.'/includes/header.php';
 ?>
 <div class="container py-3">
   <div class="d-flex align-items-center justify-content-between mb-3">
@@ -72,4 +72,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Hidu
     <i class="bi bi-info-circle"></i> Konten edukatif umum, bukan pengganti konsultasi dokter. Bila ada kondisi medis khusus, konsultasikan dengan tenaga kesehatan.
   </div>
 </div>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -113,7 +113,7 @@ $buildUrl = function(array $over = []) use ($cat, $q, $page) {
     return '?'.http_build_query($params);
 };
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Berita'); ?>
+include __DIR__.'/includes/header.php'; ?>
 
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
@@ -298,4 +298,4 @@ window.addEventListener('load', function(){
 </script>
 
 <?php /* bottom_nav.php sudah di-include oleh footer.php — hindari include ganda */ ?>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

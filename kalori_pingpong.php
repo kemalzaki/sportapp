@@ -139,7 +139,7 @@ if ($u) {
 $totalPages = max(1, (int)ceil($total / $per));
 $totalKcal = 0; foreach ($riwayat as $r) $totalKcal += (float)$r['kalori'];
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalori Pingpong');
+include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-circle-fill text-warning"></i> Kalkulator Kalori Ping Pong</h2>
 <p class="text-muted small mb-3">Hitung &amp; kelola perkiraan kalori terbakar saat bermain tenis meja (ping pong). Rumus mengacu nilai <strong>MET</strong> (Compendium of Physical Activities).</p>
@@ -277,4 +277,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalo
   </div>
 </div>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

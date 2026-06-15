@@ -16,7 +16,7 @@ if ($u) {
     $bookmarks = db_all("SELECT * FROM quran_bookmarks WHERE user_id=$1 ORDER BY surah, ayat", [(int)$u['id']]);
     $lastRead = db_one("SELECT * FROM quran_last_read WHERE user_id=$1", [(int)$u['id']]);
 }
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Quran');
+include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-book text-success"></i> Al-Qur'an Digital</h4>
 
@@ -94,4 +94,4 @@ function applyFilter(){
 document.getElementById('surahFilter').addEventListener('input', applyFilter);
 document.getElementById('tempatFilter').addEventListener('change', applyFilter);
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

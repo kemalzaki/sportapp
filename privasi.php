@@ -12,7 +12,7 @@ $k = db_one("SELECT * FROM kebijakan_privasi WHERE aktif=true ORDER BY id DESC L
 if (!$k) {
     $k = ['judul'=>'Kebijakan Privasi','versi'=>'-','konten'=>'<p class="text-muted">Belum ada kebijakan privasi yang dipublikasikan.</p>','updated_at'=>'-'];
 }
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Privasi');
+include __DIR__.'/includes/header.php';
 ?>
 <article class="container py-4" style="max-width:860px;">
   <h1 class="mb-1"><?= htmlspecialchars($k['judul']) ?></h1>
@@ -36,4 +36,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Priv
   </script>
   </div>
 </article>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

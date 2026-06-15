@@ -35,7 +35,7 @@ $pageTitle = 'Live Tracking / Beacon';
 $mine     = db_all("SELECT * FROM live_tracking_sessions WHERE user_id=$1 ORDER BY id DESC LIMIT 10", [$uid]);
 $contacts = db_all("SELECT * FROM live_tracking_contacts WHERE user_id=$1 ORDER BY id DESC", [$uid]);
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Live Tracking');
+include __DIR__.'/includes/header.php';
 ?>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -271,4 +271,4 @@ document.querySelectorAll('[data-del]').forEach(b=>{
 });
 </script>
 
-<?phphtmx_layout_end(); ?>
+<?php include __DIR__.'/includes/bottom_nav.php'; include __DIR__.'/includes/footer.php'; ?>

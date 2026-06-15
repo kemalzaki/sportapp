@@ -66,7 +66,7 @@ $TOKO_BANDUNG = [
   ['nama'=>'Bookoopedia Dago',        'alamat'=>'Jl. Ir. H. Juanda (Dago), Bandung',         'jam'=>'09.00–21.00','maps'=>'https://maps.google.com/?q=Toko+Buku+Dago+Bandung'],
 ];
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Buku'); ?>
+include __DIR__.'/includes/header.php'; ?>
 
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
@@ -162,5 +162,5 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Buku
 </div>
 <?php ip_card_close(); ?>
 
-<?php?>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/bottom_nav.php'; ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -1,8 +1,8 @@
 <?php
 require __DIR__.'/config/db.php'; require __DIR__.'/includes/auth.php'; require __DIR__.'/includes/security.php'; require __DIR__.'/includes/helpers.php'; require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login(); $pageTitle='Statistik & Streak'; $u=current_user();
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Statistik Islami');
-if(!$u){ echo '<div class="alert alert-warning">Login dulu.</div>'; htmx_layout_end(); exit; }
+include __DIR__.'/includes/header.php';
+if(!$u){ echo '<div class="alert alert-warning">Login dulu.</div>'; include __DIR__.'/includes/footer.php'; exit; }
 $rows=db_all("SELECT tanggal, quran_done, dzikir_pagi, dzikir_petang, doa_done, subuh_walk, sedekah, poin FROM islami_streak WHERE user_id=$1 ORDER BY tanggal DESC LIMIT 60",[(int)$u['id']]);
 $streak=islami_streak_count((int)$u['id']);
 $totalPoin=(int)db_val("SELECT COALESCE(SUM(poin),0) FROM islami_streak WHERE user_id=$1",[(int)$u['id']]);
@@ -23,4 +23,4 @@ $hadirOlahraga=(int)db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1 AND ha
 <tr><td><?= htmlspecialchars($r['tanggal']) ?></td><td><?= $ck($r['quran_done']) ?></td><td><?= $ck($r['dzikir_pagi']) ?></td><td><?= $ck($r['dzikir_petang']) ?></td><td><?= $ck($r['doa_done']) ?></td><td><?= $ck($r['subuh_walk']) ?></td><td><?= $ck($r['sedekah']) ?></td><td class="text-end"><?= (int)$r['poin'] ?></td></tr>
 <?php endforeach; if(!$rows): ?><tr><td colspan="8" class="text-center text-muted">Belum ada aktivitas.</td></tr><?php endif; ?>
 </tbody></table></div></div>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -161,7 +161,7 @@ $avgDay = round($totalWeek/7);
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 $aiEnabled = (bool)(getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : ''));
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalori Mingguan');
+include __DIR__.'/includes/header.php';
 ?>
 <nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
   <li class="breadcrumb-item"><a href="/index.php">Beranda</a></li>
@@ -317,4 +317,4 @@ new Chart(document.getElementById('weekChart'), {
   options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}} }
 });
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

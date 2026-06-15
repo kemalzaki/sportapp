@@ -6,7 +6,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login();
 $pageTitle = 'Kalender Hijriyah & Puasa Sunnah';
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Kalender Hijriyah');
+include __DIR__.'/includes/header.php';
 
 $today = new DateTime('today');
 $year  = (int)($_GET['y'] ?? $today->format('Y'));
@@ -179,4 +179,4 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

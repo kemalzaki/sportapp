@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     header('Location: /dzikir.php?w='.$w); exit;
 }
 $list = $w==='petang' ? $ISLAMI_DZIKIR_PETANG : $ISLAMI_DZIKIR_PAGI;
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Dzikir');
+include __DIR__.'/includes/header.php';
 ?>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -49,4 +49,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Dzik
   </div></div></div>
 <?php endforeach; ?>
 </div>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

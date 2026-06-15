@@ -43,7 +43,7 @@ $RASUL = [
 
 $sel = isset($_GET['n']) ? max(1, min(25, (int)$_GET['n'])) : 0;
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Sejarah Nabi'); ?>
+include __DIR__.'/includes/header.php'; ?>
 
 <?php ip_card_open('Sejarah Nabi & Rasul (25 Rasul)', 'bi-book'); ?>
 
@@ -86,5 +86,5 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Seja
   </div>
 <?php endif; ?>
 
-<?php?>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/bottom_nav.php'; ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

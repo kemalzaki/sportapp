@@ -48,7 +48,7 @@ $hijri = masehi_ke_hijriyah();
 $ramadhan = hijri_event_to_gregorian(9, 1);
 $iedAdha  = hijri_event_to_gregorian(12, 10);
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Islami');
+include __DIR__.'/includes/header.php';
 ?>
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 <?php if (!empty($_SESSION['flash'])): ?>
@@ -455,4 +455,4 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

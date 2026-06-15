@@ -8,7 +8,7 @@ require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login();
 $pageTitle = 'Cari Ayat & Terjemah';
 $mode = ($_GET['mode'] ?? 'terjemah') === 'ayat' ? 'ayat' : 'terjemah';
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Quran Search');
+include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-search text-success"></i> Pencarian Al-Qur'an</h4>
 
@@ -105,4 +105,4 @@ document.getElementById('searchForm').addEventListener('submit', async function(
   }
 });
 </script>
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -87,7 +87,7 @@ $stat = db_one("SELECT
   COALESCE(SUM(sudah_ayat),0) sdh
   FROM catatan_hafalan WHERE user_id=$1",[$uid]);
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Catatan Hafalan');
+include __DIR__.'/includes/header.php';
 ?>
 <nav aria-label="breadcrumb" class="mb-2">
   <ol class="breadcrumb small mb-0">
@@ -189,4 +189,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Cata
   </div>
 </div>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

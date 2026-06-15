@@ -45,7 +45,7 @@ function sort_link($key, $label, $curSort, $curDir) {
     $qs = $_GET; $qs['sort']=$key; $qs['dir']=$newDir; unset($qs['page']);
     return '<a class="text-decoration-none" href="?'.http_build_query($qs).'">'.htmlspecialchars($label).$arrow.'</a>';
 }
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Leaderboard Islami');
+include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-bar-chart-line text-danger"></i> Leaderboard Amal & Aktivitas Sehat</h4>
 
@@ -116,4 +116,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Lead
 </ul></nav>
 <?php endif; ?>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -42,7 +42,7 @@ $quotes = db_all("SELECT q.*, u.nama, u.foto_url
                   ORDER BY q.created_at DESC
                   LIMIT $PER_PAGE OFFSET $offset");
 
-require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Feed Islami');
+include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-chat-dots text-warning"></i> Feed Quote Islami Komunitas
   <span class="badge bg-secondary ms-1" title="Total quote"><?= $total ?></span>
@@ -101,4 +101,4 @@ require_once __DIR__.'/includes/htmx.php'; htmx_layout_start($pageTitle ?? 'Feed
 <div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $total ?> quote · 2 per halaman</div>
 <?php endif; ?>
 
-<?php htmx_layout_end(); ?>
+<?php include __DIR__.'/includes/footer.php'; ?>
