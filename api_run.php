@@ -56,6 +56,36 @@ if ($_SERVER['REQUEST_METHOD']==='GET' && ($_GET['route'] ?? '') !== '') {
     exit;
 }
 
+// ===== Revisi 15 Jun 2026: load rute tersimpan (Route Builder) =====
+if ($_SERVER['REQUEST_METHOD']==='GET' && ($_GET['route_load'] ?? '') !== '') {
+    $rid = (int)$_GET['route_load'];
+    $r = db_one("SELECT id, user_id, nama, jarak_m, elevasi_pref, surface_pref, is_public, geojson FROM run_routes WHERE id=$1", [$rid]);
+    if (!$r) { echo json_encode(['ok'=>false]); exit; }
+    $isPub = ($r['is_public']===true || $r['is_public']==='t' || $r['is_public']==='1');
+    if (!$isPub && (int)$r['user_id'] !== $uid) { echo json_encode(['ok'=>false,'err'=>'forbidden']); exit; }
+    $gj = is_array($r['geojson']) ? $r['geojson'] : json_decode($r['geojson'], true);
+    $coords = $gj['coords'] ?? [];
+    echo json_encode(['ok'=>true, 'id'=>(int)$r['id'], 'nama'=>$r['nama'], 'jarak_m'=>(float)$r['jarak_m'], 'coords'=>$coords]);
+    exit;
+}
+
+// ===== Revisi 15 Jun 2026: Heatmap (pribadi / publik / night) =====
+if ($_SERVER['REQUEST_METHOD']==='GET' && ($_GET['heatmap'] ?? '') !== '') {
+    $mode = $_GET['heatmap'];
+    $limit = 5000;
+    if ($mode === 'pribadi') {
+        $rows = db_all("SELECT p.lat, p.lng FROM run_points p JOIN run_sessions s ON s.id=p.session_id WHERE s.user_id=$1 ORDER BY p.id DESC LIMIT $limit", [$uid]);
+    } elseif ($mode === 'night') {
+        $rows = db_all("SELECT p.lat, p.lng FROM run_points p WHERE EXTRACT(HOUR FROM p.ts) >= 18 OR EXTRACT(HOUR FROM p.ts) < 5 ORDER BY p.id DESC LIMIT $limit");
+    } else { // publik
+        $rows = db_all("SELECT lat, lng FROM run_points ORDER BY id DESC LIMIT $limit");
+    }
+    $pts = array_map(function($r){ return [(float)$r['lat'], (float)$r['lng'], 0.6]; }, $rows);
+    echo json_encode(['ok'=>true, 'points'=>$pts]);
+    exit;
+}
+
+
 if ($_SERVER['REQUEST_METHOD']!=='POST') { echo json_encode(['ok'=>false]); exit; }
 if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? '')) { echo json_encode(['ok'=>false,'err'=>'csrf']); exit; }
 $a = $_POST['_action'] ?? '';
@@ -100,6 +130,31 @@ if ($a === 'delete') {
         db_exec("DELETE FROM run_points WHERE session_id=$1", [$sid]);
         db_exec("DELETE FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid, $uid]);
     }
+    echo json_encode(['ok'=>true]); exit;
+}
+
+// ===== Revisi 15 Jun 2026: simpan rute hasil Route Builder =====
+if ($a === 'route_save') {
+    $nama = trim((string)($_POST['nama'] ?? 'Rute'));
+    if ($nama === '') $nama = 'Rute';
+    $jarak = (float)($_POST['jarak_m'] ?? 0);
+    $elev  = (string)($_POST['elevasi_pref'] ?? 'apa-saja');
+    $surf  = (string)($_POST['surface_pref'] ?? 'apa-saja');
+    $pub   = ($_POST['is_public'] ?? '0') === '1';
+    $coordsRaw = $_POST['coords'] ?? '[]';
+    $coords = json_decode($coordsRaw, true);
+    if (!is_array($coords) || count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'coords']); exit; }
+    $gj = json_encode(['type'=>'Feature','coords'=>$coords]);
+    $r = pg_query_params(db(),
+        "INSERT INTO run_routes(user_id,nama,jarak_m,elevasi_pref,surface_pref,geojson,is_public) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7) RETURNING id",
+        [$uid,$nama,$jarak,$elev,$surf,$gj, $pub?'t':'f']);
+    $id = (int)(pg_fetch_row($r)[0] ?? 0);
+    echo json_encode(['ok'=>true,'id'=>$id]); exit;
+}
+
+if ($a === 'route_delete') {
+    $id = (int)($_POST['id'] ?? 0);
+    if ($id>0) db_exec("DELETE FROM run_routes WHERE id=$1 AND user_id=$2", [$id,$uid]);
     echo json_encode(['ok'=>true]); exit;
 }
 
