@@ -70,9 +70,16 @@ include __DIR__.'/includes/header.php';
 
         <label class="form-label small">Gaya Peta</label>
         <select class="form-select form-select-sm mb-2" id="styleSel">
-          <option value="raster-osm">OpenStreetMap (raster, default)</option>
+          <option value="raster-osm">OpenStreetMap (default)</option>
+          <option value="voyager">Carto Voyager (cerah, detail)</option>
+          <option value="light">Carto Light (minimalis terang)</option>
+          <option value="dark">Carto Dark (gelap)</option>
+          <option value="satellite">Satelit (Esri World Imagery)</option>
+          <option value="topo">OpenTopoMap (kontur)</option>
+          <option value="terrain">Stamen Terrain</option>
+          <option value="watercolor">Stamen Watercolor (artistik)</option>
+          <option value="cycle">CyclOSM (jalur sepeda/lari)</option>
           <option value="demo">MapLibre Demotiles (vektor)</option>
-          <option value="dark">Gelap (raster Carto)</option>
         </select>
 
         <label class="form-label small">Pitch Kamera</label>
@@ -110,18 +117,20 @@ include __DIR__.'/includes/header.php';
 /* ============================================================
    Util
    ============================================================ */
+function rasterStyle(tiles, attr){
+  return { version:8, sources:{ x:{ type:'raster', tiles:tiles, tileSize:256, attribution:attr } }, layers:[ { id:'x', type:'raster', source:'x' } ] };
+}
 const STYLES = {
-  'raster-osm': {
-    version:8,
-    sources:{ osm:{ type:'raster', tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, attribution:'© OpenStreetMap' } },
-    layers:[ { id:'osm', type:'raster', source:'osm' } ]
-  },
+  'raster-osm': rasterStyle(['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], '© OpenStreetMap'),
   'demo':  'https://demotiles.maplibre.org/style.json',
-  'dark':  {
-    version:8,
-    sources:{ c:{ type:'raster', tiles:['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize:256, attribution:'© Carto © OSM' } },
-    layers:[ { id:'c', type:'raster', source:'c' } ]
-  }
+  'dark':  rasterStyle(['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], '© Carto © OSM'),
+  'light': rasterStyle(['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png','https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'], '© Carto © OSM'),
+  'voyager': rasterStyle(['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png','https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'], '© Carto © OSM'),
+  'satellite': rasterStyle(['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], 'Tiles © Esri'),
+  'topo': rasterStyle(['https://a.tile.opentopomap.org/{z}/{x}/{y}.png','https://b.tile.opentopomap.org/{z}/{x}/{y}.png'], '© OpenTopoMap (CC-BY-SA)'),
+  'terrain': rasterStyle(['https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png'], '© Stamen Design © OSM'),
+  'watercolor': rasterStyle(['https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg'], '© Stamen Design © OSM'),
+  'cycle': rasterStyle(['https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png'], '© CyclOSM © OSM')
 };
 
 const $ = id => document.getElementById(id);
@@ -168,13 +177,15 @@ $('selSession').addEventListener('change', async (e) => {
   $('recStat').textContent = 'Mengunduh titik rute…';
   try {
     const j = await (await fetch('/api_run.php?session_id='+sessionId, {credentials:'same-origin'})).json();
-    if (!j.ok || !j.points || j.points.length < 5) {
-      $('recStat').textContent = 'Sesi tidak memiliki cukup titik (<5).'; return;
+    if (!j.ok || !j.points || j.points.length < 1) {
+      $('recStat').textContent = 'Sesi tidak memiliki titik GPS sama sekali — tidak dapat dibuat video.'; return;
     }
-    routePts = j.points;
+    // Revisi 16 Juni 2026: hapus pembatasan minimum 5 titik. Semua titik bisa dibuat video.
+    // Jika hanya 1 titik, duplikasi agar bbox/polyline tetap valid; flyover akan jadi statis di titik tsb.
+    routePts = j.points.length === 1 ? [j.points[0], j.points[0]] : j.points;
     drawAll();
     $('btnPreview').disabled = $('btnRecord').disabled = false;
-    $('recStat').textContent = 'Siap. '+routePts.length+' titik rute dimuat.';
+    $('recStat').textContent = 'Siap. '+j.points.length+' titik rute dimuat'+(j.points.length<5?' (sedikit titik — flyover tetap dibuat)':'')+'.';
   } catch (err) {
     $('recStat').textContent = 'Gagal memuat titik: '+err.message;
   }

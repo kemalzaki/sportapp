@@ -615,6 +615,70 @@ document.addEventListener('click', function(ev){
       </div>
       <div class="col-md-8">
         <div id="builderMap" style="height:420px;border-radius:10px;border:1px solid var(--bs-border-color,#e5e7eb)"></div>
+
+        <!-- Revisi 16 Juni 2026 (#2): Import rute dari screenshot Strava / gambar -->
+        <div class="card border-warning-subtle mt-3">
+          <div class="card-header py-2 bg-warning-subtle">
+            <strong class="small"><i class="bi bi-image text-warning"></i> Import Rute dari Gambar (screenshot Strava)</strong>
+            <span class="small text-muted ms-1">— ubah screenshot peta jadi rute pada peta interaktif</span>
+          </div>
+          <div class="card-body small">
+            <ol class="ps-3 mb-2">
+              <li>Upload screenshot lari (Strava / app sejenis) yang memperlihatkan garis rute berwarna.</li>
+              <li>Klik <b>2 titik kalibrasi</b> pada gambar (mis. titik mulai &amp; titik finish).</li>
+              <li>Klik <b>2 titik yang sama</b> pada peta di atas untuk mengikat koordinat lat/lng.</li>
+              <li>Tekan <b>Ekstrak Rute</b>. Sistem akan mendeteksi piksel berwarna garis rute dan
+                memetakannya ke peta secara otomatis (transformasi affine sederhana).</li>
+            </ol>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label small mb-1">File gambar</label>
+                <input type="file" id="imgRouteFile" accept="image/*" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-1">Warna garis rute</label>
+                <select id="imgRouteColor" class="form-select form-select-sm">
+                  <option value="strava">Oranye / merah (Strava)</option>
+                  <option value="blue">Biru</option>
+                  <option value="green">Hijau</option>
+                  <option value="purple">Ungu / magenta</option>
+                  <option value="auto">Auto (titik kalibrasi)</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-1">Toleransi warna</label>
+                <input type="range" id="imgRouteTol" min="20" max="120" value="60" class="form-range">
+              </div>
+              <div class="col-md-2 d-grid">
+                <button id="imgRouteExtract" type="button" class="btn btn-warning btn-sm" disabled><i class="bi bi-magic"></i> Ekstrak Rute</button>
+              </div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-7">
+                <div class="position-relative" style="border:1px solid var(--bs-border-color,#e5e7eb);border-radius:8px;overflow:hidden;background:#f8fafc;min-height:160px">
+                  <canvas id="imgRouteCanvas" style="display:block;max-width:100%;cursor:crosshair"></canvas>
+                </div>
+                <div class="small text-muted mt-1" id="imgRouteImgInfo">Belum ada gambar. Titik gambar dipilih: <b>0/2</b>.</div>
+              </div>
+              <div class="col-md-5">
+                <div class="alert alert-info py-2 mb-2 small">
+                  <b>Cara kalibrasi:</b><br>
+                  1. Klik 2 titik pada <em>gambar</em> (kiri).<br>
+                  2. Klik 2 titik pada <em>peta builder</em> (atas) — tombol kalibrasi peta di bawah harus aktif.
+                </div>
+                <button id="imgRouteMapMode" type="button" class="btn btn-outline-primary btn-sm w-100 mb-1">
+                  <i class="bi bi-bullseye"></i> Mode pilih titik peta: <span id="imgRouteMapState">off</span>
+                </button>
+                <div class="small text-muted">Titik peta dipilih: <b id="imgRouteMapCount">0</b>/2.</div>
+                <button id="imgRouteReset" type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2">
+                  <i class="bi bi-arrow-counterclockwise"></i> Reset kalibrasi
+                </button>
+                <div id="imgRouteResult" class="small mt-2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="mt-2">
           <strong class="small">Rute tersimpan:</strong>
           <div class="list-group list-group-flush small mt-1" id="rbSavedList">
@@ -730,6 +794,7 @@ document.addEventListener('click', function(ev){
 
   // ====================== ROUTE BUILDER ======================
   var bMap = null, bLine = null, bMarkers = [], bCurrentRoute = null;
+  var bStartMarker = null; // Revisi 16 Juni 2026: marker titik mulai (lokasi sekarang)
   function ensureBuilderMap(center){
     if (bMap) return bMap;
     bMap = L.map('builderMap').setView(center||[-6.2,106.816666],14);
@@ -739,12 +804,37 @@ document.addEventListener('click', function(ev){
   document.getElementById('tab-builder-btn').addEventListener('shown.bs.tab', function(){
     ensureBuilderMap(); setTimeout(function(){ bMap.invalidateSize(); },100);
   });
-  document.getElementById('rbUseMe').addEventListener('click', function(){
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(function(p){
-      document.getElementById('rbStart').value = p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);
-      ensureBuilderMap([p.coords.latitude,p.coords.longitude]).setView([p.coords.latitude,p.coords.longitude],15);
+  // Revisi 16 Juni 2026 (#1): klik "Lokasi sekarang" pada Route Builder menampilkan
+  // titik & simbol di peta (marker biru dengan label "Mulai (Anda)").
+  function setStartMarker(lat,lng){
+    ensureBuilderMap([lat,lng]);
+    var startIcon = L.divIcon({
+      className:'rb-start-icon',
+      html:'<div style="background:#16a34a;border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 0 0 2px #16a34a,0 2px 8px rgba(0,0,0,.35)"></div>',
+      iconSize:[18,18], iconAnchor:[9,9]
     });
+    if (bStartMarker){ bMap.removeLayer(bStartMarker); bStartMarker=null; }
+    bStartMarker = L.marker([lat,lng], {icon:startIcon, zIndexOffset:1000})
+      .addTo(bMap)
+      .bindTooltip('<i class="bi bi-geo-alt-fill"></i> Mulai (Anda)', {permanent:true, direction:'top', offset:[0,-6], className:'rb-start-tip'})
+      .openTooltip();
+    bMap.setView([lat,lng], Math.max(bMap.getZoom(),15));
+  }
+  document.getElementById('rbUseMe').addEventListener('click', function(){
+    if (!navigator.geolocation) { alert('Browser tidak mendukung GPS'); return; }
+    var btn = this; var orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    navigator.geolocation.getCurrentPosition(function(p){
+      var lat = p.coords.latitude, lng = p.coords.longitude;
+      document.getElementById('rbStart').value = lat.toFixed(6)+','+lng.toFixed(6);
+      setStartMarker(lat,lng);
+      var info = document.getElementById('rbInfo');
+      if (info) info.textContent = '📍 Titik mulai diset ke lokasi Anda: '+lat.toFixed(5)+', '+lng.toFixed(5)+' (akurasi '+Math.round(p.coords.accuracy)+' m)';
+      btn.disabled = false; btn.innerHTML = orig;
+    }, function(err){
+      alert('Gagal membaca lokasi: '+err.message);
+      btn.disabled = false; btn.innerHTML = orig;
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
 
   function clearBuilder(){
@@ -916,9 +1006,17 @@ document.addEventListener('click', function(ev){
     document.getElementById('rbManInfo').textContent = manPts.length+' titik dipilih.';
   }
   function manReset(){
+    // Revisi 16 Juni 2026 (#3): Reset di mode "Buat Sendiri" harus mengosongkan
+    // peta sepenuhnya — termasuk rute hasil snap/auto, marker mulai, dan info.
     manPts=[]; manMarkers.forEach(function(m){bMap.removeLayer(m);}); manMarkers=[];
     if (manLine){ bMap.removeLayer(manLine); manLine=null; }
-    document.getElementById('rbManInfo').textContent='0 titik dipilih.';
+    clearBuilder(); // hapus bLine + bMarkers (rute aktif)
+    if (bStartMarker){ bMap.removeLayer(bStartMarker); bStartMarker=null; }
+    bCurrentRoute = null;
+    var rs = document.getElementById('rbSave');   if (rs) rs.disabled = true;
+    var re = document.getElementById('rbExport'); if (re) re.disabled = true;
+    var ri = document.getElementById('rbInfo');   if (ri) ri.textContent = '';
+    document.getElementById('rbManInfo').textContent='0 titik dipilih. Peta dikosongkan.';
   }
   function manClickHandler(e){
     var ll = e.latlng;
@@ -1021,31 +1119,76 @@ document.addEventListener('click', function(ev){
   });
 
   // ====================== HEATMAPS ======================
-  var hMap = null, hLayer = null;
+  // Revisi 16 Juni 2026 (#4): live tracking lokasi sekarang + legend +
+  // heatmap dipertebal + garis tipis menampilkan rute padat (urut titik).
+  var hMap = null, hLayer = null, hMeMarker = null, hMeWatch = null, hMeAcc = null;
+  var hLegend = null, hPolyLayer = null;
   function ensureHeatMap(){
     if (hMap) return hMap;
     hMap = L.map('heatMap').setView([-6.2,106.816666],12);
     L.tileLayer(TILE,{maxZoom:19,attribution:'&copy; OSM'}).addTo(hMap);
+    hLegend = L.control({position:'bottomright'});
+    hLegend.onAdd = function(){
+      var div = L.DomUtil.create('div','info legend');
+      div.style.cssText = 'background:#fff;padding:8px 10px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2);font-size:11px;line-height:1.45;max-width:240px';
+      div.innerHTML =
+        '<b>Keterangan Heatmap</b><br>'+
+        '<span style="display:inline-block;width:30px;height:8px;background:linear-gradient(90deg,#3b82f6,#22c55e,#eab308,#ef4444);border-radius:4px;vertical-align:middle"></span> '+
+        'kepadatan titik GPS (rendah → tinggi)<br>'+
+        '<span style="display:inline-block;width:24px;height:3px;background:#dc2626;border-radius:2px;vertical-align:middle"></span> '+
+        '<b>Garis heatmap</b> = jalur padat<br>'+
+        '<span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 2px #2563eb;vertical-align:middle"></span> '+
+        'lokasi Anda sekarang (live)<br>'+
+        '<span class="text-muted">Sumber data: tabel <code>run_points</code> — titik GPS sesi lari Anda (Pribadi) atau seluruh komunitas (Publik). Mode <b>Night</b> hanya titik pukul 18:00–05:00.</span>';
+      return div;
+    };
+    hLegend.addTo(hMap);
     return hMap;
   }
   document.getElementById('tab-heatmap-btn').addEventListener('shown.bs.tab', function(){
-    ensureHeatMap(); setTimeout(function(){ hMap.invalidateSize(); loadHeat(); },100);
+    ensureHeatMap(); setTimeout(function(){ hMap.invalidateSize(); loadHeat(); startHeatLive(); },100);
   });
+  function startHeatLive(){
+    if (!navigator.geolocation || hMeWatch !== null) return;
+    hMeWatch = navigator.geolocation.watchPosition(function(p){
+      var lat=p.coords.latitude, lng=p.coords.longitude, acc=p.coords.accuracy||0;
+      if (!hMeMarker){
+        hMeMarker = L.circleMarker([lat,lng], {radius:8, color:'#2563eb', fillColor:'#3b82f6', fillOpacity:.95, weight:3}).addTo(hMap);
+        hMeMarker.bindTooltip('Anda di sini (live)', {permanent:false});
+        hMeAcc    = L.circle([lat,lng], {radius:acc, color:'#3b82f6', weight:1, fillOpacity:.08}).addTo(hMap);
+        hMap.setView([lat,lng], Math.max(hMap.getZoom(),14));
+      } else {
+        hMeMarker.setLatLng([lat,lng]);
+        if (hMeAcc) hMeAcc.setLatLng([lat,lng]).setRadius(acc);
+      }
+      var el = document.getElementById('hmInfo');
+      el.textContent = el.textContent.replace(/\s*\|\s*📍.*$/,'') + '  |  📍 Live: '+lat.toFixed(5)+','+lng.toFixed(5)+' (±'+Math.round(acc)+' m)';
+    }, function(){}, {enableHighAccuracy:true, maximumAge:2000, timeout:15000});
+  }
   async function loadHeat(){
     var mode = document.querySelector('input[name=hmMode]:checked').value;
-    document.getElementById('hmInfo').textContent = 'Memuat titik heatmap ('+mode+')...';
+    document.getElementById('hmInfo').textContent = 'Memuat titik heatmap ('+mode+') dari run_points...';
     var r = await fetch('/api_run.php?heatmap='+mode); var d=await r.json();
     if (!d.ok){ document.getElementById('hmInfo').textContent='Gagal memuat.'; return; }
     if (hLayer){ hMap.removeLayer(hLayer); hLayer=null; }
-    if (!d.points.length){ document.getElementById('hmInfo').textContent='Belum ada titik untuk mode ini.'; return; }
-    hLayer = L.heatLayer(d.points, {radius:18, blur:22, maxZoom:17,
-      gradient: mode==='night' ? {0.2:'#1e3a8a',0.4:'#3b82f6',0.7:'#fbbf24',1.0:'#fde047'} : undefined
+    if (hPolyLayer){ hMap.removeLayer(hPolyLayer); hPolyLayer=null; }
+    if (!d.points.length){ document.getElementById('hmInfo').textContent='Belum ada titik untuk mode '+mode+' (sumber: tabel run_points).'; return; }
+    // Heatmap dipertebal: radius 28, blur 18, minOpacity 0.35 + gradien penuh.
+    hLayer = L.heatLayer(d.points, {radius:28, blur:18, maxZoom:17, minOpacity:0.35,
+      gradient: mode==='night'
+        ? {0.2:'#1e3a8a',0.4:'#3b82f6',0.7:'#fbbf24',1.0:'#fde047'}
+        : {0.2:'#3b82f6',0.4:'#22c55e',0.7:'#eab308',1.0:'#ef4444'}
     }).addTo(hMap);
+    // Garis tipis dashed yang melewati semua titik — jadi penanda visual "garis heatmap".
+    try {
+      var coords = d.points.map(function(p){ return [p[0],p[1]]; });
+      hPolyLayer = L.polyline(coords, {color:'#dc2626', weight:2, opacity:0.5, dashArray:'4,4'}).addTo(hMap);
+    } catch(e){}
     var b = L.latLngBounds(d.points.map(function(p){return [p[0],p[1]];}));
     hMap.fitBounds(b,{padding:[20,20]});
-    document.getElementById('hmInfo').textContent = '✓ '+d.points.length+' titik dimuat ('+mode+').';
+    document.getElementById('hmInfo').textContent = '✓ '+d.points.length+' titik dimuat ('+mode+') · Sumber data: tabel run_points.';
   }
-  document.getElementById('hmReload').addEventListener('click', loadHeat);
+  document.getElementById('hmReload').addEventListener('click', function(){ loadHeat(); startHeatLive(); });
   document.querySelectorAll('input[name=hmMode]').forEach(function(el){ el.addEventListener('change', loadHeat); });
 
   // ====================== PETA OFFLINE ======================
@@ -1117,6 +1260,231 @@ document.addEventListener('click', function(ev){
     await caches.delete(CACHE_NAME);
     document.getElementById('offProg').textContent = 'Cache tile peta dihapus.';
   });
+
+  // ====================== IMPORT RUTE DARI GAMBAR (Revisi 16 Juni 2026 #2) ======================
+  // Pipeline: upload gambar → tampilkan di canvas → user klik 2 titik kalibrasi pada gambar →
+  // user klik 2 titik pada peta builder → kita lakukan affine transform sederhana
+  // (pixel(x,y) → lat,lng) berdasarkan 2 pasang titik (asumsi peta tidak miring/rotasi),
+  // lalu deteksi piksel berwarna garis rute (Strava oranye/merah, dll.) → bangun polyline
+  // dengan menelusuri komponen warna terbesar (sederhana: ambil semua piksel yg cocok →
+  // sortir mengikuti urutan dekat-dengan-titik-mulai → simplifikasi Douglas-Peucker).
+  (function(){
+    var fileInput   = document.getElementById('imgRouteFile');
+    var canvas      = document.getElementById('imgRouteCanvas');
+    var ctx         = canvas.getContext('2d', { willReadFrequently:true });
+    var colorSel    = document.getElementById('imgRouteColor');
+    var tolInp      = document.getElementById('imgRouteTol');
+    var btnExtract  = document.getElementById('imgRouteExtract');
+    var btnMapMode  = document.getElementById('imgRouteMapMode');
+    var btnReset    = document.getElementById('imgRouteReset');
+    var spanMapState= document.getElementById('imgRouteMapState');
+    var spanMapCnt  = document.getElementById('imgRouteMapCount');
+    var spanImgInfo = document.getElementById('imgRouteImgInfo');
+    var divResult   = document.getElementById('imgRouteResult');
+    if (!fileInput) return;
+
+    var imgEl = null;
+    var imgPts = []; // {x,y} di koordinat piksel ASLI gambar
+    var mapPts = []; // {lat,lng}
+    var mapMode = false;
+    var mapClickHandler = null;
+    var imgRouteLine = null;
+    var imgMarkers = [];
+
+    function refreshState(){
+      spanImgInfo.innerHTML = (imgEl?'Gambar: '+imgEl.naturalWidth+'×'+imgEl.naturalHeight+' px':'Belum ada gambar')+'. Titik gambar dipilih: <b>'+imgPts.length+'/2</b>.';
+      spanMapCnt.textContent = mapPts.length;
+      btnExtract.disabled = !(imgEl && imgPts.length===2 && mapPts.length===2);
+    }
+    function redrawCanvas(){
+      if (!imgEl) return;
+      var maxW = canvas.parentElement.clientWidth - 4; if (maxW<200) maxW=200;
+      var scale = Math.min(1, maxW/imgEl.naturalWidth);
+      canvas.width  = Math.round(imgEl.naturalWidth*scale);
+      canvas.height = Math.round(imgEl.naturalHeight*scale);
+      canvas._scale = scale;
+      ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+      // gambar titik kalibrasi
+      imgPts.forEach(function(p, i){
+        var x = p.x*scale, y = p.y*scale;
+        ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2);
+        ctx.fillStyle = i===0 ? '#16a34a' : '#dc2626';
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#000'; ctx.font='bold 11px sans-serif';
+        ctx.fillText(String(i+1), x+9, y-9);
+      });
+    }
+    canvas.addEventListener('click', function(ev){
+      if (!imgEl) return;
+      if (imgPts.length>=2){ imgPts = []; }
+      var rect = canvas.getBoundingClientRect();
+      var cx = ev.clientX-rect.left, cy = ev.clientY-rect.top;
+      var s = canvas._scale || 1;
+      imgPts.push({ x: cx/s, y: cy/s });
+      redrawCanvas(); refreshState();
+    });
+    fileInput.addEventListener('change', function(){
+      var f = fileInput.files && fileInput.files[0]; if (!f) return;
+      var url = URL.createObjectURL(f);
+      var im = new Image();
+      im.onload = function(){ imgEl = im; imgPts=[]; redrawCanvas(); refreshState(); };
+      im.src = url;
+    });
+
+    btnMapMode.addEventListener('click', function(){
+      ensureBuilderMap();
+      mapMode = !mapMode;
+      spanMapState.textContent = mapMode ? 'on (klik peta)' : 'off';
+      btnMapMode.classList.toggle('btn-primary', mapMode);
+      btnMapMode.classList.toggle('btn-outline-primary', !mapMode);
+      if (mapMode){
+        if (!mapClickHandler){
+          mapClickHandler = function(e){
+            if (mapPts.length>=2){
+              // reset markers
+              imgMarkers.forEach(function(m){ bMap.removeLayer(m); }); imgMarkers = [];
+              mapPts = [];
+            }
+            mapPts.push({ lat: e.latlng.lat, lng: e.latlng.lng });
+            var idx = mapPts.length;
+            var mk = L.circleMarker([e.latlng.lat, e.latlng.lng], {
+              radius:8, color: idx===1 ? '#16a34a' : '#dc2626', fillColor:'#fff', fillOpacity:1, weight:3
+            }).addTo(bMap).bindTooltip('Kalibrasi #'+idx, {permanent:true, direction:'top'});
+            imgMarkers.push(mk);
+            refreshState();
+          };
+        }
+        bMap.on('click', mapClickHandler);
+      } else if (mapClickHandler){
+        bMap.off('click', mapClickHandler);
+      }
+    });
+
+    btnReset.addEventListener('click', function(){
+      imgPts = []; mapPts = [];
+      imgMarkers.forEach(function(m){ if (bMap) bMap.removeLayer(m); }); imgMarkers = [];
+      if (imgRouteLine && bMap){ bMap.removeLayer(imgRouteLine); imgRouteLine = null; }
+      redrawCanvas(); refreshState();
+      divResult.textContent = 'Kalibrasi direset.';
+    });
+
+    function colorMatch(r,g,b, preset, tol){
+      // tol skala 20..120
+      if (preset==='strava')  return (r>180 && g<140 && b<120) || (r>200 && g>80 && g<170 && b<100);
+      if (preset==='blue')    return (b>150 && r<140 && g<170);
+      if (preset==='green')   return (g>150 && r<160 && b<140);
+      if (preset==='purple')  return (r>120 && b>120 && g<140);
+      // auto: gunakan warna rata-rata di sekitar 2 titik kalibrasi
+      var ref = colorMatch._ref; if (!ref) return false;
+      var dr=r-ref[0], dg=g-ref[1], db=b-ref[2];
+      return (dr*dr+dg*dg+db*db) < tol*tol;
+    }
+
+    btnExtract.addEventListener('click', async function(){
+      if (!(imgEl && imgPts.length===2 && mapPts.length===2)){
+        alert('Lengkapi 2 titik gambar + 2 titik peta dulu.'); return;
+      }
+      divResult.textContent = 'Memproses piksel gambar...';
+      // Hitung warna referensi (auto) dari rata-rata 5x5 di sekitar titik kalibrasi.
+      var off = document.createElement('canvas');
+      off.width = imgEl.naturalWidth; off.height = imgEl.naturalHeight;
+      var octx = off.getContext('2d', { willReadFrequently:true });
+      octx.drawImage(imgEl, 0, 0);
+      var data;
+      try { data = octx.getImageData(0,0,off.width,off.height); }
+      catch(e){ divResult.textContent='Gagal baca pixel (CORS?). Coba gambar lokal.'; return; }
+      var d = data.data, w=off.width, h=off.height;
+      function avgAt(px,py){
+        var rs=0,gs=0,bs=0,n=0;
+        for (var yy=Math.max(0,py-2); yy<=Math.min(h-1,py+2); yy++){
+          for (var xx=Math.max(0,px-2); xx<=Math.min(w-1,px+2); xx++){
+            var i=(yy*w+xx)*4; rs+=d[i]; gs+=d[i+1]; bs+=d[i+2]; n++;
+          }
+        }
+        return [rs/n,gs/n,bs/n];
+      }
+      var a = avgAt(Math.round(imgPts[0].x), Math.round(imgPts[0].y));
+      var b = avgAt(Math.round(imgPts[1].x), Math.round(imgPts[1].y));
+      colorMatch._ref = [(a[0]+b[0])/2, (a[1]+b[1])/2, (a[2]+b[2])/2];
+      var preset = colorSel.value, tol = +tolInp.value;
+
+      // Step 1: kumpulkan piksel rute
+      var pts = []; // {x,y}
+      var step = Math.max(1, Math.round(Math.min(w,h)/600)); // sampling supaya cepat
+      for (var y=0; y<h; y+=step){
+        for (var x=0; x<w; x+=step){
+          var i=(y*w+x)*4;
+          if (colorMatch(d[i],d[i+1],d[i+2], preset, tol)) pts.push({x:x,y:y});
+        }
+      }
+      if (pts.length < 5){
+        divResult.textContent = 'Gagal: hanya '+pts.length+' piksel cocok. Coba ganti warna garis / naikkan toleransi.';
+        return;
+      }
+      // Step 2: urutkan piksel mengikuti rute (greedy nearest-neighbor mulai dari titik kalibrasi #1)
+      var start = imgPts[0];
+      var ordered = []; var used = new Uint8Array(pts.length);
+      var cur = { x: start.x, y: start.y };
+      // ambil terdekat ke start sebagai awal
+      var bestI = -1, bestD = Infinity;
+      for (var k=0; k<pts.length; k++){
+        var dx=pts[k].x-cur.x, dy=pts[k].y-cur.y; var dd=dx*dx+dy*dy;
+        if (dd<bestD){ bestD=dd; bestI=k; }
+      }
+      ordered.push(pts[bestI]); used[bestI]=1; cur=pts[bestI];
+      var MAX_NN_JUMP = Math.pow(Math.min(w,h)*0.05, 2); // toleransi loncatan
+      while (true){
+        var ni=-1, nd=Infinity;
+        for (var k=0; k<pts.length; k++){
+          if (used[k]) continue;
+          var dx=pts[k].x-cur.x, dy=pts[k].y-cur.y; var dd=dx*dx+dy*dy;
+          if (dd<nd){ nd=dd; ni=k; }
+        }
+        if (ni<0 || nd>MAX_NN_JUMP) break;
+        ordered.push(pts[ni]); used[ni]=1; cur=pts[ni];
+      }
+      // Step 3: simplifikasi (Douglas–Peucker sederhana via langkah dec)
+      var dec = Math.max(1, Math.floor(ordered.length/300));
+      var simpl = []; for (var k=0; k<ordered.length; k+=dec) simpl.push(ordered[k]);
+      if (simpl[simpl.length-1] !== ordered[ordered.length-1]) simpl.push(ordered[ordered.length-1]);
+
+      // Step 4: affine pixel→lat/lng dari 2 pasang titik (asumsi tanpa rotasi)
+      var p1 = imgPts[0], p2 = imgPts[1];
+      var m1 = mapPts[0], m2 = mapPts[1];
+      var dpx = p2.x - p1.x, dpy = p2.y - p1.y;
+      var dml = m2.lng - m1.lng, dma = m2.lat - m1.lat;
+      // ratio per pixel
+      function px2ll(p){
+        var tx = dpx===0 ? 0 : (p.x - p1.x)/dpx;
+        var ty = dpy===0 ? 0 : (p.y - p1.y)/dpy;
+        // gunakan rata2 dari kedua sumbu (peta umumnya tidak miring)
+        var lng = m1.lng + (dpx===0 ? 0 : tx*dml);
+        var lat = m1.lat + (dpy===0 ? 0 : ty*dma);
+        return [lat, lng];
+      }
+      var coords = simpl.map(px2ll);
+      // Tampilkan polyline di builder map
+      ensureBuilderMap();
+      if (imgRouteLine){ bMap.removeLayer(imgRouteLine); }
+      imgRouteLine = L.polyline(coords, {color:'#f59e0b', weight:5, opacity:0.95}).addTo(bMap);
+      bMap.fitBounds(imgRouteLine.getBounds(), {padding:[20,20]});
+      // hitung jarak total (haversine)
+      function hav(a,b){
+        var R=6371000, toRad=Math.PI/180;
+        var dLat=(b[0]-a[0])*toRad, dLng=(b[1]-a[1])*toRad;
+        var s=Math.sin(dLat/2)**2 + Math.cos(a[0]*toRad)*Math.cos(b[0]*toRad)*Math.sin(dLng/2)**2;
+        return 2*R*Math.asin(Math.sqrt(s));
+      }
+      var totalM = 0; for (var k=1; k<coords.length; k++) totalM += hav(coords[k-1], coords[k]);
+      bCurrentRoute = { coords: coords, jarak_m: totalM };
+      document.getElementById('rbSave').disabled = false;
+      document.getElementById('rbExport').disabled = false;
+      divResult.innerHTML = '✓ Rute diekstrak: <strong>'+coords.length+' titik</strong>, panjang ~'+(totalM/1000).toFixed(2)+' km. '+
+        'Anda bisa <em>Simpan Rute</em> atau <em>Export GPX</em> pada panel kiri.';
+    });
+
+    refreshState();
+  })();
 
 })();
 </script>

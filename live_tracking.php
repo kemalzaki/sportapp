@@ -79,7 +79,7 @@ include __DIR__.'/includes/header.php';
     <div class="card shadow-sm">
       <div class="card-body">
         <h6 class="fw-bold mb-3"><i class="bi bi-play-circle text-success"></i> Mulai Sesi Berbagi</h6>
-        <form id="frmStart" class="vstack gap-2">
+        <form id="frmStart" data-ajax class="vstack gap-2">
           <input class="form-control form-control-sm" name="judul"    placeholder="Judul (mis. Lari sore taman)" value="Lari sore">
           <input type="hidden" name="olahraga" value="lari">
           <div class="form-control form-control-sm bg-body-secondary text-muted d-flex align-items-center" style="cursor:not-allowed">
@@ -117,7 +117,7 @@ include __DIR__.'/includes/header.php';
     <div class="card shadow-sm mt-3">
       <div class="card-body">
         <h6 class="fw-bold mb-3"><i class="bi bi-people text-primary"></i> Kontak Darurat</h6>
-        <form id="frmContact" class="row g-2 mb-2">
+        <form id="frmContact" data-ajax class="row g-2 mb-2">
           <div class="col-6"><input class="form-control form-control-sm" name="nama" placeholder="Nama" required></div>
           <div class="col-6"><input class="form-control form-control-sm" name="nomor_wa" placeholder="No. WA (628…)"></div>
           <div class="col-6"><input class="form-control form-control-sm" name="email" placeholder="Email"></div>
@@ -155,31 +155,7 @@ include __DIR__.'/includes/header.php';
       </div>
     </div>
 
-    <div class="card shadow-sm mt-3">
-      <div class="card-body">
-        <h6 class="fw-bold mb-2"><i class="bi bi-clock-history"></i> Sesi Sebelumnya</h6>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead><tr><th>Judul</th><th>Mulai</th><th>Status</th><th class="text-end">Tautan</th></tr></thead>
-            <tbody>
-              <?php foreach ($mine as $m):
-                $url = '/track_view.php?token='.urlencode($m['token']);
-                $st  = $m['is_active']==='t' || $m['is_active']===true ? '<span class="badge bg-success">aktif</span>' : '<span class="badge bg-secondary">selesai</span>';
-              ?>
-              <tr>
-                <td><?= htmlspecialchars($m['judul']) ?></td>
-                <td class="small text-muted"><?= htmlspecialchars($m['started_at']) ?></td>
-                <td><?= $st ?></td>
-                <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="<?= $url ?>" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Buka</a></td>
-              </tr>
-              <?php endforeach; if (!$mine): ?>
-                <tr><td colspan="4" class="text-muted">Belum ada sesi.</td></tr>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- Revisi 16 Juni 2026: bagian "Sesi Sebelumnya" dihapus / dinonaktifkan -->
   </div>
 </div>
 
@@ -190,6 +166,38 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,att
 let poly = L.polyline([], {color:'#dc2626', weight:5}).addTo(map);
 let me   = null;
 let state = { token:null, watchId:null, timer:null, pts:[] };
+
+// ===== Revisi 16 Juni 2026: keep GPS aktif walau layar HP mati =====
+let wakeLock = null, audioCtx = null, silentOsc = null;
+async function acquireWakeLock(){
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', ()=>{ /* akan di-reacquire saat visible */ });
+    }
+  } catch(e){}
+}
+function releaseWakeLock(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
+function startSilentAudio(){
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+    audioCtx = new AC();
+    silentOsc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain(); gain.gain.value = 0.0001;
+    silentOsc.connect(gain).connect(audioCtx.destination);
+    silentOsc.start();
+  } catch(e){}
+}
+function stopSilentAudio(){ try{ if(silentOsc) silentOsc.stop(); if(audioCtx) audioCtx.close(); }catch(e){} silentOsc=null; audioCtx=null; }
+document.addEventListener('visibilitychange', async ()=>{
+  if (document.visibilityState === 'visible' && state.token && state.watchId !== null) {
+    await acquireWakeLock();
+    // Restart watch supaya stream GPS yang ter-throttle di background kembali fresh.
+    if (state.watchId != null) { navigator.geolocation.clearWatch(state.watchId); state.watchId = null; }
+    startGeo();
+    flushBuffer();
+  }
+});
 
 function setShareUI(url){
   document.getElementById('shareUrl').value = url;
@@ -205,20 +213,30 @@ document.getElementById('btnCopy').onclick = ()=>{
 
 document.getElementById('frmStart').addEventListener('submit', async (e)=>{
   e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit], button:not([type])');
+  if (btn) { btn.disabled = true; btn.dataset._html = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat tautan…'; }
   const fd = new FormData(e.target);
   fd.append('action','start');
-  const r = await fetch(API+'?action=start',{method:'POST', body:fd, credentials:'same-origin'});
-  const j = await r.json();
-  if(!j.ok){ alert('Gagal: '+(j.err||'?')); return; }
-  state.token = j.token;
-  setShareUI(j.url);
-  document.getElementById('liveBox').classList.remove('d-none');
-  startGeo();
+  try {
+    const r = await fetch(API+'?action=start',{method:'POST', body:fd, credentials:'same-origin'});
+    const j = await r.json();
+    if(!j.ok){ alert('Gagal: '+(j.err||'?')); return; }
+    state.token = j.token;
+    setShareUI(j.url);
+    document.getElementById('liveBox').classList.remove('d-none');
+    startGeo();
+    await acquireWakeLock();
+    startSilentAudio();
+  } finally {
+    if (btn) { btn.disabled = false; if (btn.dataset._html) btn.innerHTML = btn.dataset._html; }
+  }
 });
 
 document.getElementById('btnStop').onclick = async ()=>{
   if(!state.token) return;
   stopGeo();
+  releaseWakeLock();
+  stopSilentAudio();
   const fd = new FormData(); fd.append('token', state.token);
   await fetch(API+'?action=stop',{method:'POST', body:fd, credentials:'same-origin'});
   document.getElementById('liveStat').textContent = 'Sesi dihentikan.';
@@ -235,6 +253,18 @@ function stopGeo(){
   state.watchId = null;
 }
 let lastSend = 0;
+let sendBuffer = [];
+async function flushBuffer(){
+  while (sendBuffer.length){
+    const item = sendBuffer[0];
+    try {
+      const r = await fetch(API+'?action=push',{method:'POST', body:item, keepalive:true});
+      if (!r.ok) return;
+      sendBuffer.shift();
+    } catch(e){ return; }
+  }
+}
+setInterval(flushBuffer, 5000);
 function pushPoint(pos){
   const {latitude:lat, longitude:lng, accuracy, speed, heading} = pos.coords;
   state.pts.push([lat,lng]); poly.setLatLngs(state.pts);
@@ -248,10 +278,11 @@ function pushPoint(pos){
   if(accuracy!=null) fd.append('accuracy', accuracy);
   if(speed!=null)    fd.append('speed', speed);
   if(heading!=null)  fd.append('heading', heading);
-  fetch(API+'?action=push',{method:'POST', body:fd}).then(r=>r.json()).then(j=>{
+  sendBuffer.push(fd);
+  flushBuffer().then(()=>{
     document.getElementById('liveStat').textContent =
-      (j.ok?'Terkirim ':'Gagal kirim ') + new Date().toLocaleTimeString();
-  }).catch(()=>{});
+      'Terkirim '+ new Date().toLocaleTimeString() + (sendBuffer.length?' (buffer: '+sendBuffer.length+')':'');
+  });
 }
 
 /* ---------- Kontak darurat ---------- */
