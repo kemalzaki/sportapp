@@ -2,6 +2,7 @@
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
+require __DIR__.'/includes/ai_gemini.php';
 require_login();
 header('Content-Type: application/json');
 $u = current_user(); $uid = (int)$u['id'];
@@ -98,54 +99,33 @@ $a = $_POST['_action'] ?? '';
  */
 if ($a === 'ai_route_from_image') {
     rate_limit_or_die('ai_route:'.$uid, 5, 600);
-    $key = getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : '');
-    if (!$key) { echo json_encode(['ok'=>false,'err'=>'OPENAI_API_KEY belum di-set di server']); exit; }
     if (empty($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) {
         echo json_encode(['ok'=>false,'err'=>'gambar tidak ada']); exit;
     }
     $hint = trim((string)($_POST['hint'] ?? ''));
-    $mime = mime_content_type($_FILES['image']['tmp_name']) ?: 'image/jpeg';
-    $b64  = base64_encode(file_get_contents($_FILES['image']['tmp_name']));
-    $prompt = "Anda menerima screenshot peta yang menampilkan sebuah RUTE (lari/sepeda/jalan kaki). "
-            . "Tugas: identifikasi 5–12 tempat/landmark berurutan di sepanjang rute (jalan, simpang, alun-alun, GOR, masjid, halte, dst). "
-            . "Balas HANYA JSON valid berformat: {\"places\":[\"Nama 1\",\"Nama 2\", ...], \"note\":\"<1 kalimat>\"} "
-            . "Sertakan area kota di akhir tiap nama bila ambigu. "
+    /* === Revisi 16 Juni 2026 — Pipeline baru ===
+     * Screenshot peta → Gemini 2.5 Flash Vision → Identifikasi landmark
+     * → Geocoding OSM (Nominatim) → Koordinat rute
+     */
+    $prompt = "Anda menerima SCREENSHOT PETA yang menampilkan sebuah RUTE (lari/jalan/sepeda). "
+            . "Identifikasi 5-12 LANDMARK / nama jalan / persimpangan / titik penting secara BERURUTAN sepanjang rute. "
+            . "Sertakan area kota/kabupaten supaya tidak ambigu. "
+            . "Balas HANYA JSON valid: {\"places\":[\"Nama lengkap + Kota\", ...], \"note\":\"<1 kalimat singkat>\"}. "
             . ($hint!=='' ? "Petunjuk area dari pengguna: $hint" : "");
-    $payload = [
-      'model' => 'gpt-4o-mini',
-      'messages' => [[
-        'role'=>'user',
-        'content'=>[
-          ['type'=>'text','text'=>$prompt],
-          ['type'=>'image_url','image_url'=>['url'=>"data:$mime;base64,$b64"]]
-        ]
-      ]],
-      'max_tokens'=>500, 'temperature'=>0.2,
-    ];
-    $ch = curl_init('https://api.openai.com/v1/chat/completions');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>60, CURLOPT_POST=>true,
-        CURLOPT_POSTFIELDS=>json_encode($payload),
-        CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.$key]
-    ]);
-    $res = curl_exec($ch); $code = curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($code!==200 || !$res) { echo json_encode(['ok'=>false,'err'=>"OpenAI HTTP $code"]); exit; }
-    $j = json_decode($res, true);
-    $text = $j['choices'][0]['message']['content'] ?? '';
-    $obj = null;
-    if (preg_match('/\{.*\}/s', $text, $m)) $obj = json_decode($m[0], true);
+    $g = gemini_vision($prompt, $_FILES['image']['tmp_name'],
+            ['json'=>true,'temperature'=>0.2,'max_tokens'=>700]);
+    if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err']]); exit; }
+    $obj = gemini_extract_json($g['text']);
     $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-    if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan tempat']); exit; }
-    // Geocode via Nominatim
+    if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan landmark']); exit; }
+    // Geocoding OSM (Nominatim)
     $coords = [];
     foreach ($places as $place) {
         $q = trim((string)$place); if ($q==='') continue;
         $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='.urlencode($q);
         $ch2 = curl_init($url);
-        curl_setopt_array($ch2, [
-            CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
-            CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'
-        ]);
+        curl_setopt_array($ch2, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
+            CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)']);
         $r2 = curl_exec($ch2); curl_close($ch2);
         $arr = json_decode($r2 ?: '[]', true);
         if (is_array($arr) && !empty($arr[0]['lat'])) {

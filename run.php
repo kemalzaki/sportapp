@@ -147,6 +147,11 @@ include __DIR__.'/includes/header.php';
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>window.MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
+window.MAPBOX_TILE_URL = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + MAPBOX_TOKEN_JS;
+window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+</script>
+
 <script>
 (function(){
   var csrf='<?= csrf_token() ?>';
@@ -174,7 +179,7 @@ include __DIR__.'/includes/header.php';
   function clearState(){ try { localStorage.removeItem(LS_KEY); } catch(e){} }
   var wakeLock = null, audioCtx = null, silentOsc = null;
   var map = L.map('runMap').setView([-6.2,106.816666], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(map);
+  L.tileLayer(window.MAPBOX_TILE_URL,{maxZoom:19,attribution:window.MAPBOX_ATTR}).addTo(map);
   // Revisi 15 Juni 2026 — multi-segment polyline. Setiap kali ada gap besar (layar mati lalu nyala),
   // segmen baru dibuat sehingga TIDAK ada garis lurus dari titik mati ke titik nyala.
   var segments = [];           // array of {poly:L.polyline, pts:[[lat,lng],...] }
@@ -578,7 +583,7 @@ document.addEventListener('click', function(ev){
     setTimeout(function(){
       if (!routeMapObj) {
         routeMapObj = L.map('routeMap').setView([-6.2,106.8],13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(routeMapObj);
+        L.tileLayer(window.MAPBOX_TILE_URL,{maxZoom:19,attribution:window.MAPBOX_ATTR}).addTo(routeMapObj);
       }
       routeMapObj.eachLayer(function(l){ if(l instanceof L.Polyline || l instanceof L.Marker) routeMapObj.removeLayer(l); });
       if (d.points.length) {
@@ -651,19 +656,41 @@ document.addEventListener('click', function(ev){
           <label class="btn btn-outline-success" for="rbModeAI"><i class="bi bi-robot"></i> AI Import dari Gambar</label>
         </div>
 
-        <!-- ===== Panel AI Import Rute ===== -->
+        <!-- ===== Panel AI Import Rute (Revisi 16 Juni 2026: Gemini 2.5 Flash) ===== -->
         <div id="rbAIPanel" class="border rounded p-2 mb-2 bg-success-subtle" style="display:none">
-          <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Import Rute dari Gambar (AI)</div>
-          <div class="small text-muted mb-2">Unggah screenshot peta yang sudah berisi rute (Google Maps / Strava / dll). AI akan
-            mendeteksi <em>titik-titik penting</em> dan area; tidak perlu klik manual di peta. Membutuhkan
-            <code>OPENAI_API_KEY</code> di environment server.</div>
-          <input id="aiRouteImg" type="file" accept="image/*" class="form-control form-control-sm mb-2">
-          <input id="aiRouteHint" type="text" class="form-control form-control-sm mb-2"
-                 placeholder="Petunjuk area (opsional), cth: 'GOR Senayan Jakarta', 'Alun-alun Bandung'">
-          <button id="btnAIRoute" type="button" class="btn btn-success btn-sm w-100">
-            <i class="bi bi-stars"></i> Buat Rute Otomatis dengan AI
-          </button>
-          <div id="aiRouteStat" class="small text-muted mt-1"></div>
+          <ul class="nav nav-pills nav-fill mb-2" role="tablist">
+            <li class="nav-item"><button class="nav-link active py-1 px-2 small" data-bs-toggle="tab" data-bs-target="#aiTabPrompt" type="button"><i class="bi bi-chat-text"></i> Prompt Teks</button></li>
+            <li class="nav-item"><button class="nav-link py-1 px-2 small" data-bs-toggle="tab" data-bs-target="#aiTabImage" type="button"><i class="bi bi-image"></i> Dari Gambar</button></li>
+          </ul>
+          <div class="tab-content">
+            <!-- Prompt teks → Gemini → daftar tempat → Geocode -->
+            <div class="tab-pane fade show active" id="aiTabPrompt">
+              <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Buat Rute dari Prompt (AI Gemini)</div>
+              <div class="small text-muted mb-2">
+                Tulis kebutuhan Anda &mdash; AI akan menyusun daftar landmark/jalan lalu mengubahnya menjadi rute lari.
+                Contoh: <em>"Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"</em>.
+              </div>
+              <textarea id="aiPromptText" class="form-control form-control-sm mb-2" rows="3"
+                placeholder="cth: Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"></textarea>
+              <button id="btnAIPrompt" type="button" class="btn btn-success btn-sm w-100">
+                <i class="bi bi-stars"></i> Hasilkan Rute dengan AI
+              </button>
+              <div id="aiPromptStat" class="small text-muted mt-1"></div>
+            </div>
+            <!-- Gambar / screenshot -->
+            <div class="tab-pane fade" id="aiTabImage">
+              <div class="small fw-bold mb-1"><i class="bi bi-image text-success"></i> Import Rute dari Gambar (AI Gemini Vision)</div>
+              <div class="small text-muted mb-2">Unggah screenshot peta yang sudah berisi rute (Google Maps / Strava / dll). AI akan
+                mendeteksi <em>landmark berurutan</em> lalu di-geocode otomatis.</div>
+              <input id="aiRouteImg" type="file" accept="image/*" class="form-control form-control-sm mb-2">
+              <input id="aiRouteHint" type="text" class="form-control form-control-sm mb-2"
+                     placeholder="Petunjuk area (opsional), cth: 'GOR Senayan Jakarta'">
+              <button id="btnAIRoute" type="button" class="btn btn-success btn-sm w-100">
+                <i class="bi bi-stars"></i> Identifikasi &amp; Geocode dengan AI
+              </button>
+              <div id="aiRouteStat" class="small text-muted mt-1"></div>
+            </div>
+          </div>
         </div>
 
         <div id="rbManualBox" class="d-none alert alert-info small py-2 mb-2">
@@ -881,7 +908,7 @@ document.addEventListener('click', function(ev){
 (function(){
   var CSRF = '<?= csrf_token() ?>';
   var OSRM = 'https://router.project-osrm.org/route/v1/foot/';
-  var TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var TILE = window.MAPBOX_TILE_URL;
   var CACHE_NAME = 'hf-tiles-v1';
 
   // ===== Service worker untuk mem-serve tile dari cache saat offline =====
@@ -1187,6 +1214,48 @@ document.addEventListener('click', function(ev){
         window._aiRouteCoords = d.coords;
       } catch(e) { stat.textContent = 'Error: '+e.message; }
       btnAIRoute.disabled = false;
+    });
+  }
+
+  // ===== Revisi 16 Juni 2026 — Handler AI Route dari Prompt Teks (Gemini) =====
+  var btnAIPrompt = document.getElementById('btnAIPrompt');
+  if (btnAIPrompt) {
+    btnAIPrompt.addEventListener('click', async function(){
+      var prompt = (document.getElementById('aiPromptText').value || '').trim();
+      var stat = document.getElementById('aiPromptStat');
+      if (!prompt) { stat.textContent = 'Tulis prompt dulu (cth: "Buatkan rute lari 5 km di Bandung").'; return; }
+      stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gemini sedang menyusun rute…';
+      btnAIPrompt.disabled = true;
+      try {
+        var fd = new FormData();
+        fd.append('csrf', csrf);
+        fd.append('task', 'ai_route_prompt');
+        fd.append('prompt', prompt);
+        var r = await fetch('/api_ai.php', { method:'POST', body: fd, credentials:'same-origin' });
+        var d = await r.json();
+        if (!d.ok) { stat.textContent = 'Gagal: '+(d.err||'?'); return; }
+        if (!d.coords || d.coords.length < 2) { stat.textContent = 'Hasil rute terlalu sedikit.'; return; }
+        ensureBuilderMap();
+        if (bLine) { bMap.removeLayer(bLine); }
+        bLine = L.polyline(d.coords, {color:'#16a34a', weight:5}).addTo(bMap);
+        bMap.fitBounds(bLine.getBounds(), {padding:[40,40]});
+        var km = 0;
+        for (var i=1;i<d.coords.length;i++){
+          var a=d.coords[i-1], b=d.coords[i];
+          var R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
+          var s=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+          km += 2*R*Math.asin(Math.sqrt(s));
+        }
+        var places = (d.places||[]).map(function(p){return '• '+p;}).join('<br>');
+        stat.innerHTML = '<strong>Berhasil!</strong> '+d.coords.length+' titik · ~'+km.toFixed(2)+' km'
+                       + (d.note?'<br><em>'+d.note+'</em>':'')
+                       + (places?'<details class="mt-1"><summary>Landmark</summary>'+places+'</details>':'');
+        window._aiRouteCoords = d.coords;
+        bCurrentRoute = { coords: d.coords, jarak_m: km*1000 };
+        var sv = document.getElementById('rbSave'); if (sv) sv.disabled = false;
+        var ex = document.getElementById('rbExport'); if (ex) ex.disabled = false;
+      } catch(e){ stat.textContent = 'Error: '+e.message; }
+      btnAIPrompt.disabled = false;
     });
   }
 

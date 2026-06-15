@@ -40,6 +40,68 @@ include __DIR__.'/includes/header.php';
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<!-- Revisi 16 Juni 2026 — Aset Live Tracking (musik latar, ikon, popup detail) -->
+<style>
+  .lt-fab-music{position:fixed;right:18px;bottom:90px;z-index:1040;width:48px;height:48px;border-radius:50%;
+    border:0;color:#fff;background:linear-gradient(135deg,#ec4899,#8b5cf6);box-shadow:0 6px 16px rgba(0,0,0,.18);
+    display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+  .lt-fab-music:disabled{opacity:.5}
+  .lt-detail-popup{position:fixed;right:18px;top:84px;z-index:1050;width:280px;max-width:90vw;
+    background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:14px;
+    box-shadow:0 16px 40px rgba(0,0,0,.18);transform:translateY(-8px);opacity:0;pointer-events:none;
+    transition:opacity .18s,transform .18s}
+  .lt-detail-popup.show{opacity:1;transform:none;pointer-events:auto}
+  .lt-detail-popup .head{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-bottom:1px solid var(--bs-border-color);
+    background:linear-gradient(135deg,#fef2f2,#fff);border-radius:14px 14px 0 0}
+  .lt-detail-popup .body{padding:.7rem .9rem;font-size:.85rem}
+  .lt-detail-popup .stat{display:flex;justify-content:space-between;padding:.15rem 0}
+  .lt-stat-pill{display:inline-flex;align-items:center;gap:.35rem;background:var(--bs-secondary-bg);
+    border-radius:999px;padding:.15rem .55rem;font-size:.75rem;margin-right:.25rem}
+  .lt-safety-banner{position:fixed;left:50%;transform:translateX(-50%);top:64px;z-index:1055;
+    padding:.5rem .9rem;border-radius:999px;font-size:.85rem;display:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .lt-safety-banner.aman{background:#dcfce7;color:#166534;border:1px solid #86efac}
+  .lt-safety-banner.waspada{background:#fef9c3;color:#854d0e;border:1px solid #facc15}
+  .lt-safety-banner.darurat{background:#fee2e2;color:#991b1b;border:1px solid #ef4444;animation:lt-pulse 1s infinite}
+  @keyframes lt-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+</style>
+
+<!-- Tombol musik latar -->
+<button id="ltMusicBtn" class="lt-fab-music" title="Putar musik latar (semangat lari)"
+        aria-label="Putar musik" disabled><i class="bi bi-music-note-beamed"></i></button>
+<audio id="ltMusic" loop preload="none"
+       src="https://cdn.pixabay.com/download/audio/2022/08/02/audio_2dde668ca0.mp3?filename=energetic-electronic-138631.mp3"></audio>
+
+<!-- Popup detail melayang -->
+<div id="ltDetail" class="lt-detail-popup" role="dialog" aria-label="Detail Live Tracking">
+  <div class="head">
+    <i class="bi bi-broadcast text-danger fs-5"></i>
+    <strong class="me-auto">Detail Sesi</strong>
+    <button type="button" class="btn-close btn-sm" id="ltDetailClose" aria-label="Tutup"></button>
+  </div>
+  <div class="body">
+    <div class="stat"><span><i class="bi bi-clock-history text-primary"></i> Durasi</span><strong id="ltdDur">—</strong></div>
+    <div class="stat"><span><i class="bi bi-rulers text-info"></i> Jarak</span><strong id="ltdDist">—</strong></div>
+    <div class="stat"><span><i class="bi bi-speedometer2 text-warning"></i> Pace</span><strong id="ltdPace">—</strong></div>
+    <div class="stat"><span><i class="bi bi-lightning-charge text-success"></i> Kecepatan</span><strong id="ltdSpd">—</strong></div>
+    <div class="stat"><span><i class="bi bi-geo-alt text-danger"></i> Titik terkirim</span><strong id="ltdPts">0</strong></div>
+    <div class="stat"><span><i class="bi bi-shield-check"></i> AI Safety</span><strong id="ltdSafe">—</strong></div>
+    <hr class="my-2">
+    <div class="d-flex gap-1 flex-wrap">
+      <span class="lt-stat-pill"><i class="bi bi-broadcast text-danger"></i> Live</span>
+      <span class="lt-stat-pill"><i class="bi bi-people text-primary"></i> <span id="ltdShared">tautan siap</span></span>
+      <span class="lt-stat-pill"><i class="bi bi-music-note text-secondary"></i> <span id="ltdMusic">musik off</span></span>
+    </div>
+  </div>
+</div>
+<div id="ltSafetyBanner" class="lt-safety-banner"></div>
+
+<script>window.MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
+window.MAPBOX_TILE_URL = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + MAPBOX_TOKEN_JS;
+window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+</script>
+
+
 <h4 class="mb-1"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon</h4>
 <p class="text-muted small mb-3">
   Bagikan posisi GPS Anda secara langsung kepada keluarga / kontak darurat
@@ -107,7 +169,8 @@ include __DIR__.'/includes/header.php';
             <a id="tgShare" target="_blank" class="btn btn-info btn-sm text-white"><i class="bi bi-telegram"></i> Telegram</a>
             <a id="smsShare" class="btn btn-secondary btn-sm"><i class="bi bi-chat-dots"></i> SMS</a>
             <!-- Revisi 15 Juni 2026 — popup melayang (PiP) agar GPS tetap aktif saat pindah app/tab -->
-            <button id="btnPipLive" type="button" class="btn btn-outline-info btn-sm"><i class="bi bi-pip"></i> Popup Melayang</button>
+            <button id="btnPipLive" type="button" class="btn btn-outline-info btn-sm"><i class="bi bi-pip"></i> Popup Peta</button>
+            <button id="btnDetailLive" type="button" class="btn btn-outline-primary btn-sm"><i class="bi bi-window-stack"></i> Detail Popup</button>
             <button id="btnStop" class="btn btn-outline-danger btn-sm ms-auto"><i class="bi bi-stop-circle"></i> Hentikan</button>
           </div>
           <div id="liveStat" class="small text-muted mt-2"></div>
@@ -164,7 +227,7 @@ include __DIR__.'/includes/header.php';
 <script>
 const API = '/api_live_tracking.php';
 const map = L.map('liveMap').setView([-6.2, 106.8], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(map);
+L.tileLayer(window.MAPBOX_TILE_URL,{maxZoom:19,attribution:window.MAPBOX_ATTR}).addTo(map);
 let poly = L.polyline([], {color:'#dc2626', weight:5}).addTo(map);
 let me   = null;
 let state = { token:null, watchId:null, timer:null, pts:[] };
@@ -324,6 +387,170 @@ document.getElementById('btnPipLive').addEventListener('click', async ()=>{
     });
   } catch(err){ alert('Tidak dapat membuka popup melayang: '+err.message); }
 });
+
+
+/* ===== Revisi 16 Juni 2026 — Detail popup, musik latar, ikon, AI Safety Monitoring ===== */
+(function(){
+  var startTs = null;
+  var totalKm = 0;
+  var lastPt  = null;     // [lat,lng,ts]
+  var idleSinceTs = null; // ms — sejak kapan belum ada titik baru / speed=0
+  var speedDrops = [];    // riwayat penurunan kecepatan signifikan
+  var basePoint  = null;  // titik referensi rute (titik pertama)
+  var lastSafety = 0;
+  var safetyTimer = null;
+
+  // Ikon kustom Leaflet (emoji-style) jika belum ada
+  if (window.L && me === null) {
+    var runIcon = L.divIcon({
+      className:'lt-run-icon',
+      html:'<div style="font-size:24px;line-height:24px">🏃</div>',
+      iconSize:[28,28], iconAnchor:[14,24]
+    });
+    // ganti factory marker saat pertama kali dibuat
+    var _origAdd = L.marker;
+    L.marker = function(latlng, opts){
+      opts = opts || {};
+      if (!opts.icon) opts.icon = runIcon;
+      return _origAdd.call(L, latlng, opts);
+    };
+  }
+
+  // Musik latar
+  var music = document.getElementById('ltMusic'), mBtn = document.getElementById('ltMusicBtn');
+  var musicOn = false;
+  function setMusicLabel(){
+    var lab = document.getElementById('ltdMusic'); if (lab) lab.textContent = musicOn ? 'musik on' : 'musik off';
+    mBtn.innerHTML = '<i class="bi bi-music-note'+(musicOn?'':'-beamed')+'"></i>';
+  }
+  mBtn.addEventListener('click', function(){
+    if (!musicOn){ music.volume = 0.35; music.play().then(function(){ musicOn=true; setMusicLabel(); }).catch(function(e){ alert('Tidak dapat memutar musik: '+e.message); }); }
+    else { music.pause(); musicOn=false; setMusicLabel(); }
+  });
+
+  // Aktifkan tombol musik begitu sesi aktif
+  var oldStartGeo = window.startGeo;
+  // Patch UI: aktifkan musik dan mulai timer setelah sesi mulai
+  var formStart = document.getElementById('frmStart');
+  if (formStart){
+    formStart.addEventListener('submit', function(){
+      setTimeout(function(){
+        if (state.token){
+          mBtn.disabled = false;
+          startTs = Date.now();
+          openDetail();
+          startSafetyLoop();
+        }
+      }, 600);
+    });
+  }
+  var btnStop = document.getElementById('btnStop');
+  if (btnStop) btnStop.addEventListener('click', function(){
+    mBtn.disabled = true;
+    if (musicOn){ music.pause(); musicOn=false; setMusicLabel(); }
+    if (safetyTimer){ clearInterval(safetyTimer); safetyTimer=null; }
+  });
+
+  // Detail popup
+  var det = document.getElementById('ltDetail');
+  document.getElementById('btnDetailLive').addEventListener('click', function(){ det.classList.toggle('show'); });
+  document.getElementById('ltDetailClose').addEventListener('click', function(){ det.classList.remove('show'); });
+  function openDetail(){ det.classList.add('show'); }
+  function fmtDur(ms){
+    var s = Math.floor(ms/1000); var h=Math.floor(s/3600); var m=Math.floor((s%3600)/60); var ss=s%60;
+    return (h>0?(h+'j '):'') + m+'m '+ss+'s';
+  }
+  function fmtPace(secPerKm){
+    if (!isFinite(secPerKm) || secPerKm<=0) return '—';
+    var m = Math.floor(secPerKm/60), s = Math.round(secPerKm%60);
+    return m + "'" + (s<10?'0':'') + s + '"/km';
+  }
+  function haversineKm(a,b){
+    var R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
+    var s=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+
+  // Setiap kali pushPoint dipanggil — update detail stats + AI signals.
+  var _orig_pushPoint = window.pushPoint;
+  window.pushPoint = function(pos){
+    var lat = pos.coords.latitude, lng = pos.coords.longitude;
+    var spd = pos.coords.speed; // m/s
+    var now = Date.now();
+    if (!basePoint) basePoint = [lat,lng];
+    if (lastPt){
+      var dKm = haversineKm([lastPt[0],lastPt[1]],[lat,lng]);
+      if (dKm < 2) totalKm += dKm; // anti glitch jauh
+      // deteksi penurunan kecepatan
+      if (lastPt.spd != null && spd != null && lastPt.spd > 1.5 && spd < lastPt.spd*0.4) {
+        speedDrops.push(now);
+      }
+    }
+    lastPt = [lat,lng,now]; lastPt.spd = spd;
+    if (spd == null || spd < 0.3) {
+      if (!idleSinceTs) idleSinceTs = now;
+    } else { idleSinceTs = null; }
+
+    // update UI detail
+    var dur = startTs ? (now-startTs) : 0;
+    document.getElementById('ltdDur').textContent = startTs? fmtDur(dur) : '—';
+    document.getElementById('ltdDist').textContent = totalKm.toFixed(2)+' km';
+    var paceSec = (totalKm>0.05 && dur>0) ? (dur/1000)/totalKm : 0;
+    document.getElementById('ltdPace').textContent = fmtPace(paceSec);
+    document.getElementById('ltdSpd').textContent = (spd!=null? (spd*3.6).toFixed(1)+' km/j' : '—');
+    document.getElementById('ltdPts').textContent = state.pts.length;
+    var shared = document.getElementById('ltdShared');
+    if (shared) shared.textContent = state.token? 'tautan aktif' : 'tautan siap';
+
+    return _orig_pushPoint.apply(this, arguments);
+  };
+
+  // AI Safety loop — setiap 60 dtk kirim ringkasan ke Gemini
+  function startSafetyLoop(){
+    if (safetyTimer) clearInterval(safetyTimer);
+    safetyTimer = setInterval(checkSafety, 60000);
+    setTimeout(checkSafety, 12000);
+  }
+  async function checkSafety(){
+    if (!state.token) return;
+    var now = Date.now();
+    if (now - lastSafety < 30000) return;
+    lastSafety = now;
+    var idleSec = idleSinceTs ? Math.round((now-idleSinceTs)/1000) : 0;
+    var farKm = (lastPt && basePoint) ? haversineKm(basePoint,[lastPt[0],lastPt[1]]).toFixed(2) : 0;
+    var drops = speedDrops.filter(function(t){return now-t<10*60*1000;}).length;
+    var ctx = 'Kecepatan terakhir: '+ (lastPt && lastPt.spd!=null? (lastPt.spd*3.6).toFixed(1)+' km/j' : 'tidak ada') +
+              '. Idle (tanpa gerak): '+ idleSec +' detik. ' +
+              'Jarak dari titik awal: '+ farKm +' km. ' +
+              'Jumlah penurunan kecepatan drastis 10 menit terakhir: '+ drops +'. ' +
+              'Total titik GPS terkirim: '+ state.pts.length +'.';
+    try {
+      var fd = new FormData();
+      fd.append('csrf', '<?= csrf_token() ?>');
+      fd.append('task','safety');
+      fd.append('ctx', ctx);
+      var r = await fetch('/api_ai.php',{method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      var d = j.data;
+      var safeEl = document.getElementById('ltdSafe');
+      var banner = document.getElementById('ltSafetyBanner');
+      if (d && d.level){
+        safeEl.textContent = d.level.toUpperCase();
+        safeEl.className = d.level==='darurat'?'text-danger':(d.level==='waspada'?'text-warning':'text-success');
+        if (d.level !== 'aman'){
+          banner.className = 'lt-safety-banner '+d.level;
+          banner.innerHTML = '<i class="bi bi-shield-exclamation"></i> <strong>'+d.level.toUpperCase()+':</strong> '+(d.alasan||'')+' <span class="ms-2 text-muted">'+(d.pesan||'')+'</span>';
+          banner.style.display = 'block';
+          if (d.level==='darurat' && 'vibrate' in navigator) navigator.vibrate([200,80,200,80,500]);
+        } else {
+          banner.style.display = 'none';
+        }
+      } else {
+        safeEl.textContent = 'aman';
+      }
+    } catch(e){ /* silent */ }
+  }
+})();
 
 /* ---------- Kontak darurat ---------- */
 document.getElementById('frmContact').addEventListener('submit', async (e)=>{

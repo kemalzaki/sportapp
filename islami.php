@@ -195,4 +195,56 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 </script>
+
+<!-- Revisi 16 Juni 2026 — Tanya Jawab Islami (Google Gemini 2.5 Flash) -->
+<div class="card shadow-sm mt-3 border-success">
+  <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-patch-question-fill"></i> <strong>Tanya Jawab Islami</strong> &mdash; bertanya kepada AI berbasis Al-Qur'an &amp; Hadist</span>
+  </div>
+  <div class="card-body">
+    <form id="tanyaForm" class="vstack gap-2 mb-2">
+      <textarea id="tanyaInput" class="form-control" rows="3" placeholder="Contoh: Apa hukum shalat di kendaraan saat safar? atau Bagaimana adab makan menurut sunnah Rasulullah?" required></textarea>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-success btn-sm" type="submit"><i class="bi bi-send"></i> Tanyakan</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" id="tanyaClear"><i class="bi bi-eraser"></i> Bersihkan</button>
+        <small class="text-muted ms-auto align-self-center">Jawaban AI ditulis dengan referensi &amp; ditutup <em>Wallahu a'lam</em>.</small>
+      </div>
+    </form>
+    <div id="tanyaOut" class="border rounded p-3 bg-body-tertiary small text-muted" style="min-height:80px">Tulis pertanyaan lalu klik <b>Tanyakan</b>.</div>
+    <div class="alert alert-warning small mt-2 mb-0"><i class="bi bi-info-circle"></i> Jawaban AI bersifat panduan umum, bukan fatwa. Untuk masalah penting silakan rujuk ulama tepercaya.</div>
+  </div>
+</div>
+<script>
+(function(){
+  var form = document.getElementById('tanyaForm');
+  var inp  = document.getElementById('tanyaInput');
+  var out  = document.getElementById('tanyaOut');
+  if (!form) return;
+  document.getElementById('tanyaClear').addEventListener('click', function(){ inp.value=''; out.className='border rounded p-3 bg-body-tertiary small text-muted'; out.textContent='Tulis pertanyaan lalu klik Tanyakan.'; });
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var q = (inp.value||'').trim(); if (!q) return;
+    var btn = form.querySelector('button[type=submit]'); var oh = btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> AI menjawab...';
+    out.className='border rounded p-3 bg-body-tertiary small text-muted';
+    out.textContent='Sedang menjawab...';
+    try {
+      var fd = new FormData();
+      fd.append('csrf','<?= csrf_token() ?>');
+      fd.append('task','tanya_islami');
+      fd.append('prompt', q);
+      var r = await fetch('/api_ai.php',{method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      if (!j.ok) { out.className='border rounded p-3 bg-warning-subtle small'; out.textContent='Gagal: '+(j.err||'?'); return; }
+      out.className='border rounded p-3 bg-body-tertiary';
+      var html = (j.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                  .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+      out.innerHTML = '<p>'+html+'</p>';
+    } catch(err){ out.className='border rounded p-3 bg-warning-subtle small'; out.textContent='Error: '+err.message; }
+    btn.disabled=false; btn.innerHTML=oh;
+  });
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

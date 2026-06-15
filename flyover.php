@@ -70,7 +70,9 @@ include __DIR__.'/includes/header.php';
 
         <label class="form-label small">Gaya Peta</label>
         <select class="form-select form-select-sm mb-2" id="styleSel">
-          <option value="raster-osm">OpenStreetMap (default)</option>
+          <option value="mapbox-outdoors" selected>Mapbox Outdoors (Strava-like)</option>
+          <option value="mapbox-satellite">Mapbox Satellite Streets</option>
+          <option value="raster-osm">OpenStreetMap</option>
           <option value="voyager">Carto Voyager (cerah, detail)</option>
           <option value="light">Carto Light (minimalis terang)</option>
           <option value="dark">Carto Dark (gelap)</option>
@@ -120,7 +122,10 @@ include __DIR__.'/includes/header.php';
 function rasterStyle(tiles, attr){
   return { version:8, sources:{ x:{ type:'raster', tiles:tiles, tileSize:256, attribution:attr } }, layers:[ { id:'x', type:'raster', source:'x' } ] };
 }
+const MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
 const STYLES = {
+  'mapbox-outdoors': rasterStyle(['https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+MAPBOX_TOKEN_JS], '&copy; Mapbox &copy; OSM'),
+  'mapbox-satellite': rasterStyle(['https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+MAPBOX_TOKEN_JS], '&copy; Mapbox &copy; OSM'),
   'raster-osm': rasterStyle(['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'], '© OpenStreetMap'),
   'demo':  'https://demotiles.maplibre.org/style.json',
   'dark':  rasterStyle(['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], '© Carto © OSM'),
@@ -157,7 +162,7 @@ function buildMap(styleKey){
     if (routePts.length) drawAll();
   });
 }
-buildMap('raster-osm');
+buildMap('mapbox-outdoors');
 $('styleSel').onchange = e => buildMap(e.target.value);
 
 function drawAll(){

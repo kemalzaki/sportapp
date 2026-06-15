@@ -5,6 +5,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/ai_gemini.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kalori Mingguan';
 $u = current_user();
@@ -33,40 +34,20 @@ try {
     db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC)");
 } catch (Throwable $e) {}
 
-// === Helper AI ===
+// === Helper AI (Revisi 16 Juni 2026) ===
+// Pipeline: Foto makanan → Gemini 2.5 Flash mengenali → Estimasi kalori → Masuk database.
 function ai_estimate_kalori($imagePath, $hint=''){
-    $key = getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : '');
-    if (!$key || !is_file($imagePath)) return null;
-    $mime = mime_content_type($imagePath) ?: 'image/jpeg';
-    $b64  = base64_encode(file_get_contents($imagePath));
-    $prompt = "Lihat foto makanan ini. Sebutkan nama makanan singkat (Indonesia) dan perkiraan total kalori (kcal). "
-            . "Balas HANYA JSON: {\"nama\":\"...\",\"kalori\":<angka>}. "
-            . ($hint ? "Hint pengguna: $hint" : "");
-    $payload = [
-      'model' => 'gpt-4o-mini',
-      'messages' => [[
-        'role'=>'user',
-        'content'=>[
-          ['type'=>'text','text'=>$prompt],
-          ['type'=>'image_url','image_url'=>['url'=>"data:$mime;base64,$b64"]]
-        ]
-      ]],
-      'max_tokens' => 200,
-      'temperature' => 0.2
-    ];
-    $ch = curl_init('https://api.openai.com/v1/chat/completions');
-    curl_setopt_array($ch, [
-      CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>30,
-      CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>json_encode($payload),
-      CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.$key]
-    ]);
-    $res = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($code !== 200 || !$res) return null;
-    $j = json_decode($res, true);
-    $text = $j['choices'][0]['message']['content'] ?? '';
-    if (preg_match('/\{.*\}/s', $text, $m)) {
-        $obj = json_decode($m[0], true);
-        if (is_array($obj) && isset($obj['kalori'])) return ['nama'=>$obj['nama']??'', 'kalori'=>(int)$obj['kalori']];
+    if (!is_file($imagePath)) return null;
+    $prompt = "Lihat FOTO MAKANAN ini. Sebutkan NAMA MAKANAN singkat (Bahasa Indonesia) dan PERKIRAAN TOTAL KALORI (kcal) untuk porsi yang terlihat. "
+            . "Bila ada beberapa item, jumlahkan kalorinya. "
+            . "Balas HANYA JSON: {\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat>\"}. "
+            . ($hint ? "Petunjuk pengguna: $hint" : "");
+    $g = gemini_vision($prompt, $imagePath,
+            ['json'=>true,'temperature'=>0.2,'max_tokens'=>300]);
+    if (!$g['ok']) return null;
+    $obj = gemini_extract_json($g['text']);
+    if (is_array($obj) && isset($obj['kalori'])) {
+        return ['nama'=>$obj['nama'] ?? '', 'kalori'=>(int)$obj['kalori'], 'rincian'=>$obj['rincian'] ?? ''];
     }
     return null;
 }
@@ -105,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
                         $aiUsed = true;
                     } else if (!empty($_POST['use_ai'])) {
-                        $_SESSION['flash_err'] = 'AI tidak tersedia (OPENAI_API_KEY belum diset) atau gagal estimasi. Input manual saja.';
+                        $_SESSION['flash_err'] = 'AI (Gemini) gagal menebak kalori. Input manual saja.';
                     }
                 }
             }
@@ -165,7 +146,7 @@ $totalWeek = array_sum($data);
 $avgDay = round($totalWeek/7);
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
-$aiEnabled = (bool)(getenv('OPENAI_API_KEY') ?: (defined('OPENAI_API_KEY') ? OPENAI_API_KEY : ''));
+$aiEnabled = (bool) (defined('GEMINI_API_KEY') ? GEMINI_API_KEY : (getenv('GEMINI_API_KEY') ?: ''));
 
 // Daftar 8 minggu terakhir utk dropdown navigasi
 $weekChoices = [];
@@ -252,7 +233,7 @@ include __DIR__.'/includes/header.php';
           <div class="col-4"><button class="btn btn-outline-secondary btn-sm w-100">Set Target</button></div>
         </form>
         <?php if(!$aiEnabled): ?>
-          <div class="alert alert-info small mt-2 mb-0"><i class="bi bi-info-circle"></i> Untuk mengaktifkan AI estimasi kalori dari foto, set environment variable <code>OPENAI_API_KEY</code> di server.</div>
+          <div class="alert alert-info small mt-2 mb-0"><i class="bi bi-info-circle"></i> Untuk mengaktifkan AI estimasi kalori dari foto, set environment variable <code>GEMINI_API_KEY</code> di server.</div>
         <?php endif; ?>
       </div>
     </div>

@@ -20,14 +20,25 @@ foreach (array_reverse($uploads) as $r) {
     }
 }
 
-// ---- Pace trend ----
+// ---- Pace trend (Revisi 16 Juni 2026: sinkron dgn statistik jogging) ----
+// Hanya hitung pace untuk aktivitas LARI/JOGGING dan minimal 1 km supaya konsisten
+// dengan kartu "Statistik Tren Performa Jogging" & rumus VO2.
 $pacePoints = [];
 foreach ($uploads as $r) {
-    if (!empty($r['pace_detik'])) $pacePoints[] = ['t'=>$r['tanggal'], 'v'=>(int)$r['pace_detik']];
-    elseif (!empty($r['jarak_km']) && !empty($r['durasi_menit']) && (float)$r['jarak_km']>0) {
-        $pacePoints[] = ['t'=>$r['tanggal'], 'v'=> (int) round(((int)$r['durasi_menit']*60)/(float)$r['jarak_km'])];
+    $jenis = strtolower((string)($r['jenis'] ?? ''));
+    $isRun = (strpos($jenis,'jogging')!==false || strpos($jenis,'lari')!==false || strpos($jenis,'run')!==false);
+    if (!$isRun) continue;
+    if (empty($r['jarak_km']) || (float)$r['jarak_km'] < 1) continue;
+    if (!empty($r['pace_detik']) && (int)$r['pace_detik']>0) {
+        $pacePoints[] = ['t'=>$r['tanggal'], 'v'=>(int)$r['pace_detik']];
+    } elseif (!empty($r['durasi_menit'])) {
+        $pace = (int) round(((int)$r['durasi_menit']*60)/(float)$r['jarak_km']);
+        // Buang outlier kasar (< 2'/km atau > 15'/km) supaya tren tidak nge-skew.
+        if ($pace >= 120 && $pace <= 900) $pacePoints[] = ['t'=>$r['tanggal'], 'v'=>$pace];
     }
 }
+// Sort by tanggal supaya garis tren tidak meloncat.
+usort($pacePoints, fn($a,$b)=>strcmp($a['t'],$b['t']));
 
 // ---- Calories weekly ----
 $calMap = [];
@@ -303,6 +314,61 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
+
+
+<!-- Revisi 16 Juni 2026 — AI Running Coach (Google Gemini 2.5 Flash) -->
+<div class="card shadow-sm mt-3 border-primary">
+  <div class="card-header bg-primary-subtle text-primary-emphasis d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-robot"></i> <strong>AI Running Coach</strong> — analisa &amp; rekomendasi pribadi</span>
+    <button type="button" id="btnAICoach" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Minta Saran AI</button>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-2">AI akan membaca statistik 30 hari terakhir (pace · durasi · jarak · fatigue · konsistensi · VO2) lalu memberi rekomendasi latihan minggu depan.</p>
+    <div id="aiCoachOut" class="border rounded p-3 bg-body-tertiary small text-muted">Klik "Minta Saran AI" untuk memulai.</div>
+  </div>
+</div>
+<script>
+(function(){
+  var btn = document.getElementById('btnAICoach'), out = document.getElementById('aiCoachOut');
+  if (!btn) return;
+  btn.addEventListener('click', async function(){
+    btn.disabled = true; var oh = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menghitung...';
+    out.className = 'border rounded p-3 bg-body-tertiary small text-muted';
+    out.textContent = 'AI sedang menganalisis statistik Anda...';
+    try {
+      var ctx = "VO2: " + (<?= $vo2 ? number_format($vo2,1) : 'null' ?>) + " ml/kg/min\n" +
+                "Consistency 12 minggu: <?= $consistency ?>%\n" +
+                "Fatigue Index: <?= $fatigue ?>% (<?= $fatigueLabel ?>)\n" +
+                "Kalori minggu ini: <?= number_format(end($calVals) ?: 0) ?> kkal\n" +
+                "JOGGING 30 HARI: <?= (int)$jogStat['count'] ?> sesi, " +
+                "jarak total <?= number_format($jogStat['distTot'],2) ?> km (rerata <?= number_format($jogStat['distAvg'],2) ?> km/sesi, terjauh <?= number_format($jogStat['distBest'],2) ?> km), " +
+                "durasi total <?= (int)$jogStat['durTot'] ?> menit (rerata <?= (int)round($jogStat['durAvg']) ?> menit), " +
+                "pace rerata <?= (int)$jogStat['paceAvg'] ?> s/km, tercepat <?= (int)$jogStat['paceBest'] ?> s/km, " +
+                "tren pace <?= (int)$jogStat['paceTrend'] ?> s/km (negatif = lebih cepat).";
+      var fd = new FormData();
+      fd.append('csrf', '<?= csrf_token() ?>');
+      fd.append('task', 'coach');
+      fd.append('ctx', ctx);
+      var r = await fetch('/api_ai.php', {method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      if (!j.ok) { out.className='border rounded p-3 bg-warning-subtle small'; out.textContent='Gagal: '+(j.err||'?'); return; }
+      out.className = 'border rounded p-3 bg-body-tertiary';
+      // simple markdown-ish render
+      var html = (j.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                  .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+                  .replace(/(<li>[\s\S]+?<\/li>)/,'<ul>$1</ul>')
+                  .replace(/\n/g,'<br>');
+      out.innerHTML = html;
+    } catch(e){
+      out.className='border rounded p-3 bg-warning-subtle small'; out.textContent='Error: '+e.message;
+    } finally {
+      btn.disabled=false; btn.innerHTML = oh;
+    }
+  });
+})();
+</script>
 
 <div class="card shadow-sm mt-3"><div class="card-header">Heatmap Aktivitas (53 minggu)</div>
 <div class="card-body"><div class="heatmap">
