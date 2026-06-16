@@ -28,7 +28,7 @@
 // ============================================================
 if (!defined('GEMINI_API_KEY_DEFAULT')) {
     define('GEMINI_API_KEY_DEFAULT',
-        'AQ.Ab8RN6IL-6ERW08AYymhdutqv5VhxMYakUyRL17hVbzN5Lu0OQ');
+        '');
 }
 if (!defined('GEMINI_MODEL_DEFAULT')) {
     define('GEMINI_MODEL_DEFAULT', 'gemini-2.5-flash');
