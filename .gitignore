@@ -12,8 +12,11 @@ Thumbs.db
 *.tmp
 
 # Environment files
+config/env.local.php
+config/*.local.php
 .env
 .env.local
+*.key
 
 # IDEs and editors
 .vscode/

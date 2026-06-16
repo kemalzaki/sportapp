@@ -55,5 +55,5 @@ hf_env_set('ADMIN_WA_FIRDAM', '6281386369207');
 //
 // PENTING: key HARUS diawali "AIza...". Token "AQ.Ab8RN6..." dari Google Sign-In
 // TIDAK akan berfungsi karena itu OAuth browser token, bukan API key server.
-hf_env_set('GEMINI_API_KEY', 'AQ.Ab8RN6LDTA_A1I3wsXOwiKGWwGpTgxCH0eaL6mP7dktz-vE_dQ');
+hf_env_set('GEMINI_API_KEY', 'AQ.Ab8RN6IL-6ERW08AYymhdutqv5VhxMYakUyRL17hVbzN5Lu0OQ');
 hf_env_set('GEMINI_MODEL',   'gemini-2.5-flash');
