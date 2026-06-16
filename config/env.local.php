@@ -38,22 +38,15 @@ hf_env_set('MIDTRANS_PROD', '1');
 // ===== Admin WA (opsional, untuk tombol "Tanyakan apakah pedagang buka?") =====
 hf_env_set('ADMIN_WA_FIRDAM', '6281386369207');
 
-// ===== Google Gemini AI (Revisi 16 Juni 2026 — Part E) =====
-// WAJIB diisi agar fitur AI berfungsi:
-//   - api_run.php (AI Route generator dari foto peta / prompt teks)
-//   - kalori_mingguan.php (estimasi kalori dari foto makanan)
-//   - monitoring.php (AI Running Coach)
-//   - islami.php (Tanya Jawab Islami)
-//   - live_tracking.php (AI Safety Monitoring)
+// ===== Google Gemini AI (Revisi 16 Juni 2026 — Part F) =====
+// Mulai Part F, key Gemini DEFAULT sudah di-render langsung di
+// includes/ai_gemini.php (konstanta GEMINI_API_KEY_DEFAULT). Jadi
+// baris di bawah hanya untuk OVERRIDE bila Anda mau pakai API key
+// AI Studio sendiri (diawali "AIza..."). Biarkan kosong = pakai
+// default yang sudah hardcoded.
 //
-// Cara dapat API key (GRATIS):
-//   1. Buka https://aistudio.google.com/apikey
-//   2. Login dengan akun Google
-//   3. Klik "Create API key" -> pilih project apa saja
-//   4. Copy key-nya (formatnya diawali "AIza...")
-//   5. Ganti placeholder di bawah, lalu RESTART Apache/PHP server
-//
-// PENTING: key HARUS diawali "AIza...". Token "AQ.Ab8RN6..." dari Google Sign-In
-// TIDAK akan berfungsi karena itu OAuth browser token, bukan API key server.
-hf_env_set('GEMINI_API_KEY', 'AQ.Ab8RN6IL-6ERW08AYymhdutqv5VhxMYakUyRL17hVbzN5Lu0OQ');
-hf_env_set('GEMINI_MODEL',   'gemini-2.5-flash');
+// Cara dapat API key AI Studio (GRATIS, opsional):
+//   1. https://aistudio.google.com/apikey  → Create API key (AIza...)
+//   2. Tempel ke parameter kedua di bawah lalu restart Apache/PHP.
+// hf_env_set('GEMINI_API_KEY', 'AIzaXXXXXXXXXXXXXXXXX');
+hf_env_set('GEMINI_MODEL', 'gemini-2.5-flash');
