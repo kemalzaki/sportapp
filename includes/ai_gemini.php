@@ -1,18 +1,24 @@
 <?php
 /**
- * Helper Google Gemini 2.5 Flash — Revisi 16 Juni 2026 (Part F).
+ * Helper Google Gemini — Revisi 17 Juni 2026 (Part G).
  *
- * Key Gemini di-HARDCODE di file ini supaya tidak ada lagi error
- * "GEMINI_API_KEY belum di-set" di local. Bila ingin override, isi
- * environment variable GEMINI_API_KEY (atau GEMINI_ACCESS_TOKEN) — itu
- * akan menggantikan nilai default di bawah.
+ * PERUBAHAN PART G:
+ *  - Dukungan penuh untuk **Auth Key format baru** Google AI Studio
+ *    (diawali "AQ.") yang menggantikan Standard API key sebelum
+ *    September 2026 (lihat changelog Gemini API).
+ *  - Auth dikirim via header **x-goog-api-key: <KEY>** (cara baru yang
+ *    direkomendasikan Google), bukan lagi "Authorization: Bearer ..."
+ *    yang menyebabkan error
+ *      "Request had invalid authentication credentials.
+ *       Expected OAuth 2 access token, login cookie or other valid
+ *       authentication credential."
+ *  - Format key lama (AIza...) tetap didukung; header yang sama juga
+ *    valid untuk standard key, jadi tidak perlu lagi cabang ?key= URL.
+ *  - Default model dinaikkan ke "gemini-2.5-flash" (tetap), endpoint
+ *    tetap v1beta (compatible dengan auth key baru).
+ *  - Tambah retry sederhana 1x bila gateway 5xx / curl error transient.
  *
- * Mendukung dua format kredensial Google:
- *   - API key  AI Studio  (diawali "AIza...") → dikirim via ?key=...
- *   - OAuth access token  (diawali "AQ." / "ya29." / dll) → dikirim via
- *     header Authorization: Bearer ...
- *
- * Fungsi publik:
+ * Fungsi publik (tidak berubah, backward-compatible):
  *   gemini_text($prompt, $opts=[])
  *   gemini_vision($prompt, $imagePath, $opts=[])
  *   gemini_extract_json($text)
@@ -23,15 +29,18 @@
  */
 
 // ============================================================
-//  KEY GEMINI (di-render langsung di kode, sesuai permintaan).
-//  Ganti baris di bawah jika Anda punya API key AI Studio sendiri.
+//  KEY GEMINI default (boleh di-override via env GEMINI_API_KEY).
+//  Isi langsung di sini kalau mau hardcode.
 // ============================================================
 if (!defined('GEMINI_API_KEY_DEFAULT')) {
-    define('GEMINI_API_KEY_DEFAULT',
-        '');
+    define('GEMINI_API_KEY_DEFAULT', '');
 }
 if (!defined('GEMINI_MODEL_DEFAULT')) {
     define('GEMINI_MODEL_DEFAULT', 'gemini-2.5-flash');
+}
+if (!defined('GEMINI_API_BASE')) {
+    // v1beta sudah support auth key baru (AQ.*) per pengumuman Google.
+    define('GEMINI_API_BASE', 'https://generativelanguage.googleapis.com/v1beta');
 }
 
 // kompatibilitas helper dari env.local.php
@@ -59,9 +68,11 @@ function _gemini_key() {
     if (!$k && isset($_ENV['GEMINI_API_KEY']))    $k = $_ENV['GEMINI_API_KEY'];
     if (!$k && isset($_SERVER['GEMINI_API_KEY'])) $k = $_SERVER['GEMINI_API_KEY'];
     if (!$k || stripos($k, 'GANTI') !== false)    $k = GEMINI_API_KEY_DEFAULT;
-    // dukung GEMINI_ACCESS_TOKEN sebagai alternatif
+    // alias lama
     if (!$k) {
-        $k = getenv('GEMINI_ACCESS_TOKEN') ?: '';
+        $k = getenv('GEMINI_ACCESS_TOKEN')
+          ?: ($_ENV['GEMINI_ACCESS_TOKEN'] ?? '')
+          ?: '';
     }
     return trim((string)$k);
 }
@@ -71,17 +82,30 @@ function _gemini_model() {
     return trim((string)$m) ?: GEMINI_MODEL_DEFAULT;
 }
 
+/**
+ * Identifikasi tipe key untuk diagnostik.
+ *   - "auth_key"    : format baru AI Studio (AQ.*)
+ *   - "api_key"     : standard key lama (AIza*)
+ *   - "oauth_bearer": OAuth access token (ya29.*) — masih dikirim via Bearer
+ *   - "unknown"     : format tidak dikenali; coba header x-goog-api-key
+ */
+function _gemini_key_kind($k) {
+    if ($k === '')                          return 'missing';
+    if (strpos($k, 'AIza') === 0)           return 'api_key';
+    if (strpos($k, 'AQ.')  === 0)           return 'auth_key';
+    if (strpos($k, 'ya29.') === 0)          return 'oauth_bearer';
+    // beberapa OAuth token lama juga panjang & tanpa prefix jelas
+    return 'unknown';
+}
+
 function gemini_config_status() {
     $k = _gemini_key();
-    $mode = '';
-    if ($k === '')                              $mode = 'missing';
-    elseif (strpos($k, 'AIza') === 0)           $mode = 'api_key';
-    else                                        $mode = 'oauth_bearer';
     return [
         'has_key'    => $k !== '' ? 1 : 0,
-        'mode'       => $mode,
+        'mode'       => _gemini_key_kind($k),
         'key_masked' => $k === '' ? '' : (substr($k, 0, 6) . '…' . substr($k, -4)),
         'model'      => _gemini_model(),
+        'endpoint'   => GEMINI_API_BASE,
     ];
 }
 
@@ -113,30 +137,49 @@ function _gemini_call(array $parts, array $opts = []) {
         ];
     }
 
-    $base = "https://generativelanguage.googleapis.com/v1beta/models/"
-          . rawurlencode($model) . ":generateContent";
+    $url = rtrim(GEMINI_API_BASE, '/')
+         . '/models/' . rawurlencode($model) . ':generateContent';
+
+    $kind    = _gemini_key_kind($key);
     $headers = ['Content-Type: application/json'];
 
-    // pilih auth method berdasarkan format key
-    if (strpos($key, 'AIza') === 0) {
-        $url = $base . '?key=' . rawurlencode($key);
-    } else {
-        $url = $base;
+    if ($kind === 'oauth_bearer') {
+        // OAuth access token (ya29.*) — TETAP pakai Bearer.
         $headers[] = 'Authorization: Bearer ' . $key;
+    } else {
+        // AIza..., AQ..., atau unknown → kirim sebagai API key via header.
+        // Ini adalah cara yang direkomendasikan Google untuk auth key
+        // format baru (AQ.*) maupun standard key (AIza*). Tidak lagi
+        // memakai ?key= di URL agar key tidak bocor lewat access log.
+        $headers[] = 'x-goog-api-key: ' . $key;
     }
 
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 60,
-        CURLOPT_HTTPHEADER     => $headers,
-        CURLOPT_POSTFIELDS     => json_encode($body, JSON_UNESCAPED_UNICODE),
-    ]);
-    $resp = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $cerr = curl_error($ch);
-    curl_close($ch);
+    $postBody = json_encode($body, JSON_UNESCAPED_UNICODE);
+
+    // ---- request + retry transient 1x ----
+    $attempt = 0;
+    $maxAttempt = 2;
+    $resp = false; $code = 0; $cerr = '';
+    while ($attempt < $maxAttempt) {
+        $attempt++;
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_CONNECTTIMEOUT => 15,
+            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_POSTFIELDS     => $postBody,
+        ]);
+        $resp = curl_exec($ch);
+        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $cerr = curl_error($ch);
+        curl_close($ch);
+
+        $transient = ($resp === false) || ($code >= 500 && $code < 600);
+        if (!$transient) break;
+        if ($attempt < $maxAttempt) { usleep(400000); /* 0.4s backoff */ }
+    }
 
     if ($resp === false) {
         return ['ok'=>false,'text'=>'','err'=>'curl: '.$cerr];
@@ -147,6 +190,14 @@ function _gemini_call(array $parts, array $opts = []) {
     }
     if ($code < 200 || $code >= 300 || isset($json['error'])) {
         $msg = $json['error']['message'] ?? ('HTTP '.$code);
+        // tambahkan hint diagnosa khusus untuk kasus auth umum
+        if (stripos($msg, 'OAuth 2 access token') !== false
+            || stripos($msg, 'API key not valid') !== false
+            || $code === 401 || $code === 403) {
+            $msg .= ' [hint: cek format key — Auth Key baru (AQ.*) dan API Key (AIza*) '
+                 .  'sama-sama dikirim via header x-goog-api-key di Part G. '
+                 .  'Mode terdeteksi: '. $kind .']';
+        }
         return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
     }
     $text = '';
@@ -193,14 +244,11 @@ function gemini_vision($prompt, $imagePath, array $opts = []) {
 function gemini_extract_json($text) {
     $s = trim((string)$text);
     if ($s === '') return [];
-    // buang code fence ```json ... ```
     if (preg_match('/```(?:json)?\s*(.+?)\s*```/is', $s, $m)) {
         $s = $m[1];
     }
-    // coba langsung
     $j = json_decode($s, true);
     if (is_array($j)) return $j;
-    // cari blok { ... } atau [ ... ] terpanjang yang valid
     foreach ([['{','}'], ['[',']']] as $pair) {
         $start = strpos($s, $pair[0]);
         $end   = strrpos($s, $pair[1]);
