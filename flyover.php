@@ -41,6 +41,35 @@ include __DIR__.'/includes/header.php';
 ?>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+/* Revisi 16 Juni 2026 — Tampilan video flyover lebih menarik: HUD popup, ikon start/finish/km, kontrol musik */
+.fly-wrap{position:relative}
+.fly-hud{position:absolute;left:14px;top:14px;z-index:5;background:linear-gradient(135deg,rgba(15,23,42,.85),rgba(30,41,59,.72));
+  color:#f8fafc;border-radius:14px;padding:12px 16px;backdrop-filter:blur(8px);
+  box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:ui-sans-serif,system-ui;min-width:200px;
+  border:1px solid rgba(255,255,255,.15);transform:translateY(-8px);opacity:0;transition:.4s cubic-bezier(.2,.8,.2,1)}
+.fly-hud.show{opacity:1;transform:translateY(0)}
+.fly-hud h6{margin:0 0 6px;font-size:.78rem;letter-spacing:.5px;color:#fbbf24;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.fly-hud .row-stat{display:flex;justify-content:space-between;gap:14px;font-size:.85rem;line-height:1.55}
+.fly-hud .row-stat span:first-child{opacity:.7}
+.fly-hud .row-stat strong{color:#fff;font-variant-numeric:tabular-nums}
+.fly-badge{position:absolute;right:14px;top:14px;z-index:5;background:rgba(239,68,68,.92);color:#fff;
+  padding:6px 10px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.5px;display:none;
+  box-shadow:0 4px 14px rgba(239,68,68,.5)}
+.fly-badge.show{display:inline-flex;align-items:center;gap:6px;animation:pulseRec 1.2s infinite}
+@keyframes pulseRec{50%{box-shadow:0 0 0 6px rgba(239,68,68,.18)}}
+.fly-icon{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;
+  font-size:1rem;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.35);border:2px solid #fff;transform:translate(-50%,-50%)}
+.fly-icon.start{background:#10b981}
+.fly-icon.finish{background:#1f2937;background-image:repeating-conic-gradient(#000 0 25%,#fff 0 50%);background-size:10px 10px}
+.fly-icon.km{width:24px;height:24px;background:#f59e0b;font-size:.7rem;font-weight:700;color:#1f2937;border-color:#fff7ed}
+.fly-icon.runner{background:#3b82f6;width:38px;height:38px;font-size:1.1rem;border-color:#dbeafe}
+.fly-popup{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);z-index:5;
+  background:rgba(17,24,39,.92);color:#fff;padding:10px 16px;border-radius:12px;font-size:.85rem;
+  opacity:0;transition:.4s;pointer-events:none;border:1px solid rgba(255,255,255,.15)}
+.fly-popup.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.fly-popup b{color:#fde68a}
+</style>
 
 <h4 class="mb-1"><i class="bi bi-camera-reels text-info"></i> Video Animasi Rute 3D (Flyover)</h4>
 <p class="text-muted small mb-3">
@@ -93,6 +122,25 @@ include __DIR__.'/includes/header.php';
           <label class="form-check-label small" for="trailDraw">Gambar lintasan sambil kamera bergerak</label>
         </div>
 
+        <!-- Revisi 16 Juni 2026 — opsi musik latar & ikon meriah -->
+        <div class="form-check form-switch mb-1">
+          <input class="form-check-input" type="checkbox" id="optIcons" checked>
+          <label class="form-check-label small" for="optIcons">Tampilkan ikon Start/Finish & marker per-km</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" id="optHud" checked>
+          <label class="form-check-label small" for="optHud">Tampilkan popup statistik (HUD) saat playback</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" id="optMusic">
+          <label class="form-check-label small" for="optMusic"><i class="bi bi-music-note-beamed text-success"></i> Musik latar saat playback &amp; rekaman</label>
+        </div>
+        <div id="musicBox" class="mb-2" style="display:none">
+          <input type="file" id="musicFile" class="form-control form-control-sm" accept="audio/*">
+          <small class="text-muted d-block mt-1">Atau biarkan kosong → pakai musik bawaan (instrumental upbeat, gratis).</small>
+          <audio id="musicAudio" preload="auto" controls class="w-100 mt-2" style="height:34px"></audio>
+        </div>
+
         <hr>
         <button id="btnPreview" class="btn btn-outline-primary w-100 mb-2" disabled><i class="bi bi-play-circle"></i> Preview Animasi</button>
         <button id="btnRecord"  class="btn btn-danger w-100" disabled><i class="bi bi-record-circle"></i> Rekam Video (.webm)</button>
@@ -104,11 +152,23 @@ include __DIR__.'/includes/header.php';
   <div class="col-lg-8">
     <div class="card shadow-sm">
       <div class="card-body p-2">
-        <div id="map3d" style="height:560px;border-radius:10px;border:1px solid var(--bs-border-color,#e5e7eb)"></div>
+        <div class="fly-wrap">
+          <div id="map3d" style="height:560px;border-radius:10px;border:1px solid var(--bs-border-color,#e5e7eb)"></div>
+          <!-- Revisi 16 Juni 2026 — HUD overlay -->
+          <div id="flyHud" class="fly-hud">
+            <h6><i class="bi bi-broadcast"></i> Live Flyover</h6>
+            <div class="row-stat"><span><i class="bi bi-rulers"></i> Jarak</span><strong id="hudDist">0.00 km</strong></div>
+            <div class="row-stat"><span><i class="bi bi-stopwatch"></i> Waktu</span><strong id="hudTime">0.0 s</strong></div>
+            <div class="row-stat"><span><i class="bi bi-speedometer2"></i> Kecepatan</span><strong id="hudSpeed">— km/j</strong></div>
+            <div class="row-stat"><span><i class="bi bi-flag"></i> Progres</span><strong id="hudProg">0%</strong></div>
+          </div>
+          <div id="flyRec" class="fly-badge"><i class="bi bi-record-circle-fill"></i> REC</div>
+          <div id="flyPopup" class="fly-popup"></div>
+        </div>
         <div class="small text-muted mt-2 px-2">
           <i class="bi bi-info-circle"></i>
           Browser akan menggunakan WebGL untuk merender peta. Pastikan tab
-          aktif selama proses perekaman.
+          aktif selama proses perekaman. Jika musik diaktifkan, audio juga ikut terekam ke video.
         </div>
       </div>
     </div>
@@ -143,8 +203,43 @@ $('dur').oninput   = e => $('durOut').textContent   = e.target.value;
 $('pitch').oninput = e => { $('pitchOut').textContent = e.target.value+'°'; if(map) map.setPitch(+e.target.value); };
 
 let map, routePts = [], sessionId = null;
+let kmMarkers = [], startMarker = null, finishMarker = null, runnerMarker = null;
+
+/* Revisi 16 Juni 2026 — util ikon DOM untuk start/finish/km/runner */
+function makeIcon(cls, html, lngLat){
+  const el = document.createElement('div');
+  el.className = 'fly-icon '+cls;
+  el.innerHTML = html;
+  return new maplibregl.Marker({element:el, anchor:'center'}).setLngLat(lngLat).addTo(map);
+}
+function clearMarkers(){
+  kmMarkers.forEach(m=>m.remove()); kmMarkers=[];
+  if (startMarker){startMarker.remove();startMarker=null;}
+  if (finishMarker){finishMarker.remove();finishMarker=null;}
+  if (runnerMarker){runnerMarker.remove();runnerMarker=null;}
+}
+function haversineKm(a,b){
+  const R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
+  const s=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+function buildKmMarkers(){
+  if (!$('optIcons').checked || routePts.length<2) return;
+  startMarker  = makeIcon('start',  '<i class="bi bi-flag-fill"></i>', [routePts[0][1], routePts[0][0]]);
+  finishMarker = makeIcon('finish', '', [routePts[routePts.length-1][1], routePts[routePts.length-1][0]]);
+  // KM marker tiap 1 km
+  let cum = 0, nextKm = 1;
+  for (let i=1;i<routePts.length;i++){
+    cum += haversineKm(routePts[i-1], routePts[i]);
+    while (cum >= nextKm){
+      kmMarkers.push(makeIcon('km', String(nextKm), [routePts[i][1], routePts[i][0]]));
+      nextKm++;
+    }
+  }
+}
 
 function buildMap(styleKey){
+  clearMarkers();
   if (map) { map.remove(); map = null; }
   map = new maplibregl.Map({
     container:'map3d',
@@ -159,7 +254,7 @@ function buildMap(styleKey){
       paint:{ 'line-color':'#ef4444', 'line-width':5, 'line-opacity':0.95 } });
     map.addLayer({ id:'rt-glow', type:'line', source:'rt',
       paint:{ 'line-color':'#fde68a', 'line-width':12, 'line-blur':8, 'line-opacity':0.4 } });
-    if (routePts.length) drawAll();
+    if (routePts.length) { drawAll(); buildKmMarkers(); }
   });
 }
 buildMap('mapbox-outdoors');
@@ -172,12 +267,43 @@ function drawAll(){
   map.fitBounds([[Math.min(...lngs), Math.min(...lats)],[Math.max(...lngs), Math.max(...lats)]], { padding:60, duration:0 });
 }
 
+/* Revisi 16 Juni 2026 — Musik latar */
+$('optMusic').onchange = e => { $('musicBox').style.display = e.target.checked ? '' : 'none'; setupMusicSrc(); };
+$('musicFile').addEventListener('change', setupMusicSrc);
+function setupMusicSrc(){
+  const a = $('musicAudio');
+  const f = $('musicFile').files[0];
+  if (f){ a.src = URL.createObjectURL(f); }
+  else if (!a.src){
+    // Default: instrumental upbeat dari Pixabay (lisensi gratis untuk komersial).
+    a.src = 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e3a8af6c4.mp3?filename=energetic-indie-rock-30sec-117279.mp3';
+    a.crossOrigin = 'anonymous';
+  }
+  a.loop = true; a.load();
+}
+
+/* HUD helpers */
+function showHud(on){ $('flyHud').classList.toggle('show', !!on && $('optHud').checked); }
+function setHud(distKm, tSec, totalKm){
+  $('hudDist').textContent  = distKm.toFixed(2)+' km';
+  $('hudTime').textContent  = tSec.toFixed(1)+' s';
+  const sp = tSec>0 ? (distKm/(tSec/3600)) : 0;
+  $('hudSpeed').textContent = sp.toFixed(1)+' km/j';
+  const pct = totalKm>0 ? Math.min(100, (distKm/totalKm)*100) : 0;
+  $('hudProg').textContent  = pct.toFixed(0)+'%';
+}
+function popupSay(html){
+  const p = $('flyPopup'); p.innerHTML = html; p.classList.add('show');
+  clearTimeout(popupSay._t); popupSay._t = setTimeout(()=>p.classList.remove('show'), 2200);
+}
+
 /* ============================================================
    Load sesi → ambil titik dari api_run.php
    ============================================================ */
 $('selSession').addEventListener('change', async (e) => {
   sessionId = +e.target.value || null;
   $('btnPreview').disabled = $('btnRecord').disabled = true;
+  clearMarkers();
   if (!sessionId) { $('recStat').textContent = 'Menunggu pilihan sesi…'; return; }
   $('recStat').textContent = 'Mengunduh titik rute…';
   try {
@@ -189,6 +315,7 @@ $('selSession').addEventListener('change', async (e) => {
     // Jika hanya 1 titik, duplikasi agar bbox/polyline tetap valid; flyover akan jadi statis di titik tsb.
     routePts = j.points.length === 1 ? [j.points[0], j.points[0]] : j.points;
     drawAll();
+    buildKmMarkers();
     $('btnPreview').disabled = $('btnRecord').disabled = false;
     $('recStat').textContent = 'Siap. '+j.points.length+' titik rute dimuat'+(j.points.length<5?' (sedikit titik — flyover tetap dibuat)':'')+'.';
   } catch (err) {
@@ -221,16 +348,44 @@ async function runFlyover({record=false}={}) {
   const bbox = [[Math.min(...lngs),Math.min(...lats)],[Math.max(...lngs),Math.max(...lats)]];
   map.fitBounds(bbox,{padding:80, duration:0, pitch:0, bearing:0});
 
+  // Revisi 16 Juni 2026 — Hitung total km utk HUD & ikon
+  let totalKm = 0;
+  for (let i=1;i<routePts.length;i++) totalKm += haversineKm(routePts[i-1], routePts[i]);
+
+  // Setup audio (musik latar) — mix ke stream rekaman jika aktif
+  const useMusic = $('optMusic').checked;
+  const audioEl = $('musicAudio');
+  let audioCtx=null, audioDest=null;
+  if (useMusic){
+    if (!audioEl.src) setupMusicSrc();
+    audioEl.currentTime = 0;
+    try { await audioEl.play(); } catch(_) {}
+  }
+
   let recorder, chunks=[];
   if (record) {
     const canvas = map.getCanvas();
-    const stream = canvas.captureStream(fps);
+    const vStream = canvas.captureStream(fps);
+    let stream = vStream;
+    if (useMusic){
+      try {
+        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        const src = audioCtx.createMediaElementSource(audioEl);
+        audioDest = audioCtx.createMediaStreamDestination();
+        src.connect(audioDest); src.connect(audioCtx.destination); // tetap kedengaran user
+        stream = new MediaStream([...vStream.getVideoTracks(), ...audioDest.stream.getAudioTracks()]);
+      } catch(e){ console.warn('Audio mix gagal:', e); }
+    }
     recorder = new MediaRecorder(stream, { mimeType:'video/webm;codecs=vp9', videoBitsPerSecond: 6_000_000 });
     recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
     recorder.start();
+    $('flyRec').classList.add('show');
   }
 
+  showHud(true);
+  popupSay('<i class="bi bi-rocket-takeoff"></i> <b>Mulai!</b> Selamat menikmati flyover.');
   $('recStat').textContent = record ? 'Merekam…' : 'Preview…';
+  const tStart = performance.now();
 
   // Pre-roll intro 1.5 detik (bird-eye sweep)
   const introFrames = Math.round(1.5*fps);
@@ -243,6 +398,13 @@ async function runFlyover({record=false}={}) {
   // Kosongkan lintasan jika "draw trail" aktif
   if (drawTrail) map.getSource('rt').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: [] } });
   else            map.getSource('rt').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords } });
+
+  // Marker pelari (runner) yang ikut bergerak — opsional ikon
+  if ($('optIcons').checked){
+    if (runnerMarker) runnerMarker.remove();
+    runnerMarker = makeIcon('runner', '<i class="bi bi-person-walking"></i>', coords[0]);
+  }
+  let kmAnnounced = 0;
 
   // Fly along route
   for (let f=0; f<totalFrames; f++){
@@ -258,6 +420,13 @@ async function runFlyover({record=false}={}) {
       map.getSource('rt').setData({ type:'Feature',
         geometry:{ type:'LineString', coordinates: coords.slice(0, i0+1).concat([cur]) } });
     }
+    if (runnerMarker) runnerMarker.setLngLat(cur);
+    const distSoFar = totalKm * t;
+    setHud(distSoFar, (performance.now()-tStart)/1000, totalKm);
+    if (Math.floor(distSoFar) > kmAnnounced){
+      kmAnnounced = Math.floor(distSoFar);
+      popupSay('<i class="bi bi-flag-fill text-warning"></i> Melewati KM <b>'+kmAnnounced+'</b>');
+    }
     await new Promise(r=>requestAnimationFrame(r));
   }
 
@@ -271,10 +440,13 @@ async function runFlyover({record=false}={}) {
   }
   map.getSource('rt').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords } });
   map.fitBounds(bbox,{padding:80, duration:800, pitch:35});
+  popupSay('<i class="bi bi-trophy-fill text-warning"></i> <b>Finish!</b> '+totalKm.toFixed(2)+' km selesai.');
 
   if (record && recorder) {
     recorder.stop();
     await new Promise(r => recorder.onstop = r);
+    $('flyRec').classList.remove('show');
+    if (useMusic){ try{ audioEl.pause(); }catch(_){ } if (audioCtx) try{audioCtx.close();}catch(_){ } }
     const blob = new Blob(chunks, { type:'video/webm' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -282,8 +454,10 @@ async function runFlyover({record=false}={}) {
     document.body.appendChild(a); a.click(); a.remove();
     $('recStat').innerHTML = 'Selesai. Video diunduh ('+(blob.size/1024/1024).toFixed(2)+' MB).';
   } else {
+    if (useMusic){ try{ audioEl.pause(); }catch(_){ } }
     $('recStat').textContent = 'Preview selesai.';
   }
+  setTimeout(()=>showHud(false), 1800);
 }
 
 $('btnPreview').onclick = ()=> runFlyover({record:false});

@@ -30,6 +30,26 @@ include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur / Rute Realtime</h4>
 
+<!-- Revisi 16 Juni 2026 — Banner promosi video flyover yg sudah diperkaya (HUD popup, musik, ikon start/finish/km) -->
+<a href="/flyover.php" class="text-decoration-none">
+  <div class="card border-0 shadow-sm mb-3" style="background:linear-gradient(135deg,#0f172a,#1e293b);color:#f8fafc;border-radius:14px;overflow:hidden">
+    <div class="card-body d-flex flex-wrap align-items-center gap-3 py-3 px-3">
+      <div style="font-size:2.4rem;line-height:1"><i class="bi bi-camera-reels-fill text-warning"></i></div>
+      <div class="flex-grow-1">
+        <div class="fw-bold" style="letter-spacing:.3px">Video Flyover 3D — Sekarang dengan Popup Detail, Musik &amp; Ikon!</div>
+        <div class="small opacity-75">
+          <i class="bi bi-broadcast text-success"></i> HUD statistik live ·
+          <i class="bi bi-music-note-beamed text-info"></i> musik latar ikut terekam ·
+          <i class="bi bi-flag-fill text-danger"></i> ikon Start/Finish ·
+          <i class="bi bi-1-circle text-warning"></i> marker per kilometer ·
+          <i class="bi bi-person-walking"></i> animasi runner.
+        </div>
+      </div>
+      <span class="btn btn-warning btn-sm fw-semibold"><i class="bi bi-play-fill"></i> Buka Flyover</span>
+    </div>
+  </div>
+</a>
+
 <div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
   <div class="card-body py-3">
     <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Tracking Jalur / Rute Realtime</h6>
@@ -1189,7 +1209,7 @@ document.addEventListener('click', function(ev){
       btnAIRoute.disabled = true;
       try {
         var fd = new FormData();
-        fd.append('csrf', csrf);
+        fd.append('csrf', CSRF); // Revisi 16 Juni 2026 — perbaiki "csrf is not defined" (scope IIFE)
         fd.append('_action', 'ai_route_from_image');
         fd.append('hint', hint);
         fd.append('image', f);
@@ -1228,7 +1248,7 @@ document.addEventListener('click', function(ev){
       btnAIPrompt.disabled = true;
       try {
         var fd = new FormData();
-        fd.append('csrf', csrf);
+        fd.append('csrf', CSRF); // Revisi 16 Juni 2026 — perbaiki "csrf is not defined" (scope IIFE)
         fd.append('task', 'ai_route_prompt');
         fd.append('prompt', prompt);
         var r = await fetch('/api_ai.php', { method:'POST', body: fd, credentials:'same-origin' });

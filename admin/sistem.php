@@ -49,10 +49,16 @@ function dir_size($dir, $maxFiles=20000){
 
 /* ---------- DATABASE ---------- */
 $dbSize = db_one("SELECT pg_database_size(current_database()) AS sz, current_database() AS name");
-$tables = db_all("SELECT relname AS name, pg_total_relation_size(c.oid) AS sz, n_live_tup AS rows
-                  FROM pg_class c LEFT JOIN pg_stat_user_tables s ON s.relid=c.oid
-                  WHERE relkind='r' AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname='public')
-                  ORDER BY pg_total_relation_size(c.oid) DESC LIMIT 12");
+// Revisi 16 Juni 2026 — qualifikasi kolom `relname` (ada di pg_class & pg_stat_user_tables) supaya tidak ambigu.
+$tables = db_all("SELECT c.relname AS name,
+                         pg_total_relation_size(c.oid) AS sz,
+                         COALESCE(s.n_live_tup, 0) AS rows
+                  FROM pg_class c
+                  LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
+                  WHERE c.relkind = 'r'
+                    AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname='public')
+                  ORDER BY pg_total_relation_size(c.oid) DESC
+                  LIMIT 12");
 $conn = db_one("SELECT count(*) AS n FROM pg_stat_activity");
 $pgVer = db_one("SHOW server_version")['server_version'] ?? '?';
 
