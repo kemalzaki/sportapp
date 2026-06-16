@@ -203,7 +203,8 @@ $('dur').oninput   = e => $('durOut').textContent   = e.target.value;
 $('pitch').oninput = e => { $('pitchOut').textContent = e.target.value+'°'; if(map) map.setPitch(+e.target.value); };
 
 let map, routePts = [], sessionId = null;
-let kmMarkers = [], startMarker = null, finishMarker = null, runnerMarker = null;
+let kmMarkers = [], kmMarkerPoints = [], startMarker = null, finishMarker = null, runnerMarker = null;
+let runnerLngLat = null, activePopup = { text:'', kind:'info', until:0 };
 
 /* Revisi 16 Juni 2026 — util ikon DOM untuk start/finish/km/runner */
 function makeIcon(cls, html, lngLat){
@@ -213,10 +214,11 @@ function makeIcon(cls, html, lngLat){
   return new maplibregl.Marker({element:el, anchor:'center'}).setLngLat(lngLat).addTo(map);
 }
 function clearMarkers(){
-  kmMarkers.forEach(m=>m.remove()); kmMarkers=[];
+  kmMarkers.forEach(m=>m.remove()); kmMarkers=[]; kmMarkerPoints=[];
   if (startMarker){startMarker.remove();startMarker=null;}
   if (finishMarker){finishMarker.remove();finishMarker=null;}
   if (runnerMarker){runnerMarker.remove();runnerMarker=null;}
+  runnerLngLat = null;
 }
 function haversineKm(a,b){
   const R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
@@ -232,7 +234,9 @@ function buildKmMarkers(){
   for (let i=1;i<routePts.length;i++){
     cum += haversineKm(routePts[i-1], routePts[i]);
     while (cum >= nextKm){
-      kmMarkers.push(makeIcon('km', String(nextKm), [routePts[i][1], routePts[i][0]]));
+      const kmLngLat = [routePts[i][1], routePts[i][0]];
+      kmMarkerPoints.push({ n: nextKm, lngLat: kmLngLat });
+      kmMarkers.push(makeIcon('km', String(nextKm), kmLngLat));
       nextKm++;
     }
   }
@@ -294,7 +298,86 @@ function setHud(distKm, tSec, totalKm){
 }
 function popupSay(html){
   const p = $('flyPopup'); p.innerHTML = html; p.classList.add('show');
+  const plain = String(html).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+  const kind = /finish|trophy|selesai/i.test(plain) ? 'finish' : (/km/i.test(plain) ? 'km' : 'start');
+  activePopup = { text: plain, kind: kind, until: performance.now() + 2400 };
   clearTimeout(popupSay._t); popupSay._t = setTimeout(()=>p.classList.remove('show'), 2200);
+}
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function drawTextFit(ctx, text, x, y, maxWidth){
+  let t = String(text || '');
+  while (ctx.measureText(t).width > maxWidth && t.length > 3) t = t.slice(0, -2) + '…';
+  ctx.fillText(t, x, y);
+}
+function drawCircleIcon(ctx, x, y, r, bg, fg, label, sub){
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.lineWidth = Math.max(3, r*.14); ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.fillStyle = fg || '#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font = '700 '+Math.max(12, r*.78)+'px system-ui, sans-serif';
+  ctx.fillText(label, x, y + (sub ? -r*.12 : 0));
+  if (sub){ ctx.font = '700 '+Math.max(9, r*.36)+'px system-ui, sans-serif'; ctx.fillText(sub, x, y+r*.46); }
+  ctx.restore();
+}
+function drawFlyoverComposite(ctx, target, mapCanvas, o){
+  const w = target.width, h = target.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(mapCanvas, 0, 0, w, h);
+  const cssW = mapCanvas.clientWidth || w, cssH = mapCanvas.clientHeight || h;
+  const sx = w / cssW, sy = h / cssH;
+  const project = (lngLat) => { const p = map.project(lngLat); return [p.x*sx, p.y*sy]; };
+
+  if ($('optIcons').checked && routePts.length){
+    const start = [routePts[0][1], routePts[0][0]];
+    const finish = [routePts[routePts.length-1][1], routePts[routePts.length-1][0]];
+    let p = project(start); drawCircleIcon(ctx, p[0], p[1], 24*sx, '#10b981', '#fff', '⚑');
+    p = project(finish); drawCircleIcon(ctx, p[0], p[1], 24*sx, '#111827', '#fff', '🏁');
+    kmMarkerPoints.forEach(k => { const q = project(k.lngLat); drawCircleIcon(ctx, q[0], q[1], 18*sx, '#f59e0b', '#111827', String(k.n), 'KM'); });
+    if (runnerLngLat){ const r = project(runnerLngLat); drawCircleIcon(ctx, r[0], r[1], 28*sx, '#2563eb', '#fff', '🏃'); }
+  }
+
+  if ($('optHud').checked){
+    const boxW = Math.min(310*sx, w-28*sx), boxH = 142*sy, x = 18*sx, y = 18*sy;
+    ctx.save(); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=24; ctx.shadowOffsetY=8;
+    const g = ctx.createLinearGradient(x,y,x+boxW,y+boxH); g.addColorStop(0,'rgba(15,23,42,.92)'); g.addColorStop(1,'rgba(30,41,59,.82)');
+    ctx.fillStyle=g; rr(ctx,x,y,boxW,boxH,18*sx); ctx.fill(); ctx.shadowColor='transparent'; ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.stroke();
+    ctx.fillStyle='#fbbf24'; ctx.font='800 '+(16*sx)+'px system-ui, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('📡 LIVE FLYOVER', x+18*sx, y+28*sy);
+    ctx.font='600 '+(15*sx)+'px system-ui, sans-serif';
+    const dist = (o.distKm||0).toFixed(2)+' km';
+    const elapsed = (o.tSec||0).toFixed(1)+' s';
+    const speed = (o.tSec>0 ? ((o.distKm||0)/(o.tSec/3600)) : 0).toFixed(1)+' km/j';
+    const pct = (o.totalKm>0 ? Math.min(100, ((o.distKm||0)/o.totalKm)*100) : 0).toFixed(0)+'%';
+    const rows = [['📏 Jarak',dist],['⏱ Waktu',elapsed],['⚡ Kecepatan',speed],['🏁 Progres',pct]];
+    rows.forEach((row,i)=>{ const yy=y+(54+i*20)*sy; ctx.fillStyle='rgba(248,250,252,.72)'; ctx.fillText(row[0], x+18*sx, yy); ctx.fillStyle='#fff'; ctx.textAlign='right'; ctx.fillText(row[1], x+boxW-18*sx, yy); ctx.textAlign='left'; });
+    ctx.restore();
+  }
+
+  if (o.recording){
+    ctx.save(); const rw=92*sx, rh=34*sy, x=w-rw-18*sx, y=18*sy;
+    ctx.fillStyle='rgba(239,68,68,.95)'; rr(ctx,x,y,rw,rh,17*sx); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='800 '+(14*sx)+'px system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('● REC', x+rw/2, y+rh/2); ctx.restore();
+  }
+
+  if (activePopup.until > performance.now() && activePopup.text){
+    ctx.save();
+    const icon = activePopup.kind === 'finish' ? '🏆' : (activePopup.kind === 'km' ? '🚩' : '🚀');
+    ctx.font='700 '+(18*sx)+'px system-ui, sans-serif';
+    const text = icon+' '+activePopup.text;
+    const maxW = Math.min(w-60*sx, 520*sx);
+    const tw = Math.min(maxW, ctx.measureText(text).width + 34*sx);
+    const th = 46*sy, x=(w-tw)/2, y=h-th-24*sy;
+    ctx.shadowColor='rgba(0,0,0,.42)'; ctx.shadowBlur=18; ctx.shadowOffsetY=6;
+    ctx.fillStyle='rgba(17,24,39,.94)'; rr(ctx,x,y,tw,th,16*sx); ctx.fill();
+    ctx.shadowColor='transparent'; ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    drawTextFit(ctx, text, x+17*sx, y+th/2, tw-34*sx);
+    ctx.restore();
+  }
 }
 
 /* ============================================================
@@ -362,10 +445,15 @@ async function runFlyover({record=false}={}) {
     try { await audioEl.play(); } catch(_) {}
   }
 
-  let recorder, chunks=[];
+  let recorder, chunks=[], recCanvas=null, recCtx=null;
+  const mapCanvas = map.getCanvas();
   if (record) {
-    const canvas = map.getCanvas();
-    const vStream = canvas.captureStream(fps);
+    recCanvas = document.createElement('canvas');
+    recCanvas.width = mapCanvas.width;
+    recCanvas.height = mapCanvas.height;
+    recCtx = recCanvas.getContext('2d');
+    drawFlyoverComposite(recCtx, recCanvas, mapCanvas, {distKm:0,tSec:0,totalKm,recording:true});
+    const vStream = recCanvas.captureStream(fps);
     let stream = vStream;
     if (useMusic){
       try {
@@ -376,13 +464,15 @@ async function runFlyover({record=false}={}) {
         stream = new MediaStream([...vStream.getVideoTracks(), ...audioDest.stream.getAudioTracks()]);
       } catch(e){ console.warn('Audio mix gagal:', e); }
     }
-    recorder = new MediaRecorder(stream, { mimeType:'video/webm;codecs=vp9', videoBitsPerSecond: 6_000_000 });
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+    recorder = new MediaRecorder(stream, { mimeType:mime, videoBitsPerSecond: 6_000_000 });
     recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
     recorder.start();
     $('flyRec').classList.add('show');
   }
 
   showHud(true);
+  setHud(0, 0, totalKm);
   popupSay('<i class="bi bi-rocket-takeoff"></i> <b>Mulai!</b> Selamat menikmati flyover.');
   $('recStat').textContent = record ? 'Merekam…' : 'Preview…';
   const tStart = performance.now();
@@ -393,6 +483,7 @@ async function runFlyover({record=false}={}) {
     const t = i/introFrames;
     map.jumpTo({ pitch: lerp(0, +$('pitch').value, t), bearing: lerp(0, 25, t) });
     await new Promise(r=>requestAnimationFrame(r));
+    if (recCtx) drawFlyoverComposite(recCtx, recCanvas, mapCanvas, {distKm:0,tSec:(performance.now()-tStart)/1000,totalKm,recording:record});
   }
 
   // Kosongkan lintasan jika "draw trail" aktif
@@ -420,14 +511,17 @@ async function runFlyover({record=false}={}) {
       map.getSource('rt').setData({ type:'Feature',
         geometry:{ type:'LineString', coordinates: coords.slice(0, i0+1).concat([cur]) } });
     }
+    runnerLngLat = cur;
     if (runnerMarker) runnerMarker.setLngLat(cur);
     const distSoFar = totalKm * t;
-    setHud(distSoFar, (performance.now()-tStart)/1000, totalKm);
+    const elapsedSec = (performance.now()-tStart)/1000;
+    setHud(distSoFar, elapsedSec, totalKm);
     if (Math.floor(distSoFar) > kmAnnounced){
       kmAnnounced = Math.floor(distSoFar);
       popupSay('<i class="bi bi-flag-fill text-warning"></i> Melewati KM <b>'+kmAnnounced+'</b>');
     }
     await new Promise(r=>requestAnimationFrame(r));
+    if (recCtx) drawFlyoverComposite(recCtx, recCanvas, mapCanvas, {distKm:distSoFar,tSec:elapsedSec,totalKm,recording:record});
   }
 
   // Outro: zoom out kembali lihat keseluruhan rute
@@ -437,14 +531,22 @@ async function runFlyover({record=false}={}) {
     const t = i/outroFrames;
     map.jumpTo({ pitch: lerp(+$('pitch').value, 35, t), zoom: lerp(startZoom, 13, t), bearing: lerp(map.getBearing(), 0, t) });
     await new Promise(r=>requestAnimationFrame(r));
+    if (recCtx) drawFlyoverComposite(recCtx, recCanvas, mapCanvas, {distKm:totalKm,tSec:(performance.now()-tStart)/1000,totalKm,recording:record});
   }
   map.getSource('rt').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords } });
   map.fitBounds(bbox,{padding:80, duration:800, pitch:35});
   popupSay('<i class="bi bi-trophy-fill text-warning"></i> <b>Finish!</b> '+totalKm.toFixed(2)+' km selesai.');
+  if (recCtx) {
+    for (let i=0;i<Math.round(1.1*fps);i++){
+      await new Promise(r=>requestAnimationFrame(r));
+      drawFlyoverComposite(recCtx, recCanvas, mapCanvas, {distKm:totalKm,tSec:(performance.now()-tStart)/1000,totalKm,recording:record});
+    }
+  }
 
   if (record && recorder) {
+    const stopped = new Promise(r => recorder.onstop = r);
     recorder.stop();
-    await new Promise(r => recorder.onstop = r);
+    await stopped;
     $('flyRec').classList.remove('show');
     if (useMusic){ try{ audioEl.pause(); }catch(_){ } if (audioCtx) try{audioCtx.close();}catch(_){ } }
     const blob = new Blob(chunks, { type:'video/webm' });
