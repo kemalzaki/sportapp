@@ -403,9 +403,14 @@ include __DIR__.'/includes/header.php';
               <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted" onclick="toggleComments(<?= (int)$a['id'] ?>)">
                 <i class="bi bi-chat"></i> <span class="lcs-comment-count"><?= (int)$a['comment_count'] ?></span>
               </button>
-              <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-success" onclick="shareAct(<?= (int)$a['id'] ?>,<?= json_encode($a['nama']) ?>,<?= json_encode($a['jenis']) ?>)">
+              <?php
+                // Revisi 17 Juni 2026 — Share WA direct anchor (samakan dengan tombol "Ingatkan")
+                $shareUrl = (isset($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'?'https://':'http://').$_SERVER['HTTP_HOST'].'/riwayat.php#act-'.(int)$a['id'];
+                $shareMsg = ($a['nama'] ?? 'Member').' baru saja olahraga '.($a['jenis'] ?? '').' 💪'."\nLihat aktivitasnya: ".$shareUrl;
+              ?>
+              <a href="https://wa.me/?text=<?= rawurlencode($shareMsg) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-link p-0 text-decoration-none text-success">
                 <i class="bi bi-whatsapp"></i> Share WA
-              </button>
+              </a>
             </div>
             <div class="lcs-comments mt-2" id="cmt-<?= (int)$a['id'] ?>" style="display:none">
               <div class="lcs-comment-list small"></div>

@@ -37,19 +37,26 @@ try {
 // === Helper AI (Revisi 16 Juni 2026) ===
 // Pipeline: Foto makanan → Gemini 2.5 Flash mengenali → Estimasi kalori → Masuk database.
 function ai_estimate_kalori($imagePath, $hint=''){
-    if (!is_file($imagePath)) return null;
+    @set_time_limit(90);
+    if (!is_file($imagePath)) return ['err'=>'file gambar tidak ditemukan'];
     $prompt = "Lihat FOTO MAKANAN ini. Sebutkan NAMA MAKANAN singkat (Bahasa Indonesia) dan PERKIRAAN TOTAL KALORI (kcal) untuk porsi yang terlihat. "
             . "Bila ada beberapa item, jumlahkan kalorinya. "
             . "Balas HANYA JSON: {\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat>\"}. "
             . ($hint ? "Petunjuk pengguna: $hint" : "");
     $g = gemini_vision($prompt, $imagePath,
             ['json'=>true,'temperature'=>0.2,'max_tokens'=>300]);
-    if (!$g['ok']) return null;
+    if (!$g['ok']) return ['err'=>'Gemini: '.$g['err']];
     $obj = gemini_extract_json($g['text']);
     if (is_array($obj) && isset($obj['kalori'])) {
         return ['nama'=>$obj['nama'] ?? '', 'kalori'=>(int)$obj['kalori'], 'rincian'=>$obj['rincian'] ?? ''];
     }
-    return null;
+    // Revisi 17 Juni 2026 — fallback regex bila JSON gagal
+    if (preg_match('/(\d{2,4})\s*(?:kkal|kcal|kal)/i', (string)$g['text'], $mm)) {
+        $nama = '';
+        if (preg_match('/"nama"\s*:\s*"([^"]{2,80})"/i', $g['text'], $nn)) $nama = $nn[1];
+        return ['nama'=>$nama, 'kalori'=>(int)$mm[1], 'rincian'=>trim(substr($g['text'],0,120))];
+    }
+    return ['err'=>'AI gagal mengurai JSON. Raw: '.substr((string)$g['text'],0,160)];
 }
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -81,12 +88,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 // AI estimate jika diminta atau kalori kosong
                 if (!empty($_POST['use_ai']) || $kal <= 0) {
                     $ai = ai_estimate_kalori($dst, $nama);
-                    if ($ai) {
+                    if (is_array($ai) && isset($ai['kalori'])) {
                         if ($kal <= 0) $kal = (int)$ai['kalori'];
                         if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
                         $aiUsed = true;
                     } else if (!empty($_POST['use_ai'])) {
-                        $_SESSION['flash_err'] = 'AI (Gemini) gagal menebak kalori. Input manual saja.';
+                        $_SESSION['flash_err'] = 'AI gagal menebak kalori. '.(is_array($ai) && !empty($ai['err']) ? $ai['err'] : 'Input manual saja.');
                     }
                 }
             }

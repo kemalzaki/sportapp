@@ -64,33 +64,44 @@ switch ($task) {
 
     /* ---------- AI Route dari prompt teks (run.php) ---------- */
     case 'ai_route_prompt': {
+        @set_time_limit(120);
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
         $sys = "Anda asisten perencana rute lari. Berdasarkan prompt pengguna (jarak, kota, preferensi), ".
-               "kembalikan urutan 6–14 nama tempat / landmark / nama jalan yang dapat dirangkai jadi rute lari sirkular. ".
+               "kembalikan urutan 6–10 nama tempat / landmark / nama jalan yang dapat dirangkai jadi rute lari sirkular. ".
                "Balas HANYA JSON: {\"places\":[\"Nama tempat 1, Kota\", ...], \"note\":\"<1 kalimat ringkas>\"} ".
                "Sertakan nama kota di tiap entri agar bisa di-geocode.";
         $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.5,'max_tokens'=>500]);
         if (!$r['ok']) { echo json_encode($r); exit; }
         $obj = gemini_extract_json($r['text']);
         $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-        if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak mengembalikan tempat']); exit; }
+        // fallback: pisah baris
+        if (count($places) < 2) {
+            foreach (preg_split('/\r?\n/', (string)$r['text']) as $ln) {
+                $ln = trim(preg_replace('/^[\-\*\d\.\)]+\s*/','', $ln));
+                if (strlen($ln) > 4 && strlen($ln) < 120) $places[] = $ln;
+            }
+        }
+        $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
+        if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak mengembalikan tempat. Raw: '.substr($r['text'],0,200)]); exit; }
         // Geocode via Nominatim
-        $coords = [];
+        $coords = []; $failures = [];
         foreach ($places as $place) {
             $q = trim((string)$place); if ($q==='') continue;
             $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='.urlencode($q);
             $ch = curl_init($url);
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
-                CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)']);
+            $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
+                CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'];
+            if (getenv('GEMINI_INSECURE_SSL') === '1') { $copt[CURLOPT_SSL_VERIFYPEER]=false; $copt[CURLOPT_SSL_VERIFYHOST]=0; }
+            curl_setopt_array($ch, $copt);
             $r2 = curl_exec($ch); curl_close($ch);
             $arr = json_decode($r2 ?: '[]', true);
             if (is_array($arr) && !empty($arr[0]['lat'])) {
                 $coords[] = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
-            }
-            usleep(1100*1000);
+            } else { $failures[] = $q; }
+            usleep(500*1000);
         }
-        if (count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'Geocoding < 2 titik']); exit; }
-        echo json_encode(['ok'=>true,'coords'=>$coords,'places'=>$places,'note'=>$obj['note'] ?? '']); exit;
+        if (count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ',$failures)]); exit; }
+        echo json_encode(['ok'=>true,'coords'=>$coords,'places'=>$places,'note'=>$obj['note'] ?? '','gagal_geocode'=>$failures]); exit;
     }
 
     /* ---------- Chat free-form ---------- */

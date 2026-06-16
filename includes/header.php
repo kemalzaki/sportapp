@@ -216,6 +216,7 @@ if ($u) {
           <a class="list-group-item list-group-item-action ps-4" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a>
           <a class="list-group-item list-group-item-action ps-4" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
           <a class="list-group-item list-group-item-action ps-4" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/tim.php"><i class="bi bi-people-fill"></i> Pembuatan Tim</a>
         </div>
 
         <?php /* Grup: Kalkulator (Revisi 13 Juni 2026 — sekarang dropdown seperti grup Kalori) */ ?>

@@ -93,6 +93,15 @@ include __DIR__.'/includes/header.php';
           <?php endforeach; ?>
         </select>
 
+        <!-- Revisi 17 Juni 2026 — Rute dari Upload Screenshot Strava -->
+        <div class="border rounded p-2 mb-2 bg-warning-subtle">
+          <label class="form-label small fw-bold mb-1"><i class="bi bi-image text-warning"></i> Atau: Rute dari Screenshot Strava</label>
+          <input type="file" id="stravaShot" class="form-control form-control-sm mb-1" accept="image/*">
+          <input type="text" id="stravaHint" class="form-control form-control-sm mb-1" placeholder="Petunjuk area (cth: Bandung Selatan)">
+          <button type="button" id="btnStravaAI" class="btn btn-sm btn-warning w-100"><i class="bi bi-magic"></i> Ekstrak Rute dari Gambar</button>
+          <div id="stravaStat" class="small text-muted mt-1"></div>
+        </div>
+
         <label class="form-label small mt-2">Durasi Video (detik)</label>
         <input type="range" id="dur" min="8" max="40" value="18" class="form-range">
         <div class="small text-muted text-end mb-2"><span id="durOut">18</span> detik</div>
@@ -286,14 +295,28 @@ function setupMusicSrc(){
   a.loop = true; a.load();
 }
 
-/* HUD helpers */
+/* HUD helpers — Revisi 17 Juni 2026: kecepatan memakai DURASI REAL aktivitas
+ * (jarak_m / durasi_dtk dari run_sessions), bukan waktu animasi.
+ */
+var SESSION_INFO = { jarak_m: 0, durasi_dtk: 0 };
+function realAvgSpeedKmh(){
+  if (!SESSION_INFO.durasi_dtk || SESSION_INFO.durasi_dtk <= 0) return 0;
+  return (SESSION_INFO.jarak_m/1000) / (SESSION_INFO.durasi_dtk/3600);
+}
 function showHud(on){ $('flyHud').classList.toggle('show', !!on && $('optHud').checked); }
 function setHud(distKm, tSec, totalKm){
   $('hudDist').textContent  = distKm.toFixed(2)+' km';
-  $('hudTime').textContent  = tSec.toFixed(1)+' s';
-  const sp = tSec>0 ? (distKm/(tSec/3600)) : 0;
+  // Tampilkan estimasi waktu aktivitas pada titik ini (proporsional progres),
+  // bukan waktu playback animasi.
+  var realDur = SESSION_INFO.durasi_dtk || 0;
+  var elapsedReal = totalKm>0 ? realDur*(distKm/totalKm) : 0;
+  $('hudTime').textContent  = elapsedReal>0
+      ? (Math.floor(elapsedReal/60)+'m '+Math.round(elapsedReal%60)+'s')
+      : tSec.toFixed(1)+' s';
+  var sp = realAvgSpeedKmh();
+  if (sp<=0) sp = (tSec>0 ? (distKm/(tSec/3600)) : 0); // fallback
   $('hudSpeed').textContent = sp.toFixed(1)+' km/j';
-  const pct = totalKm>0 ? Math.min(100, (distKm/totalKm)*100) : 0;
+  var pct = totalKm>0 ? Math.min(100, (distKm/totalKm)*100) : 0;
   $('hudProg').textContent  = pct.toFixed(0)+'%';
 }
 function popupSay(html){
@@ -349,8 +372,14 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     ctx.fillText('📡 LIVE FLYOVER', x+18*sx, y+28*sy);
     ctx.font='600 '+(15*sx)+'px system-ui, sans-serif';
     const dist = (o.distKm||0).toFixed(2)+' km';
-    const elapsed = (o.tSec||0).toFixed(1)+' s';
-    const speed = (o.tSec>0 ? ((o.distKm||0)/(o.tSec/3600)) : 0).toFixed(1)+' km/j';
+    const realDur = (SESSION_INFO.durasi_dtk||0);
+    const elapsedReal = (o.totalKm>0 ? realDur*((o.distKm||0)/o.totalKm) : 0);
+    const elapsed = elapsedReal>0
+      ? (Math.floor(elapsedReal/60)+'m '+Math.round(elapsedReal%60)+'s')
+      : (o.tSec||0).toFixed(1)+' s';
+    let sp = realAvgSpeedKmh();
+    if (sp<=0) sp = (o.tSec>0 ? ((o.distKm||0)/(o.tSec/3600)) : 0);
+    const speed = sp.toFixed(1)+' km/j';
     const pct = (o.totalKm>0 ? Math.min(100, ((o.distKm||0)/o.totalKm)*100) : 0).toFixed(0)+'%';
     const rows = [['📏 Jarak',dist],['⏱ Waktu',elapsed],['⚡ Kecepatan',speed],['🏁 Progres',pct]];
     rows.forEach((row,i)=>{ const yy=y+(54+i*20)*sy; ctx.fillStyle='rgba(248,250,252,.72)'; ctx.fillText(row[0], x+18*sx, yy); ctx.fillStyle='#fff'; ctx.textAlign='right'; ctx.fillText(row[1], x+boxW-18*sx, yy); ctx.textAlign='left'; });
@@ -394,13 +423,20 @@ $('selSession').addEventListener('change', async (e) => {
     if (!j.ok || !j.points || j.points.length < 1) {
       $('recStat').textContent = 'Sesi tidak memiliki titik GPS sama sekali — tidak dapat dibuat video.'; return;
     }
-    // Revisi 16 Juni 2026: hapus pembatasan minimum 5 titik. Semua titik bisa dibuat video.
-    // Jika hanya 1 titik, duplikasi agar bbox/polyline tetap valid; flyover akan jadi statis di titik tsb.
+    // Revisi 17 Juni 2026: simpan info durasi & jarak nyata sesi → dipakai utk HUD kecepatan
+    if (j.session) {
+      SESSION_INFO.jarak_m    = +j.session.jarak_m    || 0;
+      SESSION_INFO.durasi_dtk = +j.session.durasi_dtk || 0;
+    } else { SESSION_INFO = { jarak_m: 0, durasi_dtk: 0 }; }
     routePts = j.points.length === 1 ? [j.points[0], j.points[0]] : j.points;
     drawAll();
     buildKmMarkers();
     $('btnPreview').disabled = $('btnRecord').disabled = false;
-    $('recStat').textContent = 'Siap. '+j.points.length+' titik rute dimuat'+(j.points.length<5?' (sedikit titik — flyover tetap dibuat)':'')+'.';
+    var avg = realAvgSpeedKmh();
+    $('recStat').textContent = 'Siap. '+j.points.length+' titik · '
+      + (SESSION_INFO.jarak_m? (SESSION_INFO.jarak_m/1000).toFixed(2)+' km · ':'')
+      + (SESSION_INFO.durasi_dtk? Math.round(SESSION_INFO.durasi_dtk/60)+' menit · ':'')
+      + (avg>0? 'kecepatan rata-rata '+avg.toFixed(1)+' km/j':'');
   } catch (err) {
     $('recStat').textContent = 'Gagal memuat titik: '+err.message;
   }
@@ -567,6 +603,49 @@ $('btnRecord').onclick  = ()=> {
   if (!('MediaRecorder' in window)) { alert('Browser tidak mendukung MediaRecorder.'); return; }
   runFlyover({record:true});
 };
+
+/* ===== Revisi 17 Juni 2026 — Handler Upload Screenshot Strava → Rute ===== */
+(function(){
+  var btn = document.getElementById('btnStravaAI');
+  if (!btn) return;
+  btn.addEventListener('click', async function(){
+    var inp = document.getElementById('stravaShot');
+    var hintEl = document.getElementById('stravaHint');
+    var stat = document.getElementById('stravaStat');
+    var f = inp.files[0];
+    if (!f) { stat.textContent = 'Pilih gambar screenshot Strava dulu.'; return; }
+    var oh = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membaca rute…';
+    stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI menganalisa screenshot…';
+    try {
+      var fd = new FormData();
+      fd.append('csrf', '<?= csrf_token() ?>');
+      fd.append('_action', 'ai_route_from_image');
+      fd.append('hint', (hintEl.value||'').trim());
+      fd.append('image', f);
+      var r = await fetch('/api_run.php', { method:'POST', body: fd, credentials:'same-origin' });
+      var d = await r.json();
+      if (!d.ok) { stat.textContent = 'Gagal: '+(d.err||'?'); return; }
+      if (!d.coords || d.coords.length < 2) { stat.textContent = 'Rute kurang dari 2 titik.'; return; }
+      // Pakai sebagai routePts untuk flyover
+      routePts = d.coords;
+      SESSION_INFO = { jarak_m: 0, durasi_dtk: 0 };
+      drawAll(); buildKmMarkers();
+      document.getElementById('btnPreview').disabled = false;
+      document.getElementById('btnRecord').disabled = false;
+      // hitung total km untuk info
+      var km = 0;
+      for (var i=1;i<d.coords.length;i++){
+        var a=d.coords[i-1], b=d.coords[i], R=6371;
+        var dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
+        var s=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+        km += 2*R*Math.asin(Math.sqrt(s));
+      }
+      stat.innerHTML = 'Berhasil! '+d.coords.length+' titik · ~'+km.toFixed(2)+' km dari screenshot.'+(d.note?'<br><em>'+d.note+'</em>':'');
+    } catch(e){ stat.textContent = 'Error: '+e.message; }
+    btn.disabled = false; btn.innerHTML = oh;
+  });
+})();
 </script>
 
 <?php include __DIR__.'/includes/bottom_nav.php'; include __DIR__.'/includes/footer.php'; ?>

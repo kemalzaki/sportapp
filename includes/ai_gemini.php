@@ -163,20 +163,36 @@ function _gemini_call(array $parts, array $opts = []) {
     while ($attempt < $maxAttempt) {
         $attempt++;
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        $curlOpts = [
             CURLOPT_POST           => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 60,
             CURLOPT_CONNECTTIMEOUT => 15,
             CURLOPT_HTTPHEADER     => $headers,
             CURLOPT_POSTFIELDS     => $postBody,
-        ]);
+        ];
+        // Revisi 17 Juni 2026 — fallback SSL utk dev lokal (Windows/XAMPP)
+        // tanpa cacert.pem: setel GEMINI_INSECURE_SSL=1 di env.local.php.
+        if (getenv('GEMINI_INSECURE_SSL') === '1') {
+            $curlOpts[CURLOPT_SSL_VERIFYPEER] = false;
+            $curlOpts[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+        curl_setopt_array($ch, $curlOpts);
         $resp = curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $cerr = curl_error($ch);
         curl_close($ch);
 
         $transient = ($resp === false) || ($code >= 500 && $code < 600);
+        // Revisi 17 Juni 2026 — auto retry tanpa SSL verify jika error SSL
+        if ($resp === false && stripos($cerr, 'SSL') !== false && $attempt === 1) {
+            $curlOpts[CURLOPT_SSL_VERIFYPEER] = false;
+            $curlOpts[CURLOPT_SSL_VERIFYHOST] = 0;
+            $ch = curl_init($url); curl_setopt_array($ch, $curlOpts);
+            $resp = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $cerr = curl_error($ch); curl_close($ch);
+            $transient = ($resp === false) || ($code >= 500 && $code < 600);
+        }
         if (!$transient) break;
         if ($attempt < $maxAttempt) { usleep(400000); /* 0.4s backoff */ }
     }

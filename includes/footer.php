@@ -208,13 +208,30 @@ document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto()
     } catch(e){ return; }
     show('Memuat halaman…');
   }, true);
-  // Form submit (CRUD) → preloader navigasi
+  // Revisi 17 Juni 2026 — Form submit: TIDAK menampilkan preloader halaman.
+  // Hanya tombol submit yang dijadikan loading (spinner kecil di tombol).
+  // Preloader fullscreen hanya tampil saat berpindah halaman (klik link / beforeunload).
   document.addEventListener('submit', function(ev){
     var f = ev.target;
     if (!(f instanceof HTMLFormElement)) return;
-    if (f.hasAttribute('data-ajax')) return; // AJAX punya mini-loader sendiri
     if (ev.defaultPrevented) return;
-    show('Mengirim data…');
+    // Aktifkan loading di tiap tombol submit dalam form ini
+    var btns = f.querySelectorAll('button[type=submit], button:not([type]), input[type=submit]');
+    btns.forEach(function(b){
+      if (b.disabled) return;
+      b.disabled = true;
+      if (b.tagName === 'BUTTON') {
+        if (!b.dataset.origHtml) b.dataset.origHtml = b.innerHTML;
+        b.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + (b.dataset.loadingText || 'Mengirim…');
+      }
+    });
+    // Pulihkan tombol bila navigasi tidak benar-benar terjadi (mis. AJAX response)
+    setTimeout(function(){
+      btns.forEach(function(b){
+        if (b.dataset.origHtml) { b.innerHTML = b.dataset.origHtml; delete b.dataset.origHtml; }
+        b.disabled = false;
+      });
+    }, 8000);
   }, true);
   window.addEventListener('beforeunload', function(){ show('Memuat halaman…'); });
   window.addEventListener('pageshow', finish);

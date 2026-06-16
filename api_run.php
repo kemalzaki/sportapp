@@ -98,17 +98,14 @@ $a = $_POST['_action'] ?? '';
  * Mengembalikan { ok, coords:[[lat,lng],...], note }.
  */
 if ($a === 'ai_route_from_image') {
+    @set_time_limit(120); // Revisi 17 Juni 2026 — proses bisa 30-60dtk (Gemini + Nominatim)
     rate_limit_or_die('ai_route:'.$uid, 5, 600);
     if (empty($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) {
         echo json_encode(['ok'=>false,'err'=>'gambar tidak ada']); exit;
     }
     $hint = trim((string)($_POST['hint'] ?? ''));
-    /* === Revisi 16 Juni 2026 — Pipeline baru ===
-     * Screenshot peta → Gemini 2.5 Flash Vision → Identifikasi landmark
-     * → Geocoding OSM (Nominatim) → Koordinat rute
-     */
-    $prompt = "Anda menerima SCREENSHOT PETA yang menampilkan sebuah RUTE (lari/jalan/sepeda). "
-            . "Identifikasi 5-12 LANDMARK / nama jalan / persimpangan / titik penting secara BERURUTAN sepanjang rute. "
+    $prompt = "Anda menerima SCREENSHOT PETA / STRAVA yang menampilkan sebuah RUTE (lari/jalan/sepeda). "
+            . "Identifikasi 5-10 LANDMARK / nama jalan / persimpangan / titik penting secara BERURUTAN sepanjang rute. "
             . "Sertakan area kota/kabupaten supaya tidak ambigu. "
             . "Balas HANYA JSON valid: {\"places\":[\"Nama lengkap + Kota\", ...], \"note\":\"<1 kalimat singkat>\"}. "
             . ($hint!=='' ? "Petunjuk area dari pengguna: $hint" : "");
@@ -117,24 +114,39 @@ if ($a === 'ai_route_from_image') {
     if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err']]); exit; }
     $obj = gemini_extract_json($g['text']);
     $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-    if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan landmark']); exit; }
-    // Geocoding OSM (Nominatim)
-    $coords = [];
+    // Revisi 17 Juni 2026 — fallback parsing: pisah baris kalau JSON gagal
+    if (count($places) < 2) {
+        $lines = preg_split('/\r?\n/', (string)$g['text']);
+        foreach ($lines as $ln) {
+            $ln = trim(preg_replace('/^[\-\*\d\.\)]+\s*/','', $ln));
+            if (strlen($ln) > 4 && strlen($ln) < 120 && substr_count($ln, ' ') < 12) $places[] = $ln;
+        }
+    }
+    $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
+    if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan landmark. Raw: '.substr($g['text'],0,200)]); exit; }
+    // Geocoding OSM (Nominatim) — paralel sequential, sleep 500ms
+    $coords = []; $failures = [];
     foreach ($places as $place) {
         $q = trim((string)$place); if ($q==='') continue;
         $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='.urlencode($q);
         $ch2 = curl_init($url);
-        curl_setopt_array($ch2, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
-            CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)']);
+        $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
+            CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'];
+        if (getenv('GEMINI_INSECURE_SSL') === '1') { $copt[CURLOPT_SSL_VERIFYPEER]=false; $copt[CURLOPT_SSL_VERIFYHOST]=0; }
+        curl_setopt_array($ch2, $copt);
         $r2 = curl_exec($ch2); curl_close($ch2);
         $arr = json_decode($r2 ?: '[]', true);
         if (is_array($arr) && !empty($arr[0]['lat'])) {
             $coords[] = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
+        } else {
+            $failures[] = $q;
         }
-        usleep(1100*1000); // hormati rate-limit Nominatim 1 req/dtk
+        usleep(500*1000); // 0.5s — Nominatim cukup toleran utk <2req/s
     }
-    if (count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'Geocoding kurang dari 2 titik']); exit; }
-    echo json_encode(['ok'=>true, 'coords'=>$coords, 'places'=>$places, 'note'=>$obj['note'] ?? '']);
+    if (count($coords) < 2) {
+        echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ', $failures)]); exit;
+    }
+    echo json_encode(['ok'=>true, 'coords'=>$coords, 'places'=>$places, 'note'=>$obj['note'] ?? '', 'gagal_geocode'=>$failures]);
     exit;
 }
 
