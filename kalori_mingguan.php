@@ -31,20 +31,27 @@ try {
         catatan       TEXT,
         created_at    TIMESTAMP NOT NULL DEFAULT now()
     )");
+    // Revisi 17 Juni 2026 Part J — kolom file_id untuk hapus dari ImageKit
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS foto_file_id TEXT");
     db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC)");
 } catch (Throwable $e) {}
 
-// === Helper AI (Revisi 17 Juni 2026) ===
-// Pipeline: Foto makanan → Gemini 2.5 Flash mengenali → Estimasi kalori → Masuk database.
-function ai_estimate_kalori($imagePath, $hint=''){
+// === Helper AI (Revisi 17 Juni 2026 Part J) ===
+// Pipeline: Foto + nama teks → Gemini 2.5 Flash mengenali → Estimasi kalori → DB.
+// AI membaca KEDUA input (nama makanan yang diketik user + gambar) untuk akurasi maksimal.
+function ai_estimate_kalori($imagePath, $namaTeks=''){
     @set_time_limit(90);
     if (!is_file($imagePath)) return ['err'=>'file gambar tidak ditemukan'];
-    $prompt = "Lihat FOTO MAKANAN ini. Sebutkan NAMA MAKANAN singkat (Bahasa Indonesia) dan PERKIRAAN TOTAL KALORI (kcal, INTEGER tanpa pemisah ribuan) untuk porsi yang terlihat. "
-            . "Bila ada beberapa item, jumlahkan kalorinya. "
+    $hintTxt = trim((string)$namaTeks);
+    $prompt = "Anda adalah ahli gizi. Anda menerima DUA input: "
+            . "(1) FOTO MAKANAN, dan "
+            . "(2) TEKS NAMA MAKANAN yang diketik pengguna: \""
+            . ($hintTxt !== '' ? $hintTxt : '(tidak diisi)') . "\". "
+            . "Tugas: BACA KEDUANYA. Jika teks nama diisi, gunakan sebagai petunjuk utama dan verifikasi dengan foto. "
+            . "Jika teks nama kosong, tebak dari foto saja. Jika foto dan teks berbeda, prioritaskan foto namun sebut keduanya di 'rincian'. "
+            . "Hitung PERKIRAAN TOTAL KALORI (kcal, INTEGER) untuk porsi yang terlihat. Jumlahkan bila ada beberapa item. "
             . "Balas HANYA JSON murni TANPA fence ```json``` dan TANPA kalimat pengantar: "
-            . "{\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat singkat>\"}. "
-            . ($hint ? "Petunjuk pengguna: $hint" : "");
-    // Revisi 17 Juni 2026 — naikkan max_tokens (sebelumnya 300 → sering kepotong di fence ```)
+            . "{\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat singkat>\"}.";
     $g = gemini_vision($prompt, $imagePath,
             ['json'=>true,'temperature'=>0.2,'max_tokens'=>1024]);
     if (!$g['ok']) return ['err'=>'Gemini: '.$g['err']];
@@ -52,7 +59,7 @@ function ai_estimate_kalori($imagePath, $hint=''){
     if (is_array($obj) && isset($obj['kalori'])) {
         return ['nama'=>$obj['nama'] ?? '', 'kalori'=>(int)$obj['kalori'], 'rincian'=>$obj['rincian'] ?? ''];
     }
-    // Revisi 17 Juni 2026 — fallback regex bila JSON gagal (tangkap "kalori": 123 ATAU 123 kkal)
+    // Fallback regex bila JSON gagal
     $raw = (string)$g['text'];
     $nama = ''; $kal = 0;
     if (preg_match('/"nama"\s*:\s*"([^"]{2,80})"/i', $raw, $nn)) $nama = $nn[1];
@@ -76,28 +83,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $nama = trim($_POST['nama_makanan'] ?? '');
         $kal  = (int)($_POST['kalori'] ?? 0);
         $cat  = trim($_POST['catatan'] ?? '');
-        $foto = null; $aiUsed = false;
+        $foto = null; $fotoFileId = null; $aiUsed = false;
 
-        // Handle upload foto
+        // Handle upload foto — Revisi 17 Juni 2026 Part J: upload ke ImageKit
+        // (sama seperti upload.php). File lokal sementara hanya dipakai untuk AI lalu dihapus.
         if (!empty($_FILES['foto']['tmp_name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
-            $dir = __DIR__.'/uploads/kalori';
-            if (!is_dir($dir)) @mkdir($dir, 0775, true);
             $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION) ?: 'jpg');
             if (!in_array($ext, ['jpg','jpeg','png','webp'])) $ext='jpg';
-            $fn = 'k_'.$uid.'_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.'.$ext;
-            $dst = $dir.'/'.$fn;
-            if (move_uploaded_file($_FILES['foto']['tmp_name'], $dst)) {
-                $foto = '/uploads/kalori/'.$fn;
-                // AI estimate jika diminta atau kalori kosong
+            $tmpDst = sys_get_temp_dir().'/k_'.$uid.'_'.bin2hex(random_bytes(4)).'.'.$ext;
+            if (move_uploaded_file($_FILES['foto']['tmp_name'], $tmpDst)) {
+                // AI estimate dulu (perlu file lokal)
                 if (!empty($_POST['use_ai']) || $kal <= 0) {
-                    $ai = ai_estimate_kalori($dst, $nama);
+                    $ai = ai_estimate_kalori($tmpDst, $nama);
                     if (is_array($ai) && isset($ai['kalori'])) {
                         if ($kal <= 0) $kal = (int)$ai['kalori'];
                         if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
                         $aiUsed = true;
                     } else if (!empty($_POST['use_ai'])) {
                         $errMsg = (is_array($ai) && !empty($ai['err'])) ? $ai['err'] : 'Input manual saja.';
-                        // Revisi 17 Juni 2026 Part I — pesan ramah saat quota Gemini habis
                         if (stripos($errMsg,'quota')!==false || stripos($errMsg,'exceeded')!==false || stripos($errMsg,'rate limit')!==false) {
                             $errMsg = 'Kuota AI Gemini hari ini sudah habis (free tier 20 req/menit). '
                                     . 'Solusi: (a) tunggu ~1 menit lalu coba lagi, atau (b) tambahkan beberapa API key di env '
@@ -107,15 +110,41 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         $_SESSION['flash_err'] = 'AI gagal menebak kalori. '.$errMsg;
                     }
                 }
+                // Upload ke ImageKit
+                try {
+                    require_once __DIR__.'/config/imagekit.php';
+                    global $imageKit;
+                    $safeNama = preg_replace('/[^a-z0-9]/i','_', $nama ?: 'makanan');
+                    $fileName = 'kalori-'.$uid.'-'.$tgl.'-'.$safeNama.'-'.time().'.'.$ext;
+                    $up = $imageKit->uploadFile([
+                        'file'     => base64_encode(file_get_contents($tmpDst)),
+                        'fileName' => $fileName,
+                        'folder'   => '/sportapp/kalori/'.date('F_Y', strtotime($tgl))
+                    ]);
+                    if (!$up->error) {
+                        $foto       = $up->result->url;
+                        $fotoFileId = $up->result->fileId;
+                    } else {
+                        $_SESSION['flash_err'] = ($_SESSION['flash_err'] ?? '') . ' Gagal upload foto ke ImageKit.';
+                    }
+                } catch (Throwable $e) {
+                    $_SESSION['flash_err'] = ($_SESSION['flash_err'] ?? '') . ' ImageKit error: '.$e->getMessage();
+                }
+                @unlink($tmpDst);
             }
         }
         if ($nama === '') $nama = 'Tanpa nama';
         if ($kal < 0) $kal = 0;
-        db_exec("INSERT INTO kalori_makanan_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,ai_estimasi,catatan)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-            [$uid,$tgl,$jam,$nama,$kal,$foto,$aiUsed?'t':'f',$cat]);
+        db_exec("INSERT INTO kalori_makanan_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,foto_file_id,ai_estimasi,catatan)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+            [$uid,$tgl,$jam,$nama,$kal,$foto,$fotoFileId,$aiUsed?'t':'f',$cat]);
         if (!isset($_SESSION['flash_err'])) $_SESSION['flash_ok'] = "Makanan ditambahkan ($kal kkal)".($aiUsed?' [AI]':'').".";
     } elseif ($a==='delete') {
+        // Hapus juga dari ImageKit jika ada file_id
+        $row = db_one("SELECT foto_file_id FROM kalori_makanan_log WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
+        if ($row && !empty($row['foto_file_id'])) {
+            try { require_once __DIR__.'/config/imagekit.php'; global $imageKit; $imageKit->deleteFile($row['foto_file_id']); } catch (Throwable $e) {}
+        }
         db_exec("DELETE FROM kalori_makanan_log WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
     } elseif ($a==='edit') {
         // Revisi 13 Juni 2026 — CRUD Riwayat Minggu ini
@@ -268,7 +297,15 @@ include __DIR__.'/includes/header.php';
         <tr>
           <td><?= htmlspecialchars($r['tanggal']) ?></td>
           <td><?= htmlspecialchars(substr($r['waktu'],0,5)) ?></td>
-          <td><?php if(!empty($r['foto_url'])): ?><img src="<?= htmlspecialchars($r['foto_url']) ?>" style="width:50px;height:50px;object-fit:cover;border-radius:6px"><?php endif; ?></td>
+          <td><?php if(!empty($r['foto_url'])): ?>
+            <img src="<?= htmlspecialchars($r['foto_url']) ?>"
+                 class="km-foto-thumb"
+                 data-full="<?= htmlspecialchars($r['foto_url']) ?>"
+                 data-nama="<?= htmlspecialchars($r['nama_makanan']) ?>"
+                 alt="Foto <?= htmlspecialchars($r['nama_makanan']) ?>"
+                 style="width:50px;height:50px;object-fit:cover;border-radius:6px;cursor:zoom-in"
+                 title="Klik untuk perbesar">
+          <?php endif; ?></td>
           <td><?= htmlspecialchars($r['nama_makanan']) ?>
             <?php if($r['ai_estimasi']==='t'||$r['ai_estimasi']===true||$r['ai_estimasi']==='1'): ?><span class="badge bg-success-subtle text-success ms-1">AI</span><?php endif; ?>
           </td>
@@ -342,5 +379,36 @@ new Chart(document.getElementById('weekChart'), {
   },
   options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}} }
 });
+</script>
+
+<!-- Revisi 17 Juni 2026 Part J — Modal Zoom Foto Makanan -->
+<div class="modal fade" id="zoomFotoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-zoom-in"></i> <span id="zoomFotoTitle">Foto Makanan</span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-2" style="background:#0f172a">
+        <img id="zoomFotoImg" src="" alt="" style="max-width:100%;max-height:80vh;border-radius:8px">
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var modalEl = document.getElementById('zoomFotoModal');
+  if (!modalEl) return;
+  var modal = new bootstrap.Modal(modalEl);
+  var imgEl = document.getElementById('zoomFotoImg');
+  var ttlEl = document.getElementById('zoomFotoTitle');
+  document.querySelectorAll('.km-foto-thumb').forEach(function(t){
+    t.addEventListener('click', function(){
+      imgEl.src = this.dataset.full || this.src;
+      ttlEl.textContent = this.dataset.nama || 'Foto Makanan';
+      modal.show();
+    });
+  });
+})();
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

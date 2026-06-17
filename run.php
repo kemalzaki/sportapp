@@ -1379,21 +1379,44 @@ document.addEventListener('click', function(ev){
     }
   });
 
-  // Submit modal edit rute
+  // Submit modal edit rute — Revisi 17 Juni 2026 Part J
+  // Fix: pakai handler robust + tombol fallback agar "Simpan Perubahan" pasti tersimpan.
+  async function submitRouteEdit(){
+    var btn = document.querySelector('#routeEditForm button[type=submit]');
+    var orig = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan…'; }
+    try {
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('_action', 'route_update');
+      fd.append('id',           document.getElementById('reId').value);
+      fd.append('nama',         document.getElementById('reNama').value);
+      fd.append('elevasi_pref', document.getElementById('reElev').value);
+      fd.append('surface_pref', document.getElementById('reSurf').value);
+      fd.append('is_public',    document.getElementById('rePub').checked ? '1':'0');
+      var r = await fetch('/api_run.php', { method:'POST', body: fd, credentials:'same-origin' });
+      var txt = await r.text();
+      var d; try { d = JSON.parse(txt); } catch(e){ throw new Error('Respon bukan JSON: '+txt.substring(0,200)); }
+      if (d.ok) { location.reload(); return; }
+      throw new Error(d.err || 'Server menolak update.');
+    } catch (err) {
+      alert('Gagal update rute: ' + (err && err.message ? err.message : err));
+      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+    }
+  }
   var feForm = document.getElementById('routeEditForm');
-  if (feForm) feForm.addEventListener('submit', async function(e){
-    e.preventDefault();
-    var fd = new FormData();
-    fd.append('csrf', CSRF);
-    fd.append('_action','route_update');
-    fd.append('id',           document.getElementById('reId').value);
-    fd.append('nama',         document.getElementById('reNama').value);
-    fd.append('elevasi_pref', document.getElementById('reElev').value);
-    fd.append('surface_pref', document.getElementById('reSurf').value);
-    fd.append('is_public',    document.getElementById('rePub').checked ? '1':'0');
-    var r = await fetch('/api_run.php',{method:'POST',body:fd}); var d = await r.json();
-    if (d.ok) location.reload(); else alert('Gagal update: '+(d.err||''));
-  });
+  if (feForm) {
+    feForm.addEventListener('submit', function(e){ e.preventDefault(); e.stopPropagation(); submitRouteEdit(); });
+    // Fallback: kalau event submit terhalang sesuatu, tombol langsung memanggil handler.
+    var feBtn = feForm.querySelector('button[type=submit]');
+    if (feBtn) feBtn.addEventListener('click', function(e){
+      // Jika form valid, biarkan submit native fire (akan ditangkap di atas);
+      // Jika tidak valid (mis. nama kosong), browser akan munculkan tooltip native.
+      if (!feForm.checkValidity()) { return; }
+      e.preventDefault();
+      submitRouteEdit();
+    });
+  }
 
   // ====================== Revisi #3: Pilih titik mulai (klik peta / cari alamat) ======================
   var pickMode = false, pickHandler = null;
