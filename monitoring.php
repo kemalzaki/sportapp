@@ -166,6 +166,8 @@ if (!$rekomendasi) $rekomendasi[] = ['info','info-circle','Data belum cukup','Up
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-graph-up-arrow text-primary"></i> Monitoring Performa</h2>
+<!-- Revisi 17 Juni 2026 — anchor target untuk pindah AI Coach ke atas di mobile -->
+<div id="aiCoachAnchor"></div>
 
 <!-- Revisi 6 Juni 2026: Rekomendasi Kesehatan otomatis -->
 <div class="card shadow-sm mb-3 border-success">
@@ -316,8 +318,10 @@ include __DIR__.'/includes/header.php';
 </div>
 
 
+<!-- Revisi 17 Juni 2026 — anchor untuk memindahkan AI Coach ke paling atas di mobile -->
+
 <!-- Revisi 16 Juni 2026 — AI Running Coach (Google Gemini 2.5 Flash) -->
-<div class="card shadow-sm mt-3 border-primary">
+<div id="aiCoachCard" class="card shadow-sm mt-3 border-primary">
   <div class="card-header bg-primary-subtle text-primary-emphasis d-flex justify-content-between align-items-center">
     <span><i class="bi bi-robot"></i> <strong>AI Running Coach</strong> — analisa &amp; rekomendasi pribadi</span>
     <button type="button" id="btnAICoach" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Minta Saran AI</button>
@@ -327,6 +331,21 @@ include __DIR__.'/includes/header.php';
     <div id="aiCoachOut" class="border rounded p-3 bg-body-tertiary small text-muted">Klik "Minta Saran AI" untuk memulai.</div>
   </div>
 </div>
+<script>
+// Pindahkan card AI Coach ke paling atas di tampilan mobile (<768px)
+(function(){
+  function reposition(){
+    var card = document.getElementById('aiCoachCard');
+    var anchor = document.getElementById("aiCoachAnchor");
+    if (!card || !anchor) return;
+    if (window.innerWidth < 768 && card.previousElementSibling !== anchor) {
+      anchor.parentNode.insertBefore(card, anchor.nextSibling);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', reposition);
+  window.addEventListener('resize', reposition);
+})();
+</script>
 <script>
 (function(){
   var btn = document.getElementById('btnAICoach'), out = document.getElementById('aiCoachOut');

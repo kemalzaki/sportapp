@@ -34,7 +34,7 @@ switch ($task) {
                "fokus pada: rekomendasi pace, durasi, frekuensi latihan minggu depan, peringatan over-training, ".
                "dan 1 saran nutrisi/recovery. Gunakan format markdown poin.";
         $p = "Statistik pelari (30 hari terakhir):\n$stats\n\nBeri rekomendasi latihan & evaluasi.";
-        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>700]);
+        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -46,7 +46,7 @@ switch ($task) {
                "Selalu sebutkan referensi (surah:ayat, atau perawi+nomor hadist) bila relevan. ".
                "Jika pertanyaan termasuk khilafiyah, jelaskan pendapat utama tanpa menyalahkan. ".
                "Akhiri dengan kalimat 'Wallahu a'lam.'";
-        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>900]);
+        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -66,28 +66,38 @@ switch ($task) {
     case 'ai_route_prompt': {
         @set_time_limit(120);
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
-        $sys = "Anda asisten perencana rute lari. Berdasarkan prompt pengguna (jarak, kota, preferensi), ".
+        $sys = "Anda asisten perencana rute lari di INDONESIA. Berdasarkan prompt pengguna (jarak, kota, preferensi), ".
                "kembalikan urutan 6–10 nama tempat / landmark / nama jalan yang dapat dirangkai jadi rute lari sirkular. ".
-               "Balas HANYA JSON: {\"places\":[\"Nama tempat 1, Kota\", ...], \"note\":\"<1 kalimat ringkas>\"} ".
-               "Sertakan nama kota di tiap entri agar bisa di-geocode.";
-        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.5,'max_tokens'=>500]);
+               "PENTING: SEMUA tempat WAJIB berada di Indonesia. Jika pengguna tidak menyebut kota, asumsikan kota di Indonesia ".
+               "(default: Jakarta). Selalu sertakan nama kota + ', Indonesia' di setiap entri agar tidak salah negara. ".
+               "Balas HANYA JSON: {\"places\":[\"Nama tempat 1, Nama Kota, Indonesia\", ...], \"note\":\"<1 kalimat ringkas>\"}";
+        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.4,'max_tokens'=>2048]);
         if (!$r['ok']) { echo json_encode($r); exit; }
         $obj = gemini_extract_json($r['text']);
         $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-        // fallback: pisah baris
+        // fallback: pisah baris — hanya yang BUKAN bagian JSON
         if (count($places) < 2) {
             foreach (preg_split('/\r?\n/', (string)$r['text']) as $ln) {
+                $ln = trim($ln);
+                // skip line yang masih mengandung token JSON
+                if ($ln === '' || strpbrk($ln, '{}[]":') !== false) continue;
                 $ln = trim(preg_replace('/^[\-\*\d\.\)]+\s*/','', $ln));
                 if (strlen($ln) > 4 && strlen($ln) < 120) $places[] = $ln;
             }
         }
+        // pastikan tiap entry punya ", Indonesia" untuk geocoding bias
+        $places = array_map(function($p){
+            $p = trim((string)$p);
+            if ($p !== '' && stripos($p, 'indonesia') === false) $p .= ', Indonesia';
+            return $p;
+        }, $places);
         $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
         if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak mengembalikan tempat. Raw: '.substr($r['text'],0,200)]); exit; }
-        // Geocode via Nominatim
+        // Geocode via Nominatim (dibatasi ke Indonesia)
         $coords = []; $failures = [];
         foreach ($places as $place) {
             $q = trim((string)$place); if ($q==='') continue;
-            $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='.urlencode($q);
+            $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q='.urlencode($q);
             $ch = curl_init($url);
             $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
                 CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'];

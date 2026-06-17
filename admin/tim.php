@@ -1,236 +1,256 @@
 <?php
+/**
+ * tim.php — Pembuatan Tim sesuai Jadwal Kegiatan (member-side)
+ * Revisi 17 Juni 2026:
+ *  - Buat tim langsung di-link ke jadwal kegiatan (jadwal.tim_id)
+ *  - Tambah anggota internal (user) & eksternal (nama + WA) via tabel tim_external
+ *  - Tombol submit: loading di tombol saja (tidak menutupi halaman)
+ */
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
+require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
+send_security_headers(); enforce_session_timeout();
 require_role('admin');
-$pageTitle='Manajemen Tim';
 
-// Auto-tambahkan kolom 'peran' di tim_member jika belum ada
-// peran: 'pemain' (default) atau 'wasit'
+$u = current_user();
+$uid = (int)$u['id'];
+$pageTitle = 'Pembuatan Tim';
+
+// ---- Migrasi idempotent untuk pemain eksternal ----
 try {
-    db_exec("ALTER TABLE tim_member ADD COLUMN IF NOT EXISTS peran VARCHAR(20) NOT NULL DEFAULT 'pemain'");
+    db_exec("CREATE TABLE IF NOT EXISTS tim_external (
+        id          SERIAL PRIMARY KEY,
+        tim_id      INTEGER NOT NULL REFERENCES tim(id) ON DELETE CASCADE,
+        nama        VARCHAR(120) NOT NULL,
+        nomor_wa    VARCHAR(30),
+        catatan     VARCHAR(200),
+        invited_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at  TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_tim_external_tim ON tim_external(tim_id)");
 } catch (Throwable $e) {}
 
-// Default kuota per jenis
-function default_kuota(string $jenis): int {
-    $map = ['Badminton'=>4,'Futsal'=>10,'Jogging'=>0,'Senam'=>0,'Renang'=>0,'Lainnya'=>0];
-    return $map[$jenis] ?? 0;
-}
-
-if ($_SERVER['REQUEST_METHOD']==='POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
+    rate_limit_or_die('tim_make:'.$uid, 30, 300);
     $a = $_POST['_action'] ?? '';
-    if ($a==='create') {
-        $jenis = $_POST['jenis'] ?? 'Lainnya';
-        $kuota = (int)($_POST['kuota'] ?? 0) ?: default_kuota($jenis);
-        $koord = (int)($_POST['koordinator_id'] ?? 0) ?: null;
-        db_exec("INSERT INTO tim(nama,jenis,koordinator_id,kuota,catatan) VALUES($1,$2,$3,$4,$5)",
-            [trim($_POST['nama']), $jenis, $koord, $kuota, trim($_POST['catatan'] ?? '')]);
-    } elseif ($a==='edit') {
-        $jenis = $_POST['jenis'] ?? 'Lainnya';
-        $kuota = (int)($_POST['kuota'] ?? 0) ?: default_kuota($jenis);
-        $koord = (int)($_POST['koordinator_id'] ?? 0) ?: null;
-        db_exec("UPDATE tim SET nama=$1, jenis=$2, koordinator_id=$3, kuota=$4, catatan=$5 WHERE id=$6",
-            [trim($_POST['nama']), $jenis, $koord, $kuota, trim($_POST['catatan'] ?? ''), (int)$_POST['id']]);
-    } elseif ($a==='delete') {
-        db_exec("DELETE FROM tim WHERE id=$1", [(int)$_POST['id']]);
-    } elseif ($a==='add_member') {
-        $tid   = (int)$_POST['tim_id'];
-        $uid   = (int)$_POST['user_id'];
-        $peran = ($_POST['peran'] ?? 'pemain') === 'wasit' ? 'wasit' : 'pemain';
-
-        $tim = db_one("SELECT t.kuota,
-                              (SELECT COUNT(*) FROM tim_member tm WHERE tm.tim_id=t.id AND tm.peran='pemain') AS jumlah_pemain
-                       FROM tim t WHERE t.id=$1", [$tid]);
-        if (!$tim) {
-            $_SESSION['flash_err']='Tim tidak ditemukan.';
-        } elseif ($peran === 'pemain' && !($tim['kuota']==0 || $tim['jumlah_pemain'] < $tim['kuota'])) {
-            $_SESSION['flash_err']='Kuota pemain tim sudah penuh.';
-        } else {
-            try {
-                db_exec("INSERT INTO tim_member(tim_id,user_id,peran) VALUES($1,$2,$3)", [$tid, $uid, $peran]);
-            } catch (Throwable $e) {
-                $_SESSION['flash_err']='Member sudah terdaftar di tim ini.';
+    try {
+        if ($a === 'create') {
+            $jid   = (int)($_POST['jadwal_id'] ?? 0);
+            $nama  = trim((string)($_POST['nama'] ?? ''));
+            $kuota = max(2, (int)($_POST['kuota'] ?? 4));
+            $cat   = trim((string)($_POST['catatan'] ?? ''));
+            if ($jid <= 0)  throw new Exception('Pilih jadwal kegiatan.');
+            if ($nama==='') throw new Exception('Nama tim wajib diisi.');
+            $j = db_one("SELECT id, jenis, tim_id FROM jadwal WHERE id=$1", [$jid]);
+            if (!$j) throw new Exception('Jadwal tidak ditemukan.');
+            // Buat / reuse tim
+            if (!empty($j['tim_id'])) {
+                $tid = (int)$j['tim_id'];
+                db_exec("UPDATE tim SET nama=$1, kuota=$2, catatan=$3 WHERE id=$4",
+                    [$nama,$kuota,$cat?:null,$tid]);
+            } else {
+                $row = db_one("INSERT INTO tim(nama,jenis,koordinator_id,kuota,catatan) VALUES($1,$2,$3,$4,$5) RETURNING id",
+                    [$nama, $j['jenis'], $uid, $kuota, $cat?:null]);
+                $tid = (int)$row['id'];
+                db_exec("UPDATE jadwal SET tim_id=$1 WHERE id=$2", [$tid,$jid]);
             }
+            // Koordinator otomatis jadi anggota
+            try { db_exec("INSERT INTO tim_member(tim_id,user_id,peran) VALUES($1,$2,'koordinator') ON CONFLICT DO NOTHING", [$tid,$uid]); } catch (Throwable $e) {}
+            $_SESSION['flash_ok'] = "Tim '$nama' dibuat untuk jadwal #$jid.";
+            header("Location: /admin/tim.php?tim=$tid&jadwal=$jid"); exit;
         }
-    } elseif ($a==='remove_member') {
-        db_exec("DELETE FROM tim_member WHERE tim_id=$1 AND user_id=$2", [(int)$_POST['tim_id'], (int)$_POST['user_id']]);
-    } elseif ($a==='toggle_peran') {
-        // Ubah peran existing (pemain <-> wasit)
-        $tid = (int)$_POST['tim_id']; $uid = (int)$_POST['user_id'];
-        $new = ($_POST['peran'] ?? 'pemain') === 'wasit' ? 'wasit' : 'pemain';
-        db_exec("UPDATE tim_member SET peran=$1 WHERE tim_id=$2 AND user_id=$3", [$new, $tid, $uid]);
+        elseif ($a === 'add_member') {
+            $tid = (int)$_POST['tim_id']; $mid = (int)$_POST['user_id'];
+            if ($tid && $mid) db_exec("INSERT INTO tim_member(tim_id,user_id,peran) VALUES($1,$2,'pemain') ON CONFLICT DO NOTHING", [$tid,$mid]);
+            $_SESSION['flash_ok'] = "Anggota internal ditambahkan.";
+        }
+        elseif ($a === 'add_external') {
+            $tid = (int)$_POST['tim_id'];
+            $nm  = trim((string)($_POST['nama_ext'] ?? ''));
+            $wa  = preg_replace('/\D+/','', (string)($_POST['wa_ext'] ?? ''));
+            $cat = trim((string)($_POST['cat_ext'] ?? ''));
+            if (!$tid || $nm==='') throw new Exception('Nama eksternal wajib diisi.');
+            db_exec("INSERT INTO tim_external(tim_id,nama,nomor_wa,catatan,invited_by) VALUES($1,$2,$3,$4,$5)",
+                [$tid,$nm,$wa?:null,$cat?:null,$uid]);
+            $_SESSION['flash_ok'] = "Pemain eksternal '$nm' diundang.";
+        }
+        elseif ($a === 'del_member') {
+            db_exec("DELETE FROM tim_member WHERE tim_id=$1 AND user_id=$2", [(int)$_POST['tim_id'],(int)$_POST['user_id']]);
+        }
+        elseif ($a === 'del_external') {
+            db_exec("DELETE FROM tim_external WHERE id=$1", [(int)$_POST['ext_id']]);
+        }
+    } catch (Throwable $e) {
+        $_SESSION['flash_err'] = $e->getMessage();
     }
-    header('Location: tim.php'); exit;
+    $back = '/admin/tim.php';
+    if (!empty($_POST['tim_id'])) $back .= '?tim='.(int)$_POST['tim_id'];
+    header("Location: $back"); exit;
 }
 
-$tims = db_all("SELECT t.*, u.nama AS koord, u.foto_url AS koord_foto,
-                       (SELECT COUNT(*) FROM tim_member tm WHERE tm.tim_id=t.id AND tm.peran='pemain') AS jumlah_pemain,
-                       (SELECT COUNT(*) FROM tim_member tm WHERE tm.tim_id=t.id AND tm.peran='wasit')  AS jumlah_wasit
-                FROM tim t LEFT JOIN users u ON u.id=t.koordinator_id ORDER BY t.jenis, t.nama");
-$members = db_all("SELECT id,nama,foto_url,jenis_kelamin FROM users WHERE role IN ('member','admin') ORDER BY nama");
-$admins  = db_all("SELECT id,nama FROM users WHERE role='admin' ORDER BY nama");
-$jenisList = array_column(db_all("SELECT nama FROM jenis_olahraga ORDER BY nama"), 'nama');
-if (!$jenisList) $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya'];
+$flash_ok  = $_SESSION['flash_ok']  ?? null; unset($_SESSION['flash_ok']);
+$flash_err = $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 
-$memberByTim = [];
-foreach (db_all("SELECT tm.tim_id, tm.peran, u.id, u.nama, u.foto_url FROM tim_member tm JOIN users u ON u.id=tm.user_id") as $r) {
-    $memberByTim[$r['tim_id']][] = $r;
-}
+$jadwals = db_all("SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.tim_id, t.nama AS tim_nama
+                   FROM jadwal j LEFT JOIN tim t ON t.id=j.tim_id
+                   WHERE j.tanggal >= CURRENT_DATE - INTERVAL '30 days'
+                   ORDER BY j.tanggal DESC LIMIT 50");
 
-$err = $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
-include __DIR__.'/../includes/header.php'; ?>
+$selTim = (int)($_GET['tim'] ?? 0);
+$tim = $selTim ? db_one("SELECT * FROM tim WHERE id=$1", [$selTim]) : null;
+$tjadwal = $selTim ? db_one("SELECT * FROM jadwal WHERE tim_id=$1 ORDER BY tanggal DESC LIMIT 1", [$selTim]) : null;
+$members = $selTim ? db_all("SELECT tm.*, u.nama, u.foto_url, u.nomor_wa FROM tim_member tm JOIN users u ON u.id=tm.user_id WHERE tm.tim_id=$1 ORDER BY u.nama", [$selTim]) : [];
+$externals = $selTim ? db_all("SELECT * FROM tim_external WHERE tim_id=$1 ORDER BY id DESC", [$selTim]) : [];
+$allUsers = db_all("SELECT id, nama FROM users WHERE role IN ('member','admin') ORDER BY nama");
 
-<h2 class="mb-3"><i class="bi bi-people-fill text-primary"></i> Manajemen Tim</h2>
-<p class="text-muted">Bagi member ke dalam tim per jenis olahraga. Anda dapat menambahkan <strong>pemain</strong> maupun <strong>wasit</strong> (peran wasit tidak menghitung kuota tim).</p>
+include __DIR__.'/../includes/header.php';
+?>
+<h2 class="mb-1"><i class="bi bi-people-fill text-primary"></i> Pembuatan Tim</h2>
+<p class="small text-muted mb-3">Buat tim langsung dari jadwal kegiatan. Anda bisa menambah anggota dari komunitas <em>atau</em> mengundang teman eksternal (luar komunitas).</p>
 
-<?php if($err): ?><div class="alert alert-danger py-2"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-
-<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Tim</div>
-<div class="card-body">
-  <form method="post" class="row g-2">
-    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-    <input type="hidden" name="_action" value="create">
-    <div class="col-md-3"><label class="form-label small fw-semibold">Nama Tim</label><input class="form-control" name="nama" required placeholder="cth: Tim Ganda A"></div>
-    <div class="col-md-2"><label class="form-label small fw-semibold">Jenis</label>
-      <select name="jenis" class="form-select">
-        <?php foreach($jenisList as $j): ?><option><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
-      </select></div>
-    <div class="col-md-3"><label class="form-label small fw-semibold">Koordinator Tim</label>
-      <select name="koordinator_id" class="form-select">
-        <option value="">— Pilih (admin) —</option>
-        <?php foreach($admins as $a): ?><option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['nama']) ?></option><?php endforeach; ?>
-      </select></div>
-    <div class="col-md-2"><label class="form-label small fw-semibold">Kuota</label>
-      <input type="number" name="kuota" min="0" class="form-control" placeholder="auto">
-      <small class="text-muted">Default: Badminton=4, Futsal=10</small></div>
-    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Tambah</button></div>
-    <div class="col-12"><input class="form-control" name="catatan" placeholder="Catatan (opsional)"></div>
-  </form>
-</div></div>
+<?php if($flash_ok): ?><div class="alert alert-success py-2"><?= htmlspecialchars($flash_ok) ?></div><?php endif; ?>
+<?php if($flash_err): ?><div class="alert alert-warning py-2"><?= htmlspecialchars($flash_err) ?></div><?php endif; ?>
 
 <div class="row g-3">
-<?php foreach($tims as $t):
-    $mbrs = $memberByTim[$t['id']] ?? [];
-    $pemain = array_values(array_filter($mbrs, fn($m)=>($m['peran']??'pemain')==='pemain'));
-    $wasit  = array_values(array_filter($mbrs, fn($m)=>($m['peran']??'pemain')==='wasit'));
-    $kuotaTxt = $t['kuota']>0 ? $t['kuota'] : '∞';
-    $bisaTambahPemain = ($t['kuota']==0 || $t['jumlah_pemain'] < $t['kuota']);
-?>
-  <div class="col-lg-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span><strong><?= htmlspecialchars($t['nama']) ?></strong>
-          <span class="pill ms-1"><?= htmlspecialchars($t['jenis']) ?></span></span>
-        <span>
-          <span class="badge bg-primary rounded-pill" title="Pemain"><i class="bi bi-person-arms-up"></i> <?= (int)$t['jumlah_pemain'] ?>/<?= $kuotaTxt ?></span>
-          <span class="badge bg-warning text-dark rounded-pill" title="Wasit"><i class="bi bi-megaphone"></i> <?= (int)$t['jumlah_wasit'] ?></span>
-        </span>
-      </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-plus-circle text-success"></i> Buat Tim dari Jadwal Kegiatan</div>
       <div class="card-body">
-        <div class="small text-muted mb-2">Koordinator: <?= user_name_with_avatar($t['koord_foto'] ?? null, $t['koord'] ?? '-', false, 22) ?></div>
-        <?php if($t['catatan']): ?><div class="small mb-2"><?= htmlspecialchars($t['catatan']) ?></div><?php endif; ?>
-
-        <div class="small fw-semibold text-primary mt-2 mb-1"><i class="bi bi-person-arms-up"></i> Pemain</div>
-        <ul class="list-group list-group-flush mb-2">
-          <?php foreach($pemain as $m): ?>
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-              <?= user_name_with_avatar($m['foto_url'] ?? null, $m['nama'], false, 26) ?>
-              <span class="d-flex gap-1">
-                <form method="post" title="Jadikan wasit">
-                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="toggle_peran">
-                  <input type="hidden" name="tim_id" value="<?= $t['id'] ?>"><input type="hidden" name="user_id" value="<?= $m['id'] ?>">
-                  <input type="hidden" name="peran" value="wasit">
-                  <button class="btn btn-sm btn-outline-warning"><i class="bi bi-megaphone"></i></button>
-                </form>
-                <form method="post" onsubmit="return confirm('Keluarkan dari tim?')">
-                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="remove_member">
-                  <input type="hidden" name="tim_id" value="<?= $t['id'] ?>"><input type="hidden" name="user_id" value="<?= $m['id'] ?>">
-                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></button>
-                </form>
-              </span>
-            </li>
-          <?php endforeach; if(!$pemain): ?><li class="list-group-item text-muted text-center small px-0">Belum ada pemain.</li><?php endif; ?>
-        </ul>
-
-        <div class="small fw-semibold text-warning mt-2 mb-1"><i class="bi bi-megaphone"></i> Wasit</div>
-        <ul class="list-group list-group-flush mb-2">
-          <?php foreach($wasit as $m): ?>
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-              <?= user_name_with_avatar($m['foto_url'] ?? null, $m['nama'], false, 26) ?>
-              <span class="d-flex gap-1">
-                <form method="post" title="Jadikan pemain">
-                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="toggle_peran">
-                  <input type="hidden" name="tim_id" value="<?= $t['id'] ?>"><input type="hidden" name="user_id" value="<?= $m['id'] ?>">
-                  <input type="hidden" name="peran" value="pemain">
-                  <button class="btn btn-sm btn-outline-primary"><i class="bi bi-person"></i></button>
-                </form>
-                <form method="post" onsubmit="return confirm('Keluarkan dari tim?')">
-                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="remove_member">
-                  <input type="hidden" name="tim_id" value="<?= $t['id'] ?>"><input type="hidden" name="user_id" value="<?= $m['id'] ?>">
-                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></button>
-                </form>
-              </span>
-            </li>
-          <?php endforeach; if(!$wasit): ?><li class="list-group-item text-muted text-center small px-0">Belum ada wasit.</li><?php endif; ?>
-        </ul>
-
-        <form method="post" class="row g-2 align-items-end">
-          <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="add_member"><input type="hidden" name="tim_id" value="<?= $t['id'] ?>">
-          <div class="col-7">
-            <select name="user_id" class="form-select form-select-sm" required>
-              <option value="">+ Pilih Member…</option>
-              <?php foreach($members as $m): ?><option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['nama']) ?><?= !empty($m['jenis_kelamin'])?' ('.$m['jenis_kelamin'].')':'' ?></option><?php endforeach; ?>
-            </select>
+        <form method="post" class="vstack gap-2" data-loading-btn>
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="create">
+          <label class="small fw-bold mb-0">Pilih Jadwal Kegiatan</label>
+          <select name="jadwal_id" class="form-select form-select-sm" required>
+            <option value="">— pilih jadwal —</option>
+            <?php foreach($jadwals as $j): ?>
+              <option value="<?= (int)$j['id'] ?>">
+                <?= htmlspecialchars($j['tanggal'].' · '.$j['jenis'].' · '.$j['tempat']) ?>
+                <?= !empty($j['tim_nama']) ? ' (sudah ada tim: '.htmlspecialchars($j['tim_nama']).')' : '' ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <label class="small fw-bold mb-0">Nama Tim</label>
+          <input name="nama" class="form-control form-control-sm" maxlength="120" placeholder="Cth: Tim Sumringah" required>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="small fw-bold mb-0">Kuota</label>
+              <input type="number" name="kuota" min="2" max="40" value="6" class="form-control form-control-sm">
+            </div>
           </div>
-          <div class="col-3">
-            <select name="peran" class="form-select form-select-sm">
-              <option value="pemain" <?= $bisaTambahPemain?'':'disabled' ?>>Pemain</option>
-              <option value="wasit">Wasit</option>
-            </select>
-          </div>
-          <div class="col-2 d-grid">
-            <button class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></button>
-          </div>
-          <?php if(!$bisaTambahPemain): ?>
-            <div class="col-12 small text-warning"><i class="bi bi-info-circle"></i> Kuota pemain penuh — masih bisa menambah wasit.</div>
+          <label class="small fw-bold mb-0">Catatan</label>
+          <textarea name="catatan" rows="2" class="form-control form-control-sm" placeholder="opsional"></textarea>
+          <button class="btn btn-success btn-sm mt-1"><i class="bi bi-check2-circle"></i> Buat / Simpan Tim</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-3">
+      <div class="card-header"><i class="bi bi-list-ul"></i> Tim dari Jadwal Terdekat</div>
+      <div class="list-group list-group-flush">
+        <?php foreach($jadwals as $j): if(empty($j['tim_id'])) continue; ?>
+          <a href="?tim=<?= (int)$j['tim_id'] ?>" class="list-group-item list-group-item-action small">
+            <strong><?= htmlspecialchars($j['tim_nama'] ?? '-') ?></strong>
+            <span class="text-muted">· <?= htmlspecialchars($j['tanggal'].' '.$j['jenis']) ?></span>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <?php if(!$tim): ?>
+      <div class="alert alert-info">Pilih tim di kiri atau buat tim baru untuk mulai mengundang anggota.</div>
+    <?php else: ?>
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-people"></i> <strong><?= htmlspecialchars($tim['nama']) ?></strong> · <?= htmlspecialchars($tim['jenis']) ?></span>
+          <span class="badge bg-secondary">Kuota <?= (int)$tim['kuota'] ?></span>
+        </div>
+        <div class="card-body">
+          <?php if($tjadwal): ?>
+            <div class="small text-muted mb-2"><i class="bi bi-calendar-event"></i>
+              Jadwal: <?= htmlspecialchars($tjadwal['tanggal']) ?> · <?= htmlspecialchars($tjadwal['jenis']) ?> · <?= htmlspecialchars($tjadwal['tempat']) ?>
+            </div>
           <?php endif; ?>
-        </form>
-      </div>
-      <div class="card-footer d-flex justify-content-end gap-2">
-        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tEdit<?= $t['id'] ?>"><i class="bi bi-pencil"></i> Edit</button>
-        <form method="post" onsubmit="return confirm('Hapus tim ini?')">
-          <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<?= $t['id'] ?>">
-          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-        </form>
-      </div>
-    </div>
-  </div>
-<?php endforeach; if(!$tims): ?><div class="col-12"><div class="alert alert-info">Belum ada tim. Tambahkan tim pertama di atas.</div></div><?php endif; ?>
-</div>
 
-<?php foreach($tims as $t): ?>
-<div class="modal fade" id="tEdit<?= $t['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" class="modal-content">
-  <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="edit"><input type="hidden" name="id" value="<?= $t['id'] ?>">
-  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Tim</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-  <div class="modal-body">
-    <div class="mb-2"><label class="form-label small fw-semibold">Nama Tim</label><input class="form-control" name="nama" value="<?= htmlspecialchars($t['nama']) ?>" required></div>
-    <div class="row g-2">
-      <div class="col-md-6"><label class="form-label small fw-semibold">Jenis</label>
-        <select name="jenis" class="form-select">
-          <?php foreach($jenisList as $j): ?><option <?= $j===$t['jenis']?'selected':'' ?>><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
-        </select></div>
-      <div class="col-md-6"><label class="form-label small fw-semibold">Koordinator</label>
-        <select name="koordinator_id" class="form-select">
-          <option value="">— Pilih —</option>
-          <?php foreach($admins as $a): ?><option value="<?= $a['id'] ?>" <?= $a['id']==$t['koordinator_id']?'selected':'' ?>><?= htmlspecialchars($a['nama']) ?></option><?php endforeach; ?>
-        </select></div>
-      <div class="col-md-6"><label class="form-label small fw-semibold">Kuota</label><input type="number" min="0" name="kuota" class="form-control" value="<?= (int)$t['kuota'] ?>"></div>
-      <div class="col-12"><label class="form-label small fw-semibold">Catatan</label><input class="form-control" name="catatan" value="<?= htmlspecialchars($t['catatan'] ?? '') ?>"></div>
-    </div>
+          <h6 class="mt-3"><i class="bi bi-person-check text-success"></i> Anggota Internal (<?= count($members) ?>)</h6>
+          <form method="post" class="d-flex gap-2 mb-2" data-loading-btn>
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="add_member">
+            <input type="hidden" name="tim_id" value="<?= (int)$tim['id'] ?>">
+            <select name="user_id" class="form-select form-select-sm" required>
+              <option value="">— pilih user komunitas —</option>
+              <?php foreach($allUsers as $au): ?>
+                <option value="<?= (int)$au['id'] ?>"><?= htmlspecialchars($au['nama']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-plus"></i> Tambah</button>
+          </form>
+          <ul class="list-group list-group-flush small mb-3">
+            <?php foreach($members as $m): ?>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span><i class="bi bi-person"></i> <?= htmlspecialchars($m['nama']) ?> <?= $m['peran']==='koordinator' ? '<span class="badge bg-warning text-dark ms-1">Koordinator</span>':'' ?></span>
+                <form method="post" onsubmit="return confirm('Hapus anggota?')" data-loading-btn>
+                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="_action" value="del_member">
+                  <input type="hidden" name="tim_id" value="<?= (int)$tim['id'] ?>">
+                  <input type="hidden" name="user_id" value="<?= (int)$m['user_id'] ?>">
+                  <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-x-circle"></i></button>
+                </form>
+              </li>
+            <?php endforeach; if(!$members): ?><li class="text-muted px-0">Belum ada anggota internal.</li><?php endif; ?>
+          </ul>
+
+          <h6 class="mt-3"><i class="bi bi-person-plus text-info"></i> Pemain Eksternal (<?= count($externals) ?>)</h6>
+          <p class="small text-muted">Tambahkan teman dari luar komunitas — cukup nama &amp; nomor WA, sistem akan membuat tombol kirim WA untuk koordinator.</p>
+          <form method="post" class="row g-2 mb-2" data-loading-btn>
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="add_external">
+            <input type="hidden" name="tim_id" value="<?= (int)$tim['id'] ?>">
+            <div class="col-md-4"><input name="nama_ext" class="form-control form-control-sm" placeholder="Nama" maxlength="120" required></div>
+            <div class="col-md-4"><input name="wa_ext" class="form-control form-control-sm" placeholder="WhatsApp (cth 0812…)" maxlength="20"></div>
+            <div class="col-md-3"><input name="cat_ext" class="form-control form-control-sm" placeholder="Catatan / posisi"></div>
+            <div class="col-md-1 d-grid"><button class="btn btn-sm btn-info text-white"><i class="bi bi-plus"></i></button></div>
+          </form>
+          <ul class="list-group list-group-flush small">
+            <?php foreach($externals as $ex):
+              $waLink = '';
+              if (!empty($ex['nomor_wa'])) {
+                $no = preg_replace('/\D+/','', $ex['nomor_wa']);
+                if (str_starts_with($no,'0')) $no = '62'.substr($no,1);
+                $msg = "Halo ".$ex['nama'].", kamu diundang gabung tim ".$tim['nama']." untuk kegiatan ".($tjadwal['jenis'] ?? 'olahraga').
+                       ($tjadwal? ' tanggal '.$tjadwal['tanggal'].' di '.$tjadwal['tempat'] : '').". Bisa hadir?";
+                $waLink = 'https://wa.me/'.$no.'?text='.rawurlencode($msg);
+              }
+            ?>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0 flex-wrap gap-2">
+                <span>
+                  <i class="bi bi-person-badge text-info"></i>
+                  <strong><?= htmlspecialchars($ex['nama']) ?></strong>
+                  <?php if(!empty($ex['nomor_wa'])): ?><span class="text-muted small"> · <?= htmlspecialchars($ex['nomor_wa']) ?></span><?php endif; ?>
+                  <?php if(!empty($ex['catatan'])): ?><br><small class="text-muted">"<?= htmlspecialchars($ex['catatan']) ?>"</small><?php endif; ?>
+                </span>
+                <span class="d-flex gap-1">
+                  <?php if($waLink): ?>
+                    <a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($waLink) ?>"><i class="bi bi-whatsapp"></i> Undang</a>
+                  <?php endif; ?>
+                  <form method="post" onsubmit="return confirm('Hapus eksternal?')" data-loading-btn>
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="_action" value="del_external">
+                    <input type="hidden" name="tim_id" value="<?= (int)$tim['id'] ?>">
+                    <input type="hidden" name="ext_id" value="<?= (int)$ex['id'] ?>">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></button>
+                  </form>
+                </span>
+              </li>
+            <?php endforeach; if(!$externals): ?><li class="text-muted px-0">Belum ada pemain eksternal.</li><?php endif; ?>
+          </ul>
+        </div>
+      </div>
+    <?php endif; ?>
   </div>
-  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
-</form></div></div>
-<?php endforeach; ?>
+</div>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

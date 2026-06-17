@@ -104,31 +104,40 @@ if ($a === 'ai_route_from_image') {
         echo json_encode(['ok'=>false,'err'=>'gambar tidak ada']); exit;
     }
     $hint = trim((string)($_POST['hint'] ?? ''));
-    $prompt = "Anda menerima SCREENSHOT PETA / STRAVA yang menampilkan sebuah RUTE (lari/jalan/sepeda). "
+    $prompt = "Anda menerima SCREENSHOT PETA / STRAVA yang menampilkan sebuah RUTE (lari/jalan/sepeda) di INDONESIA. "
             . "Identifikasi 5-10 LANDMARK / nama jalan / persimpangan / titik penting secara BERURUTAN sepanjang rute. "
-            . "Sertakan area kota/kabupaten supaya tidak ambigu. "
-            . "Balas HANYA JSON valid: {\"places\":[\"Nama lengkap + Kota\", ...], \"note\":\"<1 kalimat singkat>\"}. "
+            . "WAJIB cantumkan nama kota/kabupaten Indonesia + ', Indonesia' pada tiap entri agar tidak salah negara. "
+            . "Balas HANYA JSON valid (tanpa fence ```): {\"places\":[\"Nama lengkap, Kota, Indonesia\", ...], \"note\":\"<1 kalimat singkat>\"}. "
+            . "Jika tidak yakin nama persis, beri patokan area perumahan / persimpangan terdekat berikut kota Indonesia. "
             . ($hint!=='' ? "Petunjuk area dari pengguna: $hint" : "");
     $g = gemini_vision($prompt, $_FILES['image']['tmp_name'],
-            ['json'=>true,'temperature'=>0.2,'max_tokens'=>700]);
+            ['json'=>true,'temperature'=>0.2,'max_tokens'=>4096]);
     if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err']]); exit; }
     $obj = gemini_extract_json($g['text']);
     $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-    // Revisi 17 Juni 2026 — fallback parsing: pisah baris kalau JSON gagal
+    // Revisi 17 Juni 2026 — fallback parsing: pisah baris kalau JSON gagal, skip baris berisi token JSON
     if (count($places) < 2) {
         $lines = preg_split('/\r?\n/', (string)$g['text']);
         foreach ($lines as $ln) {
+            $ln = trim($ln);
+            if ($ln === '' || strpbrk($ln, '{}[]":`') !== false) continue;
             $ln = trim(preg_replace('/^[\-\*\d\.\)]+\s*/','', $ln));
             if (strlen($ln) > 4 && strlen($ln) < 120 && substr_count($ln, ' ') < 12) $places[] = $ln;
         }
     }
+    // Pastikan setiap entri ber-suffix Indonesia agar geocoding tidak ke luar negeri
+    $places = array_map(function($p){
+        $p = trim((string)$p);
+        if ($p !== '' && stripos($p, 'indonesia') === false) $p .= ', Indonesia';
+        return $p;
+    }, $places);
     $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
     if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan landmark. Raw: '.substr($g['text'],0,200)]); exit; }
-    // Geocoding OSM (Nominatim) — paralel sequential, sleep 500ms
+    // Geocoding OSM (Nominatim) — dibatasi ke Indonesia
     $coords = []; $failures = [];
     foreach ($places as $place) {
         $q = trim((string)$place); if ($q==='') continue;
-        $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='.urlencode($q);
+        $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q='.urlencode($q);
         $ch2 = curl_init($url);
         $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
             CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'];

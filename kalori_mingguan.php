@@ -34,29 +34,32 @@ try {
     db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC)");
 } catch (Throwable $e) {}
 
-// === Helper AI (Revisi 16 Juni 2026) ===
+// === Helper AI (Revisi 17 Juni 2026) ===
 // Pipeline: Foto makanan → Gemini 2.5 Flash mengenali → Estimasi kalori → Masuk database.
 function ai_estimate_kalori($imagePath, $hint=''){
     @set_time_limit(90);
     if (!is_file($imagePath)) return ['err'=>'file gambar tidak ditemukan'];
-    $prompt = "Lihat FOTO MAKANAN ini. Sebutkan NAMA MAKANAN singkat (Bahasa Indonesia) dan PERKIRAAN TOTAL KALORI (kcal) untuk porsi yang terlihat. "
+    $prompt = "Lihat FOTO MAKANAN ini. Sebutkan NAMA MAKANAN singkat (Bahasa Indonesia) dan PERKIRAAN TOTAL KALORI (kcal, INTEGER tanpa pemisah ribuan) untuk porsi yang terlihat. "
             . "Bila ada beberapa item, jumlahkan kalorinya. "
-            . "Balas HANYA JSON: {\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat>\"}. "
+            . "Balas HANYA JSON murni TANPA fence ```json``` dan TANPA kalimat pengantar: "
+            . "{\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat singkat>\"}. "
             . ($hint ? "Petunjuk pengguna: $hint" : "");
+    // Revisi 17 Juni 2026 — naikkan max_tokens (sebelumnya 300 → sering kepotong di fence ```)
     $g = gemini_vision($prompt, $imagePath,
-            ['json'=>true,'temperature'=>0.2,'max_tokens'=>300]);
+            ['json'=>true,'temperature'=>0.2,'max_tokens'=>1024]);
     if (!$g['ok']) return ['err'=>'Gemini: '.$g['err']];
     $obj = gemini_extract_json($g['text']);
     if (is_array($obj) && isset($obj['kalori'])) {
         return ['nama'=>$obj['nama'] ?? '', 'kalori'=>(int)$obj['kalori'], 'rincian'=>$obj['rincian'] ?? ''];
     }
-    // Revisi 17 Juni 2026 — fallback regex bila JSON gagal
-    if (preg_match('/(\d{2,4})\s*(?:kkal|kcal|kal)/i', (string)$g['text'], $mm)) {
-        $nama = '';
-        if (preg_match('/"nama"\s*:\s*"([^"]{2,80})"/i', $g['text'], $nn)) $nama = $nn[1];
-        return ['nama'=>$nama, 'kalori'=>(int)$mm[1], 'rincian'=>trim(substr($g['text'],0,120))];
-    }
-    return ['err'=>'AI gagal mengurai JSON. Raw: '.substr((string)$g['text'],0,160)];
+    // Revisi 17 Juni 2026 — fallback regex bila JSON gagal (tangkap "kalori": 123 ATAU 123 kkal)
+    $raw = (string)$g['text'];
+    $nama = ''; $kal = 0;
+    if (preg_match('/"nama"\s*:\s*"([^"]{2,80})"/i', $raw, $nn)) $nama = $nn[1];
+    if (preg_match('/"kalori"\s*:\s*"?(\d{2,5})/i', $raw, $kk)) $kal = (int)$kk[1];
+    elseif (preg_match('/(\d{2,4})\s*(?:kkal|kcal|kal)/i', $raw, $mm)) $kal = (int)$mm[1];
+    if ($kal > 0) return ['nama'=>$nama, 'kalori'=>$kal, 'rincian'=>trim(substr($raw,0,120))];
+    return ['err'=>'AI gagal mengurai JSON. Raw: '.substr($raw,0,200)];
 }
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {

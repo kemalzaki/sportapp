@@ -260,17 +260,28 @@ function gemini_vision($prompt, $imagePath, array $opts = []) {
 function gemini_extract_json($text) {
     $s = trim((string)$text);
     if ($s === '') return [];
+    // 1) Fence ```json ... ``` (lengkap)
     if (preg_match('/```(?:json)?\s*(.+?)\s*```/is', $s, $m)) {
         $s = $m[1];
     }
+    // 1b) Fence ```json TANPA penutup (Revisi 17 Juni 2026 — output kepotong)
+    elseif (preg_match('/```(?:json)?\s*(.+)$/is', $s, $m2)) {
+        $s = $m2[1];
+    }
     $j = json_decode($s, true);
     if (is_array($j)) return $j;
+    // 2) Cari pasangan { } atau [ ] terluar
     foreach ([['{','}'], ['[',']']] as $pair) {
         $start = strpos($s, $pair[0]);
         $end   = strrpos($s, $pair[1]);
         if ($start !== false && $end !== false && $end > $start) {
             $sub = substr($s, $start, $end - $start + 1);
             $j = json_decode($sub, true);
+            if (is_array($j)) return $j;
+            // 2b) Coba bersihkan trailing koma & control char (Revisi 17 Juni 2026)
+            $sub2 = preg_replace('/,\s*([}\]])/', '$1', $sub);
+            $sub2 = preg_replace('/[\x00-\x1F\x7F]/', ' ', $sub2);
+            $j = json_decode($sub2, true);
             if (is_array($j)) return $j;
         }
     }
