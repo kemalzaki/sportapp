@@ -133,27 +133,42 @@ if ($a === 'ai_route_from_image') {
     }, $places);
     $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
     if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan landmark. Raw: '.substr($g['text'],0,200)]); exit; }
-    // Geocoding OSM (Nominatim) — dibatasi ke Indonesia
+    // Geocoding OSM (Nominatim) — Revisi 17 Juni 2026 Part I: multi-variant fallback
     $coords = []; $failures = [];
     foreach ($places as $place) {
         $q = trim((string)$place); if ($q==='') continue;
-        $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q='.urlencode($q);
-        $ch2 = curl_init($url);
-        $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
-            CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'];
-        if (getenv('GEMINI_INSECURE_SSL') === '1') { $copt[CURLOPT_SSL_VERIFYPEER]=false; $copt[CURLOPT_SSL_VERIFYHOST]=0; }
-        curl_setopt_array($ch2, $copt);
-        $r2 = curl_exec($ch2); curl_close($ch2);
-        $arr = json_decode($r2 ?: '[]', true);
-        if (is_array($arr) && !empty($arr[0]['lat'])) {
-            $coords[] = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
-        } else {
-            $failures[] = $q;
+        $parts = array_map('trim', explode(',', $q));
+        $tail2 = count($parts)>=2 ? implode(', ', array_slice($parts,-2)) : $q;
+        $kota  = count($parts)>=2 ? $parts[count($parts)-2] : $parts[0];
+        $variants = [
+            ['q'=>$q,     'cc'=>'id'],
+            ['q'=>$q,     'cc'=>''],
+            ['q'=>$tail2, 'cc'=>'id'],
+            ['q'=>$kota.', Indonesia', 'cc'=>'id'],
+        ];
+        $found = null;
+        foreach ($variants as $v) {
+            if ($v['q']==='') continue;
+            $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+                 . ($v['cc']?'&countrycodes='.$v['cc']:'') . '&q='.urlencode($v['q']);
+            $ch2 = curl_init($url);
+            $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
+                CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)',
+                CURLOPT_HTTPHEADER=>['Accept-Language: id,en']];
+            if (getenv('GEMINI_INSECURE_SSL') === '1') { $copt[CURLOPT_SSL_VERIFYPEER]=false; $copt[CURLOPT_SSL_VERIFYHOST]=0; }
+            curl_setopt_array($ch2, $copt);
+            $r2 = curl_exec($ch2); curl_close($ch2);
+            $arr = json_decode($r2 ?: '[]', true);
+            if (is_array($arr) && !empty($arr[0]['lat'])) {
+                $found = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
+                break;
+            }
+            usleep(550*1000);
         }
-        usleep(500*1000); // 0.5s — Nominatim cukup toleran utk <2req/s
+        if ($found) $coords[] = $found; else $failures[] = $q;
     }
     if (count($coords) < 2) {
-        echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ', $failures)]); exit;
+        echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ', $failures).'. Coba petunjuk area yg lebih spesifik.']); exit;
     }
     echo json_encode(['ok'=>true, 'coords'=>$coords, 'places'=>$places, 'note'=>$obj['note'] ?? '', 'gagal_geocode'=>$failures]);
     exit;
@@ -225,6 +240,21 @@ if ($a === 'route_save') {
 if ($a === 'route_delete') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id>0) db_exec("DELETE FROM run_routes WHERE id=$1 AND user_id=$2", [$id,$uid]);
+    echo json_encode(['ok'=>true]); exit;
+}
+
+// ===== Revisi 17 Juni 2026 Part I: Edit (rename / publik toggle) rute tersimpan =====
+if ($a === 'route_update') {
+    $id   = (int)($_POST['id'] ?? 0);
+    $nama = trim((string)($_POST['nama'] ?? ''));
+    if ($nama === '') $nama = 'Rute';
+    $elev = (string)($_POST['elevasi_pref'] ?? 'apa-saja');
+    $surf = (string)($_POST['surface_pref'] ?? 'apa-saja');
+    $pub  = ($_POST['is_public'] ?? '0') === '1';
+    if ($id>0) {
+        db_exec("UPDATE run_routes SET nama=$1, elevasi_pref=$2, surface_pref=$3, is_public=$4 WHERE id=$5 AND user_id=$6",
+            [$nama,$elev,$surf,$pub?'t':'f',$id,$uid]);
+    }
     echo json_encode(['ok'=>true]); exit;
 }
 

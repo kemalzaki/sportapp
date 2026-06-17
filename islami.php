@@ -11,6 +11,18 @@ send_security_headers(); require_login();
 $pageTitle = 'Hub Islami';
 $u = current_user();
 
+// Revisi 17 Juni 2026 Part I — tabel penyimpanan Tanya Jawab Islami (idempotent)
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS islami_qa_saved (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        pertanyaan TEXT NOT NULL,
+        jawaban TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS islami_qa_user_idx ON islami_qa_saved(user_id, created_at DESC)");
+} catch (Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -37,12 +49,30 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     } elseif ($a === 'hide_sapa') {
         islami_set_pref((int)$u['id'], ['hide_sapa' => 1]);
         header('Location: /index.php'); exit;
+    } elseif ($a === 'qa_save') {
+        // Revisi 17 Juni 2026 Part I — simpan Q&A AI
+        header('Content-Type: application/json');
+        $q = trim((string)($_POST['pertanyaan'] ?? ''));
+        $j = trim((string)($_POST['jawaban'] ?? ''));
+        if ($q==='' || $j==='') { echo json_encode(['ok'=>false,'err'=>'kosong']); exit; }
+        if (mb_strlen($q)>4000) $q = mb_substr($q,0,4000);
+        if (mb_strlen($j)>20000) $j = mb_substr($j,0,20000);
+        $r = pg_query_params(db(), "INSERT INTO islami_qa_saved(user_id,pertanyaan,jawaban) VALUES($1,$2,$3) RETURNING id",
+            [(int)$u['id'],$q,$j]);
+        $id = (int)(pg_fetch_row($r)[0] ?? 0);
+        echo json_encode(['ok'=>true,'id'=>$id]); exit;
+    } elseif ($a === 'qa_delete') {
+        header('Content-Type: application/json');
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id>0) db_exec("DELETE FROM islami_qa_saved WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
+        echo json_encode(['ok'=>true]); exit;
     }
 }
 
 $pref = $u ? islami_pref((int)$u['id']) : null;
 $streak = $u ? islami_streak_count((int)$u['id']) : 0;
 $badges = $u ? db_all("SELECT badge_key, earned_at FROM islami_badges WHERE user_id=$1 ORDER BY earned_at DESC", [(int)$u['id']]) : [];
+$qaSaved = $u ? db_all("SELECT id, pertanyaan, jawaban, created_at FROM islami_qa_saved WHERE user_id=$1 ORDER BY id DESC LIMIT 50", [(int)$u['id']]) : [];
 
 $hijri = masehi_ke_hijriyah();
 $ramadhan = hijri_event_to_gregorian(9, 1);
@@ -67,7 +97,35 @@ include __DIR__.'/includes/header.php';
       </div>
     </form>
     <div id="tanyaOut" class="border rounded p-3 bg-body-tertiary small text-muted" style="min-height:80px">Tulis pertanyaan lalu klik <b>Tanyakan</b>.</div>
+    <div id="tanyaActions" class="d-flex gap-2 mt-2" style="display:none !important">
+      <button type="button" id="btnSimpanQA" class="btn btn-outline-success btn-sm"><i class="bi bi-bookmark-plus"></i> Simpan Q&amp;A ini</button>
+      <span id="qaSaveStat" class="small text-muted align-self-center"></span>
+    </div>
     <div class="alert alert-warning small mt-2 mb-0"><i class="bi bi-info-circle"></i> Jawaban AI bersifat panduan umum, bukan fatwa. Untuk masalah penting silakan rujuk ulama tepercaya.</div>
+
+    <?php if ($u): ?>
+    <div class="mt-3">
+      <a class="small" data-bs-toggle="collapse" href="#qaSavedBox" role="button" aria-expanded="false">
+        <i class="bi bi-bookmark-star"></i> Tanya Jawab Tersimpan (<?= count($qaSaved) ?>)
+      </a>
+      <div class="collapse mt-2" id="qaSavedBox">
+        <?php if (!$qaSaved): ?>
+          <div class="small text-muted">Belum ada Q&amp;A tersimpan. Klik <b>Simpan Q&amp;A ini</b> setelah AI menjawab.</div>
+        <?php else: foreach ($qaSaved as $qa): ?>
+          <div class="border rounded p-2 mb-2 small" data-qa-id="<?= (int)$qa['id'] ?>">
+            <div class="d-flex justify-content-between">
+              <strong class="text-success"><i class="bi bi-patch-question"></i> <?= htmlspecialchars(mb_strimwidth($qa['pertanyaan'],0,200,'…')) ?></strong>
+              <button type="button" class="btn btn-sm btn-link text-danger p-0 qa-del-btn" data-id="<?= (int)$qa['id'] ?>" title="Hapus"><i class="bi bi-trash"></i></button>
+            </div>
+            <div class="text-muted small mb-1"><?= htmlspecialchars(date('d M Y H:i', strtotime($qa['created_at']))) ?></div>
+            <details><summary class="text-primary">Lihat jawaban</summary>
+              <div class="mt-1" style="white-space:pre-wrap"><?= htmlspecialchars($qa['jawaban']) ?></div>
+            </details>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
   </div>
 </div>
 <script>
@@ -75,15 +133,34 @@ include __DIR__.'/includes/header.php';
   var form = document.getElementById('tanyaForm');
   var inp  = document.getElementById('tanyaInput');
   var out  = document.getElementById('tanyaOut');
+  var actions = document.getElementById('tanyaActions');
+  var btnSimpan = document.getElementById('btnSimpanQA');
+  var qaStat = document.getElementById('qaSaveStat');
   if (!form) return;
-  document.getElementById('tanyaClear').addEventListener('click', function(){ inp.value=''; out.className='border rounded p-3 bg-body-tertiary small text-muted'; out.textContent='Tulis pertanyaan lalu klik Tanyakan.'; });
+  var isLoading = false;          // Revisi #2 — cegah pengiriman berulang
+  var lastQ = '', lastA = '', lastSavedKey = '';
+  document.getElementById('tanyaClear').addEventListener('click', function(){
+    inp.value='';
+    out.className='border rounded p-3 bg-body-tertiary small text-muted';
+    out.textContent='Tulis pertanyaan lalu klik Tanyakan.';
+    if (actions) actions.style.display='none';
+    lastQ=''; lastA=''; lastSavedKey='';
+  });
   form.addEventListener('submit', async function(e){
     e.preventDefault();
+    if (isLoading) return;        // guard utama
     var q = (inp.value||'').trim(); if (!q) return;
+    // Revisi #2 — jika pertanyaan SAMA dengan yang baru dijawab, jangan kirim ulang.
+    if (q === lastQ && lastA) {
+      qaStat.textContent = 'Pertanyaan sama — gunakan jawaban sebelumnya (hemat kuota AI).';
+      return;
+    }
+    isLoading = true;
     var btn = form.querySelector('button[type=submit]'); var oh = btn.innerHTML;
     btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> AI menjawab...';
     out.className='border rounded p-3 bg-body-tertiary small text-muted';
-    out.textContent='Sedang menjawab...';
+    out.textContent='Sedang menjawab... (hanya 1x kirim, mohon tunggu)';
+    if (actions) actions.style.display='none';
     try {
       var fd = new FormData();
       fd.append('csrf','<?= csrf_token() ?>');
@@ -91,14 +168,57 @@ include __DIR__.'/includes/header.php';
       fd.append('prompt', q);
       var r = await fetch('/api_ai.php',{method:'POST', body:fd, credentials:'same-origin'});
       var j = await r.json();
-      if (!j.ok) { out.className='border rounded p-3 bg-warning-subtle small'; out.textContent='Gagal: '+(j.err||'?'); return; }
-      out.className='border rounded p-3 bg-body-tertiary';
-      var html = (j.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                  .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-                  .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
-      out.innerHTML = '<p>'+html+'</p>';
+      if (!j.ok) {
+        out.className='border rounded p-3 bg-warning-subtle small';
+        out.textContent='Gagal: '+(j.err||'?');
+      } else {
+        out.className='border rounded p-3 bg-body-tertiary';
+        var html = (j.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+        out.innerHTML = '<p>'+html+'</p>';
+        lastQ = q; lastA = j.text || '';
+        if (actions) actions.style.display='flex';
+        qaStat.textContent = '';
+      }
     } catch(err){ out.className='border rounded p-3 bg-warning-subtle small'; out.textContent='Error: '+err.message; }
     btn.disabled=false; btn.innerHTML=oh;
+    isLoading = false;
+  });
+
+  // Revisi #1 — tombol Simpan Q&A
+  if (btnSimpan) btnSimpan.addEventListener('click', async function(){
+    if (!lastQ || !lastA) return;
+    var key = lastQ+'|'+lastA.substring(0,32);
+    if (key === lastSavedKey) { qaStat.textContent='Sudah disimpan sebelumnya.'; return; }
+    btnSimpan.disabled = true;
+    var fd = new FormData();
+    fd.append('csrf','<?= csrf_token() ?>');
+    fd.append('_action','qa_save');
+    fd.append('pertanyaan', lastQ);
+    fd.append('jawaban', lastA);
+    try {
+      var r = await fetch('/islami.php',{method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      if (j.ok){ lastSavedKey = key; qaStat.innerHTML = '<i class="bi bi-check-circle text-success"></i> Tersimpan (#'+j.id+'). <a href="/islami.php#qaSavedBox">Lihat daftar</a>'; }
+      else qaStat.textContent = 'Gagal menyimpan.';
+    } catch(e){ qaStat.textContent = 'Error: '+e.message; }
+    btnSimpan.disabled = false;
+  });
+
+  // Hapus item tersimpan
+  document.querySelectorAll('.qa-del-btn').forEach(function(b){
+    b.addEventListener('click', async function(){
+      if (!confirm('Hapus Q&A ini?')) return;
+      var id = b.dataset.id;
+      var fd = new FormData();
+      fd.append('csrf','<?= csrf_token() ?>');
+      fd.append('_action','qa_delete');
+      fd.append('id', id);
+      var r = await fetch('/islami.php',{method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      if (j.ok){ var el = document.querySelector('[data-qa-id="'+id+'"]'); if(el) el.remove(); }
+    });
   });
 })();
 </script>

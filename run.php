@@ -723,10 +723,15 @@ document.addEventListener('click', function(ev){
           <div class="small text-muted mt-1" id="rbManInfo">0 titik dipilih.</div>
         </div>
 
-        <label class="form-label small">Titik mulai</label>
-        <div class="input-group input-group-sm mb-2">
+        <label class="form-label small">Titik mulai <span class="badge bg-success-subtle text-success">Revisi #3</span></label>
+        <div class="input-group input-group-sm mb-1">
           <input id="rbStart" class="form-control" placeholder="lat,lng atau kosongkan = lokasi sekarang">
           <button class="btn btn-outline-secondary" id="rbUseMe" type="button" title="Gunakan lokasi saya"><i class="bi bi-geo-alt"></i></button>
+          <button class="btn btn-outline-primary" id="rbPickOnMap" type="button" title="Klik di peta untuk pilih titik mulai"><i class="bi bi-hand-index-thumb"></i> Pilih di Peta</button>
+        </div>
+        <div class="input-group input-group-sm mb-2">
+          <input id="rbAddrSearch" class="form-control" placeholder="atau cari alamat/landmark (cth: GBK Senayan)">
+          <button class="btn btn-outline-success" id="rbAddrGo" type="button" title="Cari & jadikan titik mulai"><i class="bi bi-search"></i></button>
         </div>
 
         <label class="form-label small">Target jarak (km)</label>
@@ -849,8 +854,15 @@ document.addEventListener('click', function(ev){
                   <?php endif; ?>
                 </span>
                 <span>
-                  <button class="btn btn-link btn-sm p-0 me-2 rb-load" data-rid="<?= (int)$r['id'] ?>"><i class="bi bi-eye"></i></button>
-                  <button class="btn btn-link btn-sm p-0 text-danger rb-del" data-rid="<?= (int)$r['id'] ?>"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-link btn-sm p-0 me-2 rb-load" data-rid="<?= (int)$r['id'] ?>" title="Lihat"><i class="bi bi-eye"></i></button>
+                  <button class="btn btn-link btn-sm p-0 me-2 rb-edit"
+                    data-rid="<?= (int)$r['id'] ?>"
+                    data-nama="<?= htmlspecialchars($r['nama']) ?>"
+                    data-elev="<?= htmlspecialchars($r['elevasi_pref']) ?>"
+                    data-surf="<?= htmlspecialchars($r['surface_pref']) ?>"
+                    data-pub="<?= ($r['is_public']==='t'||$r['is_public']===true||$r['is_public']==='1')?'1':'0' ?>"
+                    title="Edit"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-link btn-sm p-0 text-danger rb-del" data-rid="<?= (int)$r['id'] ?>" title="Hapus"><i class="bi bi-trash"></i></button>
                 </span>
               </div>
             <?php endforeach; ?>
@@ -1354,6 +1366,78 @@ document.addEventListener('click', function(ev){
       document.getElementById('rbInfo').textContent = '✓ Memuat rute tersimpan: '+(d.jarak_m/1000).toFixed(2)+' km';
       document.getElementById('rbExport').disabled = false;
     }
+    // Revisi 17 Juni 2026 Part I (#4) — Edit rute tersimpan
+    var ed = ev.target.closest('.rb-edit');
+    if (ed){
+      document.getElementById('reId').value   = ed.dataset.rid;
+      document.getElementById('reNama').value = ed.dataset.nama || '';
+      document.getElementById('reElev').value = ed.dataset.elev || 'apa-saja';
+      document.getElementById('reSurf').value = ed.dataset.surf || 'apa-saja';
+      document.getElementById('rePub').checked = (ed.dataset.pub === '1');
+      var m = new bootstrap.Modal(document.getElementById('routeEditModal'));
+      m.show();
+    }
+  });
+
+  // Submit modal edit rute
+  var feForm = document.getElementById('routeEditForm');
+  if (feForm) feForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var fd = new FormData();
+    fd.append('csrf', CSRF);
+    fd.append('_action','route_update');
+    fd.append('id',           document.getElementById('reId').value);
+    fd.append('nama',         document.getElementById('reNama').value);
+    fd.append('elevasi_pref', document.getElementById('reElev').value);
+    fd.append('surface_pref', document.getElementById('reSurf').value);
+    fd.append('is_public',    document.getElementById('rePub').checked ? '1':'0');
+    var r = await fetch('/api_run.php',{method:'POST',body:fd}); var d = await r.json();
+    if (d.ok) location.reload(); else alert('Gagal update: '+(d.err||''));
+  });
+
+  // ====================== Revisi #3: Pilih titik mulai (klik peta / cari alamat) ======================
+  var pickMode = false, pickHandler = null;
+  document.getElementById('rbPickOnMap').addEventListener('click', function(){
+    ensureBuilderMap();
+    pickMode = !pickMode;
+    this.classList.toggle('btn-primary', pickMode);
+    this.classList.toggle('btn-outline-primary', !pickMode);
+    var info = document.getElementById('rbInfo');
+    if (pickMode){
+      info.textContent = 'Klik di peta untuk menetapkan titik mulai...';
+      if (!pickHandler) pickHandler = function(e){
+        document.getElementById('rbStart').value = e.latlng.lat.toFixed(6)+','+e.latlng.lng.toFixed(6);
+        setStartMarker(e.latlng.lat, e.latlng.lng);
+        info.textContent = '✓ Titik mulai diset dari klik peta: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
+        pickMode = false;
+        document.getElementById('rbPickOnMap').classList.remove('btn-primary');
+        document.getElementById('rbPickOnMap').classList.add('btn-outline-primary');
+        bMap.off('click', pickHandler);
+      };
+      bMap.on('click', pickHandler);
+    } else {
+      if (pickHandler) bMap.off('click', pickHandler);
+      info.textContent = 'Mode pilih titik dimatikan.';
+    }
+  });
+  document.getElementById('rbAddrGo').addEventListener('click', async function(){
+    var q = (document.getElementById('rbAddrSearch').value || '').trim();
+    var info = document.getElementById('rbInfo');
+    if (!q) { info.textContent='Tulis alamat/landmark dulu.'; return; }
+    info.textContent = 'Mencari alamat "'+q+'"...';
+    try {
+      var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q='+encodeURIComponent(q);
+      var r = await fetch(url, {headers:{'Accept-Language':'id,en'}});
+      var arr = await r.json();
+      if (!arr || !arr.length){ info.textContent='Alamat tidak ditemukan. Coba lebih spesifik atau sertakan kota.'; return; }
+      var lat=parseFloat(arr[0].lat), lng=parseFloat(arr[0].lon);
+      document.getElementById('rbStart').value = lat.toFixed(6)+','+lng.toFixed(6);
+      setStartMarker(lat,lng);
+      info.textContent = '✓ Titik mulai diset ke "'+(arr[0].display_name||q)+'" ('+lat.toFixed(5)+', '+lng.toFixed(5)+')';
+    } catch(e){ info.textContent='Error: '+e.message; }
+  });
+  document.getElementById('rbAddrSearch').addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){ e.preventDefault(); document.getElementById('rbAddrGo').click(); }
   });
 
   // ====================== HEATMAPS ======================
@@ -1726,6 +1810,26 @@ document.addEventListener('click', function(ev){
 
 })();
 </script>
+
+
+<!-- Revisi 17 Juni 2026 Part I (#4) — Modal Edit Rute Tersimpan -->
+<div class="modal fade" id="routeEditModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form id="routeEditForm" class="modal-content">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square text-primary"></i> Edit Rute Tersimpan</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body row g-2">
+    <input type="hidden" id="reId">
+    <div class="col-12"><label class="form-label small">Nama rute</label><input id="reNama" class="form-control form-control-sm" required></div>
+    <div class="col-6"><label class="form-label small">Preferensi elevasi</label>
+      <select id="reElev" class="form-select form-select-sm">
+        <option value="apa-saja">Apa saja</option><option value="datar">Datar</option><option value="berbukit">Berbukit</option>
+      </select></div>
+    <div class="col-6"><label class="form-label small">Jenis jalan</label>
+      <select id="reSurf" class="form-select form-select-sm">
+        <option value="apa-saja">Apa saja</option><option value="aspal">Aspal</option><option value="tanah">Tanah</option><option value="campuran">Campuran</option>
+      </select></div>
+    <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" id="rePub"><label class="form-check-label small" for="rePub">Publik (terlihat komunitas)</label></div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan Perubahan</button></div>
+</form></div></div>
 
 <?php include __DIR__.'/includes/footer.php'; ?>
 

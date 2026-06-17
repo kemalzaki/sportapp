@@ -96,7 +96,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
                         $aiUsed = true;
                     } else if (!empty($_POST['use_ai'])) {
-                        $_SESSION['flash_err'] = 'AI gagal menebak kalori. '.(is_array($ai) && !empty($ai['err']) ? $ai['err'] : 'Input manual saja.');
+                        $errMsg = (is_array($ai) && !empty($ai['err'])) ? $ai['err'] : 'Input manual saja.';
+                        // Revisi 17 Juni 2026 Part I — pesan ramah saat quota Gemini habis
+                        if (stripos($errMsg,'quota')!==false || stripos($errMsg,'exceeded')!==false || stripos($errMsg,'rate limit')!==false) {
+                            $errMsg = 'Kuota AI Gemini hari ini sudah habis (free tier 20 req/menit). '
+                                    . 'Solusi: (a) tunggu ~1 menit lalu coba lagi, atau (b) tambahkan beberapa API key di env '
+                                    . '<code>GEMINI_API_KEYS=key1,key2,key3</code> agar sistem otomatis bergiliran. '
+                                    . 'Detail asli: '.htmlspecialchars(mb_substr($errMsg,0,200));
+                        }
+                        $_SESSION['flash_err'] = 'AI gagal menebak kalori. '.$errMsg;
                     }
                 }
             }

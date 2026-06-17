@@ -93,24 +93,42 @@ switch ($task) {
         }, $places);
         $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
         if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak mengembalikan tempat. Raw: '.substr($r['text'],0,200)]); exit; }
-        // Geocode via Nominatim (dibatasi ke Indonesia)
+        // Geocode via Nominatim (Revisi 17 Juni 2026 Part I — fallback multi-variant)
         $coords = []; $failures = [];
         foreach ($places as $place) {
             $q = trim((string)$place); if ($q==='') continue;
-            $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q='.urlencode($q);
-            $ch = curl_init($url);
-            $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
-                CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)'];
-            if (getenv('GEMINI_INSECURE_SSL') === '1') { $copt[CURLOPT_SSL_VERIFYPEER]=false; $copt[CURLOPT_SSL_VERIFYHOST]=0; }
-            curl_setopt_array($ch, $copt);
-            $r2 = curl_exec($ch); curl_close($ch);
-            $arr = json_decode($r2 ?: '[]', true);
-            if (is_array($arr) && !empty($arr[0]['lat'])) {
-                $coords[] = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
-            } else { $failures[] = $q; }
-            usleep(500*1000);
+            // Buat beberapa variasi query: full → tanpa countrycode → potong jadi 2 segmen terakhir → kota saja
+            $parts = array_map('trim', explode(',', $q));
+            $tail2 = count($parts)>=2 ? implode(', ', array_slice($parts,-2)) : $q;
+            $kota  = count($parts)>=2 ? $parts[count($parts)-2] : $parts[0];
+            $variants = [
+                ['q'=>$q,     'cc'=>'id'],
+                ['q'=>$q,     'cc'=>''],
+                ['q'=>$tail2, 'cc'=>'id'],
+                ['q'=>$kota.', Indonesia', 'cc'=>'id'],
+            ];
+            $found = null;
+            foreach ($variants as $v) {
+                if ($v['q']==='') continue;
+                $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+                     . ($v['cc']?'&countrycodes='.$v['cc']:'') . '&q='.urlencode($v['q']);
+                $ch = curl_init($url);
+                $copt = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10,
+                    CURLOPT_USERAGENT=>'SportAppBot/1.0 (admin@local)',
+                    CURLOPT_HTTPHEADER=>['Accept-Language: id,en']];
+                if (getenv('GEMINI_INSECURE_SSL') === '1') { $copt[CURLOPT_SSL_VERIFYPEER]=false; $copt[CURLOPT_SSL_VERIFYHOST]=0; }
+                curl_setopt_array($ch, $copt);
+                $r2 = curl_exec($ch); curl_close($ch);
+                $arr = json_decode($r2 ?: '[]', true);
+                if (is_array($arr) && !empty($arr[0]['lat'])) {
+                    $found = [(float)$arr[0]['lat'], (float)$arr[0]['lon']];
+                    break;
+                }
+                usleep(550*1000); // hormati rate-limit Nominatim
+            }
+            if ($found) $coords[] = $found; else $failures[] = $q;
         }
-        if (count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ',$failures)]); exit; }
+        if (count($coords) < 2) { echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ',$failures).'. Coba prompt yang lebih spesifik (sebut kota besar/landmark terkenal).']); exit; }
         echo json_encode(['ok'=>true,'coords'=>$coords,'places'=>$places,'note'=>$obj['note'] ?? '','gagal_geocode'=>$failures]); exit;
     }
 

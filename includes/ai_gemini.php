@@ -64,17 +64,36 @@ foreach ([
 }
 
 function _gemini_key() {
-    $k = getenv('GEMINI_API_KEY');
-    if (!$k && isset($_ENV['GEMINI_API_KEY']))    $k = $_ENV['GEMINI_API_KEY'];
-    if (!$k && isset($_SERVER['GEMINI_API_KEY'])) $k = $_SERVER['GEMINI_API_KEY'];
-    if (!$k || stripos($k, 'GANTI') !== false)    $k = GEMINI_API_KEY_DEFAULT;
-    // alias lama
-    if (!$k) {
-        $k = getenv('GEMINI_ACCESS_TOKEN')
-          ?: ($_ENV['GEMINI_ACCESS_TOKEN'] ?? '')
-          ?: '';
+    $list = _gemini_keys();
+    return $list[0] ?? '';
+}
+
+/**
+ * Revisi 17 Juni 2026 (Part I) — Dukungan multi-key rotation.
+ * Set GEMINI_API_KEYS=key1,key2,key3 di env.local.php untuk fallback
+ * otomatis saat satu key kena quota (429 / RESOURCE_EXHAUSTED).
+ * GEMINI_API_KEY tunggal tetap didukung (akan digabung ke list).
+ */
+function _gemini_keys() {
+    $keys = [];
+    $single = getenv('GEMINI_API_KEY');
+    if (!$single && isset($_ENV['GEMINI_API_KEY']))    $single = $_ENV['GEMINI_API_KEY'];
+    if (!$single && isset($_SERVER['GEMINI_API_KEY'])) $single = $_SERVER['GEMINI_API_KEY'];
+    if ($single && stripos($single,'GANTI')===false) $keys[] = trim($single);
+
+    $multi = getenv('GEMINI_API_KEYS') ?: ($_ENV['GEMINI_API_KEYS'] ?? '');
+    if ($multi) {
+        foreach (preg_split('/[,\s;]+/', $multi) as $kk) {
+            $kk = trim($kk);
+            if ($kk !== '' && stripos($kk,'GANTI')===false) $keys[] = $kk;
+        }
     }
-    return trim((string)$k);
+    if (!$keys && GEMINI_API_KEY_DEFAULT !== '') $keys[] = GEMINI_API_KEY_DEFAULT;
+    if (!$keys) {
+        $tok = getenv('GEMINI_ACCESS_TOKEN') ?: ($_ENV['GEMINI_ACCESS_TOKEN'] ?? '');
+        if ($tok) $keys[] = trim($tok);
+    }
+    return array_values(array_unique(array_filter($keys)));
 }
 
 function _gemini_model() {
@@ -114,9 +133,9 @@ function gemini_config_status() {
  * $parts = [ ['text'=>...], ['inline_data'=>['mime_type'=>...,'data'=>base64]] , ... ]
  */
 function _gemini_call(array $parts, array $opts = []) {
-    $key   = _gemini_key();
+    $keys  = _gemini_keys();
     $model = $opts['model'] ?? _gemini_model();
-    if ($key === '') {
+    if (!$keys) {
         return ['ok'=>false,'text'=>'','err'=>'GEMINI_API_KEY belum di-set (cek includes/ai_gemini.php).'];
     }
 
@@ -139,90 +158,81 @@ function _gemini_call(array $parts, array $opts = []) {
 
     $url = rtrim(GEMINI_API_BASE, '/')
          . '/models/' . rawurlencode($model) . ':generateContent';
-
-    $kind    = _gemini_key_kind($key);
-    $headers = ['Content-Type: application/json'];
-
-    if ($kind === 'oauth_bearer') {
-        // OAuth access token (ya29.*) — TETAP pakai Bearer.
-        $headers[] = 'Authorization: Bearer ' . $key;
-    } else {
-        // AIza..., AQ..., atau unknown → kirim sebagai API key via header.
-        // Ini adalah cara yang direkomendasikan Google untuk auth key
-        // format baru (AQ.*) maupun standard key (AIza*). Tidak lagi
-        // memakai ?key= di URL agar key tidak bocor lewat access log.
-        $headers[] = 'x-goog-api-key: ' . $key;
-    }
-
     $postBody = json_encode($body, JSON_UNESCAPED_UNICODE);
 
-    // ---- request + retry transient 1x ----
-    $attempt = 0;
-    $maxAttempt = 2;
-    $resp = false; $code = 0; $cerr = '';
-    while ($attempt < $maxAttempt) {
-        $attempt++;
-        $ch = curl_init($url);
-        $curlOpts = [
-            CURLOPT_POST           => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 60,
-            CURLOPT_CONNECTTIMEOUT => 15,
-            CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_POSTFIELDS     => $postBody,
-        ];
-        // Revisi 17 Juni 2026 — fallback SSL utk dev lokal (Windows/XAMPP)
-        // tanpa cacert.pem: setel GEMINI_INSECURE_SSL=1 di env.local.php.
-        if (getenv('GEMINI_INSECURE_SSL') === '1') {
-            $curlOpts[CURLOPT_SSL_VERIFYPEER] = false;
-            $curlOpts[CURLOPT_SSL_VERIFYHOST] = 0;
+    $lastErr = ''; $lastJson = null; $lastKind = '';
+    foreach ($keys as $keyIdx => $key) {
+        $kind = _gemini_key_kind($key);
+        $lastKind = $kind;
+        $headers = ['Content-Type: application/json'];
+        if ($kind === 'oauth_bearer') {
+            $headers[] = 'Authorization: Bearer ' . $key;
+        } else {
+            $headers[] = 'x-goog-api-key: ' . $key;
         }
-        curl_setopt_array($ch, $curlOpts);
-        $resp = curl_exec($ch);
-        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $cerr = curl_error($ch);
-        curl_close($ch);
 
-        $transient = ($resp === false) || ($code >= 500 && $code < 600);
-        // Revisi 17 Juni 2026 — auto retry tanpa SSL verify jika error SSL
-        if ($resp === false && stripos($cerr, 'SSL') !== false && $attempt === 1) {
-            $curlOpts[CURLOPT_SSL_VERIFYPEER] = false;
-            $curlOpts[CURLOPT_SSL_VERIFYHOST] = 0;
-            $ch = curl_init($url); curl_setopt_array($ch, $curlOpts);
-            $resp = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $cerr = curl_error($ch); curl_close($ch);
-            $transient = ($resp === false) || ($code >= 500 && $code < 600);
+        // request + retry transient 1x
+        $attempt = 0; $maxAttempt = 2;
+        $resp=false; $code=0; $cerr='';
+        while ($attempt < $maxAttempt) {
+            $attempt++;
+            $ch = curl_init($url);
+            $curlOpts = [
+                CURLOPT_POST=>true, CURLOPT_RETURNTRANSFER=>true,
+                CURLOPT_TIMEOUT=>60, CURLOPT_CONNECTTIMEOUT=>15,
+                CURLOPT_HTTPHEADER=>$headers, CURLOPT_POSTFIELDS=>$postBody,
+            ];
+            if (getenv('GEMINI_INSECURE_SSL') === '1') {
+                $curlOpts[CURLOPT_SSL_VERIFYPEER]=false; $curlOpts[CURLOPT_SSL_VERIFYHOST]=0;
+            }
+            curl_setopt_array($ch, $curlOpts);
+            $resp = curl_exec($ch);
+            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $cerr = curl_error($ch);
+            curl_close($ch);
+            $transient = ($resp===false) || ($code>=500 && $code<600);
+            if ($resp===false && stripos($cerr,'SSL')!==false && $attempt===1) {
+                $curlOpts[CURLOPT_SSL_VERIFYPEER]=false; $curlOpts[CURLOPT_SSL_VERIFYHOST]=0;
+                $ch=curl_init($url); curl_setopt_array($ch,$curlOpts);
+                $resp=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
+                $cerr=curl_error($ch); curl_close($ch);
+                $transient = ($resp===false) || ($code>=500 && $code<600);
+            }
+            if (!$transient) break;
+            if ($attempt < $maxAttempt) usleep(400000);
         }
-        if (!$transient) break;
-        if ($attempt < $maxAttempt) { usleep(400000); /* 0.4s backoff */ }
-    }
 
-    if ($resp === false) {
-        return ['ok'=>false,'text'=>'','err'=>'curl: '.$cerr];
-    }
-    $json = json_decode($resp, true);
-    if (!is_array($json)) {
-        return ['ok'=>false,'text'=>'','err'=>'Respons bukan JSON (HTTP '.$code.'): '.substr((string)$resp,0,300)];
-    }
-    if ($code < 200 || $code >= 300 || isset($json['error'])) {
-        $msg = $json['error']['message'] ?? ('HTTP '.$code);
-        // tambahkan hint diagnosa khusus untuk kasus auth umum
-        if (stripos($msg, 'OAuth 2 access token') !== false
-            || stripos($msg, 'API key not valid') !== false
-            || $code === 401 || $code === 403) {
-            $msg .= ' [hint: cek format key — Auth Key baru (AQ.*) dan API Key (AIza*) '
-                 .  'sama-sama dikirim via header x-goog-api-key di Part G. '
-                 .  'Mode terdeteksi: '. $kind .']';
+        if ($resp === false) { $lastErr = 'curl: '.$cerr; continue; }
+        $json = json_decode($resp, true);
+        if (!is_array($json)) { $lastErr='Respons bukan JSON (HTTP '.$code.'): '.substr((string)$resp,0,200); continue; }
+        $lastJson = $json;
+        if ($code < 200 || $code >= 300 || isset($json['error'])) {
+            $msg = $json['error']['message'] ?? ('HTTP '.$code);
+            $isQuota = ($code===429) || stripos($msg,'quota')!==false
+                       || stripos($msg,'exceeded')!==false || stripos($msg,'RESOURCE_EXHAUSTED')!==false
+                       || stripos($msg,'rate limit')!==false;
+            // rotasi key bila quota / 401 / 403 dan masih ada key cadangan
+            if (($isQuota || $code===401 || $code===403) && $keyIdx < count($keys)-1) {
+                $lastErr = '[key#'.($keyIdx+1).' '.$kind.' gagal: '.substr($msg,0,140).'] — coba key berikutnya';
+                continue; // try next key
+            }
+            if (stripos($msg,'OAuth 2 access token')!==false || stripos($msg,'API key not valid')!==false || $code===401 || $code===403) {
+                $msg .= ' [hint: cek format key. Mode: '.$kind.']';
+            }
+            if ($isQuota) {
+                $msg .= ' [Tip: set GEMINI_API_KEYS=key1,key2,... untuk rotasi otomatis saat quota habis.]';
+            }
+            return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
         }
-        return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
-    }
-    $text = '';
-    if (isset($json['candidates'][0]['content']['parts']) && is_array($json['candidates'][0]['content']['parts'])) {
-        foreach ($json['candidates'][0]['content']['parts'] as $p) {
-            if (isset($p['text'])) $text .= $p['text'];
+        $text = '';
+        if (isset($json['candidates'][0]['content']['parts']) && is_array($json['candidates'][0]['content']['parts'])) {
+            foreach ($json['candidates'][0]['content']['parts'] as $p) {
+                if (isset($p['text'])) $text .= $p['text'];
+            }
         }
+        return ['ok'=>true,'text'=>$text,'err'=>'','raw'=>$json];
     }
-    return ['ok'=>true,'text'=>$text,'err'=>'','raw'=>$json];
+    return ['ok'=>false,'text'=>'','err'=>$lastErr ?: 'semua key gagal','raw'=>$lastJson];
 }
 
 function gemini_text($prompt, array $opts = []) {
