@@ -35,6 +35,17 @@ try {
     // Revisi 17 Juni 2026 Part J — kolom file_id untuk hapus dari ImageKit
     db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS foto_file_id TEXT");
     db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC)");
+    // Revisi 18 Juni 2026 (Lanjutan) — Setting sumber defisit kalori per user.
+    // sumber: 'auto' (semua workout di kalori_log, default lama),
+    //         'jogging' (hanya jogging dari upload_harian / Riwayat),
+    //         'manual' (input nilai harian kkal/hari oleh user),
+    //         'gabungan' (jogging dari Riwayat + manual harian).
+    db_exec("CREATE TABLE IF NOT EXISTS kalori_defisit_setting (
+        user_id        INT PRIMARY KEY,
+        sumber         VARCHAR(20) NOT NULL DEFAULT 'auto',
+        manual_harian  INT NOT NULL DEFAULT 0,
+        updated_at     TIMESTAMP NOT NULL DEFAULT now()
+    )");
 } catch (Throwable $e) {}
 
 // === Helper AI (Revisi 17 Juni 2026 Part J) ===
@@ -78,6 +89,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("INSERT INTO kalori_target(user_id,target_harian) VALUES($1,$2)
                  ON CONFLICT (user_id) DO UPDATE SET target_harian=EXCLUDED.target_harian", [$uid,$t]);
         $_SESSION['flash_ok'] = "Target diperbarui: $t kkal/hari.";
+    } elseif ($a==='defisit_setting') {
+        // Revisi 18 Juni 2026 (Lanjutan) — Simpan pilihan sumber defisit kalori.
+        $src = $_POST['sumber'] ?? 'auto';
+        if (!in_array($src, ['auto','jogging','manual','gabungan'], true)) $src = 'auto';
+        $mh  = max(0, (int)($_POST['manual_harian'] ?? 0));
+        db_exec("INSERT INTO kalori_defisit_setting(user_id,sumber,manual_harian,updated_at)
+                 VALUES($1,$2,$3, now())
+                 ON CONFLICT (user_id) DO UPDATE SET sumber=EXCLUDED.sumber,
+                    manual_harian=EXCLUDED.manual_harian, updated_at=now()", [$uid,$src,$mh]);
+        $_SESSION['flash_ok'] = "Pengaturan defisit kalori disimpan (sumber: $src, manual: $mh kkal/hari).";
     } elseif ($a==='add') {
         $tgl = $_POST['tanggal'] ?: date('Y-m-d');
         $jam = $_POST['waktu'] ?: date('H:i');
@@ -224,26 +245,67 @@ $byDay = db_all("SELECT tanggal::text AS tgl, SUM(kalori)::int AS total
 $map = [];
 foreach($byDay as $r) $map[$r['tgl']] = (int)$r['total'];
 
-// Revisi 18 Juni 2026 — Kalori TERBAKAR dari olahraga (tabel kalori_log) untuk menghitung defisit/surplus.
+// Revisi 18 Juni 2026 (Lanjutan) — Sumber kalori TERBAKAR dapat dipilih user:
+//   'auto'     → tabel kalori_log (semua workout, default lama)
+//   'jogging'  → tabel upload_harian dari Riwayat, hanya entri jenis Jogging
+//   'manual'   → angka manual_harian (kkal/hari) yang diisi user
+//   'gabungan' → jogging (upload_harian) + manual_harian
+$defSet = db_one("SELECT sumber, manual_harian FROM kalori_defisit_setting WHERE user_id=$1", [$uid]);
+$defSumber = $defSet['sumber'] ?? 'auto';
+$defManual = (int)($defSet['manual_harian'] ?? 0);
+
 $burnMap = []; $burnDetail = [];
 try {
-    $burnRows = db_all(
-        "SELECT (dibuat_pada::date)::text AS tgl, SUM(kalori)::int AS total
-           FROM kalori_log
-          WHERE user_id=$1 AND dibuat_pada::date BETWEEN $2 AND $3
-       GROUP BY dibuat_pada::date ORDER BY 1",
-        [$uid,$weekStart,$weekEnd]
-    );
-    foreach ($burnRows as $r) $burnMap[$r['tgl']] = (int)$r['total'];
-    // Detail per-jenis untuk ditampilkan
-    $burnDetail = db_all(
-        "SELECT jenis, SUM(menit)::int AS menit, SUM(kalori)::int AS kalori, COUNT(*)::int AS sesi
-           FROM kalori_log
-          WHERE user_id=$1 AND dibuat_pada::date BETWEEN $2 AND $3
-       GROUP BY jenis ORDER BY kalori DESC",
-        [$uid,$weekStart,$weekEnd]
-    );
-} catch (Throwable $e) { /* tabel kalori_log belum ada → diabaikan */ }
+    if ($defSumber === 'auto') {
+        $burnRows = db_all(
+            "SELECT (dibuat_pada::date)::text AS tgl, SUM(kalori)::int AS total
+               FROM kalori_log
+              WHERE user_id=$1 AND dibuat_pada::date BETWEEN $2 AND $3
+           GROUP BY dibuat_pada::date ORDER BY 1",
+            [$uid,$weekStart,$weekEnd]
+        );
+        foreach ($burnRows as $r) $burnMap[$r['tgl']] = (int)$r['total'];
+        $burnDetail = db_all(
+            "SELECT jenis, SUM(menit)::int AS menit, SUM(kalori)::int AS kalori, COUNT(*)::int AS sesi
+               FROM kalori_log
+              WHERE user_id=$1 AND dibuat_pada::date BETWEEN $2 AND $3
+           GROUP BY jenis ORDER BY kalori DESC",
+            [$uid,$weekStart,$weekEnd]
+        );
+    }
+    if ($defSumber === 'jogging' || $defSumber === 'gabungan') {
+        // Ambil kalori jogging dari riwayat.php (tabel upload_harian) — jenis mengandung 'jog'/'lari'/'run'.
+        $jogRows = db_all(
+            "SELECT tanggal::text AS tgl, SUM(kalori)::int AS total
+               FROM upload_harian
+              WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3
+                AND (jenis ILIKE '%jog%' OR jenis ILIKE '%lari%' OR jenis ILIKE '%run%')
+           GROUP BY tanggal ORDER BY 1",
+            [$uid,$weekStart,$weekEnd]
+        );
+        foreach ($jogRows as $r) $burnMap[$r['tgl']] = ($burnMap[$r['tgl']] ?? 0) + (int)$r['total'];
+        $jogDetail = db_all(
+            "SELECT jenis, SUM(durasi_menit)::int AS menit, SUM(kalori)::int AS kalori, COUNT(*)::int AS sesi
+               FROM upload_harian
+              WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3
+                AND (jenis ILIKE '%jog%' OR jenis ILIKE '%lari%' OR jenis ILIKE '%run%')
+           GROUP BY jenis ORDER BY kalori DESC",
+            [$uid,$weekStart,$weekEnd]
+        );
+        foreach ($jogDetail as $d) $burnDetail[] = $d;
+    }
+    if ($defSumber === 'manual' || $defSumber === 'gabungan') {
+        // Tambahkan nilai manual_harian ke setiap hari minggu ini (sampai hari ini saja agar tidak overshoot ke depan).
+        $today = date('Y-m-d');
+        for ($i=0; $i<7; $i++) {
+            $d = date('Y-m-d', strtotime($weekStart." +$i day"));
+            if ($d <= $today) $burnMap[$d] = ($burnMap[$d] ?? 0) + $defManual;
+        }
+        if ($defManual > 0) {
+            $burnDetail[] = ['jenis'=>'Defisit Manual','sesi'=>1,'menit'=>0,'kalori'=>$defManual*7];
+        }
+    }
+} catch (Throwable $e) { /* tabel terkait belum ada → diabaikan */ }
 
 $labels=[]; $data=[]; $sisa=[]; $burnData=[]; $netData=[]; $deficitData=[];
 for($i=0;$i<7;$i++){
@@ -317,6 +379,43 @@ include __DIR__.'/includes/header.php';
   <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
     <i class="bi bi-calendar3 fs-4 text-info"></i>
     <div class="fw-bold"><?= $avgDay ?> kkal</div><div class="small text-muted">Rata-rata / hari</div></div></div></div>
+</div>
+
+<!-- Revisi 18 Juni 2026 (Lanjutan) — Pengaturan sumber Defisit Kalori -->
+<div class="card shadow-sm mb-3">
+  <div class="card-header py-2"><i class="bi bi-sliders"></i> Sumber Defisit Kalori</div>
+  <div class="card-body py-2">
+    <form method="post" class="row g-2 align-items-end">
+      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+      <input type="hidden" name="_action" value="defisit_setting">
+      <div class="col-md-6">
+        <label class="form-label small mb-1">Ambil kalori terbakar dari:</label>
+        <select name="sumber" class="form-select form-select-sm">
+          <option value="auto"     <?= $defSumber==='auto'?'selected':'' ?>>Otomatis — semua workout (kalori_log)</option>
+          <option value="jogging"  <?= $defSumber==='jogging'?'selected':'' ?>>Riwayat Jogging saya (riwayat.php)</option>
+          <option value="manual"   <?= $defSumber==='manual'?'selected':'' ?>>Input manual (kkal/hari)</option>
+          <option value="gabungan" <?= $defSumber==='gabungan'?'selected':'' ?>>Gabungan: Jogging + Manual</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Manual defisit (kkal / hari)</label>
+        <input type="number" min="0" max="5000" name="manual_harian" value="<?= (int)$defManual ?>"
+               class="form-control form-control-sm" placeholder="cth: 300">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary btn-sm w-100"><i class="bi bi-save"></i> Simpan</button>
+      </div>
+      <div class="col-12 small text-muted mt-1">
+        Mode aktif: <strong class="text-capitalize"><?= htmlspecialchars($defSumber) ?></strong>.
+        <?php if ($defSumber==='jogging' || $defSumber==='gabungan'): ?>
+          Kalori dijumlahkan dari entri <em>upload_harian</em> dengan jenis mengandung "jog"/"lari"/"run" di halaman <a href="/riwayat.php">Riwayat</a>.
+        <?php endif; ?>
+        <?php if ($defSumber==='manual' || $defSumber==='gabungan'): ?>
+          Nilai manual ditambahkan ke setiap hari pada minggu berjalan (sampai hari ini).
+        <?php endif; ?>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- Revisi 18 Juni 2026 — Defisit / Surplus mingguan (memperhitungkan olahraga) -->
