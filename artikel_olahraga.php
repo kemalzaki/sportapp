@@ -26,6 +26,149 @@ $ytId = function($s){
   return '';
 };
 
+/* ============================================================
+ * Revisi 18 Juni 2026 — Helper visual (animasi SVG inline)
+ *  - Ilustrasi cara_img / tim_img / skoring_img sebelumnya memakai URL
+ *    Wikimedia Commons yang sebagian besar 404 (gambar rusak).
+ *  - Diganti dengan SVG inline beranimasi (data URI) per olahraga,
+ *    menggambarkan lapangan/lintasan + bola/pemain bergerak.
+ *  - Tidak butuh akses internet, tetap muncul di lokal/offline.
+ * ============================================================ */
+function ao_anim_svg($slug, $section) {
+  $palette = [
+    'lari'      => ['#16a34a', '#dcfce7', '#065f46'],
+    'badminton' => ['#dc2626', '#fee2e2', '#7f1d1d'],
+    'renang'    => ['#0284c7', '#e0f2fe', '#0c4a6e'],
+    'hiking'    => ['#15803d', '#dcfce7', '#14532d'],
+    'pingpong'  => ['#ca8a04', '#fef9c3', '#713f12'],
+    'futsal'    => ['#2563eb', '#dbeafe', '#1e3a8a'],
+    'biliard'   => ['#1f2937', '#e5e7eb', '#0f172a'],
+  ];
+  $pal = $palette[$slug] ?? ['#0ea5e9', '#e0f2fe', '#0c4a6e'];
+  $fg = $pal[0]; $bg = $pal[1]; $dark = $pal[2];
+
+  $capMap = ['cara'=>'Cara Main', 'tim'=>'Pembagian Tim', 'skor'=>'Sistem Skoring'];
+  $cap = isset($capMap[$section]) ? $capMap[$section] : '';
+
+  $W = 480; $H = 220;
+  $field = ''; $motion = '';
+
+  switch ($slug) {
+    case 'lari':
+      $field = '<ellipse cx="240" cy="110" rx="200" ry="80" fill="none" stroke="'.$fg.'" stroke-width="4"/>'
+             . '<ellipse cx="240" cy="110" rx="160" ry="55" fill="none" stroke="'.$fg.'" stroke-width="2" stroke-dasharray="6 4"/>'
+             . '<line x1="240" y1="22" x2="240" y2="48" stroke="'.$dark.'" stroke-width="3"/>'
+             . '<text x="248" y="42" font-size="11" fill="'.$dark.'">START/FINISH</text>';
+      $motion = '<circle r="9" fill="'.$dark.'"><animateMotion dur="3s" repeatCount="indefinite" path="M 240,30 A 200,80 0 1 1 239.9,30 Z"/></circle>';
+      if ($section==='tim') {
+        $motion .= '<circle r="9" fill="'.$fg.'"><animateMotion dur="3s" begin="0.5s" repeatCount="indefinite" path="M 240,30 A 200,80 0 1 1 239.9,30 Z"/></circle>'
+                 . '<circle r="9" fill="#f59e0b"><animateMotion dur="3s" begin="1s" repeatCount="indefinite" path="M 240,30 A 200,80 0 1 1 239.9,30 Z"/></circle>'
+                 . '<circle r="9" fill="#ef4444"><animateMotion dur="3s" begin="1.5s" repeatCount="indefinite" path="M 240,30 A 200,80 0 1 1 239.9,30 Z"/></circle>';
+      }
+      break;
+
+    case 'badminton':
+      $field = '<rect x="80" y="30" width="320" height="160" fill="#ffffff" stroke="'.$dark.'" stroke-width="3"/>'
+             . '<line x1="240" y1="30" x2="240" y2="190" stroke="'.$dark.'" stroke-width="3" stroke-dasharray="6 4"/>'
+             . '<rect x="80" y="76" width="320" height="68" fill="none" stroke="'.$dark.'" stroke-width="1.5"/>'
+             . '<line x1="160" y1="30" x2="160" y2="190" stroke="'.$dark.'" stroke-width="1"/>'
+             . '<line x1="320" y1="30" x2="320" y2="190" stroke="'.$dark.'" stroke-width="1"/>'
+             . '<text x="240" y="20" text-anchor="middle" font-size="11" fill="'.$dark.'">NET</text>';
+      $motion = '<circle r="7" fill="'.$fg.'"><animateMotion dur="2s" repeatCount="indefinite" path="M 130,110 Q 240,40 350,110 Q 240,180 130,110 Z"/></circle>';
+      if ($section==='tim') {
+        $motion .= '<circle cx="130" cy="80" r="10" fill="'.$dark.'"/><circle cx="130" cy="140" r="10" fill="'.$dark.'"/>'
+                 . '<circle cx="350" cy="80" r="10" fill="'.$fg.'"/><circle cx="350" cy="140" r="10" fill="'.$fg.'"/>';
+      }
+      break;
+
+    case 'renang':
+      $field = '<rect x="40" y="30" width="400" height="160" fill="#bae6fd" stroke="'.$dark.'" stroke-width="3"/>';
+      for ($i=1;$i<=5;$i++) { $y = 30 + $i*26;
+        $field .= '<line x1="40" y1="'.$y.'" x2="440" y2="'.$y.'" stroke="#ffffff" stroke-width="2" stroke-dasharray="10 6"/>'; }
+      $count = $section==='tim' ? 4 : 1;
+      for ($i=0;$i<$count;$i++) {
+        $y = 56 + $i*40; $delay = $i*0.3;
+        $motion .= '<circle r="8" fill="'.$dark.'"><animateMotion dur="2.5s" begin="'.$delay.'s" repeatCount="indefinite" path="M 50,'.$y.' L 430,'.$y.' L 50,'.$y.'"/></circle>';
+      }
+      break;
+
+    case 'hiking':
+      $field = '<rect x="0" y="0" width="480" height="220" fill="#e0f2fe"/>'
+             . '<polygon points="0,200 120,80 200,140 300,40 400,130 480,90 480,220 0,220" fill="'.$fg.'" opacity="0.85"/>'
+             . '<polygon points="0,220 180,160 280,180 400,150 480,170 480,220" fill="'.$dark.'" opacity="0.6"/>'
+             . '<circle cx="420" cy="40" r="18" fill="#fbbf24"/>';
+      $motion = '<g><animateMotion dur="6s" repeatCount="indefinite" path="M 20,200 L 120,80 L 200,140 L 300,40"/>'
+              . '<circle r="6" fill="#dc2626"/></g>';
+      if ($section==='tim') {
+        $motion .= '<g><animateMotion dur="6s" begin="0.6s" repeatCount="indefinite" path="M 20,200 L 120,80 L 200,140 L 300,40"/><circle r="6" fill="#1d4ed8"/></g>'
+                 . '<g><animateMotion dur="6s" begin="1.2s" repeatCount="indefinite" path="M 20,200 L 120,80 L 200,140 L 300,40"/><circle r="6" fill="#7c3aed"/></g>';
+      }
+      break;
+
+    case 'pingpong':
+      $field = '<rect x="60" y="40" width="360" height="140" fill="#1e40af" stroke="'.$dark.'" stroke-width="3" rx="4"/>'
+             . '<rect x="68" y="48" width="344" height="124" fill="none" stroke="#ffffff" stroke-width="2"/>'
+             . '<line x1="240" y1="30" x2="240" y2="190" stroke="#ffffff" stroke-width="2" stroke-dasharray="6 4"/>'
+             . '<line x1="68" y1="110" x2="412" y2="110" stroke="#ffffff" stroke-width="1" stroke-dasharray="3 3"/>';
+      $motion = '<circle r="6" fill="#ffffff" stroke="'.$dark.'" stroke-width="1"><animateMotion dur="1.2s" repeatCount="indefinite" path="M 100,90 Q 240,30 380,90 Q 240,180 100,90 Z"/></circle>';
+      if ($section==='tim') {
+        $motion .= '<circle cx="120" cy="110" r="9" fill="'.$fg.'"/><circle cx="360" cy="110" r="9" fill="'.$dark.'"/>';
+      }
+      break;
+
+    case 'futsal':
+      $field = '<rect x="30" y="30" width="420" height="160" fill="#15803d" stroke="#ffffff" stroke-width="3"/>'
+             . '<line x1="240" y1="30" x2="240" y2="190" stroke="#ffffff" stroke-width="2"/>'
+             . '<circle cx="240" cy="110" r="30" fill="none" stroke="#ffffff" stroke-width="2"/>'
+             . '<rect x="30" y="70" width="50" height="80" fill="none" stroke="#ffffff" stroke-width="2"/>'
+             . '<rect x="400" y="70" width="50" height="80" fill="none" stroke="#ffffff" stroke-width="2"/>'
+             . '<rect x="20" y="92" width="10" height="36" fill="#ffffff"/>'
+             . '<rect x="450" y="92" width="10" height="36" fill="#ffffff"/>';
+      $motion = '<circle r="6" fill="#ffffff" stroke="'.$dark.'" stroke-width="1"><animateMotion dur="3s" repeatCount="indefinite" path="M 100,110 Q 200,40 300,110 Q 400,180 100,110 Z"/></circle>';
+      if ($section==='tim') {
+        for ($i=0;$i<5;$i++){ $y=50+$i*22;
+          $motion .= '<circle cx="120" cy="'.$y.'" r="7" fill="'.$fg.'"/>';
+          $motion .= '<circle cx="360" cy="'.$y.'" r="7" fill="#fbbf24"/>'; }
+      }
+      break;
+
+    case 'biliard':
+    default:
+      $field = '<rect x="40" y="30" width="400" height="160" fill="#065f46" stroke="#78350f" stroke-width="8" rx="6"/>'
+             . '<circle cx="40" cy="30" r="10" fill="#1f2937"/><circle cx="240" cy="30" r="10" fill="#1f2937"/><circle cx="440" cy="30" r="10" fill="#1f2937"/>'
+             . '<circle cx="40" cy="190" r="10" fill="#1f2937"/><circle cx="240" cy="190" r="10" fill="#1f2937"/><circle cx="440" cy="190" r="10" fill="#1f2937"/>';
+      $motion = '<circle cx="340" cy="110" r="7" fill="#facc15"/><circle cx="354" cy="102" r="7" fill="#ef4444"/><circle cx="354" cy="118" r="7" fill="#3b82f6"/>'
+              . '<circle cx="368" cy="94" r="7" fill="#10b981"/><circle cx="368" cy="110" r="7" fill="#000000"/><circle cx="368" cy="126" r="7" fill="#a855f7"/>'
+              . '<circle r="8" fill="#ffffff" stroke="#1f2937" stroke-width="1"><animateMotion dur="2.5s" repeatCount="indefinite" path="M 100,110 L 330,110 L 100,110"/></circle>';
+      break;
+  }
+
+  $badge = '';
+  if ($cap !== '') {
+    $w = strlen($cap)*7 + 22;
+    $badge = '<rect x="10" y="10" width="'.$w.'" height="22" rx="11" fill="'.$dark.'" opacity="0.85"/>'
+           . '<text x="22" y="25" font-size="12" fill="#ffffff" font-family="Arial,sans-serif" font-weight="bold">'.htmlspecialchars($cap).'</text>';
+  }
+
+  $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '.$W.' '.$H.'" width="'.$W.'" height="'.$H.'">'
+       . '<rect width="100%" height="100%" fill="'.$bg.'"/>'
+       . $field . $motion . $badge
+       . '</svg>';
+  return 'data:image/svg+xml;utf8,' . rawurlencode($svg);
+}
+
+/* Foto peralatan: pakai placehold.co (selalu hidup) sebagai pengganti
+ * URL Wikimedia yang banyak rusak. Warna mengikuti palet olahraga. */
+function ao_eq_img($slug, $name) {
+  $hex = [
+    'lari'=>'16a34a','badminton'=>'dc2626','renang'=>'0284c7','hiking'=>'15803d',
+    'pingpong'=>'ca8a04','futsal'=>'2563eb','biliard'=>'1f2937',
+  ];
+  $c = isset($hex[$slug]) ? $hex[$slug] : '0ea5e9';
+  $label = rawurlencode(mb_strimwidth($name, 0, 22, '…'));
+  return 'https://placehold.co/200x200/'.$c.'/ffffff/png?text='.$label;
+}
+
 // ====== Data Artikel Olahraga ======
 // Setiap olahraga: definisi, cara+gambar, tim+gambar, skoring+gambar, menang, peralatan[].
 $ARTIKEL = [
@@ -258,38 +401,32 @@ include __DIR__.'/includes/header.php'; ?>
 
               <div class="mb-2"><strong class="text-<?= $a['warna'] ?>">Cara Main:</strong>
                 <div class="small"><?= htmlspecialchars($a['cara']) ?></div>
-                <?php if(!empty($a['cara_img'])): ?>
-                  <div class="ao-illust-wrap">
-                    <img src="<?= htmlspecialchars($a['cara_img']) ?>" alt="Ilustrasi cara main <?= htmlspecialchars($a['judul']) ?>"
-                         class="ao-illust" loading="lazy"
-                         onerror="this.parentNode.style.display='none'">
-                    <div class="ao-illust-cap"><i class="bi bi-image"></i> Visualisasi cara main / posisi pemain</div>
-                  </div>
-                <?php endif; ?>
+                <div class="ao-illust-wrap">
+                  <img src="<?= ao_anim_svg($a['slug'], 'cara') ?>"
+                       alt="Animasi cara main <?= htmlspecialchars($a['judul']) ?>"
+                       class="ao-illust" loading="lazy">
+                  <div class="ao-illust-cap"><i class="bi bi-play-circle"></i> Animasi cara main / posisi pemain</div>
+                </div>
               </div>
 
               <div class="mb-2"><strong class="text-<?= $a['warna'] ?>">Pembagian Tim:</strong>
                 <div class="small"><?= htmlspecialchars($a['tim']) ?></div>
-                <?php if(!empty($a['tim_img'])): ?>
-                  <div class="ao-illust-wrap">
-                    <img src="<?= htmlspecialchars($a['tim_img']) ?>" alt="Ilustrasi pembagian tim <?= htmlspecialchars($a['judul']) ?>"
-                         class="ao-illust" loading="lazy"
-                         onerror="this.parentNode.style.display='none'">
-                    <div class="ao-illust-cap"><i class="bi bi-diagram-3"></i> Diagram pembagian tim / formasi</div>
-                  </div>
-                <?php endif; ?>
+                <div class="ao-illust-wrap">
+                  <img src="<?= ao_anim_svg($a['slug'], 'tim') ?>"
+                       alt="Animasi pembagian tim <?= htmlspecialchars($a['judul']) ?>"
+                       class="ao-illust" loading="lazy">
+                  <div class="ao-illust-cap"><i class="bi bi-diagram-3"></i> Diagram pembagian tim / formasi</div>
+                </div>
               </div>
 
               <div class="mb-2"><strong class="text-<?= $a['warna'] ?>">Sistem Skoring:</strong>
                 <div class="small"><?= htmlspecialchars($a['skoring']) ?></div>
-                <?php if(!empty($a['skoring_img'])): ?>
-                  <div class="ao-illust-wrap">
-                    <img src="<?= htmlspecialchars($a['skoring_img']) ?>" alt="Ilustrasi sistem skoring <?= htmlspecialchars($a['judul']) ?>"
-                         class="ao-illust" loading="lazy"
-                         onerror="this.parentNode.style.display='none'">
-                    <div class="ao-illust-cap"><i class="bi bi-bullseye"></i> Visualisasi area skoring / lapangan</div>
-                  </div>
-                <?php endif; ?>
+                <div class="ao-illust-wrap">
+                  <img src="<?= ao_anim_svg($a['slug'], 'skor') ?>"
+                       alt="Animasi sistem skoring <?= htmlspecialchars($a['judul']) ?>"
+                       class="ao-illust" loading="lazy">
+                  <div class="ao-illust-cap"><i class="bi bi-bullseye"></i> Visualisasi area skoring / lapangan</div>
+                </div>
               </div>
 
               <div class="mb-3"><strong class="text-<?= $a['warna'] ?>">Sistem Pemenang &amp; Kalah:</strong>
@@ -303,9 +440,10 @@ include __DIR__.'/includes/header.php'; ?>
                   <?php foreach($a['peralatan'] as $eq): ?>
                     <div class="col-12 col-sm-6">
                       <div class="ao-eq-card">
-                        <img src="<?= htmlspecialchars($eq['img']) ?>" alt="<?= htmlspecialchars($eq['nama']) ?>"
+                        <img src="<?= htmlspecialchars(ao_eq_img($a['slug'], $eq['nama'])) ?>"
+                             alt="<?= htmlspecialchars($eq['nama']) ?>"
                              class="ao-eq-img" loading="lazy"
-                             onerror="this.style.background='#e2e8f0';this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/200px-No_image_available.svg.png'">
+                             onerror="this.style.background='#e2e8f0';this.src='data:image/svg+xml;utf8,<?= rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" fill="#94a3b8"/><text x="28" y="32" text-anchor="middle" font-size="10" fill="#fff" font-family="Arial">No Img</text></svg>') ?>'">
                         <div>
                           <strong><?= htmlspecialchars($eq['nama']) ?></strong>
                           <div class="ao-eq-desc"><?= htmlspecialchars($eq['desc']) ?></div>
