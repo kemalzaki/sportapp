@@ -470,6 +470,8 @@ $('btnTrimApply').onclick = async () => {
     a.src = URL.createObjectURL(wavBlob); a.crossOrigin = null; a.load();
     TRIM = { start:s, end:e, applied:true };
     $('trimStat').textContent = 'Trim diterapkan: '+s.toFixed(2)+'s → '+e.toFixed(2)+'s ('+(e-s).toFixed(2)+'s).';
+    // Revisi 18 Juni 2026 (D) — re-time lirik mengikuti durasi hasil trim.
+    if ($('lyricManual').value.trim()){ $('lyricManual').dispatchEvent(new Event('input')); }
     try{ ac.close(); }catch(_){}
   } catch(err){ $('trimStat').textContent = 'Gagal: '+err.message+' (mungkin CORS audio sumber)'; }
 };
@@ -566,6 +568,11 @@ async function searchLyricChoices(){
 
 // Auto deteksi musik upload sendiri: ketika audio mulai play tapi belum ada lirik,
 // coba ambil lirik dari nama file (judul) — opsional.
+// Revisi 18 Juni 2026 (D) — bila durasi audio baru diketahui setelah metadata
+// dimuat, hitung ulang tempo lirik agar pas dengan lagu.
+document.getElementById('musicAudio').addEventListener('loadedmetadata', function(){
+  if ($('lyricManual').value.trim()) $('lyricManual').dispatchEvent(new Event('input'));
+});
 document.getElementById('musicAudio').addEventListener('play', function(){
   if (!$('optLyricAuto') || !$('optLyricAuto').checked) return;
   if (LYRICS.lines.length>0) return;
@@ -579,6 +586,7 @@ $('lyricManual').addEventListener('input', () => {
   if (!txt){ return; }
 
   const a = $('musicAudio');
+  // Durasi efektif lagu (perhitungkan trim bila sudah diterapkan).
   const dur = (TRIM.applied ? (TRIM.end-TRIM.start) : (a.duration||180)) || 180;
   const lrc = /\[(\d+):(\d+(?:\.\d+)?)\]\s*(.+)/;
   const lines = [];
@@ -589,14 +597,35 @@ $('lyricManual').addEventListener('input', () => {
     else { lines.push({ t: -1, line: ln }); }
   });
   const untimed = lines.filter(l=>l.t<0);
+  // Revisi 18 Juni 2026 (D) — Tempo lirik proporsional (bukan asal):
+  //  • Padding intro (~6% dari durasi, maks 4s) agar baris pertama tidak nempel awal lagu.
+  //  • Outro pad (~4% dari durasi, maks 3s) supaya baris terakhir tidak terpotong.
+  //  • Tiap baris diberi bobot berdasarkan jumlah karakter (proxy suku kata),
+  //    dengan batas minimum 1.2s & maksimum 6s per baris.
+  //  • Lead time 0.25s: subtitle muncul sedikit sebelum lirik dinyanyikan.
   if (untimed.length === lines.length && lines.length>0){
-    const gap = dur / (lines.length+1);
-    lines.forEach((l,i)=> l.t = gap*(i+1) - gap*0.5);
+    const intro = Math.min(4, Math.max(1.2, dur*0.06));
+    const outro = Math.min(3, Math.max(0.8, dur*0.04));
+    const usable = Math.max(2, dur - intro - outro);
+    const weights = lines.map(l => Math.max(4, l.line.replace(/\s+/g,' ').length));
+    const sumW = weights.reduce((a,b)=>a+b, 0);
+    const minDur = 1.2, maxDur = 6.0, lead = 0.25;
+    // Hitung durasi per baris (clamp), lalu normalisasi ulang agar total = usable.
+    let durs = weights.map(w => (w/sumW) * usable);
+    durs = durs.map(d => Math.min(maxDur, Math.max(minDur, d)));
+    const total = durs.reduce((a,b)=>a+b, 0);
+    const scale = usable / total;
+    durs = durs.map(d => d*scale);
+    let t = intro;
+    lines.forEach((l, i) => {
+      l.t = Math.max(0, t - lead);
+      t += durs[i];
+    });
   }
   LYRICS.lines = lines.filter(l=>l.t>=0).sort((a,b)=>a.t-b.t);
   LYRICS.src = 'manual';
   $('optLyric').checked = true;
-  $('lyricStat').textContent = LYRICS.lines.length+' baris lirik (manual) siap.';
+  $('lyricStat').textContent = LYRICS.lines.length+' baris lirik (manual) siap, tempo otomatis disesuaikan durasi lagu ('+dur.toFixed(1)+'s).';
 });
 function currentLyricLine(audioTime){
   if (!$('optLyric').checked || !LYRICS.lines.length) return '';

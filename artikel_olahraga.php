@@ -440,10 +440,17 @@ include __DIR__.'/includes/header.php'; ?>
                   <?php foreach($a['peralatan'] as $eq): ?>
                     <div class="col-12 col-sm-6">
                       <div class="ao-eq-card">
-                        <img src="<?= htmlspecialchars(ao_eq_img($a['slug'], $eq['nama'])) ?>"
+                        <?php
+                          // Revisi 18 Juni 2026 (D) — Pakai foto asli di assets/img/peralatan/
+                          // (eq00.jpg .. eq27.jpg). Fallback ke placehold.co bila file hilang,
+                          // dan terakhir fallback inline SVG via onerror.
+                          $eq_img = !empty($eq['img']) ? $eq['img'] : ao_eq_img($a['slug'], $eq['nama']);
+                        ?>
+                        <img src="<?= htmlspecialchars($eq_img) ?>"
                              alt="<?= htmlspecialchars($eq['nama']) ?>"
                              class="ao-eq-img" loading="lazy"
-                             onerror="this.style.background='#e2e8f0';this.src='data:image/svg+xml;utf8,<?= rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" fill="#94a3b8"/><text x="28" y="32" text-anchor="middle" font-size="10" fill="#fff" font-family="Arial">No Img</text></svg>') ?>'">
+                             onerror="this.onerror=null;this.src='<?= htmlspecialchars(ao_eq_img($a['slug'], $eq['nama'])) ?>';this.dataset.fb=1;setTimeout(()=>{if(this.dataset.fb&&!this.complete){this.src='data:image/svg+xml;utf8,<?= rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" fill="#94a3b8"/><text x="28" y="32" text-anchor="middle" font-size="10" fill="#fff" font-family="Arial">No Img</text></svg>') ?>';}},1500);">
+
                         <div>
                           <strong><?= htmlspecialchars($eq['nama']) ?></strong>
                           <div class="ao-eq-desc"><?= htmlspecialchars($eq['desc']) ?></div>
