@@ -242,10 +242,7 @@ if ($u) {
           <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik</a>
-          <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/results?search_query=panduan+olahraga+teknik" target="_blank" rel="noopener"><i class="bi bi-youtube text-danger"></i> Panduan Olahraga</a>
-          <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/watch?v=Ks5dz69gsDk" target="_blank" rel="noopener"><i class="bi bi-fire text-warning"></i> Paket Pemanasan Olahraga</a>
-          <a class="list-group-item list-group-item-action ps-4" href="https://www.youtube.com/watch?v=uXznjq2BLMI" target="_blank" rel="noopener"><i class="bi bi-snow text-info"></i> Paket Pendinginan Olahraga</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
         </div>
 

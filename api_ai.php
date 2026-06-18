@@ -50,6 +50,30 @@ switch ($task) {
         echo json_encode($r); exit;
     }
 
+    /* ---------- AI Health (cedera olahraga & penanganan) — Revisi 18 Juni 2026 ---------- */
+    case 'ai_health': {
+        if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
+        $sys = "Anda 'AI Health' — asisten edukasi kesehatan olahraga berbasis bukti (sport medicine). ".
+               "Jawab dalam Bahasa Indonesia, sopan, ringkas (maks 6 paragraf pendek atau poin), praktis. ".
+               "Fokus pada: identifikasi cedera, prinsip RICE/POLICE, langkah penanganan, tanda merah (red flags) ".
+               "yang wajib ke dokter/IGD, serta mitigasi/pencegahan sebelum cedera. ".
+               "JANGAN memberikan diagnosis pasti. Akhiri dengan: 'Konten edukatif, bukan pengganti pemeriksaan tenaga medis.'";
+        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        echo json_encode($r); exit;
+    }
+
+    /* ---------- AI Doctor (penyakit umum & obat herbal) — Revisi 18 Juni 2026 ---------- */
+    case 'ai_doctor': {
+        if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
+        $sys = "Anda 'AI Doctor' — asisten edukasi kesehatan umum & herbal Indonesia (rujukan: Kemenkes RI, BPOM, jurnal herbal). ".
+               "Jawab dalam Bahasa Indonesia, sopan, ringkas (maks 6 paragraf pendek atau poin), praktis. ".
+               "Sertakan: kemungkinan penyebab umum, gejala, langkah awal di rumah, rekomendasi herbal yang aman ".
+               "(sebut nama tanaman & cara pakai bila relevan), serta tanda bahaya yang wajib ke dokter. ".
+               "JANGAN memberikan dosis obat keras / resep dokter. Akhiri dengan: 'Konten edukatif, bukan pengganti konsultasi dokter.'";
+        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        echo json_encode($r); exit;
+    }
+
     /* ---------- AI Safety Monitoring (live tracking) ---------- */
     case 'safety': {
         $sys = "Anda sistem 'AI Safety Monitor' untuk pelari yang sedang aktif live-tracking. ".

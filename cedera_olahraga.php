@@ -1,12 +1,51 @@
 <?php
-// cedera_olahraga.php — Revisi (video YouTube diperbarui)
+// cedera_olahraga.php — Revisi 18 Juni 2026: + AI Health Tanya Jawab (simpan jawaban)
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Cedera Olahraga & Penanganan';
-$u = current_user();
+$u = current_user(); $uid = (int)$u['id'];
+
+// Revisi 18 Juni 2026 — tabel penyimpanan Q&A AI Health (idempotent)
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS health_qa_saved (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        kategori VARCHAR(20) NOT NULL DEFAULT 'health',
+        pertanyaan TEXT NOT NULL,
+        jawaban TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS health_qa_user_idx ON health_qa_saved(user_id, kategori, created_at DESC)");
+} catch (Throwable $e) {}
+
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    csrf_check();
+    header('Content-Type: application/json');
+    $a = $_POST['_action'] ?? '';
+    if ($a === 'qa_save') {
+        $q = trim((string)($_POST['pertanyaan'] ?? ''));
+        $j = trim((string)($_POST['jawaban'] ?? ''));
+        if ($q==='' || $j==='') { echo json_encode(['ok'=>false,'err'=>'kosong']); exit; }
+        if (mb_strlen($q)>4000) $q = mb_substr($q,0,4000);
+        if (mb_strlen($j)>20000) $j = mb_substr($j,0,20000);
+        $r = pg_query_params(db(), "INSERT INTO health_qa_saved(user_id,kategori,pertanyaan,jawaban) VALUES($1,'health',$2,$3) RETURNING id",
+            [$uid,$q,$j]);
+        $id = (int)(pg_fetch_row($r)[0] ?? 0);
+        echo json_encode(['ok'=>true,'id'=>$id]); exit;
+    } elseif ($a === 'qa_delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id>0) db_exec("DELETE FROM health_qa_saved WHERE id=$1 AND user_id=$2 AND kategori='health'",[$id,$uid]);
+        echo json_encode(['ok'=>true]); exit;
+    }
+    echo json_encode(['ok'=>false,'err'=>'unknown']); exit;
+}
+
+$qaSaved = db_all("SELECT id, pertanyaan, jawaban, created_at FROM health_qa_saved
+                   WHERE user_id=$1 AND kategori='health' ORDER BY id DESC LIMIT 50", [$uid]);
 
 $ytId = function($s){
   $s = trim((string)$s);
@@ -150,6 +189,20 @@ include __DIR__.'/includes/header.php';
   <i class="bi bi-shield-exclamation fs-4"></i>
   <div><strong>Mitigasi Umum:</strong> pemanasan 5–10 menit, hidrasi cukup, sepatu sesuai aktivitas, peningkatan intensitas bertahap (≤10%/minggu), dengarkan tubuh — berhenti bila nyeri tajam atau pusing.</div>
 </div>
+
+<?php
+// Revisi 18 Juni 2026 — Widget AI Health Tanya Jawab
+$aiTitle = 'AI Health — Tanya Jawab Cedera & Penanganan';
+$aiTask = 'ai_health';
+$aiColor = 'danger';
+$aiIcon = 'bi-heart-pulse';
+$aiPlaceholder = 'Contoh: Bagaimana cara menangani keseleo pergelangan kaki saat lari? Atau: Apa beda strain dan sprain?';
+$aiPostUrl = '/cedera_olahraga.php';
+$aiSaved = $qaSaved;
+$aiKey = 'aiHealth';
+$aiDisclaim = 'Jawaban AI bersifat panduan umum — bukan pengganti pemeriksaan tenaga medis.';
+include __DIR__.'/includes/ai_qa_widget.php';
+?>
 
 <div class="row g-3">
   <?php foreach($CEDERA as $c): ?>

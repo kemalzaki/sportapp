@@ -5,8 +5,48 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Kesehatan & Obat Herbal';
-$pageSkeleton = 'list'; // Skeleton sesuai data: daftar artikel kesehatan
+$pageSkeleton = 'list';
+$u = current_user(); $uid = (int)$u['id'];
+
+// Revisi 18 Juni 2026 — tabel Q&A AI Doctor (idempotent, sharing tabel dgn ai_health)
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS health_qa_saved (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        kategori VARCHAR(20) NOT NULL DEFAULT 'health',
+        pertanyaan TEXT NOT NULL,
+        jawaban TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS health_qa_user_idx ON health_qa_saved(user_id, kategori, created_at DESC)");
+} catch (Throwable $e) {}
+
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    csrf_check();
+    header('Content-Type: application/json');
+    $a = $_POST['_action'] ?? '';
+    if ($a === 'qa_save') {
+        $q = trim((string)($_POST['pertanyaan'] ?? ''));
+        $j = trim((string)($_POST['jawaban'] ?? ''));
+        if ($q==='' || $j==='') { echo json_encode(['ok'=>false,'err'=>'kosong']); exit; }
+        if (mb_strlen($q)>4000) $q = mb_substr($q,0,4000);
+        if (mb_strlen($j)>20000) $j = mb_substr($j,0,20000);
+        $r = pg_query_params(db(), "INSERT INTO health_qa_saved(user_id,kategori,pertanyaan,jawaban) VALUES($1,'doctor',$2,$3) RETURNING id",
+            [$uid,$q,$j]);
+        $id = (int)(pg_fetch_row($r)[0] ?? 0);
+        echo json_encode(['ok'=>true,'id'=>$id]); exit;
+    } elseif ($a === 'qa_delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id>0) db_exec("DELETE FROM health_qa_saved WHERE id=$1 AND user_id=$2 AND kategori='doctor'",[$id,$uid]);
+        echo json_encode(['ok'=>true]); exit;
+    }
+    echo json_encode(['ok'=>false,'err'=>'unknown']); exit;
+}
+
+$qaSaved = db_all("SELECT id, pertanyaan, jawaban, created_at FROM health_qa_saved
+                   WHERE user_id=$1 AND kategori='doctor' ORDER BY id DESC LIMIT 50", [$uid]);
 
 /**
  * Catatan: Tidak ada API publik gratis terstandar untuk obat herbal Indonesia.
@@ -105,6 +145,20 @@ include __DIR__.'/includes/header.php'; ?>
   <i class="bi bi-info-circle"></i> Informasi ini bersifat <strong>edukatif</strong> (sumber: Kemenkes RI, Badan POM, jurnal herbal).
   Bukan pengganti pemeriksaan dokter — segera konsultasi bila gejala berat atau menetap.
 </div>
+
+<?php
+// Revisi 18 Juni 2026 — Widget AI Doctor Tanya Jawab
+$aiTitle = 'AI Doctor — Tanya Jawab Penyakit & Obat Herbal';
+$aiTask = 'ai_doctor';
+$aiColor = 'success';
+$aiIcon = 'bi-prescription2';
+$aiPlaceholder = 'Contoh: Tanaman herbal apa yang baik untuk maag/asam lambung? Atau: Bagaimana mengelola hipertensi ringan secara alami?';
+$aiPostUrl = '/kesehatan.php';
+$aiSaved = $qaSaved;
+$aiKey = 'aiDoctor';
+$aiDisclaim = 'Jawaban AI bersifat edukatif — bukan pengganti konsultasi dokter, dan jangan menggantikan obat resep tanpa anjuran dokter.';
+include __DIR__.'/includes/ai_qa_widget.php';
+?>
 
 <div class="row g-3">
   <?php foreach($PENYAKIT as $p): ?>

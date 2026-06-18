@@ -263,8 +263,39 @@ include __DIR__.'/includes/header.php';
           <div class="col-5"><label class="form-label small">Waktu</label><input class="form-control form-control-sm" type="time" name="waktu" value="<?= date('H:i') ?>"></div>
           <div class="col-8"><label class="form-label small">Nama makanan</label><input class="form-control form-control-sm" name="nama_makanan" placeholder="cth: Nasi padang"></div>
           <div class="col-4"><label class="form-label small">Kalori (kkal)</label><input class="form-control form-control-sm" type="number" min="0" name="kalori" placeholder="0"></div>
-          <div class="col-12"><label class="form-label small">Foto (opsional, AI dapat menebak kalori)</label>
-            <input class="form-control form-control-sm" type="file" name="foto" accept="image/*"></div>
+          <div class="col-12"><label class="form-label small">Foto makanan (opsional, AI dapat menebak kalori)</label>
+            <!-- Revisi 18 Juni 2026: capture="environment" → di mobile langsung buka kamera belakang.
+                 Tombol "Pilih dari Galeri" sebagai fallback agar tetap fleksibel. -->
+            <div class="d-flex gap-2 flex-wrap align-items-start">
+              <label class="btn btn-primary btn-sm mb-0 flex-fill">
+                <i class="bi bi-camera-fill"></i> Buka Kamera Langsung
+                <input class="d-none" type="file" name="foto" accept="image/*" capture="environment" id="kmFoto" onchange="kmFotoPreview(this)">
+              </label>
+              <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="kmPickGallery()">
+                <i class="bi bi-image"></i> Pilih dari Galeri
+              </button>
+            </div>
+            <div id="kmFotoPrev" class="small text-muted mt-2">Belum ada foto dipilih.</div>
+          </div>
+          <script>
+          // Tombol Galeri: hapus atribut capture sementara → buka picker file biasa.
+          function kmPickGallery(){
+            var inp = document.getElementById('kmFoto');
+            if (!inp) return;
+            inp.removeAttribute('capture');
+            inp.click();
+            // Pasang kembali capture untuk klik berikut (kamera).
+            setTimeout(function(){ inp.setAttribute('capture','environment'); }, 1000);
+          }
+          function kmFotoPreview(inp){
+            var box = document.getElementById('kmFotoPrev');
+            if (inp.files && inp.files[0]){
+              var f = inp.files[0];
+              var url = URL.createObjectURL(f);
+              box.innerHTML = '<img src="'+url+'" style="max-height:120px;border-radius:8px;border:1px solid #ddd"> <span class="ms-2">'+f.name+' ('+(Math.round(f.size/1024))+' KB)</span>';
+            } else { box.textContent = 'Belum ada foto dipilih.'; }
+          }
+          </script>
           <?php if($aiEnabled): ?>
           <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="use_ai" id="uai" value="1" checked>
             <label class="form-check-label small" for="uai">Gunakan AI untuk estimasi kalori dari foto</label></div>

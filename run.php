@@ -754,7 +754,7 @@ document.addEventListener('click', function(ev){
 
         <label class="form-label small">Tipe rute</label>
         <select id="rbShape" class="form-select form-select-sm mb-2">
-          <option value="loop">Loop (kembali ke titik mulai)</option>
+          <option value="loop">Loop / Melingkar (rute lingkaran kembali ke start)</option>
           <option value="out">Pulang-pergi (out &amp; back)</option>
         </select>
 
@@ -1060,14 +1060,21 @@ document.addEventListener('click', function(ev){
       var dp = destPoint(lat,lng,totalM*0.5,bearing);
       waypoints.push([dp.lng,dp.lat]); waypoints.push([lng,lat]);
     } else {
-      var sideRadius=(totalM/3)*0.6;
-      var w1=destPoint(lat,lng,sideRadius,bearing);
-      var w2=destPoint(lat,lng,sideRadius,bearing+120);
-      var w3=destPoint(lat,lng,sideRadius,bearing+240);
-      waypoints.push([w1.lng,w1.lat]);
-      waypoints.push([w2.lng,w2.lat]);
-      waypoints.push([w3.lng,w3.lat]);
-      waypoints.push([lng,lat]);
+      // Revisi 18 Juni 2026 — Loop = LINGKARAN (circular).
+      // Sebar 8 waypoint mengelilingi pusat lingkaran sehingga OSRM
+      // membentuk rute melingkar (bukan segitiga seperti versi lama).
+      // Pusat lingkaran digeser ke depan (searah bearing) sejauh jari-jari,
+      // dan jari-jari ≈ totalM/(2π) agar keliling ≈ jarak target.
+      var R = totalM / (2 * Math.PI);
+      var center = destPoint(lat, lng, R, bearing);
+      var nPts = 8;
+      // Mulai dari titik mulai → kelilingi → kembali ke titik mulai.
+      for (var i = 1; i <= nPts; i++){
+        var ang = bearing + 180 + (i * (360 / nPts));
+        var p = destPoint(center.lat, center.lng, R, ang);
+        waypoints.push([p.lng, p.lat]);
+      }
+      waypoints.push([lng, lat]); // tutup loop kembali ke start
     }
     return waypoints;
   }
