@@ -121,7 +121,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         $ai = ai_estimate_kalori($tmpDst, $nama);
                         if (is_array($ai) && isset($ai['kalori'])) {
                             if ($kal <= 0) $kal = (int)$ai['kalori'];
-                            if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
+                            // Revisi 18 Juni 2026 — SELALU prioritaskan nama hasil scan AI bila tersedia,
+                            // supaya user benar-benar tahu "ini makanan apa" dari foto.
+                            if (!empty($ai['nama'])) {
+                                $nama = ($nama === '' || strtolower($nama)==='tanpa nama')
+                                        ? $ai['nama']
+                                        : $nama.' ('.$ai['nama'].')';
+                            }
+                            // Simpan rincian AI ke catatan bila kosong supaya tetap terlihat di tabel.
+                            if ($cat === '' && !empty($ai['rincian'])) $cat = 'AI: '.$ai['rincian'];
                             $aiUsed = true;
                         } else {
                             $errMsg = (is_array($ai) && !empty($ai['err'])) ? $ai['err'] : 'AI tidak menjawab.';
@@ -215,15 +223,47 @@ $byDay = db_all("SELECT tanggal::text AS tgl, SUM(kalori)::int AS total
                  GROUP BY tanggal ORDER BY tanggal",[$uid,$weekStart,$weekEnd]);
 $map = [];
 foreach($byDay as $r) $map[$r['tgl']] = (int)$r['total'];
-$labels=[]; $data=[]; $sisa=[];
+
+// Revisi 18 Juni 2026 — Kalori TERBAKAR dari olahraga (tabel kalori_log) untuk menghitung defisit/surplus.
+$burnMap = []; $burnDetail = [];
+try {
+    $burnRows = db_all(
+        "SELECT (dibuat_pada::date)::text AS tgl, SUM(kalori)::int AS total
+           FROM kalori_log
+          WHERE user_id=$1 AND dibuat_pada::date BETWEEN $2 AND $3
+       GROUP BY dibuat_pada::date ORDER BY 1",
+        [$uid,$weekStart,$weekEnd]
+    );
+    foreach ($burnRows as $r) $burnMap[$r['tgl']] = (int)$r['total'];
+    // Detail per-jenis untuk ditampilkan
+    $burnDetail = db_all(
+        "SELECT jenis, SUM(menit)::int AS menit, SUM(kalori)::int AS kalori, COUNT(*)::int AS sesi
+           FROM kalori_log
+          WHERE user_id=$1 AND dibuat_pada::date BETWEEN $2 AND $3
+       GROUP BY jenis ORDER BY kalori DESC",
+        [$uid,$weekStart,$weekEnd]
+    );
+} catch (Throwable $e) { /* tabel kalori_log belum ada → diabaikan */ }
+
+$labels=[]; $data=[]; $sisa=[]; $burnData=[]; $netData=[]; $deficitData=[];
 for($i=0;$i<7;$i++){
     $d = date('Y-m-d', strtotime($weekStart." +$i day"));
     $labels[] = date('D d/m', strtotime($d));
     $cons = $map[$d] ?? 0;
+    $burn = $burnMap[$d] ?? 0;
     $data[] = $cons;
+    $burnData[] = $burn;
+    $net  = $cons - $burn;          // Net asupan setelah dikurangi olahraga
+    $netData[] = $net;
     $sisa[] = max(0, $target - $cons);
+    // Defisit harian = target - net. Positif = defisit (penurunan BB), Negatif = surplus.
+    $deficitData[] = $target - $net;
 }
-$totalWeek = array_sum($data);
+$totalWeek    = array_sum($data);
+$totalBurn    = array_sum($burnData);
+$totalNet     = $totalWeek - $totalBurn;
+$totalTarget  = $target * 7;
+$weekDeficit  = $totalTarget - $totalNet;   // >0 = defisit (bagus utk diet); <0 = surplus
 $avgDay = round($totalWeek/7);
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
@@ -270,13 +310,67 @@ include __DIR__.'/includes/header.php';
     <div class="fw-bold"><?= $target ?> kkal</div><div class="small text-muted">Target Harian</div></div></div></div>
   <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
     <i class="bi bi-fire fs-4 text-danger"></i>
-    <div class="fw-bold"><?= $totalWeek ?> kkal</div><div class="small text-muted">Total Minggu</div></div></div></div>
+    <div class="fw-bold"><?= $totalWeek ?> kkal</div><div class="small text-muted">Total Konsumsi</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
+    <i class="bi bi-lightning-charge-fill fs-4 text-warning"></i>
+    <div class="fw-bold"><?= $totalBurn ?> kkal</div><div class="small text-muted">Terbakar (olahraga)</div></div></div></div>
   <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
     <i class="bi bi-calendar3 fs-4 text-info"></i>
     <div class="fw-bold"><?= $avgDay ?> kkal</div><div class="small text-muted">Rata-rata / hari</div></div></div></div>
-  <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
-    <i class="bi bi-arrow-down-circle fs-4 text-success"></i>
-    <div class="fw-bold"><?= max(0, ($target*7) - $totalWeek) ?> kkal</div><div class="small text-muted">Sisa minggu</div></div></div></div>
+</div>
+
+<!-- Revisi 18 Juni 2026 — Defisit / Surplus mingguan (memperhitungkan olahraga) -->
+<div class="row g-2 mb-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100 <?= $weekDeficit>=0 ? 'bg-success-subtle' : 'bg-danger-subtle' ?>">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi <?= $weekDeficit>=0 ? 'bi-arrow-down-circle-fill text-success' : 'bi-arrow-up-circle-fill text-danger' ?> fs-1"></i>
+          <div class="flex-fill">
+            <div class="small text-muted"><?= $weekDeficit>=0 ? 'Defisit Kalori Minggu Ini' : 'Surplus Kalori Minggu Ini' ?></div>
+            <div class="fs-3 fw-bold <?= $weekDeficit>=0 ? 'text-success' : 'text-danger' ?>">
+              <?= ($weekDeficit>=0?'−':'+') ?><?= number_format(abs($weekDeficit)) ?> kkal
+            </div>
+            <div class="small text-muted">
+              Konsumsi <strong><?= number_format($totalWeek) ?></strong>
+              − Terbakar <strong><?= number_format($totalBurn) ?></strong>
+              = Net <strong><?= number_format($totalNet) ?></strong> kkal
+              <br>Target mingguan: <strong><?= number_format($totalTarget) ?></strong> kkal
+              <?php if ($weekDeficit>=0): ?>
+                · <span class="text-success">cocok untuk penurunan berat badan (~<?= number_format($weekDeficit/7700, 2) ?> kg)</span>
+              <?php else: ?>
+                · <span class="text-danger">cenderung penambahan berat badan</span>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2"><i class="bi bi-activity"></i> Aktivitas Pembakaran Minggu Ini</div>
+      <div class="card-body p-2">
+        <?php if (empty($burnDetail)): ?>
+          <div class="small text-muted py-2">Belum ada catatan olahraga minggu ini. Catat di
+            <a href="/kalori_badminton.php">Badminton</a>, <a href="/kalori_futsal.php">Futsal</a>,
+            <a href="/kalori_pingpong.php">Pingpong</a>, <a href="/kalori_renang.php">Renang</a>.</div>
+        <?php else: ?>
+          <table class="table table-sm mb-0 small">
+            <thead class="table-light"><tr><th>Jenis</th><th class="text-end">Sesi</th><th class="text-end">Menit</th><th class="text-end">Kkal</th></tr></thead>
+            <tbody>
+            <?php foreach($burnDetail as $b): ?>
+              <tr><td class="text-capitalize"><?= htmlspecialchars($b['jenis']) ?></td>
+                  <td class="text-end"><?= (int)$b['sesi'] ?></td>
+                  <td class="text-end"><?= (int)$b['menit'] ?></td>
+                  <td class="text-end fw-semibold text-warning"><?= (int)$b['kalori'] ?></td></tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -442,32 +536,72 @@ include __DIR__.'/includes/header.php';
   <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan</button></div>
 </form></div></div>
 <script>
-(function(){
-  var m = new bootstrap.Modal(document.getElementById('editKalModal'));
-  document.querySelectorAll('.btn-edit-kal').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.getElementById('ek_id').value   = this.dataset.id;
-      document.getElementById('ek_tgl').value  = this.dataset.tanggal;
-      document.getElementById('ek_jam').value  = this.dataset.waktu;
-      document.getElementById('ek_nama').value = this.dataset.nama;
-      document.getElementById('ek_kal').value  = this.dataset.kalori;
-      document.getElementById('ek_cat').value  = this.dataset.catatan;
-      m.show();
+// Revisi 18 Juni 2026 — Wrap dgn window.load supaya bootstrap.bundle.js (di footer.php)
+// SUDAH siap saat new bootstrap.Modal() dipanggil. Sebelumnya ReferenceError → tombol Edit & klik foto tidak bereaksi.
+function kmInitEditAndZoom(){
+  if (typeof bootstrap === 'undefined' || !bootstrap.Modal){ setTimeout(kmInitEditAndZoom, 120); return; }
+  var editEl = document.getElementById('editKalModal');
+  if (editEl){
+    var m = new bootstrap.Modal(editEl);
+    document.querySelectorAll('.btn-edit-kal').forEach(function(b){
+      b.addEventListener('click', function(){
+        document.getElementById('ek_id').value   = this.dataset.id;
+        document.getElementById('ek_tgl').value  = this.dataset.tanggal;
+        document.getElementById('ek_jam').value  = this.dataset.waktu;
+        document.getElementById('ek_nama').value = this.dataset.nama;
+        document.getElementById('ek_kal').value  = this.dataset.kalori;
+        document.getElementById('ek_cat').value  = this.dataset.catatan || '';
+        m.show();
+      });
     });
-  });
-})();
+  }
+  var zEl = document.getElementById('zoomFotoModal');
+  if (zEl){
+    var zm = new bootstrap.Modal(zEl);
+    var imgEl = document.getElementById('zoomFotoImg');
+    var ttlEl = document.getElementById('zoomFotoTitle');
+    document.querySelectorAll('.km-foto-thumb').forEach(function(t){
+      t.addEventListener('click', function(){
+        imgEl.src = this.dataset.full || this.src;
+        ttlEl.textContent = this.dataset.nama || 'Foto Makanan';
+        zm.show();
+      });
+    });
+  }
+}
+if (document.readyState === 'complete') kmInitEditAndZoom();
+else window.addEventListener('load', kmInitEditAndZoom);
 </script>
 
 <script>
-new Chart(document.getElementById('weekChart'), {
-  type:'bar',
-  data:{ labels: <?= json_encode($labels) ?>,
-    datasets:[
-      {label:'Konsumsi (kkal)', data: <?= json_encode($data) ?>, backgroundColor:'#dc3545'},
-      {label:'Sisa Target', data: <?= json_encode($sisa) ?>, backgroundColor:'#198754'}
-    ]
-  },
-  options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}} }
+// Revisi 18 Juni 2026 — Chart kini menampilkan Konsumsi vs Terbakar vs Defisit harian.
+window.addEventListener('load', function(){
+  if (typeof Chart === 'undefined') return;
+  var ctx = document.getElementById('weekChart'); if (!ctx) return;
+  new Chart(ctx, {
+    type:'bar',
+    data:{ labels: <?= json_encode($labels) ?>,
+      datasets:[
+        {label:'Konsumsi (kkal)', data: <?= json_encode($data) ?>, backgroundColor:'#dc3545', stack:'a'},
+        {label:'Terbakar olahraga (kkal)', data: <?= json_encode($burnData) ?>, backgroundColor:'#f59e0b', stack:'b'},
+        {label:'Defisit (+) / Surplus (−) harian', data: <?= json_encode($deficitData) ?>, type:'line',
+          borderColor:'#16a34a', backgroundColor:'#16a34a', tension:0.3, yAxisID:'y1'}
+      ]
+    },
+    options:{ responsive:true,
+      scales:{
+        x:{stacked:false},
+        y:{beginAtZero:true, title:{display:true,text:'kkal'}},
+        y1:{beginAtZero:false, position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'Defisit / Surplus'}}
+      },
+      plugins:{ tooltip:{ callbacks:{ label:function(c){
+        if (c.dataset.label.indexOf('Defisit')>=0){
+          var v=c.parsed.y; return c.dataset.label+': '+(v>=0?'−':'+')+Math.abs(v)+' kkal';
+        }
+        return c.dataset.label+': '+c.parsed.y+' kkal';
+      }}}}
+    }
+  });
 });
 </script>
 
@@ -485,20 +619,5 @@ new Chart(document.getElementById('weekChart'), {
     </div>
   </div>
 </div>
-<script>
-(function(){
-  var modalEl = document.getElementById('zoomFotoModal');
-  if (!modalEl) return;
-  var modal = new bootstrap.Modal(modalEl);
-  var imgEl = document.getElementById('zoomFotoImg');
-  var ttlEl = document.getElementById('zoomFotoTitle');
-  document.querySelectorAll('.km-foto-thumb').forEach(function(t){
-    t.addEventListener('click', function(){
-      imgEl.src = this.dataset.full || this.src;
-      ttlEl.textContent = this.dataset.nama || 'Foto Makanan';
-      modal.show();
-    });
-  });
-})();
-</script>
+<!-- Inisialisasi modal zoom dilakukan oleh kmInitEditAndZoom() di atas (load-safe). -->
 <?php include __DIR__.'/includes/footer.php'; ?>

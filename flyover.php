@@ -586,7 +586,6 @@ $('lyricManual').addEventListener('input', () => {
   if (!txt){ return; }
 
   const a = $('musicAudio');
-  // Durasi efektif lagu (perhitungkan trim bila sudah diterapkan).
   const dur = (TRIM.applied ? (TRIM.end-TRIM.start) : (a.duration||180)) || 180;
   const lrc = /\[(\d+):(\d+(?:\.\d+)?)\]\s*(.+)/;
   const lines = [];
@@ -597,12 +596,6 @@ $('lyricManual').addEventListener('input', () => {
     else { lines.push({ t: -1, line: ln }); }
   });
   const untimed = lines.filter(l=>l.t<0);
-  // Revisi 18 Juni 2026 (D) — Tempo lirik proporsional (bukan asal):
-  //  • Padding intro (~6% dari durasi, maks 4s) agar baris pertama tidak nempel awal lagu.
-  //  • Outro pad (~4% dari durasi, maks 3s) supaya baris terakhir tidak terpotong.
-  //  • Tiap baris diberi bobot berdasarkan jumlah karakter (proxy suku kata),
-  //    dengan batas minimum 1.2s & maksimum 6s per baris.
-  //  • Lead time 0.25s: subtitle muncul sedikit sebelum lirik dinyanyikan.
   if (untimed.length === lines.length && lines.length>0){
     const intro = Math.min(4, Math.max(1.2, dur*0.06));
     const outro = Math.min(3, Math.max(0.8, dur*0.04));
@@ -610,7 +603,6 @@ $('lyricManual').addEventListener('input', () => {
     const weights = lines.map(l => Math.max(4, l.line.replace(/\s+/g,' ').length));
     const sumW = weights.reduce((a,b)=>a+b, 0);
     const minDur = 1.2, maxDur = 6.0, lead = 0.25;
-    // Hitung durasi per baris (clamp), lalu normalisasi ulang agar total = usable.
     let durs = weights.map(w => (w/sumW) * usable);
     durs = durs.map(d => Math.min(maxDur, Math.max(minDur, d)));
     const total = durs.reduce((a,b)=>a+b, 0);
@@ -625,8 +617,111 @@ $('lyricManual').addEventListener('input', () => {
   LYRICS.lines = lines.filter(l=>l.t>=0).sort((a,b)=>a.t-b.t);
   LYRICS.src = 'manual';
   $('optLyric').checked = true;
-  $('lyricStat').textContent = LYRICS.lines.length+' baris lirik (manual) siap, tempo otomatis disesuaikan durasi lagu ('+dur.toFixed(1)+'s).';
+  $('lyricStat').textContent = LYRICS.lines.length+' baris lirik siap (estimasi tempo). Menganalisa tempo musik…';
+  // Revisi 18 Juni 2026 (E) — Snap timestamp lirik ke onset/beat musik agar PAS dengan tempo.
+  syncLyricsToBeats().then(ok=>{
+    if (ok) $('lyricStat').textContent = LYRICS.lines.length+' baris lirik tersinkron ke tempo musik ('+LYRICS.src+').';
+  }).catch(()=>{});
 });
+
+/* ============================================================
+   Revisi 18 Juni 2026 (E) — Sinkronisasi Lirik ↔ Tempo Musik
+   ------------------------------------------------------------
+   Pipeline:
+   1) Decode audio (WebAudio).
+   2) Hitung envelope energi (RMS) per ~23 ms.
+   3) Cari ONSET: titik di mana energi naik tajam dibanding window
+      sebelumnya (spectral-flux sederhana di domain waktu).
+   4) Estimasi BPM via autocorrelation envelope (60–180 BPM).
+   5) Snap timestamp tiap baris lirik ke onset terdekat (toleransi
+      ±0.5 detik dari estimasi awal). Sisa baris di-spread ke beat
+      bila onset kurang.
+   ============================================================ */
+async function syncLyricsToBeats(){
+  if (!LYRICS.lines.length) return false;
+  const a = $('musicAudio');
+  const srcUrl = a.dataset.originalSrc || a.currentSrc || a.src;
+  if (!srcUrl) return false;
+  try {
+    const resp = await fetch(srcUrl, { mode:'cors' });
+    if (!resp.ok) throw new Error('fetch audio gagal');
+    const buf  = await resp.arrayBuffer();
+    const ac   = new (window.AudioContext||window.webkitAudioContext)();
+    const dec  = await ac.decodeAudioData(buf.slice(0));
+    // Mix-down ke mono
+    const ch0 = dec.getChannelData(0);
+    const ch1 = dec.numberOfChannels>1 ? dec.getChannelData(1) : ch0;
+    const sr  = dec.sampleRate;
+    // Range yang dianalisa: kalau ada trim, gunakan rentang trim
+    const sStart = TRIM.applied ? Math.floor(TRIM.start*sr) : 0;
+    const sEnd   = TRIM.applied ? Math.floor(TRIM.end*sr)   : dec.length;
+    const frame = Math.max(256, Math.floor(sr*0.023)); // ~23 ms
+    const env = [];
+    for (let i=sStart; i<sEnd; i+=frame){
+      let s=0, n=Math.min(frame, sEnd-i);
+      for (let j=0;j<n;j++){ const v=(ch0[i+j]+ch1[i+j])*0.5; s+=v*v; }
+      env.push(Math.sqrt(s/n));
+    }
+    try{ ac.close(); }catch(_){}
+    // Smooth envelope
+    const sm = new Float32Array(env.length);
+    for (let i=0;i<env.length;i++){
+      let s=0, c=0;
+      for (let k=-2;k<=2;k++){ const idx=i+k; if(idx>=0 && idx<env.length){ s+=env[idx]; c++; } }
+      sm[i]=s/c;
+    }
+    // Spectral-flux / onset: positive diff > threshold
+    const diff = new Float32Array(env.length);
+    for (let i=1;i<env.length;i++){ diff[i] = Math.max(0, sm[i]-sm[i-1]); }
+    let mean=0; for (let i=0;i<diff.length;i++) mean+=diff[i]; mean/=diff.length;
+    let stdev=0; for (let i=0;i<diff.length;i++){ const d=diff[i]-mean; stdev+=d*d; } stdev=Math.sqrt(stdev/diff.length);
+    const thr = mean + 1.3*stdev;
+    const minGap = Math.floor(0.18 * sr / frame); // min 180 ms antar onset
+    const onsets = []; let last=-minGap*2;
+    for (let i=2;i<diff.length-1;i++){
+      if (diff[i]>thr && diff[i]>=diff[i-1] && diff[i]>=diff[i+1] && (i-last)>=minGap){
+        onsets.push((i*frame)/sr); last=i;
+      }
+    }
+    if (onsets.length < 4) return false;
+    // BPM via inter-onset interval modus (60–180 bpm)
+    const ioi = [];
+    for (let i=1;i<onsets.length;i++) ioi.push(onsets[i]-onsets[i-1]);
+    ioi.sort((a,b)=>a-b);
+    const med = ioi[Math.floor(ioi.length/2)] || 0.5;
+    let bpm = 60/med; while (bpm<60) bpm*=2; while (bpm>180) bpm/=2;
+    // Snap setiap baris lirik ke onset TERDEKAT (toleransi ±0.6s); fallback ke beat grid bila terlalu jauh.
+    const beat = 60/bpm;
+    const tol  = Math.max(0.45, beat*0.55);
+    const used = new Set();
+    LYRICS.lines.forEach(l => {
+      let bestIdx=-1, bestD=Infinity;
+      for (let k=0;k<onsets.length;k++){
+        if (used.has(k)) continue;
+        const d = Math.abs(onsets[k] - l.t);
+        if (d<bestD){ bestD=d; bestIdx=k; }
+      }
+      if (bestIdx>=0 && bestD<=tol){
+        l.t = onsets[bestIdx]; used.add(bestIdx);
+      } else {
+        // snap ke grid beat terdekat
+        l.t = Math.round(l.t/beat)*beat;
+      }
+    });
+    LYRICS.lines.sort((a,b)=>a.t-b.t);
+    // Jaga jarak minimum antar baris (≥ beat/2) supaya tidak tumpang tindih
+    for (let i=1;i<LYRICS.lines.length;i++){
+      if (LYRICS.lines[i].t - LYRICS.lines[i-1].t < beat*0.5){
+        LYRICS.lines[i].t = LYRICS.lines[i-1].t + beat*0.5;
+      }
+    }
+    LYRICS.src = (LYRICS.src||'manual')+' • beat-sync '+bpm.toFixed(0)+'bpm';
+    return true;
+  } catch(e){
+    console.warn('syncLyricsToBeats gagal:', e);
+    return false;
+  }
+}
 function currentLyricLine(audioTime){
   if (!$('optLyric').checked || !LYRICS.lines.length) return '';
   let cur = '';

@@ -460,17 +460,46 @@ if (empty($pageSkeleton)) {
      sementara nav atas + bottom-nav tetap tampil → memberi kesan halaman terbuka
      dulu, baru data load. Saat halaman baru selesai load, skeleton hilang otomatis. -->
 <style>
-#hfPageTransOverlay{position:fixed;left:0;right:0;z-index:1040;background:var(--bs-body-bg,#fff);
-  padding:1rem;overflow:auto;display:none;}
+/* Revisi 18 Juni 2026 — Skeleton overlay rapih: tidak menabrak header atas (gt-top + gt-chips)
+   di tampilan mobile, dan tidak menabrak bottom-nav. */
+#hfPageTransOverlay{
+  position:fixed; left:0; right:0; z-index:1040;
+  background:var(--bs-body-bg,#fff);
+  padding:1rem 1rem 1.25rem;
+  overflow:auto; display:none;
+  -webkit-overflow-scrolling:touch;
+}
 #hfPageTransOverlay.active{display:block;}
+#hfPageTransOverlay .hf-skel-wrap{max-width:980px;margin:0 auto;}
 body[data-hf-loading="1"] main{visibility:hidden;}
 .hf-page-trans-bar{height:3px;background:linear-gradient(90deg,#16a34a,#2563eb,#f59e0b);
   position:fixed;top:0;left:0;right:0;z-index:1080;transform-origin:left;animation:hfTransBar 1.6s ease-in-out infinite;}
 @keyframes hfTransBar{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1)}}
+
+/* Skeleton auto-flash (data-live / data-skel-shape) juga diberi margin atas di mobile
+   agar tidak ketutup header sticky gt-top + gt-chips. */
+@media (max-width: 991.98px){
+  .hf-skel-wrap{padding-top:.35rem;}
+  #hfPageTransOverlay{padding-top:1.25rem;}
+}
 </style>
 <script>
 (function(){
-  // Hanya intersep link ke halaman PHP internal yang sama-origin.
+  // Hitung offset header atas (gt-top + gt-chips) supaya overlay tidak menabrak.
+  function topOffset(){
+    var gt = document.querySelector('.gt-top');
+    var ch = document.querySelector('.gt-chips');
+    var nb = document.querySelector('nav.navbar.sticky-top');
+    var top = 0;
+    if (gt && getComputedStyle(gt).display !== 'none') top += gt.offsetHeight;
+    if (ch && getComputedStyle(ch).position === 'fixed') top += ch.offsetHeight;
+    if (!top && nb && getComputedStyle(nb).position === 'fixed') top += nb.offsetHeight;
+    return top;
+  }
+  function bottomOffset(){
+    var bn = document.querySelector('.bottom-nav,.mobile-bottom-nav,nav.fixed-bottom');
+    return bn ? bn.offsetHeight : 0;
+  }
   function isInternalNav(a){
     if (!a || a.target==='_blank') return false;
     if (a.hasAttribute('download') || a.dataset.noTrans==='1') return false;
@@ -480,12 +509,10 @@ body[data-hf-loading="1"] main{visibility:hidden;}
       var u = new URL(href, location.href);
       if (u.origin !== location.origin) return false;
       if (u.pathname === location.pathname && u.search === location.search) return false;
-      // skip API / file extensions selain html/php
       if (/\.(jpg|jpeg|png|gif|webp|pdf|mp4|mp3|zip|json)$/i.test(u.pathname)) return false;
       return true;
     }catch(e){ return false; }
   }
-
   function skeletonHtml(shape){
     var fn = (window.HFSkel && window.HFSkel.shapes && window.HFSkel.shapes[shape])
               ? window.HFSkel.shapes[shape] : null;
@@ -493,25 +520,20 @@ body[data-hf-loading="1"] main{visibility:hidden;}
     if (!fn) return '<div style="padding:2rem;text-align:center;color:#888"><span class="spinner-border spinner-border-sm"></span> Memuat halaman…</div>';
     return '<div class="hf-skel-wrap">'+fn()+'</div>';
   }
-
   function showTransition(shape){
-    // Bar progress di atas
     if (!document.getElementById('hfTransBar')){
       var b = document.createElement('div'); b.id='hfTransBar'; b.className='hf-page-trans-bar';
       document.body.appendChild(b);
     }
-    // Overlay skeleton di area konten
     var ov = document.getElementById('hfPageTransOverlay');
     if (!ov){
       ov = document.createElement('div'); ov.id='hfPageTransOverlay';
       document.body.appendChild(ov);
     }
-    // Posisikan overlay antara header atas (gt-top ~56px) dan bottom-nav (~64px).
-    var top = 0, bot = 0;
-    var gt = document.querySelector('.gt-top'); if (gt) top = gt.offsetHeight;
-    var bn = document.querySelector('.bottom-nav,.mobile-bottom-nav,nav.fixed-bottom');
-    if (bn) bot = bn.offsetHeight;
-    ov.style.top = top+'px'; ov.style.bottom = bot+'px';
+    var top = topOffset(), bot = bottomOffset();
+    // Padding ekstra 8px agar skeleton tidak nempel persis ke nav atas.
+    ov.style.top    = (top + 8) + 'px';
+    ov.style.bottom = (bot + 4) + 'px';
     ov.innerHTML = skeletonHtml(shape);
     ov.classList.add('active');
     document.body.setAttribute('data-hf-loading','1');
