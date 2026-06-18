@@ -665,3 +665,44 @@ body[data-hf-loading="1"] main{visibility:hidden;}
 })();
 </script>
 <?php endif; ?>
+
+
+<?php /* Revisi 18 Juni 2026 — Loading spinner kecil di samping teks item nav samping (drawer) mobile */ ?>
+<style>
+.gt-drawer .list-group-item .gt-side-spin{
+  display:none; width:.85rem; height:.85rem; margin-left:6px; vertical-align:-1px;
+  border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
+  animation: gtSideSpin .7s linear infinite;
+}
+.gt-drawer .list-group-item.is-loading .gt-side-spin{ display:inline-block; }
+.gt-drawer .list-group-item.is-loading{ opacity:.75; pointer-events:none; }
+@keyframes gtSideSpin { to { transform: rotate(360deg); } }
+</style>
+<script>
+(function(){
+  var drawer = document.getElementById("gtDrawer");
+  if (!drawer) return;
+  drawer.querySelectorAll(".list-group-item-action").forEach(function(a){
+    if (a.getAttribute("data-bs-toggle") === "collapse") return; // skip dropdown toggle
+    if (!a.querySelector(".gt-side-spin")){
+      var s = document.createElement("span");
+      s.className = "gt-side-spin";
+      s.setAttribute("aria-hidden","true");
+      a.appendChild(s);
+    }
+    a.addEventListener("click", function(e){
+      if (e.metaKey||e.ctrlKey||e.shiftKey||e.button) return;
+      var href = (a.getAttribute("href")||"").trim();
+      if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+      try{
+        var u = new URL(href, location.href);
+        if (u.origin !== location.origin) return;
+      }catch(_){ return; }
+      a.classList.add("is-loading");
+    });
+  });
+  window.addEventListener("pageshow", function(){
+    drawer.querySelectorAll(".list-group-item.is-loading").forEach(function(it){ it.classList.remove("is-loading"); });
+  });
+})();
+</script>

@@ -187,10 +187,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=A3D0ONk17dg&t=76s',
     'videoLabel' => 'Teknik Lari yang Benar',
     'peralatan' => [
-      ['nama'=>'Sepatu lari (running shoes)','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Asics_Gel-Kayano_25.jpg/200px-Asics_Gel-Kayano_25.jpg','desc'=>'Bantalan EVA, drop 8–10 mm untuk pemula.'],
-      ['nama'=>'Kaos & celana lari','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Running_clothes.jpg/200px-Running_clothes.jpg','desc'=>'Bahan dry-fit, ringan, menyerap keringat.'],
-      ['nama'=>'Jam GPS / Smartwatch','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Garmin_Forerunner_245.jpg/200px-Garmin_Forerunner_245.jpg','desc'=>'Mengukur pace, jarak, HR, ketinggian.'],
-      ['nama'=>'Botol air / hydration belt','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Hydration_belt.jpg/200px-Hydration_belt.jpg','desc'=>'Untuk lari ≥ 8 km dan cuaca panas.'],
+      ['nama'=>'Sepatu lari (running shoes)','img'=>'/assets/img/peralatan/eq00.jpg','desc'=>'Bantalan EVA, drop 8–10 mm untuk pemula.'],
+      ['nama'=>'Kaos & celana lari','img'=>'/assets/img/peralatan/eq01.jpg','desc'=>'Bahan dry-fit, ringan, menyerap keringat.'],
+      ['nama'=>'Jam GPS / Smartwatch','img'=>'/assets/img/peralatan/eq02.jpg','desc'=>'Mengukur pace, jarak, HR, ketinggian.'],
+      ['nama'=>'Botol air / hydration belt','img'=>'/assets/img/peralatan/eq03.jpg','desc'=>'Untuk lari ≥ 8 km dan cuaca panas.'],
     ],
   ],
   [
@@ -208,10 +208,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=f9jsnYh6CCE&t=82s',
     'videoLabel' => 'Teknik Dasar Badminton',
     'peralatan' => [
-      ['nama'=>'Raket bulu tangkis','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Badminton_rackets_and_shuttlecock.jpg/200px-Badminton_rackets_and_shuttlecock.jpg','desc'=>'Berat 80–95 g, senar 22–28 lbs.'],
-      ['nama'=>'Shuttlecock (kok)','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Federballschl%C3%A4ger.jpg/200px-Federballschl%C3%A4ger.jpg','desc'=>'Bulu angsa untuk turnamen, plastik untuk latihan.'],
-      ['nama'=>'Sepatu badminton','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Yonex_badminton_shoes.jpg/200px-Yonex_badminton_shoes.jpg','desc'=>'Sol gum non-marking, ringan, grip kuat.'],
-      ['nama'=>'Net & tiang','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Badminton_net.jpg/200px-Badminton_net.jpg','desc'=>'Tinggi net 1,55 m di tepi, 1,524 m di tengah.'],
+      ['nama'=>'Raket bulu tangkis','img'=>'/assets/img/peralatan/eq04.jpg','desc'=>'Berat 80–95 g, senar 22–28 lbs.'],
+      ['nama'=>'Shuttlecock (kok)','img'=>'/assets/img/peralatan/eq05.jpg','desc'=>'Bulu angsa untuk turnamen, plastik untuk latihan.'],
+      ['nama'=>'Sepatu badminton','img'=>'/assets/img/peralatan/eq06.jpg','desc'=>'Sol gum non-marking, ringan, grip kuat.'],
+      ['nama'=>'Net & tiang','img'=>'/assets/img/peralatan/eq07.jpg','desc'=>'Tinggi net 1,55 m di tepi, 1,524 m di tengah.'],
     ],
   ],
   [
@@ -229,10 +229,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=LVy9mwWfXxc&t=101s',
     'videoLabel' => 'Teknik Dasar Renang',
     'peralatan' => [
-      ['nama'=>'Kacamata renang','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Swimming_goggles.jpg/200px-Swimming_goggles.jpg','desc'=>'Anti-fog & UV, karet silikon empuk.'],
-      ['nama'=>'Baju renang','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Speedo_swimsuit.jpg/200px-Speedo_swimsuit.jpg','desc'=>'Polyester/Lycra, jahitan flat untuk hidrodinamis.'],
-      ['nama'=>'Swimming cap','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Swim_cap.jpg/200px-Swim_cap.jpg','desc'=>'Silikon, mengurangi hambatan air.'],
-      ['nama'=>'Pull buoy & papan luncur','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Pull_buoy.jpg/200px-Pull_buoy.jpg','desc'=>'Alat bantu latih teknik tangan & kaki.'],
+      ['nama'=>'Kacamata renang','img'=>'/assets/img/peralatan/eq08.jpg','desc'=>'Anti-fog & UV, karet silikon empuk.'],
+      ['nama'=>'Baju renang','img'=>'/assets/img/peralatan/eq09.jpg','desc'=>'Polyester/Lycra, jahitan flat untuk hidrodinamis.'],
+      ['nama'=>'Swimming cap','img'=>'/assets/img/peralatan/eq10.jpg','desc'=>'Silikon, mengurangi hambatan air.'],
+      ['nama'=>'Pull buoy & papan luncur','img'=>'/assets/img/peralatan/eq11.jpg','desc'=>'Alat bantu latih teknik tangan & kaki.'],
     ],
   ],
   [
@@ -250,10 +250,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=w_4K5Pm0Qsc&t=143s',
     'videoLabel' => 'Teknik Hiking yang Benar',
     'peralatan' => [
-      ['nama'=>'Sepatu hiking','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Hiking_boots.jpg/200px-Hiking_boots.jpg','desc'=>'Sol Vibram, water-resistant, ankle support.'],
-      ['nama'=>'Ransel / carrier','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Backpacking_backpack.jpg/200px-Backpacking_backpack.jpg','desc'=>'Kapasitas 40–60 L untuk pendakian 1–2 malam.'],
-      ['nama'=>'Tenda & sleeping bag','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Camping_tent.jpg/200px-Camping_tent.jpg','desc'=>'Tenda double layer & SB rating sesuai suhu.'],
-      ['nama'=>'Headlamp & kompas/GPS','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Headlamp.jpg/200px-Headlamp.jpg','desc'=>'Navigasi malam & jalur tertutup kabut.'],
+      ['nama'=>'Sepatu hiking','img'=>'/assets/img/peralatan/eq12.jpg','desc'=>'Sol Vibram, water-resistant, ankle support.'],
+      ['nama'=>'Ransel / carrier','img'=>'/assets/img/peralatan/eq13.jpg','desc'=>'Kapasitas 40–60 L untuk pendakian 1–2 malam.'],
+      ['nama'=>'Tenda & sleeping bag','img'=>'/assets/img/peralatan/eq14.jpg','desc'=>'Tenda double layer & SB rating sesuai suhu.'],
+      ['nama'=>'Headlamp & kompas/GPS','img'=>'/assets/img/peralatan/eq15.jpg','desc'=>'Navigasi malam & jalur tertutup kabut.'],
     ],
   ],
   [
@@ -271,10 +271,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=MasmG88gzFA',
     'videoLabel' => 'Teknik Dasar PingPong',
     'peralatan' => [
-      ['nama'=>'Bet (raket)','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Table_tennis_racket.jpg/200px-Table_tennis_racket.jpg','desc'=>'Karet 2 mm, 1 sisi merah & 1 sisi hitam.'],
-      ['nama'=>'Bola seluloid 40+ mm','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Table_tennis_ball.jpg/200px-Table_tennis_ball.jpg','desc'=>'Diameter 40 mm, bintang ★★★ untuk turnamen.'],
-      ['nama'=>'Meja standar ITTF','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Table_tennis_table_layout.svg/200px-Table_tennis_table_layout.svg.png','desc'=>'2,74 × 1,525 m, tinggi 76 cm.'],
-      ['nama'=>'Net & klem','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Table_tennis_net.jpg/200px-Table_tennis_net.jpg','desc'=>'Tinggi net 15,25 cm di atas permukaan meja.'],
+      ['nama'=>'Bet (raket)','img'=>'/assets/img/peralatan/eq16.jpg','desc'=>'Karet 2 mm, 1 sisi merah & 1 sisi hitam.'],
+      ['nama'=>'Bola seluloid 40+ mm','img'=>'/assets/img/peralatan/eq17.jpg','desc'=>'Diameter 40 mm, bintang ★★★ untuk turnamen.'],
+      ['nama'=>'Meja standar ITTF','img'=>'/assets/img/peralatan/eq18.jpg','desc'=>'2,74 × 1,525 m, tinggi 76 cm.'],
+      ['nama'=>'Net & klem','img'=>'/assets/img/peralatan/eq19.jpg','desc'=>'Tinggi net 15,25 cm di atas permukaan meja.'],
     ],
   ],
   [
@@ -292,10 +292,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=tRrEHQSsfiA&t=8s',
     'videoLabel' => 'Teknik Dasar Futsal',
     'peralatan' => [
-      ['nama'=>'Bola futsal (low bounce)','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Futsal_ball.jpg/200px-Futsal_ball.jpg','desc'=>'Ukuran 4, pantulan rendah 50–65 cm dari 2 m.'],
-      ['nama'=>'Sepatu futsal (sol karet)','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Futsal_shoes.jpg/200px-Futsal_shoes.jpg','desc'=>'Non-marking, cocok untuk lantai parket/vinyl.'],
-      ['nama'=>'Jersey & celana pendek','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Futsal_team_Spain.jpg/200px-Futsal_team_Spain.jpg','desc'=>'Bahan dry-fit, nomor punggung jelas.'],
-      ['nama'=>'Shin guard & sarung tangan kiper','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Shin_guard.jpg/200px-Shin_guard.jpg','desc'=>'Pelindung tulang kering + glove kiper.'],
+      ['nama'=>'Bola futsal (low bounce)','img'=>'/assets/img/peralatan/eq20.jpg','desc'=>'Ukuran 4, pantulan rendah 50–65 cm dari 2 m.'],
+      ['nama'=>'Sepatu futsal (sol karet)','img'=>'/assets/img/peralatan/eq21.jpg','desc'=>'Non-marking, cocok untuk lantai parket/vinyl.'],
+      ['nama'=>'Jersey & celana pendek','img'=>'/assets/img/peralatan/eq22.jpg','desc'=>'Bahan dry-fit, nomor punggung jelas.'],
+      ['nama'=>'Shin guard & sarung tangan kiper','img'=>'/assets/img/peralatan/eq23.jpg','desc'=>'Pelindung tulang kering + glove kiper.'],
     ],
   ],
   [
@@ -313,10 +313,10 @@ $ARTIKEL = [
     'video'  => 'https://www.youtube.com/watch?v=taf9JBG9iLA',
     'videoLabel' => 'Teknik Dasar Biliar',
     'peralatan' => [
-      ['nama'=>'Stik biliar (cue)','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Pool_cue.jpg/200px-Pool_cue.jpg','desc'=>'Panjang 145–150 cm, tip 12–13 mm.'],
-      ['nama'=>'Set bola pool','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/8_ball_break.jpg/200px-8_ball_break.jpg','desc'=>'1 cue ball putih + 15 bola bernomor.'],
-      ['nama'=>'Meja biliar','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Pool_table_8ft.jpg/200px-Pool_table_8ft.jpg','desc'=>'Ukuran 7/8/9 ft, kain wool felt.'],
-      ['nama'=>'Kapur stik & rack segitiga','img'=>'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Pool_chalk.jpg/200px-Pool_chalk.jpg','desc'=>'Kapur biru + rack segitiga untuk break.'],
+      ['nama'=>'Stik biliar (cue)','img'=>'/assets/img/peralatan/eq24.jpg','desc'=>'Panjang 145–150 cm, tip 12–13 mm.'],
+      ['nama'=>'Set bola pool','img'=>'/assets/img/peralatan/eq25.jpg','desc'=>'1 cue ball putih + 15 bola bernomor.'],
+      ['nama'=>'Meja biliar','img'=>'/assets/img/peralatan/eq26.jpg','desc'=>'Ukuran 7/8/9 ft, kain wool felt.'],
+      ['nama'=>'Kapur stik & rack segitiga','img'=>'/assets/img/peralatan/eq27.jpg','desc'=>'Kapur biru + rack segitiga untuk break.'],
     ],
   ],
 ];
