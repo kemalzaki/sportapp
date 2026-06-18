@@ -145,9 +145,58 @@ include __DIR__.'/includes/header.php';
           <label class="form-check-label small" for="optMusic"><i class="bi bi-music-note-beamed text-success"></i> Musik latar saat playback &amp; rekaman</label>
         </div>
         <div id="musicBox" class="mb-2" style="display:none">
+          <!-- Revisi 18 Juni 2026 — Pustaka musik realtime (iTunes Search API, gratis, tanpa key) -->
+          <label class="form-label small mb-1"><i class="bi bi-search"></i> Cari Musik (Pustaka iTunes)</label>
+          <div class="input-group input-group-sm mb-1">
+            <input type="text" id="musicQ" class="form-control form-control-sm" placeholder="Judul / artis (mis. Coldplay yellow)">
+            <button type="button" class="btn btn-outline-secondary" id="btnMusicSearch"><i class="bi bi-search"></i></button>
+          </div>
+          <div id="musicResults" class="list-group list-group-flush small mb-1" style="max-height:180px;overflow:auto;border:1px solid var(--bs-border-color,#e5e7eb);border-radius:8px;display:none"></div>
+
+          <label class="form-label small mb-1 mt-1">Atau upload file audio sendiri</label>
           <input type="file" id="musicFile" class="form-control form-control-sm" accept="audio/*">
-          <small class="text-muted d-block mt-1">Atau biarkan kosong → pakai musik bawaan (instrumental upbeat, gratis).</small>
+          <small class="text-muted d-block mt-1">Preview iTunes ±30 detik. Kalau kosong, dipakai musik bawaan.</small>
           <audio id="musicAudio" preload="auto" controls class="w-100 mt-2" style="height:34px"></audio>
+          <div id="musicMeta" class="small text-muted mt-1"></div>
+
+          <!-- Revisi 18 Juni 2026 — Trim audio (potong start/end detik) -->
+          <div class="border rounded p-2 mt-2 bg-light-subtle">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label small fw-bold mb-1"><i class="bi bi-scissors"></i> Potong Audio</label>
+              <span class="small text-muted">Durasi: <span id="audDur">–</span></span>
+            </div>
+            <div class="row g-1">
+              <div class="col-6">
+                <label class="form-label small mb-0">Mulai (detik)</label>
+                <input type="number" id="trimStart" class="form-control form-control-sm" min="0" step="0.1" value="0">
+              </div>
+              <div class="col-6">
+                <label class="form-label small mb-0">Akhir (detik)</label>
+                <input type="number" id="trimEnd" class="form-control form-control-sm" min="0" step="0.1" value="0">
+              </div>
+            </div>
+            <div class="d-flex gap-1 mt-1">
+              <button type="button" id="btnTrimApply" class="btn btn-sm btn-outline-primary flex-fill"><i class="bi bi-check2-circle"></i> Terapkan Trim</button>
+              <button type="button" id="btnTrimReset" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></button>
+            </div>
+            <small class="text-muted d-block mt-1" id="trimStat">Belum ada trim.</small>
+          </div>
+
+          <!-- Revisi 18 Juni 2026 — Lirik otomatis sebagai subtitle pada video -->
+          <div class="border rounded p-2 mt-2 bg-info-subtle">
+            <label class="form-label small fw-bold mb-1"><i class="bi bi-badge-cc text-info"></i> Tampilkan Lirik (Subtitle Karaoke)</label>
+            <div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" id="optLyric">
+              <label class="form-check-label small" for="optLyric">Aktifkan subtitle lirik di video</label>
+            </div>
+            <div class="row g-1">
+              <div class="col-7"><input type="text" id="lyricTitle" class="form-control form-control-sm" placeholder="Judul lagu"></div>
+              <div class="col-5"><input type="text" id="lyricArtist" class="form-control form-control-sm" placeholder="Artis (opsional)"></div>
+            </div>
+            <button type="button" id="btnLyricFetch" class="btn btn-sm btn-info w-100 mt-1"><i class="bi bi-magic"></i> Ambil Lirik dari Gemini AI</button>
+            <textarea id="lyricManual" class="form-control form-control-sm mt-1" rows="3" placeholder="Atau tempel lirik manual (1 baris = 1 subtitle, atau format LRC [mm:ss.xx]baris)"></textarea>
+            <small id="lyricStat" class="text-muted d-block mt-1">Belum ada lirik.</small>
+          </div>
         </div>
 
         <hr>
@@ -173,6 +222,12 @@ include __DIR__.'/includes/header.php';
           </div>
           <div id="flyRec" class="fly-badge"><i class="bi bi-record-circle-fill"></i> REC</div>
           <div id="flyPopup" class="fly-popup"></div>
+          <!-- Revisi 18 Juni 2026 — subtitle lirik di preview -->
+          <div id="flyLyric" style="position:absolute;left:50%;bottom:78px;transform:translateX(-50%);z-index:6;
+               background:linear-gradient(180deg,rgba(8,47,73,.92),rgba(14,116,144,.92));color:#fef9c3;
+               font-weight:800;font-size:1.05rem;padding:10px 22px;border-radius:14px;
+               border:1px solid rgba(186,230,253,.45);box-shadow:0 8px 24px rgba(0,0,0,.45);
+               max-width:80%;text-align:center;display:none"></div>
         </div>
         <div class="small text-muted mt-2 px-2">
           <i class="bi bi-info-circle"></i>
@@ -286,14 +341,180 @@ $('musicFile').addEventListener('change', setupMusicSrc);
 function setupMusicSrc(){
   const a = $('musicAudio');
   const f = $('musicFile').files[0];
-  if (f){ a.src = URL.createObjectURL(f); }
+  if (f){ a.src = URL.createObjectURL(f); a.crossOrigin = null; MUSIC.currentTitle=f.name; MUSIC.currentArtist=''; }
   else if (!a.src){
-    // Default: instrumental upbeat dari Pixabay (lisensi gratis untuk komersial).
     a.src = 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e3a8af6c4.mp3?filename=energetic-indie-rock-30sec-117279.mp3';
     a.crossOrigin = 'anonymous';
+    MUSIC.currentTitle='Energetic Indie Rock'; MUSIC.currentArtist='Pixabay (free)';
   }
   a.loop = true; a.load();
+  TRIM.start = 0; TRIM.end = 0;
+  a.addEventListener('loadedmetadata', onAudioMeta, { once:true });
 }
+function onAudioMeta(){
+  const a = $('musicAudio');
+  $('audDur').textContent = a.duration.toFixed(1)+'s';
+  if (!$('trimEnd').value || parseFloat($('trimEnd').value)===0) $('trimEnd').value = a.duration.toFixed(1);
+  if (!$('lyricTitle').value)  $('lyricTitle').value  = MUSIC.currentTitle || '';
+  if (!$('lyricArtist').value) $('lyricArtist').value = MUSIC.currentArtist || '';
+}
+
+/* ============================================================
+   Revisi 18 Juni 2026 — Pustaka musik realtime (iTunes Search API)
+   ============================================================ */
+var MUSIC = { currentTitle:'', currentArtist:'' };
+$('btnMusicSearch').addEventListener('click', searchMusic);
+$('musicQ').addEventListener('keydown', e => { if (e.key==='Enter'){ e.preventDefault(); searchMusic(); } });
+async function searchMusic(){
+  const q = $('musicQ').value.trim();
+  if (!q) return;
+  const box = $('musicResults');
+  box.style.display = 'block';
+  box.innerHTML = '<div class="list-group-item small text-muted"><span class="spinner-border spinner-border-sm"></span> Mencari…</div>';
+  try {
+    const r = await fetch('https://itunes.apple.com/search?media=music&entity=song&limit=12&term='+encodeURIComponent(q));
+    const j = await r.json();
+    if (!j.results || !j.results.length){ box.innerHTML = '<div class="list-group-item small text-muted">Tidak ada hasil.</div>'; return; }
+    box.innerHTML = '';
+    j.results.forEach(t => {
+      if (!t.previewUrl) return;
+      const it = document.createElement('button');
+      it.type='button'; it.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2 py-1';
+      it.innerHTML = '<img src="'+(t.artworkUrl60||'')+'" width="32" height="32" style="border-radius:4px">'
+                   + '<div class="text-start flex-fill"><div class="fw-semibold" style="font-size:.85rem">'
+                   + escapeHtml(t.trackName||'?')+'</div><div class="text-muted" style="font-size:.72rem">'
+                   + escapeHtml(t.artistName||'')+(t.trackTimeMillis?(' · '+Math.round(t.trackTimeMillis/1000)+'s'):'')+'</div></div>'
+                   + '<i class="bi bi-play-circle-fill text-success"></i>';
+      it.onclick = () => pickMusic(t);
+      box.appendChild(it);
+    });
+  } catch(e){ box.innerHTML = '<div class="list-group-item small text-danger">Error: '+e.message+'</div>'; }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function pickMusic(t){
+  const a = $('musicAudio');
+  a.crossOrigin = 'anonymous';
+  a.src = t.previewUrl; a.loop = true; a.load();
+  $('musicMeta').innerHTML = '<i class="bi bi-music-note"></i> '+escapeHtml(t.trackName)+' — '+escapeHtml(t.artistName);
+  MUSIC.currentTitle = t.trackName||''; MUSIC.currentArtist = t.artistName||'';
+  $('lyricTitle').value = MUSIC.currentTitle;
+  $('lyricArtist').value = MUSIC.currentArtist;
+  TRIM.start=0; TRIM.end=0;
+  a.addEventListener('loadedmetadata', onAudioMeta, { once:true });
+}
+
+/* ============================================================
+   Revisi 18 Juni 2026 — Trim Audio (potong start/end)
+   ============================================================ */
+var TRIM = { start:0, end:0, applied:false };
+$('btnTrimReset').onclick = () => {
+  const a = $('musicAudio');
+  TRIM = { start:0, end:0, applied:false };
+  $('trimStart').value = 0; $('trimEnd').value = (a.duration||0).toFixed(1);
+  $('trimStat').textContent = 'Trim direset.';
+  if (a.dataset.originalSrc){ a.src = a.dataset.originalSrc; a.load(); }
+};
+$('btnTrimApply').onclick = async () => {
+  const a = $('musicAudio');
+  const s = Math.max(0, parseFloat($('trimStart').value||0));
+  const e = Math.max(s+0.5, parseFloat($('trimEnd').value||0));
+  if (!a.src){ $('trimStat').textContent='Pilih lagu dulu.'; return; }
+  $('trimStat').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses…';
+  try {
+    if (!a.dataset.originalSrc) a.dataset.originalSrc = a.src;
+    const resp = await fetch(a.dataset.originalSrc, { mode:'cors' });
+    const buf  = await resp.arrayBuffer();
+    const ac   = new (window.AudioContext||window.webkitAudioContext)();
+    const decoded = await ac.decodeAudioData(buf.slice(0));
+    const sr = decoded.sampleRate;
+    const startS = Math.min(decoded.length, Math.floor(s*sr));
+    const endS   = Math.min(decoded.length, Math.floor(e*sr));
+    if (endS - startS < sr*0.3){ throw new Error('Range terlalu pendek.'); }
+    const ch = decoded.numberOfChannels, len = endS - startS;
+    const out = ac.createBuffer(ch, len, sr);
+    for (let c=0;c<ch;c++){ out.getChannelData(c).set(decoded.getChannelData(c).subarray(startS, endS)); }
+    const wavBlob = audioBufferToWav(out);
+    a.src = URL.createObjectURL(wavBlob); a.crossOrigin = null; a.load();
+    TRIM = { start:s, end:e, applied:true };
+    $('trimStat').textContent = 'Trim diterapkan: '+s.toFixed(2)+'s → '+e.toFixed(2)+'s ('+(e-s).toFixed(2)+'s).';
+    try{ ac.close(); }catch(_){}
+  } catch(err){ $('trimStat').textContent = 'Gagal: '+err.message+' (mungkin CORS audio sumber)'; }
+};
+function audioBufferToWav(buf){
+  const ch = buf.numberOfChannels, sr = buf.sampleRate, len = buf.length*ch*2;
+  const ab = new ArrayBuffer(44+len), dv = new DataView(ab);
+  let p=0; function w(s){ for(let i=0;i<s.length;i++) dv.setUint8(p++, s.charCodeAt(i)); }
+  function u32(v){ dv.setUint32(p, v, true); p+=4; } function u16(v){ dv.setUint16(p, v, true); p+=2; }
+  w('RIFF'); u32(36+len); w('WAVE'); w('fmt '); u32(16); u16(1); u16(ch); u32(sr); u32(sr*ch*2); u16(ch*2); u16(16);
+  w('data'); u32(len);
+  const chans = []; for (let c=0;c<ch;c++) chans.push(buf.getChannelData(c));
+  for (let i=0;i<buf.length;i++){
+    for (let c=0;c<ch;c++){ let v = Math.max(-1, Math.min(1, chans[c][i])); dv.setInt16(p, v<0?v*0x8000:v*0x7FFF, true); p+=2; }
+  }
+  return new Blob([ab], { type:'audio/wav' });
+}
+
+/* ============================================================
+   Revisi 18 Juni 2026 — Lirik AI (Gemini) sebagai subtitle karaoke
+   ============================================================ */
+var LYRICS = { lines: [], src: '' };
+$('btnLyricFetch').addEventListener('click', async () => {
+  const title = $('lyricTitle').value.trim();
+  const artist = $('lyricArtist').value.trim();
+  const a = $('musicAudio');
+  const dur = Math.max(15, Math.round((TRIM.applied ? (TRIM.end-TRIM.start) : (a.duration||180))));
+  if (!title){ $('lyricStat').textContent='Isi judul lagu dulu.'; return; }
+  $('lyricStat').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengambil lirik via Gemini…';
+  try {
+    const fd = new FormData();
+    fd.append('csrf','<?= csrf_token() ?>');
+    fd.append('_action','ai_song_lyrics');
+    fd.append('title', title); fd.append('artist', artist); fd.append('duration', dur);
+    const r = await fetch('/api_run.php', { method:'POST', body:fd, credentials:'same-origin' });
+    const d = await r.json();
+    if (!d.ok){ $('lyricStat').textContent='Gagal: '+(d.err||'?'); return; }
+    LYRICS.lines = d.lines || []; LYRICS.src = 'gemini';
+    $('optLyric').checked = true;
+    $('lyricStat').textContent = LYRICS.lines.length+' baris lirik siap. '+(d.note||'');
+  } catch(e){ $('lyricStat').textContent='Error: '+e.message; }
+});
+$('lyricManual').addEventListener('input', () => {
+  const txt = $('lyricManual').value.trim();
+  if (!txt){ return; }
+  const a = $('musicAudio');
+  const dur = (TRIM.applied ? (TRIM.end-TRIM.start) : (a.duration||180)) || 180;
+  const lrc = /\[(\d+):(\d+(?:\.\d+)?)\]\s*(.+)/;
+  const lines = [];
+  txt.split(/\r?\n/).forEach(ln => {
+    ln = ln.trim(); if (!ln) return;
+    const m = ln.match(lrc);
+    if (m){ lines.push({ t: (+m[1])*60 + parseFloat(m[2]), line: m[3].trim() }); }
+    else { lines.push({ t: -1, line: ln }); }
+  });
+  const untimed = lines.filter(l=>l.t<0);
+  if (untimed.length === lines.length && lines.length>0){
+    const gap = dur / (lines.length+1);
+    lines.forEach((l,i)=> l.t = gap*(i+1) - gap*0.5);
+  }
+  LYRICS.lines = lines.filter(l=>l.t>=0).sort((a,b)=>a.t-b.t);
+  LYRICS.src = 'manual';
+  $('optLyric').checked = true;
+  $('lyricStat').textContent = LYRICS.lines.length+' baris lirik (manual) siap.';
+});
+function currentLyricLine(audioTime){
+  if (!$('optLyric').checked || !LYRICS.lines.length) return '';
+  let cur = '';
+  for (const l of LYRICS.lines){ if (l.t <= audioTime+0.05) cur = l.line; else break; }
+  return cur;
+}
+// Ticker live untuk overlay HTML subtitle di preview
+setInterval(() => {
+  const el = document.getElementById('flyLyric'); if (!el) return;
+  const a = $('musicAudio');
+  if (!$('optLyric').checked || !LYRICS.lines.length || !a || a.paused){ el.style.display='none'; return; }
+  const line = currentLyricLine(a.currentTime);
+  if (line){ el.textContent = line; el.style.display=''; } else { el.style.display='none'; }
+}, 120);
 
 /* HUD helpers — Revisi 17 Juni 2026: kecepatan memakai DURASI REAL aktivitas
  * (jarak_m / durasi_dtk dari run_sessions), bukan waktu animasi.
@@ -406,6 +627,32 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.textBaseline='middle';
     drawTextFit(ctx, text, x+17*sx, y+th/2, tw-34*sx);
     ctx.restore();
+  }
+
+  /* Revisi 18 Juni 2026 — Subtitle lirik karaoke pada video */
+  if ($('optLyric') && $('optLyric').checked && LYRICS.lines.length){
+    const a = $('musicAudio');
+    const tNow = a && !a.paused ? a.currentTime : (o.tSec||0);
+    const lyric = currentLyricLine(tNow);
+    if (lyric){
+      ctx.save();
+      const fs = Math.max(20, 26*sx);
+      ctx.font = '800 '+fs+'px system-ui, sans-serif';
+      const padX = 22*sx, padY = 14*sy;
+      const tw = Math.min(w-40*sx, ctx.measureText(lyric).width + padX*2);
+      const th = fs + padY*2;
+      // Posisikan agak di atas popup (~96 px dari bawah)
+      const x = (w-tw)/2, y = h - th - 90*sy;
+      ctx.shadowColor='rgba(0,0,0,.55)'; ctx.shadowBlur=22; ctx.shadowOffsetY=6;
+      const g = ctx.createLinearGradient(x,y,x,y+th);
+      g.addColorStop(0,'rgba(8,47,73,.92)'); g.addColorStop(1,'rgba(14,116,144,.92)');
+      ctx.fillStyle=g; rr(ctx,x,y,tw,th,18*sx); ctx.fill();
+      ctx.shadowColor='transparent';
+      ctx.strokeStyle='rgba(186,230,253,.45)'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle='#fef9c3'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      drawTextFit(ctx, lyric, x+tw/2, y+th/2, tw-padX*2);
+      ctx.restore();
+    }
   }
 }
 

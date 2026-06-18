@@ -98,24 +98,68 @@ $a = $_POST['_action'] ?? '';
  * Mengembalikan { ok, coords:[[lat,lng],...], note }.
  */
 if ($a === 'ai_route_from_image') {
-    @set_time_limit(120); // Revisi 17 Juni 2026 — proses bisa 30-60dtk (Gemini + Nominatim)
+    @set_time_limit(120);
     rate_limit_or_die('ai_route:'.$uid, 5, 600);
     if (empty($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) {
         echo json_encode(['ok'=>false,'err'=>'gambar tidak ada']); exit;
     }
     $hint = trim((string)($_POST['hint'] ?? ''));
+
+    /* ===== Revisi 18 Juni 2026 — Strategi 2-tahap =====
+     * 1) Minta Gemini langsung mengembalikan ESTIMASI [lat,lng] berurutan
+     *    dengan membaca skala/orientasi map pada screenshot.
+     * 2) Fallback ke metode lama (landmark + Nominatim) bila tahap 1 kurang.
+     */
+    $coords = []; $note = ''; $places = []; $failures = [];
+
+    // -------- Tahap 1: koordinat langsung --------
+    $promptCoord =
+        "Anda menerima SCREENSHOT peta (Strava/Google Maps/Komoot/dll) yang menampilkan satu RUTE olahraga ".
+        "(biasanya garis berwarna biru/merah/oranye) di INDONESIA. ".
+        "TUGAS: Perkirakan koordinat [lat,lng] dari MINIMAL 15 dan maksimal 40 titik mengikuti garis rute, ".
+        "berurutan dari START ke FINISH. Manfaatkan: skala/legenda peta, kompas, nama jalan, kontur kota, ".
+        "serta posisi marker start (lingkaran hijau) dan finish (lingkaran hitam/bendera). ".
+        "Jika peta tidak menampilkan koordinat eksplisit, perkirakan se-realistis mungkin ".
+        "(boleh meleset 100-300 m, ini hanya untuk animasi flyover, bukan navigasi). ".
+        "Balas HANYA JSON valid tanpa fence: ".
+        '{"coords":[[lat,lng],[lat,lng]], "area":"<kota/kabupaten>", "note":"<1 kalimat>"}'.
+        ($hint!=='' ? " Petunjuk area dari pengguna: $hint" : "");
+    $g1 = gemini_vision($promptCoord, $_FILES['image']['tmp_name'],
+            ['json'=>true,'temperature'=>0.1,'max_tokens'=>4096]);
+    if ($g1['ok']) {
+        $obj1 = gemini_extract_json($g1['text']);
+        $raw  = $obj1['coords'] ?? [];
+        $note = (string)($obj1['note'] ?? '');
+        if (is_array($raw)) {
+            foreach ($raw as $pt) {
+                if (!is_array($pt) || count($pt) < 2) continue;
+                $la = (float)$pt[0]; $ln = (float)$pt[1];
+                if ($la >= -11.5 && $la <= 6.5 && $ln >= 94.5 && $ln <= 141.5) {
+                    $coords[] = [$la, $ln];
+                }
+            }
+        }
+        if (count($coords) >= 10) {
+            echo json_encode([
+                'ok'=>true,
+                'coords'=>$coords,
+                'note'=>($note ?: 'Estimasi koordinat langsung dari Gemini Vision.').' Sumber: AI vision (perkiraan).',
+                'mode'=>'direct_coords',
+            ]); exit;
+        }
+    }
+
+    // -------- Tahap 2: fallback landmark + Nominatim --------
     $prompt = "Anda menerima SCREENSHOT PETA / STRAVA yang menampilkan sebuah RUTE (lari/jalan/sepeda) di INDONESIA. "
-            . "Identifikasi 5-10 LANDMARK / nama jalan / persimpangan / titik penting secara BERURUTAN sepanjang rute. "
-            . "WAJIB cantumkan nama kota/kabupaten Indonesia + ', Indonesia' pada tiap entri agar tidak salah negara. "
-            . "Balas HANYA JSON valid (tanpa fence ```): {\"places\":[\"Nama lengkap, Kota, Indonesia\", ...], \"note\":\"<1 kalimat singkat>\"}. "
-            . "Jika tidak yakin nama persis, beri patokan area perumahan / persimpangan terdekat berikut kota Indonesia. "
+            . "Identifikasi 8-15 LANDMARK / nama jalan / persimpangan / titik penting secara BERURUTAN sepanjang rute. "
+            . "WAJIB cantumkan nama kota/kabupaten Indonesia + ', Indonesia' pada tiap entri agar geocoding tidak salah negara. "
+            . "Balas HANYA JSON valid tanpa fence: {\"places\":[\"Nama lengkap, Kota, Indonesia\"], \"note\":\"<1 kalimat>\"}. "
             . ($hint!=='' ? "Petunjuk area dari pengguna: $hint" : "");
     $g = gemini_vision($prompt, $_FILES['image']['tmp_name'],
             ['json'=>true,'temperature'=>0.2,'max_tokens'=>4096]);
-    if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err']]); exit; }
+    if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err'].($g1['ok']?'':' | tahap1: '.$g1['err'])]); exit; }
     $obj = gemini_extract_json($g['text']);
     $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-    // Revisi 17 Juni 2026 — fallback parsing: pisah baris kalau JSON gagal, skip baris berisi token JSON
     if (count($places) < 2) {
         $lines = preg_split('/\r?\n/', (string)$g['text']);
         foreach ($lines as $ln) {
@@ -125,15 +169,13 @@ if ($a === 'ai_route_from_image') {
             if (strlen($ln) > 4 && strlen($ln) < 120 && substr_count($ln, ' ') < 12) $places[] = $ln;
         }
     }
-    // Pastikan setiap entri ber-suffix Indonesia agar geocoding tidak ke luar negeri
     $places = array_map(function($p){
         $p = trim((string)$p);
         if ($p !== '' && stripos($p, 'indonesia') === false) $p .= ', Indonesia';
         return $p;
     }, $places);
-    $places = array_slice(array_values(array_filter(array_unique($places))), 0, 8);
+    $places = array_slice(array_values(array_filter(array_unique($places))), 0, 12);
     if (count($places) < 2) { echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan landmark. Raw: '.substr($g['text'],0,200)]); exit; }
-    // Geocoding OSM (Nominatim) — Revisi 17 Juni 2026 Part I: multi-variant fallback
     $coords = []; $failures = [];
     foreach ($places as $place) {
         $q = trim((string)$place); if ($q==='') continue;
@@ -170,10 +212,53 @@ if ($a === 'ai_route_from_image') {
     if (count($coords) < 2) {
         echo json_encode(['ok'=>false,'err'=>'Geocoding gagal untuk: '.implode(' | ', $failures).'. Coba petunjuk area yg lebih spesifik.']); exit;
     }
-    echo json_encode(['ok'=>true, 'coords'=>$coords, 'places'=>$places, 'note'=>$obj['note'] ?? '', 'gagal_geocode'=>$failures]);
+    echo json_encode([
+        'ok'=>true,
+        'coords'=>$coords,
+        'places'=>$places,
+        'note'=>($obj['note'] ?? '').' (mode landmark + Nominatim)',
+        'gagal_geocode'=>$failures,
+        'mode'=>'landmark_geocode',
+    ]);
     exit;
 }
 
+/* ===== Revisi 18 Juni 2026 — AI Lyrics untuk Flyover Subtitle =====
+ * Input: title (judul lagu) + artist (opsional) + duration (detik audio).
+ * Output: JSON { ok, lines:[{t:detik, line:"..."}], note }.
+ */
+if ($a === 'ai_song_lyrics') {
+    rate_limit_or_die('ai_lyric:'.$uid, 20, 600);
+    $title = trim((string)($_POST['title'] ?? ''));
+    $artist= trim((string)($_POST['artist'] ?? ''));
+    $dur   = max(5, min(900, (int)($_POST['duration'] ?? 180)));
+    if ($title === '') { echo json_encode(['ok'=>false,'err'=>'judul kosong']); exit; }
+    $prompt = "Anda adalah ahli musik. Berikan LIRIK lagu berjudul \"$title\""
+            . ($artist!=='' ? " oleh \"$artist\"" : "")
+            . " untuk ditampilkan sebagai SUBTITLE karaoke pada video sepanjang $dur detik. "
+            . "Bagi lirik menjadi BARIS-BARIS pendek (maks 60 karakter/baris). "
+            . "Perkirakan timing tiap baris: distribusikan secara wajar dari 0 hingga $dur detik "
+            . "(mungkin intro 5-12 detik kosong, lalu verse, chorus, dst). "
+            . "Jika lagu instrumental atau tidak Anda kenali, gunakan placeholder kreatif singkat (mis. \"Instrumental\"). "
+            . "Balas HANYA JSON valid tanpa fence: "
+            . '{"lines":[{"t":0,"line":"..."},{"t":12.5,"line":"..."}], "note":"<sumber/catatan>"}';
+    $g = gemini_text($prompt, ['json'=>true,'temperature'=>0.3,'max_tokens'=>2048]);
+    if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err']]); exit; }
+    $obj = gemini_extract_json($g['text']);
+    $lines = is_array($obj['lines'] ?? null) ? $obj['lines'] : [];
+    $out = [];
+    foreach ($lines as $l) {
+        if (!is_array($l)) continue;
+        $t = (float)($l['t'] ?? -1);
+        $tx = trim((string)($l['line'] ?? ''));
+        if ($tx === '' || $t < 0 || $t > $dur+5) continue;
+        $out[] = ['t'=>$t, 'line'=>$tx];
+    }
+    if (!$out) { echo json_encode(['ok'=>false,'err'=>'Lirik tidak ditemukan. Raw: '.substr($g['text'],0,200)]); exit; }
+    usort($out, function($a,$b){ return $a['t'] <=> $b['t']; });
+    echo json_encode(['ok'=>true,'lines'=>$out,'note'=>(string)($obj['note'] ?? '')]);
+    exit;
+}
 
 if ($a === 'start') {
     rate_limit_or_die('run_start:'.$uid, 10, 600);

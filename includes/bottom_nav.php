@@ -68,3 +68,50 @@ if (!function_exists('_gj_active')) {
 
 <?php /* Kompat lama: beberapa CSS/JS legacy masih cari .bottom-nav */ ?>
 <div class="bottom-nav d-none" aria-hidden="true"></div>
+
+<?php /* Revisi 18 Juni 2026 — Loading spinner kecil di samping teks item nav mobile saat di-klik */ ?>
+<style>
+.gj-nav .gj-item .gj-spin{
+  display:none; width:.85rem; height:.85rem; margin-left:4px; vertical-align:-1px;
+  border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
+  animation: gjspin .7s linear infinite;
+}
+.gj-nav .gj-item.is-loading .gj-spin{ display:inline-block; }
+.gj-nav .gj-item.is-loading{ opacity:.85; pointer-events:none; }
+.gj-nav .gj-item.is-loading .gj-label{ color:#0ea5e9; }
+@keyframes gjspin { to { transform: rotate(360deg); } }
+.gj-topbar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#0ea5e9,#22d3ee);
+  z-index:9999;transition:width .25s ease;box-shadow:0 0 8px #0ea5e9}
+.gj-topbar.active{width:80%}
+</style>
+<div class="gj-topbar" id="gjTopBar" aria-hidden="true"></div>
+<script>
+(function(){
+  // Inject placeholder spinner element ke setiap label item nav (sekali).
+  document.querySelectorAll('.gj-nav .gj-item').forEach(function(it){
+    var lab = it.querySelector('.gj-label');
+    if (lab && !lab.querySelector('.gj-spin')){
+      var s = document.createElement('span');
+      s.className = 'gj-spin'; s.setAttribute('aria-hidden','true');
+      lab.appendChild(s);
+    }
+    it.addEventListener('click', function(e){
+      // Abaikan kalau modifier key / target sama dengan halaman saat ini
+      if (e.metaKey||e.ctrlKey||e.shiftKey||e.button) return;
+      try {
+        var here = (location.pathname||'').split('/').pop();
+        var href = (it.getAttribute('href')||'').split('/').pop().split('?')[0];
+        if (href && href === here) return;
+      } catch(_) {}
+      it.classList.add('is-loading');
+      var tb = document.getElementById('gjTopBar');
+      if (tb) tb.classList.add('active');
+    });
+  });
+  // Reset bila user kembali via back-forward cache
+  window.addEventListener('pageshow', function(){
+    document.querySelectorAll('.gj-nav .gj-item.is-loading').forEach(function(it){ it.classList.remove('is-loading'); });
+    var tb = document.getElementById('gjTopBar'); if (tb) tb.classList.remove('active');
+  });
+})();
+</script>
