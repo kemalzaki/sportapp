@@ -17,6 +17,43 @@ if ($u) {
   $darkMode = (int)($_uf['dark_mode'] ?? 0);
   $nUnread = unread_notif_count((int)$u['id']);
 }
+
+// Revisi 18 Juni 2026 — auto-default $pageSkeleton per halaman bila belum diset.
+// Skeleton sesuai bentuk konten dominan tiap halaman. Halaman yang sudah
+// mendefinisikan $pageSkeleton sendiri tidak ditimpa.
+if (empty($pageSkeleton)) {
+    $_base = basename($_SERVER['SCRIPT_NAME'] ?? '');
+    $_skelMap = [
+        'index.php'=>'feed', 'feed_islami.php'=>'feed', 'islami.php'=>'feed',
+        'artikel_olahraga.php'=>'feed', 'artikel_sunnah.php'=>'feed',
+        'berita.php'=>'feed', 'hidup_sehat.php'=>'feed', 'gaya_hidup.php'=>'feed',
+        'cedera_olahraga.php'=>'feed', 'doa.php'=>'list', 'dzikir.php'=>'list',
+        'hadist.php'=>'list', 'quran.php'=>'list', 'quran_surah.php'=>'list',
+        'jadwal_sholat.php'=>'jadwal', 'event.php'=>'jadwal', 'calendar.php'=>'jadwal',
+        'kalender_hijriyah.php'=>'jadwal',
+        'kalori_mingguan.php'=>'table', 'kalori_badminton.php'=>'table',
+        'kalori_futsal.php'=>'table', 'kalori_renang.php'=>'table',
+        'kalori_pingpong.php'=>'table',
+        'leaderboard_islami.php'=>'table', 'statistik_islami.php'=>'profile',
+        'profile.php'=>'profile', 'user.php'=>'profile',
+        'dm.php'=>'chat', 'dm_floating.php'=>'chat',
+        'tempat.php'=>'grid', 'tempat_list.php'=>'grid', 'tempat_detail.php'=>'grid',
+        'buku.php'=>'grid', 'jajanan.php'=>'grid', 'beasiswa.php'=>'grid',
+        'kajian.php'=>'grid', 'iptv.php'=>'grid',
+        'run.php'=>'grid', 'riwayat.php'=>'table', 'upload.php'=>'grid',
+        'challenge.php'=>'forum', 'doa_antar_member.php'=>'forum',
+        'bookmark.php'=>'list', 'search.php'=>'list', 'hashtag.php'=>'feed',
+        'monitoring.php'=>'table', 'export.php'=>'table',
+        'sejarah_nabi.php'=>'list', 'shalat_tatacara.php'=>'list',
+        'shalat_rawatib.php'=>'list', 'shalat_sunnah.php'=>'list',
+        'rukun_islam.php'=>'list', 'catatan_hafalan.php'=>'list',
+        'kesehatan.php'=>'feed', 'kalkulator.php'=>'grid',
+        'kalkulator_jantung.php'=>'grid', 'kalkulator_kesehatan.php'=>'grid',
+        'kalistenik.php'=>'feed', 'donasi.php'=>'list',
+    ];
+    if (isset($_skelMap[$_base])) $pageSkeleton = $_skelMap[$_base];
+    else $pageSkeleton = 'list'; // default umum
+}
 ?>
 <!doctype html>
 <html lang="id" data-bs-theme="light">
@@ -417,6 +454,110 @@ if ($u) {
   </div>
 </nav>
 <?php require_once __DIR__.'/skeleton.php'; ?>
+
+<!-- Revisi 18 Juni 2026 — Interactive page transition.
+     Klik link internal → main content langsung diganti skeleton (sesuai $pageSkeleton)
+     sementara nav atas + bottom-nav tetap tampil → memberi kesan halaman terbuka
+     dulu, baru data load. Saat halaman baru selesai load, skeleton hilang otomatis. -->
+<style>
+#hfPageTransOverlay{position:fixed;left:0;right:0;z-index:1040;background:var(--bs-body-bg,#fff);
+  padding:1rem;overflow:auto;display:none;}
+#hfPageTransOverlay.active{display:block;}
+body[data-hf-loading="1"] main{visibility:hidden;}
+.hf-page-trans-bar{height:3px;background:linear-gradient(90deg,#16a34a,#2563eb,#f59e0b);
+  position:fixed;top:0;left:0;right:0;z-index:1080;transform-origin:left;animation:hfTransBar 1.6s ease-in-out infinite;}
+@keyframes hfTransBar{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1)}}
+</style>
+<script>
+(function(){
+  // Hanya intersep link ke halaman PHP internal yang sama-origin.
+  function isInternalNav(a){
+    if (!a || a.target==='_blank') return false;
+    if (a.hasAttribute('download') || a.dataset.noTrans==='1') return false;
+    var href = a.getAttribute('href')||''; if (!href) return false;
+    if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return false;
+    try{
+      var u = new URL(href, location.href);
+      if (u.origin !== location.origin) return false;
+      if (u.pathname === location.pathname && u.search === location.search) return false;
+      // skip API / file extensions selain html/php
+      if (/\.(jpg|jpeg|png|gif|webp|pdf|mp4|mp3|zip|json)$/i.test(u.pathname)) return false;
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function skeletonHtml(shape){
+    var fn = (window.HFSkel && window.HFSkel.shapes && window.HFSkel.shapes[shape])
+              ? window.HFSkel.shapes[shape] : null;
+    if (!fn) fn = (window.HFSkel && window.HFSkel.shapes && window.HFSkel.shapes.list);
+    if (!fn) return '<div style="padding:2rem;text-align:center;color:#888"><span class="spinner-border spinner-border-sm"></span> Memuat halaman…</div>';
+    return '<div class="hf-skel-wrap">'+fn()+'</div>';
+  }
+
+  function showTransition(shape){
+    // Bar progress di atas
+    if (!document.getElementById('hfTransBar')){
+      var b = document.createElement('div'); b.id='hfTransBar'; b.className='hf-page-trans-bar';
+      document.body.appendChild(b);
+    }
+    // Overlay skeleton di area konten
+    var ov = document.getElementById('hfPageTransOverlay');
+    if (!ov){
+      ov = document.createElement('div'); ov.id='hfPageTransOverlay';
+      document.body.appendChild(ov);
+    }
+    // Posisikan overlay antara header atas (gt-top ~56px) dan bottom-nav (~64px).
+    var top = 0, bot = 0;
+    var gt = document.querySelector('.gt-top'); if (gt) top = gt.offsetHeight;
+    var bn = document.querySelector('.bottom-nav,.mobile-bottom-nav,nav.fixed-bottom');
+    if (bn) bot = bn.offsetHeight;
+    ov.style.top = top+'px'; ov.style.bottom = bot+'px';
+    ov.innerHTML = skeletonHtml(shape);
+    ov.classList.add('active');
+    document.body.setAttribute('data-hf-loading','1');
+  }
+
+  document.addEventListener('click', function(ev){
+    var a = ev.target.closest('a');
+    if (!a || !isInternalNav(a)) return;
+    if (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button) return;
+    // Tentukan shape berdasarkan path target (heuristik sederhana).
+    var path = (new URL(a.href, location.href)).pathname.split('/').pop() || 'index.php';
+    var map = {
+      'index.php':'feed','islami.php':'feed','feed_islami.php':'feed',
+      'artikel_olahraga.php':'feed','artikel_sunnah.php':'feed','berita.php':'feed','hidup_sehat.php':'feed',
+      'kalori_mingguan.php':'table','riwayat.php':'table','leaderboard_islami.php':'table',
+      'run.php':'grid','tempat.php':'grid','buku.php':'grid','jajanan.php':'grid','beasiswa.php':'grid',
+      'dm.php':'chat','profile.php':'profile','user.php':'profile',
+      'jadwal_sholat.php':'jadwal','event.php':'jadwal','calendar.php':'jadwal',
+      'doa.php':'list','dzikir.php':'list','hadist.php':'list','quran.php':'list'
+    };
+    var shape = map[path] || 'list';
+    showTransition(shape);
+    // Biarkan navigasi default berjalan
+  }, true);
+
+  // Saat halaman baru load (incl back/forward), bersihkan overlay.
+  window.addEventListener('pageshow', function(){
+    var ov = document.getElementById('hfPageTransOverlay'); if (ov) ov.classList.remove('active');
+    var bar = document.getElementById('hfTransBar'); if (bar) bar.remove();
+    document.body.removeAttribute('data-hf-loading');
+  });
+
+  // Saat halaman baru DOMContentLoaded, jika $pageSkeleton diset → isi skeleton awal
+  // pada elemen utama (main/.main-content/container) sampai window load selesai.
+  document.addEventListener('DOMContentLoaded', function(){
+    var shape = document.body.getAttribute('data-skeleton');
+    if (!shape) return;
+    // Cari kontainer utama
+    var main = document.querySelector('main, .main-content, .container, .container-fluid, .page-body');
+    if (!main) return;
+    // Cari kandidat list/feed di main; jika ada [data-live] tanpa konten kuat, isi.
+    var hostsLive = main.querySelectorAll('[data-live],[data-skel-shape]').length>0;
+    if (hostsLive) return; // skeleton.php sudah handle saat refresh
+  });
+})();
+</script>
 
 <?php if ($u): ?>
 <script>

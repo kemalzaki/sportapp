@@ -8,6 +8,7 @@ require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/ai_gemini.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kalori Mingguan';
+$pageSkeleton = 'table';
 $u = current_user();
 if (!$u) { header('Location: /login.php'); exit; }
 $uid = (int)$u['id'];
@@ -84,61 +85,94 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $kal  = (int)($_POST['kalori'] ?? 0);
         $cat  = trim($_POST['catatan'] ?? '');
         $foto = null; $fotoFileId = null; $aiUsed = false;
+        $errs = []; $warns = [];
 
-        // Handle upload foto — Revisi 17 Juni 2026 Part J: upload ke ImageKit
-        // (sama seperti upload.php). File lokal sementara hanya dipakai untuk AI lalu dihapus.
-        if (!empty($_FILES['foto']['tmp_name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
-            $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION) ?: 'jpg');
-            if (!in_array($ext, ['jpg','jpeg','png','webp'])) $ext='jpg';
-            $tmpDst = sys_get_temp_dir().'/k_'.$uid.'_'.bin2hex(random_bytes(4)).'.'.$ext;
-            if (move_uploaded_file($_FILES['foto']['tmp_name'], $tmpDst)) {
-                // AI estimate dulu (perlu file lokal)
-                if (!empty($_POST['use_ai']) || $kal <= 0) {
-                    $ai = ai_estimate_kalori($tmpDst, $nama);
-                    if (is_array($ai) && isset($ai['kalori'])) {
-                        if ($kal <= 0) $kal = (int)$ai['kalori'];
-                        if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
-                        $aiUsed = true;
-                    } else if (!empty($_POST['use_ai'])) {
-                        $errMsg = (is_array($ai) && !empty($ai['err'])) ? $ai['err'] : 'Input manual saja.';
-                        if (stripos($errMsg,'quota')!==false || stripos($errMsg,'exceeded')!==false || stripos($errMsg,'rate limit')!==false) {
-                            $errMsg = 'Kuota AI Gemini hari ini sudah habis (free tier 20 req/menit). '
-                                    . 'Solusi: (a) tunggu ~1 menit lalu coba lagi, atau (b) tambahkan beberapa API key di env '
-                                    . '<code>GEMINI_API_KEYS=key1,key2,key3</code> agar sistem otomatis bergiliran. '
-                                    . 'Detail asli: '.htmlspecialchars(mb_substr($errMsg,0,200));
+        // === Revisi 18 Juni 2026 — perbaiki upload kamera + AI kalori ===
+        // Bug sebelumnya:
+        //  (a) Foto dari kamera HP sering >5 MB, melebihi php upload_max_filesize default → tmp_name kosong,
+        //      tapi error UPLOAD_ERR_INI_SIZE tidak ditampilkan ke user.
+        //  (b) Jika AI gagal (quota habis) dan user mengandalkan AI, kalori tetap 0 dan user bingung.
+        //  (c) Pesan error ImageKit tidak rinci → user tidak tahu kenapa foto tidak masuk.
+        $hasFile = isset($_FILES['foto']) && (!empty($_FILES['foto']['name']) || !empty($_FILES['foto']['tmp_name']));
+        if ($hasFile) {
+            $upErr = (int)($_FILES['foto']['error'] ?? UPLOAD_ERR_NO_FILE);
+            if ($upErr !== UPLOAD_ERR_OK) {
+                $upErrMap = [
+                    UPLOAD_ERR_INI_SIZE=>'Ukuran foto melebihi limit server (upload_max_filesize). Coba foto resolusi lebih kecil.',
+                    UPLOAD_ERR_FORM_SIZE=>'Ukuran foto melebihi limit form (MAX_FILE_SIZE).',
+                    UPLOAD_ERR_PARTIAL=>'Foto hanya terupload sebagian. Coba lagi.',
+                    UPLOAD_ERR_NO_FILE=>'Tidak ada file foto.',
+                    UPLOAD_ERR_NO_TMP_DIR=>'Server: tmp dir tidak ada.',
+                    UPLOAD_ERR_CANT_WRITE=>'Server: gagal menulis ke disk.',
+                    UPLOAD_ERR_EXTENSION=>'Upload diblokir ekstensi PHP.',
+                ];
+                $errs[] = 'Upload gagal: '.($upErrMap[$upErr] ?? ('kode '.$upErr));
+            } elseif (!is_uploaded_file($_FILES['foto']['tmp_name'])) {
+                $errs[] = 'Upload tidak valid (is_uploaded_file=false).';
+            } else {
+                $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION) ?: 'jpg');
+                if (!in_array($ext, ['jpg','jpeg','png','webp','heic','heif'])) $ext='jpg';
+                $tmpDst = sys_get_temp_dir().'/k_'.$uid.'_'.bin2hex(random_bytes(4)).'.'.$ext;
+                if (!move_uploaded_file($_FILES['foto']['tmp_name'], $tmpDst)) {
+                    $errs[] = 'Gagal memindahkan file upload ke folder tmp server.';
+                } else {
+                    // === AI dulu (file lokal masih ada) ===
+                    if (!empty($_POST['use_ai']) || $kal <= 0) {
+                        $ai = ai_estimate_kalori($tmpDst, $nama);
+                        if (is_array($ai) && isset($ai['kalori'])) {
+                            if ($kal <= 0) $kal = (int)$ai['kalori'];
+                            if ($nama === '' && !empty($ai['nama'])) $nama = $ai['nama'];
+                            $aiUsed = true;
+                        } else {
+                            $errMsg = (is_array($ai) && !empty($ai['err'])) ? $ai['err'] : 'AI tidak menjawab.';
+                            if (stripos($errMsg,'quota')!==false || stripos($errMsg,'exceeded')!==false || stripos($errMsg,'rate limit')!==false) {
+                                $errMsg = 'Kuota AI Gemini habis (free tier). Coba lagi 1 menit, atau set GEMINI_API_KEYS=key1,key2,key3. Detail: '.mb_substr($errMsg,0,180);
+                            }
+                            $warns[] = 'AI gagal menebak kalori — '.$errMsg.' Foto tetap diupload, silakan edit angka kalori manual.';
                         }
-                        $_SESSION['flash_err'] = 'AI gagal menebak kalori. '.$errMsg;
                     }
-                }
-                // Upload ke ImageKit
-                try {
-                    require_once __DIR__.'/config/imagekit.php';
-                    global $imageKit;
-                    $safeNama = preg_replace('/[^a-z0-9]/i','_', $nama ?: 'makanan');
-                    $fileName = 'kalori-'.$uid.'-'.$tgl.'-'.$safeNama.'-'.time().'.'.$ext;
-                    $up = $imageKit->uploadFile([
-                        'file'     => base64_encode(file_get_contents($tmpDst)),
-                        'fileName' => $fileName,
-                        'folder'   => '/sportapp/kalori/'.date('F_Y', strtotime($tgl))
-                    ]);
-                    if (!$up->error) {
-                        $foto       = $up->result->url;
-                        $fotoFileId = $up->result->fileId;
-                    } else {
-                        $_SESSION['flash_err'] = ($_SESSION['flash_err'] ?? '') . ' Gagal upload foto ke ImageKit.';
+                    // === Upload ke ImageKit (terpisah dari status AI) ===
+                    try {
+                        require_once __DIR__.'/config/imagekit.php';
+                        global $imageKit;
+                        $bin = @file_get_contents($tmpDst);
+                        if ($bin === false || strlen($bin) === 0) {
+                            $errs[] = 'File foto kosong setelah dipindah.';
+                        } else {
+                            $safeNama = preg_replace('/[^a-z0-9]/i','_', $nama ?: 'makanan');
+                            $fileName = 'kalori-'.$uid.'-'.$tgl.'-'.$safeNama.'-'.time().'.'.$ext;
+                            $up = $imageKit->uploadFile([
+                                'file'     => base64_encode($bin),
+                                'fileName' => $fileName,
+                                'folder'   => '/sportapp/kalori/'.date('F_Y', strtotime($tgl))
+                            ]);
+                            if (!empty($up->error)) {
+                                $emsg = is_object($up->error) ? json_encode($up->error) : (string)$up->error;
+                                $errs[] = 'ImageKit menolak upload: '.mb_substr($emsg, 0, 250);
+                            } elseif (!empty($up->result) && !empty($up->result->url)) {
+                                $foto       = $up->result->url;
+                                $fotoFileId = $up->result->fileId ?? null;
+                            } else {
+                                $errs[] = 'ImageKit tidak mengembalikan URL. Cek API key di config/imagekit.php.';
+                            }
+                        }
+                    } catch (Throwable $e) {
+                        $errs[] = 'ImageKit exception: '.$e->getMessage();
                     }
-                } catch (Throwable $e) {
-                    $_SESSION['flash_err'] = ($_SESSION['flash_err'] ?? '') . ' ImageKit error: '.$e->getMessage();
+                    @unlink($tmpDst);
                 }
-                @unlink($tmpDst);
             }
         }
         if ($nama === '') $nama = 'Tanpa nama';
         if ($kal < 0) $kal = 0;
+        // SELALU simpan entri agar data tidak hilang — meski foto gagal / AI gagal.
         db_exec("INSERT INTO kalori_makanan_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,foto_file_id,ai_estimasi,catatan)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
             [$uid,$tgl,$jam,$nama,$kal,$foto,$fotoFileId,$aiUsed?'t':'f',$cat]);
-        if (!isset($_SESSION['flash_err'])) $_SESSION['flash_ok'] = "Makanan ditambahkan ($kal kkal)".($aiUsed?' [AI]':'').".";
+        if ($errs)  $_SESSION['flash_err'] = implode(' • ', $errs);
+        if ($warns) $_SESSION['flash_err'] = ($_SESSION['flash_err'] ?? '') . ' ' . implode(' • ', $warns);
+        $okMsg = "Makanan ditambahkan ($kal kkal)".($aiUsed?' [AI]':'').($foto?' · foto OK':'');
+        $_SESSION['flash_ok'] = $okMsg;
     } elseif ($a==='delete') {
         // Hapus juga dari ImageKit jika ada file_id
         $row = db_one("SELECT foto_file_id FROM kalori_makanan_log WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
@@ -265,7 +299,10 @@ include __DIR__.'/includes/header.php';
           <div class="col-4"><label class="form-label small">Kalori (kkal)</label><input class="form-control form-control-sm" type="number" min="0" name="kalori" placeholder="0"></div>
           <div class="col-12"><label class="form-label small">Foto makanan (opsional, AI dapat menebak kalori)</label>
             <!-- Revisi 18 Juni 2026: capture="environment" → di mobile langsung buka kamera belakang.
-                 Tombol "Pilih dari Galeri" sebagai fallback agar tetap fleksibel. -->
+                 Tombol "Pilih dari Galeri" sebagai fallback agar tetap fleksibel.
+                 Auto-resize sisi terpanjang → 1280 px sebelum upload supaya tidak ditolak server
+                 (upload_max_filesize default 2 MB di banyak hosting). -->
+            <input type="hidden" name="MAX_FILE_SIZE" value="10485760">
             <div class="d-flex gap-2 flex-wrap align-items-start">
               <label class="btn btn-primary btn-sm mb-0 flex-fill">
                 <i class="bi bi-camera-fill"></i> Buka Kamera Langsung
@@ -276,6 +313,7 @@ include __DIR__.'/includes/header.php';
               </button>
             </div>
             <div id="kmFotoPrev" class="small text-muted mt-2">Belum ada foto dipilih.</div>
+            <div class="form-text small">Foto akan otomatis dikecilkan ke max 1280 px agar tidak ditolak limit upload server.</div>
           </div>
           <script>
           // Tombol Galeri: hapus atribut capture sementara → buka picker file biasa.
@@ -289,11 +327,32 @@ include __DIR__.'/includes/header.php';
           }
           function kmFotoPreview(inp){
             var box = document.getElementById('kmFotoPrev');
-            if (inp.files && inp.files[0]){
-              var f = inp.files[0];
-              var url = URL.createObjectURL(f);
-              box.innerHTML = '<img src="'+url+'" style="max-height:120px;border-radius:8px;border:1px solid #ddd"> <span class="ms-2">'+f.name+' ('+(Math.round(f.size/1024))+' KB)</span>';
-            } else { box.textContent = 'Belum ada foto dipilih.'; }
+            if (!(inp.files && inp.files[0])){ box.textContent = 'Belum ada foto dipilih.'; return; }
+            var f = inp.files[0];
+            // Revisi 18 Juni 2026: auto-resize sisi terpanjang → 1280 px sebelum upload
+            // supaya tidak ditolak upload_max_filesize / post_max_size.
+            var MAX = 1280;
+            var img = new Image();
+            img.onload = function(){
+              var w=img.width, h=img.height, scale=Math.min(1, MAX/Math.max(w,h));
+              if (scale >= 1 && f.size < 4*1024*1024){
+                box.innerHTML = '<img src="'+img.src+'" style="max-height:120px;border-radius:8px;border:1px solid #ddd"> <span class="ms-2">'+f.name+' ('+(Math.round(f.size/1024))+' KB)</span>';
+                return;
+              }
+              var c=document.createElement('canvas'); c.width=Math.round(w*scale); c.height=Math.round(h*scale);
+              c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+              c.toBlob(function(blob){
+                if(!blob){ return; }
+                var nf = new File([blob], (f.name||'foto.jpg').replace(/\.(heic|heif|png|webp)$/i,'.jpg'), {type:'image/jpeg'});
+                var dt = new DataTransfer(); dt.items.add(nf); inp.files = dt.files;
+                var url = URL.createObjectURL(nf);
+                box.innerHTML = '<img src="'+url+'" style="max-height:120px;border-radius:8px;border:1px solid #ddd"> <span class="ms-2">'+nf.name+' ('+(Math.round(nf.size/1024))+' KB · dikompres dari '+(Math.round(f.size/1024))+' KB)</span>';
+              }, 'image/jpeg', 0.85);
+            };
+            img.onerror = function(){
+              box.innerHTML = '<img src="'+URL.createObjectURL(f)+'" style="max-height:120px;border-radius:8px;border:1px solid #ddd"> <span class="ms-2">'+f.name+'</span>';
+            };
+            img.src = URL.createObjectURL(f);
           }
           </script>
           <?php if($aiEnabled): ?>

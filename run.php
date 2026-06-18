@@ -6,6 +6,7 @@ require __DIR__.'/includes/helpers.php';
 send_security_headers(); require_login();
 $u = current_user(); $uid = (int)$u['id'];
 $pageTitle = 'Tracking Jalur / Rute';
+$pageSkeleton = 'grid';
 
 // ===== Revisi 15 Jun 2026: tabel untuk Route Builder (idempotent, aman dijalankan di local) =====
 @db_exec("CREATE TABLE IF NOT EXISTS run_routes (
@@ -957,7 +958,97 @@ document.addEventListener('click', function(ev){
     return {lat:la2*180/Math.PI, lng:lo2*180/Math.PI};
   }
 
-  // ====================== ROUTE BUILDER ======================
+  // ============================================================
+  // Revisi 18 Juni 2026 — Turn Markers + Street View Popup
+  // Setiap belokan tajam (>= ~40°) di polyline rute diberi marker oranye
+  // yang bisa diklik → popup dengan tombol Google Street View, Mapillary,
+  // dan thumbnail OpenStreetMap pada titik tersebut.
+  // ============================================================
+  var bTurnMarkers = [];
+  function clearTurnMarkers(){
+    bTurnMarkers.forEach(function(m){ try{ bMap.removeLayer(m); }catch(e){} });
+    bTurnMarkers = [];
+  }
+  function _bearing(a,b){
+    var la1=a[0]*Math.PI/180, la2=b[0]*Math.PI/180;
+    var dLo=(b[1]-a[1])*Math.PI/180;
+    var y=Math.sin(dLo)*Math.cos(la2);
+    var x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLo);
+    return (Math.atan2(y,x)*180/Math.PI+360)%360;
+  }
+  function _hav(a,b){
+    var R=6371000, la1=a[0]*Math.PI/180, la2=b[0]*Math.PI/180;
+    var dLa=(b[0]-a[0])*Math.PI/180, dLo=(b[1]-a[1])*Math.PI/180;
+    var s=Math.sin(dLa/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLo/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+  function detectTurns(coords, minAngle, minGapM){
+    minAngle = minAngle || 40; minGapM = minGapM || 80;
+    var turns=[]; var lastIdx=-1;
+    for (var i=1; i<coords.length-1; i++){
+      var b1=_bearing(coords[i-1],coords[i]);
+      var b2=_bearing(coords[i],coords[i+1]);
+      var diff=Math.abs(((b2-b1)+540)%360-180); // 0..180
+      if (diff>=minAngle){
+        if (lastIdx<0 || _hav(coords[lastIdx],coords[i])>=minGapM){
+          turns.push({idx:i, latlng:coords[i], angle:Math.round(diff), heading:Math.round(b2)});
+          lastIdx=i;
+        }
+      }
+    }
+    return turns;
+  }
+  function turnPopupHtml(t){
+    var lat=t.latlng[0].toFixed(6), lng=t.latlng[1].toFixed(6);
+    var gsv = 'https://www.google.com/maps?q=&layer=c&cbll='+lat+','+lng+'&cbp=11,'+t.heading+',0,0,0';
+    var gmap= 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+lat+','+lng+'&heading='+t.heading;
+    var mpl = 'https://www.mapillary.com/app/?lat='+lat+'&lng='+lng+'&z=18&focus=photo';
+    // OSM static tile preview (tile.openstreetmap.org)
+    var z=17;
+    var n=Math.pow(2,z);
+    var xt=Math.floor((t.latlng[1]+180)/360*n);
+    var ylat=t.latlng[0]*Math.PI/180;
+    var yt=Math.floor((1-Math.log(Math.tan(ylat)+1/Math.cos(ylat))/Math.PI)/2*n);
+    var osmTile='https://tile.openstreetmap.org/'+z+'/'+xt+'/'+yt+'.png';
+    return ''+
+      '<div style="min-width:230px">'+
+      '<div style="font-weight:600;margin-bottom:.25rem">'+
+        '<i class="bi bi-signpost-split text-warning"></i> Belokan ~'+t.angle+'° (arah '+t.heading+'°)'+
+      '</div>'+
+      '<img src="'+osmTile+'" alt="peta" style="width:100%;height:120px;object-fit:cover;border-radius:6px;border:1px solid #ddd" onerror="this.style.display=\'none\'">'+
+      '<div class="small text-muted mt-1">'+lat+', '+lng+'</div>'+
+      '<div class="d-grid gap-1 mt-2">'+
+        '<a class="btn btn-sm btn-primary" target="_blank" rel="noopener" href="'+gsv+'"><i class="bi bi-geo-alt"></i> Google Street View</a>'+
+        '<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" href="'+gmap+'"><i class="bi bi-google"></i> Buka di Google Maps</a>'+
+        '<a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="'+mpl+'"><i class="bi bi-camera"></i> Mapillary (foto jalan)</a>'+
+      '</div>'+
+      '<div class="small text-muted mt-1" style="font-size:.7rem">Foto jalan diambil dari layanan publik Street View / Mapillary.</div>'+
+      '</div>';
+  }
+  function addTurnMarkers(coords){
+    if (!bMap || !coords || coords.length<3) return;
+    clearTurnMarkers();
+    var turns = detectTurns(coords, 40, 80);
+    turns.forEach(function(t){
+      var ic = L.divIcon({
+        className:'rb-turn-icon',
+        html:'<div title="Belokan — klik untuk lihat foto" style="background:#f59e0b;border:2px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 0 0 1px #b45309,0 1px 4px rgba(0,0,0,.4);cursor:pointer"></div>',
+        iconSize:[16,16], iconAnchor:[8,8]
+      });
+      var m = L.marker(t.latlng,{icon:ic, zIndexOffset:500}).addTo(bMap);
+      m.bindPopup(turnPopupHtml(t), {maxWidth:280});
+      bTurnMarkers.push(m);
+    });
+    if (turns.length){
+      var info = document.getElementById('rbInfo');
+      if (info){
+        var extra = document.createElement('div');
+        extra.className='small text-muted mt-1';
+        extra.innerHTML='<i class="bi bi-signpost-split text-warning"></i> '+turns.length+' belokan terdeteksi — klik marker oranye di peta untuk lihat foto Street View.';
+        info.appendChild(extra);
+      }
+    }
+  }
   var bMap = null, bLine = null, bMarkers = [], bCurrentRoute = null;
   var bStartMarker = null; // Revisi 16 Juni 2026: marker titik mulai (lokasi sekarang)
   function ensureBuilderMap(center){
@@ -1005,6 +1096,7 @@ document.addEventListener('click', function(ev){
   function clearBuilder(){
     if (bLine){ bMap.removeLayer(bLine); bLine=null; }
     bMarkers.forEach(function(m){ bMap.removeLayer(m); }); bMarkers=[];
+    clearTurnMarkers();
   }
 
   // --- Helpers (preferensi elev/surface via API publik gratis, best-effort) ---
@@ -1148,7 +1240,7 @@ document.addEventListener('click', function(ev){
     var best = scored[0];
 
     bLine = L.polyline(best.coords,{color:'#2563eb',weight:5}).addTo(bMap);
-    bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
+    bMap.fitBounds(bLine.getBounds(),{padding:[20,20]}); addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
     bMarkers.push(L.marker(best.coords[0]).addTo(bMap).bindTooltip('Mulai'));
     bMarkers.push(L.marker(best.coords[best.coords.length-1]).addTo(bMap).bindTooltip('Selesai'));
     bCurrentRoute = { coords: best.coords, jarak_m: best.m };
@@ -1239,7 +1331,7 @@ document.addEventListener('click', function(ev){
         ensureBuilderMap();
         if (bLine) { bMap.removeLayer(bLine); }
         bLine = L.polyline(d.coords, {color:'#16a34a', weight:5}).addTo(bMap);
-        bMap.fitBounds(bLine.getBounds(), {padding:[40,40]});
+        bMap.fitBounds(bLine.getBounds(), {padding:[40,40]}); addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
         // hitung jarak
         var km = 0;
         for (var i=1;i<d.coords.length;i++){
@@ -1277,7 +1369,7 @@ document.addEventListener('click', function(ev){
         ensureBuilderMap();
         if (bLine) { bMap.removeLayer(bLine); }
         bLine = L.polyline(d.coords, {color:'#16a34a', weight:5}).addTo(bMap);
-        bMap.fitBounds(bLine.getBounds(), {padding:[40,40]});
+        bMap.fitBounds(bLine.getBounds(), {padding:[40,40]}); addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
         var km = 0;
         for (var i=1;i<d.coords.length;i++){
           var a=d.coords[i-1], b=d.coords[i];
@@ -1314,7 +1406,7 @@ document.addEventListener('click', function(ev){
       var res = await osrmRoute(wps);
       clearBuilder();
       bLine = L.polyline(res.coords,{color:'#16a34a',weight:5}).addTo(bMap);
-      bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
+      bMap.fitBounds(bLine.getBounds(),{padding:[20,20]}); addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
       bMarkers.push(L.marker(res.coords[0]).addTo(bMap).bindTooltip('Mulai'));
       bMarkers.push(L.marker(res.coords[res.coords.length-1]).addTo(bMap).bindTooltip('Selesai'));
       bCurrentRoute = { coords: res.coords, jarak_m: res.m };
@@ -1368,7 +1460,7 @@ document.addEventListener('click', function(ev){
       ensureBuilderMap();
       clearBuilder();
       bLine = L.polyline(d.coords,{color:'#16a34a',weight:5}).addTo(bMap);
-      bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
+      bMap.fitBounds(bLine.getBounds(),{padding:[20,20]}); addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
       bCurrentRoute = { coords: d.coords, jarak_m: d.jarak_m };
       document.getElementById('rbInfo').textContent = '✓ Memuat rute tersimpan: '+(d.jarak_m/1000).toFixed(2)+' km';
       document.getElementById('rbExport').disabled = false;

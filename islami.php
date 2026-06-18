@@ -79,10 +79,24 @@ $ramadhan = hijri_event_to_gregorian(9, 1);
 $iedAdha  = hijri_event_to_gregorian(12, 10);
 
 include __DIR__.'/includes/header.php';
+$pageSkeleton = 'feed';
 ?>
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
-<!-- Revisi 17 Juni 2026 — Tanya Jawab Islami dipindah ke paling atas -->
+<!-- Revisi 18 Juni 2026 — sapaan Assalamu‘alaikum dipindah ke paling atas, di atas Tanya Jawab AI -->
+<div class="hero-sport-islami hero-islami mb-3">
+  <div class="hero-overlay d-flex justify-content-between align-items-end flex-wrap gap-2">
+    <div>
+      <span class="badge bg-light text-success mb-2"><i class="bi bi-stars"></i> HUB ISLAMI</span>
+      <h1 class="h3 mb-1 fw-bold">Assalāmu‘alaikum, semoga hari ini berkah</h1>
+      <p class="small mb-0 opacity-85">Qur'an · Sholat · Dzikir · Doa · Kalender Hijriyah</p>
+    </div>
+    <span class="badge bg-light text-success fs-6 px-3 py-2"><i class="bi bi-moon-stars"></i> <?= $hijri['hari'] ?> <?= htmlspecialchars(hijriyah_nama_bulan($hijri['bulan'])) ?> <?= $hijri['tahun'] ?> H</span>
+  </div>
+</div>
+
+<!-- Revisi 17 Juni 2026 — Tanya Jawab Islami (dipindah ke bawah sapaan, di atas grid menu) -->
+
 <div class="card shadow-sm mb-3 border-success">
   <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
     <span><i class="bi bi-patch-question-fill"></i> <strong>Tanya Jawab Islami</strong> &mdash; bertanya kepada AI berbasis Al-Qur'an &amp; Hadist</span>
@@ -227,16 +241,7 @@ include __DIR__.'/includes/header.php';
   <div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
   <?php unset($_SESSION['flash']); endif; ?>
 
-<div class="hero-sport-islami hero-islami mb-3">
-  <div class="hero-overlay d-flex justify-content-between align-items-end flex-wrap gap-2">
-    <div>
-      <span class="badge bg-light text-success mb-2"><i class="bi bi-stars"></i> HUB ISLAMI</span>
-      <h1 class="h3 mb-1 fw-bold">Assalāmu‘alaikum, semoga hari ini berkah</h1>
-      <p class="small mb-0 opacity-85">Qur'an · Sholat · Dzikir · Doa · Kalender Hijriyah</p>
-    </div>
-    <span class="badge bg-light text-success fs-6 px-3 py-2"><i class="bi bi-moon-stars"></i> <?= $hijri['hari'] ?> <?= htmlspecialchars(hijriyah_nama_bulan($hijri['bulan'])) ?> <?= $hijri['tahun'] ?> H</span>
-  </div>
-</div>
+<!-- Hero sapaan sudah dipindah ke paling atas (lihat di bawah include header). -->
 
 <!-- KOMPAS KIBLAT dihapus sesuai revisi 6 Juni 2026 -->
 
