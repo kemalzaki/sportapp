@@ -10,12 +10,29 @@ $u = current_user();
 $pageTitle = 'Event & Tournament';
 $pageSkeleton = 'table'; // Skeleton sesuai data: tabel event
 
+// Helper: cek apakah event sudah lewat tanggal (Revisi 19 Juni 2026 Part Q)
+function event_is_closed(array $ev): bool {
+    $today = date('Y-m-d');
+    // Patokan: batas_daftar > tanggal_selesai > tanggal_mulai
+    $deadline = $ev['batas_daftar'] ?? null;
+    if (!$deadline) $deadline = $ev['tanggal_selesai'] ?? null;
+    if (!$deadline) $deadline = $ev['tanggal_mulai'] ?? null;
+    if (!$deadline) return false;
+    return strcmp(substr((string)$deadline,0,10), $today) < 0;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     rate_limit_or_die('event:'.$u['id'], 10, 60);
     $a = $_POST['_action'] ?? '';
     $eid = (int)$_POST['event_id'];
     if ($a === 'register') {
+        // Tolak pendaftaran kalau event sudah lewat tanggal
+        $evChk = db_one("SELECT id, tanggal_mulai, tanggal_selesai, batas_daftar, status FROM event WHERE id=$1", [$eid]);
+        if ($evChk && event_is_closed($evChk)) {
+            $_SESSION['flash_err'] = 'Pendaftaran ditutup — event sudah lewat tanggal.';
+            header("Location: event.php?id=$eid"); exit;
+        }
         $tim = (int)($_POST['tim_id'] ?? 0) ?: null;
         try {
             db_exec("INSERT INTO event_peserta(event_id,tim_id,user_id) VALUES($1,$2,$3)", [$eid, $tim, (int)$u['id']]);
@@ -80,7 +97,18 @@ include __DIR__.'/includes/header.php';
     <?php if(!empty($detail['batas_daftar'])): ?><div class="col-md-6"><b><i class="bi bi-hourglass-split"></i> Batas Pendaftaran:</b> <?= htmlspecialchars($detail['batas_daftar']) ?></div><?php endif; ?>
   </div>
 
-  <?php if($detail['status']==='open'): ?>
+  <?php
+    // Revisi 19 Juni 2026 Part Q — sembunyikan form & tampilkan notice jika sudah lewat tanggal
+    $evClosed = event_is_closed($detail);
+    if (!empty($_SESSION['flash_err'])): ?>
+      <div class="alert alert-danger mt-3 mb-0 py-2 small"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($_SESSION['flash_err']) ?></div>
+      <?php unset($_SESSION['flash_err']); endif; ?>
+  <?php if ($evClosed): ?>
+    <div class="alert alert-warning mt-3 mb-0 py-2 small">
+      <i class="bi bi-hourglass-bottom"></i> <strong>Pendaftaran ditutup.</strong>
+      Event ini sudah lewat tanggal — tombol Daftar dinonaktifkan.
+    </div>
+  <?php elseif($detail['status']==='open'): ?>
   <form method="post" class="row g-2 mt-3 align-items-end">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
     <input type="hidden" name="_action" value="register">

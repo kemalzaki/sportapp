@@ -15,6 +15,11 @@ send_security_headers(); require_login();
 $u = current_user(); $uid = (int)$u['id'];
 $pageTitle = 'Live Tracking / Beacon';
 
+// Revisi 19 Juni 2026 — Ikon pelari memakai foto profil user
+$userRow = db_one("SELECT foto_url FROM users WHERE id=$1", [$uid]);
+$userPhoto = trim((string)($userRow['foto_url'] ?? ''));
+if ($userPhoto === '') $userPhoto = '/assets/img/avatar-default.png';
+
 // Auto-migrasi (lihat api_live_tracking.php) — dipanggil juga di sini supaya
 // halaman aman dibuka pertama kali tanpa pernah hit API.
 @db_exec("CREATE TABLE IF NOT EXISTS live_tracking_sessions (
@@ -40,12 +45,8 @@ include __DIR__.'/includes/header.php';
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- Revisi 16 Juni 2026 — Aset Live Tracking (musik latar, ikon, popup detail) -->
+<!-- Revisi 19 Juni 2026 Part O — Musik latar dihapus. Hanya popup detail + safety banner. -->
 <style>
-  .lt-fab-music{position:fixed;right:18px;bottom:90px;z-index:1040;width:48px;height:48px;border-radius:50%;
-    border:0;color:#fff;background:linear-gradient(135deg,#ec4899,#8b5cf6);box-shadow:0 6px 16px rgba(0,0,0,.18);
-    display:flex;align-items:center;justify-content:center;font-size:1.4rem}
-  .lt-fab-music:disabled{opacity:.5}
   .lt-detail-popup{position:fixed;right:18px;top:84px;z-index:1050;width:280px;max-width:90vw;
     background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:14px;
     box-shadow:0 16px 40px rgba(0,0,0,.18);transform:translateY(-8px);opacity:0;pointer-events:none;
@@ -66,11 +67,7 @@ include __DIR__.'/includes/header.php';
   @keyframes lt-pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>
 
-<!-- Tombol musik latar -->
-<button id="ltMusicBtn" class="lt-fab-music" title="Putar musik latar (semangat lari)"
-        aria-label="Putar musik" disabled><i class="bi bi-music-note-beamed"></i></button>
-<audio id="ltMusic" loop preload="none"
-       src="https://cdn.pixabay.com/download/audio/2022/08/02/audio_2dde668ca0.mp3?filename=energetic-electronic-138631.mp3"></audio>
+<!-- Tombol musik latar dihapus (Revisi 19 Juni 2026 Part O #4) -->
 
 <!-- Popup detail melayang -->
 <div id="ltDetail" class="lt-detail-popup" role="dialog" aria-label="Detail Live Tracking">
@@ -90,7 +87,6 @@ include __DIR__.'/includes/header.php';
     <div class="d-flex gap-1 flex-wrap">
       <span class="lt-stat-pill"><i class="bi bi-broadcast text-danger"></i> Live</span>
       <span class="lt-stat-pill"><i class="bi bi-people text-primary"></i> <span id="ltdShared">tautan siap</span></span>
-      <span class="lt-stat-pill"><i class="bi bi-music-note text-secondary"></i> <span id="ltdMusic">musik off</span></span>
     </div>
   </div>
 </div>
@@ -400,12 +396,15 @@ document.getElementById('btnPipLive').addEventListener('click', async ()=>{
   var lastSafety = 0;
   var safetyTimer = null;
 
-  // Ikon kustom Leaflet (emoji-style) jika belum ada
+  // Ikon kustom Leaflet — Revisi 19 Juni 2026: pakai foto profil user
   if (window.L && me === null) {
+    var USER_PHOTO_URL = <?= json_encode($userPhoto) ?>;
     var runIcon = L.divIcon({
       className:'lt-run-icon',
-      html:'<div style="font-size:24px;line-height:24px">🏃</div>',
-      iconSize:[28,28], iconAnchor:[14,24]
+      html:'<div style="width:36px;height:36px;border-radius:50%;border:3px solid #ef4444;'
+          + 'box-shadow:0 4px 10px rgba(0,0,0,.3);background:#fff center/cover no-repeat;'
+          + 'background-image:url('+JSON.stringify(USER_PHOTO_URL)+')"></div>',
+      iconSize:[36,36], iconAnchor:[18,18]
     });
     // ganti factory marker saat pertama kali dibuat
     var _origAdd = L.marker;
@@ -416,17 +415,9 @@ document.getElementById('btnPipLive').addEventListener('click', async ()=>{
     };
   }
 
-  // Musik latar
-  var music = document.getElementById('ltMusic'), mBtn = document.getElementById('ltMusicBtn');
-  var musicOn = false;
-  function setMusicLabel(){
-    var lab = document.getElementById('ltdMusic'); if (lab) lab.textContent = musicOn ? 'musik on' : 'musik off';
-    mBtn.innerHTML = '<i class="bi bi-music-note'+(musicOn?'':'-beamed')+'"></i>';
-  }
-  mBtn.addEventListener('click', function(){
-    if (!musicOn){ music.volume = 0.35; music.play().then(function(){ musicOn=true; setMusicLabel(); }).catch(function(e){ alert('Tidak dapat memutar musik: '+e.message); }); }
-    else { music.pause(); musicOn=false; setMusicLabel(); }
-  });
+  // Musik latar dihapus (Revisi 19 Juni 2026 Part O #4)
+  var music = null, mBtn = null, musicOn = false;
+  function setMusicLabel(){ /* no-op */ }
 
   // Aktifkan tombol musik begitu sesi aktif
   var oldStartGeo = window.startGeo;
@@ -436,7 +427,6 @@ document.getElementById('btnPipLive').addEventListener('click', async ()=>{
     formStart.addEventListener('submit', function(){
       setTimeout(function(){
         if (state.token){
-          mBtn.disabled = false;
           startTs = Date.now();
           openDetail();
           startSafetyLoop();
@@ -446,8 +436,6 @@ document.getElementById('btnPipLive').addEventListener('click', async ()=>{
   }
   var btnStop = document.getElementById('btnStop');
   if (btnStop) btnStop.addEventListener('click', function(){
-    mBtn.disabled = true;
-    if (musicOn){ music.pause(); musicOn=false; setMusicLabel(); }
     if (safetyTimer){ clearInterval(safetyTimer); safetyTimer=null; }
   });
 

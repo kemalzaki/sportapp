@@ -44,6 +44,23 @@ include __DIR__.'/../includes/header.php';
     </div></div>
   </div>
 </div>
+
+<!-- Revisi 19 Juni 2026 Part O #8 — Modal popup peta saat klik "Fokus di Peta" -->
+<div class="modal fade" id="focusMapModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-bullseye text-primary"></i> <span id="fmTitle">Lokasi Member</span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-2">
+        <div id="focusMap" style="height:60vh;border-radius:8px"></div>
+        <div class="small text-muted mt-2" id="fmInfo"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -58,10 +75,29 @@ pts.forEach(function(p){
   markers[p.nama] = m;
 });
 if (pts.length) { var g = L.featureGroup(Object.values(markers)); map.fitBounds(g.getBounds().pad(0.2)); }
+
+/* Revisi 19 Juni 2026 Part O #8 — popup peta saat klik Fokus */
+var _fMap=null, _fMarker=null;
 document.querySelectorAll('.track-focus').forEach(function(b){
   b.addEventListener('click', function(){
     var lat=parseFloat(this.dataset.lat), lng=parseFloat(this.dataset.lng), n=this.dataset.nama;
     map.setView([lat,lng],17); if(markers[n]) markers[n].openPopup();
+    // Tampilkan popup peta detail
+    document.getElementById('fmTitle').textContent = 'Lokasi: '+n;
+    document.getElementById('fmInfo').textContent  = 'Lat '+lat.toFixed(6)+', Lng '+lng.toFixed(6);
+    var el = document.getElementById('focusMapModal');
+    var modal = new bootstrap.Modal(el); modal.show();
+    el.addEventListener('shown.bs.modal', function once(){
+      el.removeEventListener('shown.bs.modal', once);
+      if (!_fMap){
+        _fMap = L.map('focusMap');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(_fMap);
+      }
+      _fMap.invalidateSize();
+      _fMap.setView([lat,lng], 17);
+      if (_fMarker){ _fMap.removeLayer(_fMarker); }
+      _fMarker = L.marker([lat,lng]).addTo(_fMap).bindPopup('<strong>'+n+'</strong>').openPopup();
+    });
   });
 });
 </script>

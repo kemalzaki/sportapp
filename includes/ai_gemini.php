@@ -264,6 +264,36 @@ function gemini_vision($prompt, $imagePath, array $opts = []) {
 }
 
 /**
+ * Revisi 19 Juni 2026 — Multimodal AUDIO untuk Gemini.
+ * Kirim file audio (mp3/wav/m4a/ogg/webm/aac/flac) + prompt teks ke Gemini.
+ * Dipakai oleh task lyric_to_lrc di api_ai.php (sinkronisasi lirik karaoke).
+ */
+function gemini_audio($prompt, $audioPath, array $opts = []) {
+    if (!is_file($audioPath)) {
+        return ['ok'=>false,'text'=>'','err'=>'file audio tidak ada'];
+    }
+    $bytes = @file_get_contents($audioPath);
+    if ($bytes === false || $bytes === '') {
+        return ['ok'=>false,'text'=>'','err'=>'gagal baca audio'];
+    }
+    $mime = 'audio/mpeg';
+    if (function_exists('mime_content_type')) {
+        $m = @mime_content_type($audioPath);
+        if (is_string($m) && stripos($m, 'audio/') === 0) $mime = $m;
+    }
+    $ext = strtolower(pathinfo($audioPath, PATHINFO_EXTENSION));
+    $map = ['mp3'=>'audio/mpeg','wav'=>'audio/wav','m4a'=>'audio/mp4',
+            'mp4'=>'audio/mp4','ogg'=>'audio/ogg','webm'=>'audio/webm',
+            'aac'=>'audio/aac','flac'=>'audio/flac'];
+    if (isset($map[$ext])) $mime = $map[$ext];
+    $parts = [
+        ['text' => (string)$prompt],
+        ['inline_data' => ['mime_type'=>$mime,'data'=>base64_encode($bytes)]],
+    ];
+    return _gemini_call($parts, $opts);
+}
+
+/**
  * Ekstrak object JSON pertama dari teks (mendukung ```json fences).
  * Selalu kembalikan array (kosong bila gagal) supaya pemanggil tidak crash.
  */

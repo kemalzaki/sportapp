@@ -140,10 +140,21 @@ if ($cat === 'konsisten') {
                   HAVING COALESCE(SUM(uh.jarak_km),0) > 0
                   ORDER BY skor DESC LIMIT 20");
 } elseif ($cat === 'pace') {
-    $lb = db_all("SELECT u.id,u.nama,u.foto_url, MIN(uh.pace_detik) AS skor
+    // Revisi 19 Juni 2026 Part Q — leaderboard Pace Terbaik
+    // pace_detik banyak yang NULL pada data lama; fallback hitung dari durasi/jarak.
+    $lb = db_all("SELECT u.id,u.nama,u.foto_url,
+                         MIN( COALESCE(NULLIF(uh.pace_detik,0),
+                              CASE WHEN uh.jarak_km>0 AND uh.durasi_menit>0
+                                   THEN (uh.durasi_menit*60.0/uh.jarak_km)::int
+                                   ELSE NULL END) ) AS skor
                   FROM upload_harian uh JOIN users u ON u.id=uh.user_id
-                  WHERE $uPeriodSql AND uh.pace_detik IS NOT NULL AND uh.pace_detik > 0
-                  GROUP BY u.id,u.nama,u.foto_url ORDER BY skor ASC LIMIT 20");
+                  WHERE $uPeriodSql
+                  GROUP BY u.id,u.nama,u.foto_url
+                  HAVING MIN( COALESCE(NULLIF(uh.pace_detik,0),
+                              CASE WHEN uh.jarak_km>0 AND uh.durasi_menit>0
+                                   THEN (uh.durasi_menit*60.0/uh.jarak_km)::int
+                                   ELSE NULL END) ) BETWEEN 120 AND 900
+                  ORDER BY skor ASC LIMIT 20");
 } elseif ($cat === 'kalori') {
     $lb = db_all("SELECT u.id,u.nama,u.foto_url, COALESCE(SUM(uh.kalori),0) AS skor
                   FROM upload_harian uh JOIN users u ON u.id=uh.user_id

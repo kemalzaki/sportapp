@@ -24,6 +24,9 @@ try {
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tinggi_cm NUMERIC(5,2)");
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tanggal_lahir DATE");
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS riwayat_penyakit TEXT");
+    // Revisi 19 Juni 2026 Part Q — kolom Strava & Nickname
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS strava_account VARCHAR(120)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(80)");
 } catch (Throwable $e) {}
 
 // Pastikan tabel guest_messages ada (untuk fitur Titip Pesan di profile)
@@ -60,6 +63,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("UPDATE users SET tema_warna=$1 WHERE id=$2", [$t, (int)$u['id']]);
     } elseif ($a==='delete_wa') {
         db_exec("UPDATE users SET nomor_wa=NULL WHERE id=$1", [(int)$u['id']]);
+    } elseif ($a==='update_strava') {
+        // Revisi 19 Juni 2026 Part Q — CRUD akun/ID Strava
+        $sv = trim(substr($_POST['strava_account'] ?? '', 0, 120));
+        db_exec("UPDATE users SET strava_account=NULLIF($1,'') WHERE id=$2", [$sv, (int)$u['id']]);
+    } elseif ($a==='delete_strava') {
+        db_exec("UPDATE users SET strava_account=NULL WHERE id=$1", [(int)$u['id']]);
+    } elseif ($a==='update_nickname') {
+        // Revisi 19 Juni 2026 Part Q — CRUD nickname / nama samaran
+        $nk = trim(substr($_POST['nickname'] ?? '', 0, 80));
+        db_exec("UPDATE users SET nickname=NULLIF($1,'') WHERE id=$2", [$nk, (int)$u['id']]);
+    } elseif ($a==='delete_nickname') {
+        db_exec("UPDATE users SET nickname=NULL WHERE id=$1", [(int)$u['id']]);
     } elseif ($a==='mark_notif') {
         db_exec("UPDATE notifications SET dibaca=1 WHERE user_id=$1", [(int)$u['id']]);
     } elseif ($a==='fav_add') {
@@ -349,6 +364,44 @@ include __DIR__.'/includes/header.php';
         <?php endif; ?>
       </form>
     </div></div>
+
+    <!-- Revisi 19 Juni 2026 Part Q — Akun Strava & Nickname -->
+    <div class="card shadow-sm mt-3"><div class="card-body">
+      <form data-ajax method="post" class="text-start">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="update_strava">
+        <label class="form-label small fw-semibold"><i class="bi bi-bicycle text-warning"></i> Akun Strava / ID Strava</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control" name="strava_account" maxlength="120" placeholder="cth: username atau ID Strava Anda" value="<?= htmlspecialchars($me['strava_account'] ?? '') ?>">
+          <button class="btn btn-outline-primary" title="Simpan"><i class="bi bi-save"></i></button>
+          <?php if(!empty($me['strava_account'])): ?>
+          <button class="btn btn-outline-danger" formaction="" type="submit" name="_action" value="delete_strava" onclick="return confirm('Hapus akun Strava?')"><i class="bi bi-trash"></i></button>
+          <?php endif; ?>
+        </div>
+        <?php if(!empty($me['strava_account'])):
+          $sv = trim($me['strava_account']);
+          $sUrl = preg_match('~^https?://~i',$sv) ? $sv : 'https://www.strava.com/athletes/'.urlencode(ltrim($sv,'@'));
+        ?>
+          <div class="mt-2"><a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="<?= htmlspecialchars($sUrl) ?>"><i class="bi bi-box-arrow-up-right"></i> Buka profil Strava</a></div>
+        <?php endif; ?>
+      </form>
+
+      <form data-ajax method="post" class="text-start mt-3">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="update_nickname">
+        <label class="form-label small fw-semibold"><i class="bi bi-person-badge text-info"></i> Nickname / Nama Samaran</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control" name="nickname" maxlength="80" placeholder="cth: SiCepat, RunnerKuy, dsb" value="<?= htmlspecialchars($me['nickname'] ?? '') ?>">
+          <button class="btn btn-outline-primary" title="Simpan"><i class="bi bi-save"></i></button>
+          <?php if(!empty($me['nickname'])): ?>
+          <button class="btn btn-outline-danger" formaction="" type="submit" name="_action" value="delete_nickname" onclick="return confirm('Hapus nickname?')"><i class="bi bi-trash"></i></button>
+          <?php endif; ?>
+        </div>
+        <div class="form-text">Nickname tampil di profil publik Anda di samping nama asli.</div>
+      </form>
+    </div></div>
+
+
 
     <div class="card shadow-sm mt-3"><div class="card-header"><i class="bi bi-bell"></i> Notifikasi
       <form data-ajax method="post" class="float-end"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="mark_notif">

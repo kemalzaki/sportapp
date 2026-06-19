@@ -50,6 +50,85 @@ switch ($task) {
         echo json_encode($r); exit;
     }
 
+    /* ---------- Survival Mode (Revisi 19 Juni 2026 Part O #3) ---------- */
+    case 'tanya_survival': {
+        if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
+        $sys = "Anda 'AI Survival Coach' — ahli bertahan hidup di alam liar / hutan tropis Indonesia. ".
+               "Rujukan: SAR Nasional (Basarnas), Bushcraft USA, manual TNI AD/Marinir tentang survival hutan, ".
+               "serta praktik PPGD outdoor. Jawab dalam Bahasa Indonesia, sopan, ringkas (maks 6 paragraf pendek ".
+               "atau poin), praktis, dan jujur soal risiko. Fokus pada: prinsip STOP (Stop-Think-Observe-Plan), ".
+               "prioritas survival 3-3-3 (3 menit tanpa udara, 3 jam tanpa naungan di cuaca ekstrem, 3 hari tanpa ".
+               "air, 3 minggu tanpa makanan), api/air/shelter/sinyal, makanan boleh & beracun di hutan Indonesia, ".
+               "navigasi & mitigasi tersesat, serta langkah jika SUDAH tersesat. Jika ada potensi cedera berat / ".
+               "kondisi mengancam nyawa, ingatkan untuk segera memanggil 115 (Basarnas) / 112. ".
+               "Akhiri dengan: 'Tetap tenang dan utamakan keselamatan.'";
+        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        echo json_encode($r); exit;
+    }
+
+    /* ---------- AI Konsultasi Olahraga (artikel_olahraga.php) — Revisi 19 Juni 2026 ---------- */
+    case 'tanya_olahraga': {
+        if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
+        $jenis = trim((string)($_POST['jenis'] ?? ''));
+        $sys = "Anda 'AI Problem Solver Olahraga' — pelatih & terapis olahraga. ".
+               "Konteks jenis olahraga yang ditanyakan: '".$jenis."'. ".
+               "Jawab dalam Bahasa Indonesia, sopan, ringkas (maks 6 paragraf pendek atau poin), praktis. ".
+               "Fokus: identifikasi masalah, solusi teknik/peralatan/latihan, langkah bertahap, dan tanda harus konsultasi dokter. ".
+               "Jika user bertanya di luar konteks olahraga '".$jenis."', tetap jawab tapi sebutkan relevansinya. ".
+               "Akhiri dengan: 'Selamat berolahraga dengan aman!'";
+        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>4096]);
+        echo json_encode($r); exit;
+    }
+
+    /* ---------- Estimasi kalori aktivitas LAIN (kalori_mingguan.php) — Revisi 19 Juni 2026 ---------- */
+    case 'kalori_lain': {
+        if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
+        $sys = "Anda ahli sport science. Pengguna mendeskripsikan aktivitas pembakaran kalori SELAIN makanan dan SELAIN ".
+               "olahraga utama (cth: jalan kaki ke pasar, naik-turun tangga di kantor, mencuci mobil, berkebun, momong anak, dll). ".
+               "Berdasarkan deskripsi, estimasikan total kalori terbakar (kkal, integer). ".
+               "Balas HANYA JSON tanpa fence: {\"aktivitas\":\"...\",\"durasi_menit\":<int>,\"kalori\":<int>,\"rincian\":\"<1 kalimat>\"}";
+        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.3,'max_tokens'=>512]);
+        if (!$r['ok']) { echo json_encode($r); exit; }
+        $obj = gemini_extract_json($r['text']);
+        $kal = (int)($obj['kalori'] ?? 0);
+        if ($kal <= 0) {
+            if (preg_match('/(\d{2,5})\s*(?:kkal|kcal|kal)/i', $r['text'], $mm)) $kal = (int)$mm[1];
+        }
+        echo json_encode(['ok'=>true,
+            'aktivitas'=>(string)($obj['aktivitas'] ?? ''),
+            'durasi_menit'=>(int)($obj['durasi_menit'] ?? 0),
+            'kalori'=>$kal,
+            'rincian'=>(string)($obj['rincian'] ?? ''),
+            'raw'=>$r['text']
+        ]); exit;
+    }
+
+    /* ---------- Lyric → LRC (audio + lirik → format timestamp) — Revisi 19 Juni 2026 ---------- */
+    case 'lyric_to_lrc': {
+        @set_time_limit(180);
+        $lirik = trim((string)($_POST['lirik'] ?? ''));
+        if ($lirik === '') { echo json_encode(['ok'=>false,'err'=>'lirik kosong']); exit; }
+        if (empty($_FILES['audio']['tmp_name']) || !is_uploaded_file($_FILES['audio']['tmp_name'])) {
+            echo json_encode(['ok'=>false,'err'=>'audio belum diupload']); exit;
+        }
+        rate_limit_or_die('lrc:'.$uid, 6, 600);
+        $sys = "Anda 'Synchroniser Lirik'. Anda menerima sebuah file AUDIO musik DAN teks LIRIK lagu tersebut. ".
+               "Tugas: DENGARKAN audio, lalu kembalikan lirik dalam FORMAT LRC dengan timestamp menit:detik.centisecond ".
+               "(contoh: [00:12.34]baris satu). Setiap baris lirik diberi SATU timestamp pada saat baris itu mulai dinyanyikan. ".
+               "JANGAN tambahkan baris yang tidak ada di lirik input. JANGAN ubah kata-katanya. ".
+               "Boleh menghilangkan baris hiasan (\"(chorus)\", \"verse 2:\"). ".
+               "Balas HANYA isi file LRC murni, tanpa fence, tanpa komentar.";
+        $prompt = "Lirik input (urutan harus dipertahankan):\n----\n".$lirik."\n----\n".
+                  "Outputkan file LRC lengkap. Bila durasi audio < panjang lirik, tetap selaraskan semua baris se-realistis mungkin.";
+        $r = gemini_audio($prompt, $_FILES['audio']['tmp_name'],
+                ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>8192]);
+        if (!$r['ok']) { echo json_encode($r); exit; }
+        $txt = trim((string)$r['text']);
+        // strip fences kalau ada
+        if (preg_match('/```(?:lrc|text)?\s*(.+?)\s*```/is', $txt, $m)) $txt = trim($m[1]);
+        echo json_encode(['ok'=>true,'lrc'=>$txt]); exit;
+    }
+
     /* ---------- AI Health (cedera olahraga & penanganan) — Revisi 18 Juni 2026 ---------- */
     case 'ai_health': {
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }

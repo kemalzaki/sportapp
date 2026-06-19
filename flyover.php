@@ -27,6 +27,11 @@ send_security_headers(); require_login();
 $u = current_user(); $uid = (int)$u['id'];
 $pageTitle = 'Video Flyover 3D';
 
+// Revisi 19 Juni 2026 — Ambil foto profil user untuk dipakai sebagai ikon pelari di video
+$userRow = db_one("SELECT foto_url FROM users WHERE id=$1", [$uid]);
+$userPhoto = trim((string)($userRow['foto_url'] ?? ''));
+if ($userPhoto === '') $userPhoto = '/assets/img/avatar-default.png';
+
 @db_exec("CREATE TABLE IF NOT EXISTS flyover_renders (
     id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL,
     run_session_id BIGINT, judul TEXT NOT NULL DEFAULT 'Flyover Route',
@@ -63,7 +68,8 @@ include __DIR__.'/includes/header.php';
 .fly-icon.start{background:#10b981}
 .fly-icon.finish{background:#1f2937;background-image:repeating-conic-gradient(#000 0 25%,#fff 0 50%);background-size:10px 10px}
 .fly-icon.km{width:24px;height:24px;background:#f59e0b;font-size:.7rem;font-weight:700;color:#1f2937;border-color:#fff7ed}
-.fly-icon.runner{background:#3b82f6;width:38px;height:38px;font-size:1.1rem;border-color:#dbeafe}
+/* Revisi 19 Juni 2026 — Ikon runner kini memakai foto profil user (background image). */
+.fly-icon.runner{width:42px;height:42px;border-color:#dbeafe;background:#3b82f6 center/cover no-repeat;}
 .fly-popup{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);z-index:5;
   background:rgba(17,24,39,.92);color:#fff;padding:10px 16px;border-radius:12px;font-size:.85rem;
   opacity:0;transition:.4s;pointer-events:none;border:1px solid rgba(255,255,255,.15)}
@@ -93,13 +99,24 @@ include __DIR__.'/includes/header.php';
           <?php endforeach; ?>
         </select>
 
-        <!-- Revisi 17 Juni 2026 — Rute dari Upload Screenshot Strava -->
+        <!-- Revisi 19 Juni 2026 — Rute dari Import GPX (Strava / Garmin / Komoot / dll) -->
         <div class="border rounded p-2 mb-2 bg-warning-subtle">
-          <label class="form-label small fw-bold mb-1"><i class="bi bi-image text-warning"></i> Atau: Rute dari Screenshot Strava</label>
-          <input type="file" id="stravaShot" class="form-control form-control-sm mb-1" accept="image/*">
-          <input type="text" id="stravaHint" class="form-control form-control-sm mb-1" placeholder="Petunjuk area (cth: Bandung Selatan)">
-          <button type="button" id="btnStravaAI" class="btn btn-sm btn-warning w-100"><i class="bi bi-magic"></i> Ekstrak Rute dari Gambar</button>
-          <div id="stravaStat" class="small text-muted mt-1"></div>
+          <label class="form-label small fw-bold mb-1"><i class="bi bi-file-earmark-arrow-down text-warning"></i> Atau: Import Rute dari File GPX</label>
+          <input type="file" id="gpxFile" class="form-control form-control-sm mb-1" accept=".gpx,application/gpx+xml,text/xml">
+          <button type="button" id="btnGpxLoad" class="btn btn-sm btn-warning w-100"><i class="bi bi-cloud-arrow-up"></i> Muat Rute dari GPX</button>
+          <div id="gpxStat" class="small text-muted mt-1"></div>
+          <details class="small mt-1">
+            <summary class="text-warning-emphasis fw-semibold" style="cursor:pointer">
+              <i class="bi bi-question-circle"></i> Cara ekspor GPX dari Strava (klik untuk lihat)
+            </summary>
+            <ol class="small ps-3 mt-1 mb-0">
+              <li>Buka <a href="https://www.strava.com" target="_blank" rel="noopener">strava.com</a> di browser desktop dan login.</li>
+              <li>Masuk ke menu <b>Training → My Activities</b>, klik aktivitas (sesi lari/sepeda) yang ingin di-ekspor.</li>
+              <li>Di halaman detail aktivitas, klik ikon <b>Actions (titik tiga / panah ⋯)</b> di pojok kanan atas, lalu pilih <b>“Export GPX”</b>.</li>
+              <li>File <code>.gpx</code> akan terunduh. Tarik / pilih file tersebut di kolom di atas, lalu klik <b>Muat Rute dari GPX</b>.</li>
+              <li>Catatan: untuk aktivitas dari perangkat (Garmin/Coros), gunakan <b>“Export Original”</b> bila tersedia agar lebih akurat.</li>
+            </ol>
+          </details>
         </div>
 
         <label class="form-label small mt-2">Durasi Video (detik)</label>
@@ -202,6 +219,10 @@ include __DIR__.'/includes/header.php';
             <input type="hidden" id="lyricTitle">
             <input type="hidden" id="lyricArtist">
             <textarea id="lyricManual" class="form-control form-control-sm mt-1" rows="3" placeholder="Atau tempel lirik manual (1 baris = 1 subtitle, atau format LRC [mm:ss.xx]baris)"></textarea>
+            <!-- Revisi 19 Juni 2026 — Sinkron Lirik & Musik via Gemini AI (→ format LRC) -->
+            <button type="button" id="btnLrcAI" class="btn btn-info btn-sm w-100 mt-1">
+              <i class="bi bi-stars"></i> Sinkron Lirik dgn Musik via AI (LRC)
+            </button>
             <small id="lyricStat" class="text-muted d-block mt-1">Belum ada lirik.</small>
           </div>
 
@@ -256,6 +277,13 @@ function rasterStyle(tiles, attr){
   return { version:8, sources:{ x:{ type:'raster', tiles:tiles, tileSize:256, attribution:attr } }, layers:[ { id:'x', type:'raster', source:'x' } ] };
 }
 const MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
+/* Revisi 19 Juni 2026 — Foto profil user untuk ikon pelari di flyover */
+const USER_PHOTO_URL = <?= json_encode($userPhoto) ?>;
+var USER_PHOTO_IMG = new Image();
+USER_PHOTO_IMG.crossOrigin = 'anonymous';
+USER_PHOTO_IMG.src = USER_PHOTO_URL;
+var USER_PHOTO_READY = false;
+USER_PHOTO_IMG.onload = function(){ USER_PHOTO_READY = true; };
 const STYLES = {
   'mapbox-outdoors': rasterStyle(['https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+MAPBOX_TOKEN_JS], '&copy; Mapbox &copy; OSM'),
   'mapbox-satellite': rasterStyle(['https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+MAPBOX_TOKEN_JS], '&copy; Mapbox &copy; OSM'),
@@ -802,7 +830,27 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     let p = project(start); drawCircleIcon(ctx, p[0], p[1], 24*sx, '#10b981', '#fff', '⚑');
     p = project(finish); drawCircleIcon(ctx, p[0], p[1], 24*sx, '#111827', '#fff', '🏁');
     kmMarkerPoints.forEach(k => { const q = project(k.lngLat); drawCircleIcon(ctx, q[0], q[1], 18*sx, '#f59e0b', '#111827', String(k.n), 'KM'); });
-    if (runnerLngLat){ const r = project(runnerLngLat); drawCircleIcon(ctx, r[0], r[1], 28*sx, '#2563eb', '#fff', '🏃'); }
+    if (runnerLngLat){
+      const r = project(runnerLngLat); const rad = 28*sx;
+      // Revisi 19 Juni 2026 — gambar foto profil user di posisi pelari
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(r[0],r[1],rad+3,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.save();
+      ctx.beginPath(); ctx.arc(r[0],r[1],rad,0,Math.PI*2); ctx.clip();
+      if (USER_PHOTO_READY){
+        try { ctx.drawImage(USER_PHOTO_IMG, r[0]-rad, r[1]-rad, rad*2, rad*2); }
+        catch(_){ ctx.fillStyle='#3b82f6'; ctx.fillRect(r[0]-rad,r[1]-rad,rad*2,rad*2); ctx.fillStyle='#fff'; ctx.font='700 '+(rad*0.8)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🏃', r[0], r[1]); }
+      } else {
+        ctx.fillStyle='#3b82f6'; ctx.fillRect(r[0]-rad,r[1]-rad,rad*2,rad*2);
+        ctx.fillStyle='#fff'; ctx.font='700 '+(rad*0.8)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🏃', r[0], r[1]);
+      }
+      ctx.restore();
+      ctx.lineWidth = Math.max(2, rad*0.12); ctx.strokeStyle = '#3b82f6';
+      ctx.beginPath(); ctx.arc(r[0],r[1],rad,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
   }
 
   if ($('optHud').checked){
@@ -1053,10 +1101,13 @@ async function runFlyover({record=false}={}) {
   if (drawTrail) map.getSource('rt').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: [] } });
   else            map.getSource('rt').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords } });
 
-  // Marker pelari (runner) yang ikut bergerak — opsional ikon
+  // Marker pelari (runner) yang ikut bergerak — pakai foto profil user (Revisi 19 Juni 2026)
   if ($('optIcons').checked){
     if (runnerMarker) runnerMarker.remove();
-    runnerMarker = makeIcon('runner', '<i class="bi bi-person-walking"></i>', coords[0]);
+    const el = document.createElement('div');
+    el.className = 'fly-icon runner';
+    el.style.backgroundImage = 'url("'+USER_PHOTO_URL.replace(/"/g,'%22')+'")';
+    runnerMarker = new maplibregl.Marker({element:el, anchor:'center'}).setLngLat(coords[0]).addTo(map);
   }
   let kmAnnounced = 0;
 
@@ -1131,45 +1182,111 @@ $('btnRecord').onclick  = ()=> {
   runFlyover({record:true});
 };
 
-/* ===== Revisi 17 Juni 2026 — Handler Upload Screenshot Strava → Rute ===== */
+/* ===== Revisi 19 Juni 2026 — Handler Import GPX (Strava / Garmin / Komoot) ===== */
 (function(){
-  var btn = document.getElementById('btnStravaAI');
+  var btn = document.getElementById('btnGpxLoad');
   if (!btn) return;
   btn.addEventListener('click', async function(){
-    var inp = document.getElementById('stravaShot');
-    var hintEl = document.getElementById('stravaHint');
-    var stat = document.getElementById('stravaStat');
-    var f = inp.files[0];
-    if (!f) { stat.textContent = 'Pilih gambar screenshot Strava dulu.'; return; }
+    var inp  = document.getElementById('gpxFile');
+    var stat = document.getElementById('gpxStat');
+    var f = inp.files && inp.files[0];
+    if (!f){ stat.textContent = 'Pilih file .gpx dulu.'; return; }
     var oh = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membaca rute…';
-    stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI menganalisa screenshot…';
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses…';
     try {
-      var fd = new FormData();
-      fd.append('csrf', '<?= csrf_token() ?>');
-      fd.append('_action', 'ai_route_from_image');
-      fd.append('hint', (hintEl.value||'').trim());
-      fd.append('image', f);
-      var r = await fetch('/api_run.php', { method:'POST', body: fd, credentials:'same-origin' });
-      var d = await r.json();
-      if (!d.ok) { stat.textContent = 'Gagal: '+(d.err||'?'); return; }
-      if (!d.coords || d.coords.length < 2) { stat.textContent = 'Rute kurang dari 2 titik.'; return; }
-      // Pakai sebagai routePts untuk flyover
-      routePts = d.coords;
+      var txt = await f.text();
+      var doc = new DOMParser().parseFromString(txt, 'application/xml');
+      if (doc.getElementsByTagName('parsererror').length){ throw new Error('File GPX tidak valid (XML rusak).'); }
+      // Ambil trkpt → fallback rtept → fallback wpt
+      var pts = doc.getElementsByTagName('trkpt');
+      if (!pts.length) pts = doc.getElementsByTagName('rtept');
+      if (!pts.length) pts = doc.getElementsByTagName('wpt');
+      if (!pts.length) throw new Error('Tidak ada titik (trkpt/rtept/wpt) di GPX ini.');
+      var coords = [];
+      for (var i=0;i<pts.length;i++){
+        var la = parseFloat(pts[i].getAttribute('lat'));
+        var lo = parseFloat(pts[i].getAttribute('lon'));
+        if (!isNaN(la) && !isNaN(lo)) coords.push([la, lo]);
+      }
+      if (coords.length < 2) throw new Error('Hanya '+coords.length+' titik valid — minimal 2 dibutuhkan.');
+      // Simplifikasi: jika > 2000 titik, downsample agar peta cepat
+      if (coords.length > 2000) {
+        var step = Math.ceil(coords.length / 2000);
+        var ds = [];
+        for (var i=0;i<coords.length;i+=step) ds.push(coords[i]);
+        ds.push(coords[coords.length-1]);
+        coords = ds;
+      }
+      routePts = coords;
       SESSION_INFO = { jarak_m: 0, durasi_dtk: 0 };
+      // Cari metadata waktu (durasi total)
+      var times = doc.getElementsByTagName('time');
+      if (times.length >= 2) {
+        try {
+          var t0 = Date.parse(times[0].textContent);
+          var tN = Date.parse(times[times.length-1].textContent);
+          if (!isNaN(t0) && !isNaN(tN) && tN > t0) SESSION_INFO.durasi_dtk = Math.round((tN-t0)/1000);
+        } catch(_){}
+      }
+      // Hitung jarak total
+      var km = 0;
+      for (var i=1;i<coords.length;i++){
+        km += haversineKm(coords[i-1], coords[i]);
+      }
+      SESSION_INFO.jarak_m = Math.round(km*1000);
       drawAll(); buildKmMarkers();
       document.getElementById('btnPreview').disabled = false;
       document.getElementById('btnRecord').disabled = false;
-      // hitung total km untuk info
-      var km = 0;
-      for (var i=1;i<d.coords.length;i++){
-        var a=d.coords[i-1], b=d.coords[i], R=6371;
-        var dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
-        var s=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
-        km += 2*R*Math.asin(Math.sqrt(s));
+      stat.innerHTML = 'GPX dimuat! <b>'+coords.length+'</b> titik · ~<b>'+km.toFixed(2)+' km</b>'
+                     + (SESSION_INFO.durasi_dtk>0?' · durasi '+Math.round(SESSION_INFO.durasi_dtk/60)+' menit':'')
+                     + '. File: <em>'+(f.name||'')+'</em>';
+    } catch(e){ stat.innerHTML = '<span class="text-danger">Gagal: '+e.message+'</span>'; }
+    btn.disabled = false; btn.innerHTML = oh;
+  });
+})();
+
+/* ===== Revisi 19 Juni 2026 — Sinkronisasi Lirik via Gemini AI (audio + lirik → LRC) ===== */
+(function(){
+  var btn = document.getElementById('btnLrcAI');
+  if (!btn) return;
+  btn.addEventListener('click', async function(){
+    var stat = document.getElementById('lyricStat');
+    var ta   = document.getElementById('lyricManual');
+    var lirik = (ta.value||'').trim();
+    if (!lirik){ stat.textContent = 'Tempel lirik manual dulu di textarea.'; return; }
+    var a = document.getElementById('musicAudio');
+    if (!a.src){ stat.textContent = 'Pilih lagu (iTunes / upload) dulu.'; return; }
+    var oh = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengirim ke Gemini AI…';
+    stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI menganalisa musik + lirik (bisa 30–60 detik)…';
+    try {
+      // Ambil audio blob dari elemen player (URL bisa berupa blob:, data:, atau http remote)
+      var resp = await fetch(a.src, { mode:'cors' });
+      var blob = await resp.blob();
+      var ext  = 'mp3';
+      if (blob.type) {
+        if (blob.type.indexOf('wav')>=0) ext='wav';
+        else if (blob.type.indexOf('mp4')>=0 || blob.type.indexOf('m4a')>=0) ext='m4a';
+        else if (blob.type.indexOf('ogg')>=0) ext='ogg';
+        else if (blob.type.indexOf('webm')>=0) ext='webm';
       }
-      stat.innerHTML = 'Berhasil! '+d.coords.length+' titik · ~'+km.toFixed(2)+' km dari screenshot.'+(d.note?'<br><em>'+d.note+'</em>':'');
-    } catch(e){ stat.textContent = 'Error: '+e.message; }
+      var fd = new FormData();
+      fd.append('csrf', '<?= csrf_token() ?>');
+      fd.append('task', 'lyric_to_lrc');
+      fd.append('lirik', lirik);
+      fd.append('audio', new File([blob], 'song.'+ext, { type: blob.type || 'audio/mpeg' }));
+      var r = await fetch('/api_ai.php', { method:'POST', body:fd, credentials:'same-origin' });
+      var j = await r.json();
+      if (!j.ok){ stat.innerHTML = '<span class="text-danger">Gagal: '+(j.err||'?')+'</span>'; }
+      else if (!j.lrc || j.lrc.length < 5){ stat.innerHTML = '<span class="text-warning">AI tidak menghasilkan LRC.</span>'; }
+      else {
+        ta.value = j.lrc;
+        ta.dispatchEvent(new Event('input'));
+        $('optLyric').checked = true;
+        LYRICS.src = 'gemini-lrc';
+        stat.innerHTML = '<i class="bi bi-check-circle text-success"></i> Lirik tersinkron format LRC oleh Gemini AI ('+LYRICS.lines.length+' baris).';
+      }
+    } catch(e){ stat.innerHTML = '<span class="text-danger">Error: '+e.message+' (kemungkinan CORS pada sumber audio — coba upload file audio sendiri).</span>'; }
     btn.disabled = false; btn.innerHTML = oh;
   });
 })();

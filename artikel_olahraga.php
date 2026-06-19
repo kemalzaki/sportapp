@@ -15,8 +15,55 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Artikel Olahraga & Teknik';
 $pageSkeleton = 'feed';
+$u = current_user();
+$uid = (int)$u['id'];
+
+/* ============================================================
+ * Revisi 19 Juni 2026 — Tabel Tanya Jawab AI Olahraga (idempotent)
+ * Pola sama dengan islami_qa_saved di islami.php.
+ * ============================================================ */
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS sport_qa_saved (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        jenis VARCHAR(50) NOT NULL DEFAULT '',
+        pertanyaan TEXT NOT NULL,
+        jawaban TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS sport_qa_user_idx ON sport_qa_saved(user_id, created_at DESC)");
+} catch (Throwable $e) {}
+
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    csrf_check();
+    $a = $_POST['_action'] ?? '';
+    if ($a === 'qa_save') {
+        header('Content-Type: application/json');
+        $q = trim((string)($_POST['pertanyaan'] ?? ''));
+        $j = trim((string)($_POST['jawaban']    ?? ''));
+        $jenis = substr(trim((string)($_POST['jenis'] ?? '')),0,50);
+        if ($q==='' || $j==='') { echo json_encode(['ok'=>false,'err'=>'kosong']); exit; }
+        if (mb_strlen($q)>4000)  $q = mb_substr($q,0,4000);
+        if (mb_strlen($j)>20000) $j = mb_substr($j,0,20000);
+        $r = pg_query_params(db(),
+            "INSERT INTO sport_qa_saved(user_id,jenis,pertanyaan,jawaban) VALUES($1,$2,$3,$4) RETURNING id",
+            [$uid,$jenis,$q,$j]);
+        echo json_encode(['ok'=>true,'id'=>(int)(pg_fetch_row($r)[0] ?? 0)]); exit;
+    } elseif ($a === 'qa_delete') {
+        header('Content-Type: application/json');
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id>0) db_exec("DELETE FROM sport_qa_saved WHERE id=$1 AND user_id=$2", [$id,$uid]);
+        echo json_encode(['ok'=>true]); exit;
+    }
+}
+
+$qaSaved = db_all(
+    "SELECT id, jenis, pertanyaan, jawaban, created_at
+       FROM sport_qa_saved WHERE user_id=$1 ORDER BY id DESC LIMIT 50", [$uid]);
+
 
 $ytId = function($s){
   $s = trim((string)$s);
@@ -462,6 +509,52 @@ include __DIR__.'/includes/header.php'; ?>
               </div>
               <?php endif; ?>
 
+              <!-- ============================================================
+                   Revisi 19 Juni 2026 — Pencarian Video Olahraga (YouTube Embed)
+                   ============================================================ -->
+              <div class="border rounded p-2 mt-3 bg-light-subtle ao-yt-box" data-slug="<?= htmlspecialchars($a['slug']) ?>">
+                <div class="d-flex align-items-center mb-1 gap-2">
+                  <i class="bi bi-youtube text-danger fs-5"></i>
+                  <strong class="small">Cari Video <?= htmlspecialchars($a['judul']) ?> di YouTube</strong>
+                </div>
+                <div class="input-group input-group-sm mb-1">
+                  <input type="text" class="form-control form-control-sm ao-yt-q"
+                         placeholder="cth: tutorial <?= htmlspecialchars($a['judul']) ?> pemula"
+                         value="tutorial <?= htmlspecialchars($a['judul']) ?>">
+                  <button type="button" class="btn btn-danger btn-sm ao-yt-btn"><i class="bi bi-search"></i> Cari & Putar</button>
+                  <a class="btn btn-outline-secondary btn-sm ao-yt-open"
+                     href="https://www.youtube.com/results?search_query=<?= rawurlencode($a['judul'].' tutorial') ?>"
+                     target="_blank" rel="noopener" title="Buka hasil di YouTube"><i class="bi bi-box-arrow-up-right"></i></a>
+                </div>
+                <div class="ao-yt-result small text-muted">Tekan tombol <b>Cari & Putar</b> — video akan langsung diputar di sini.</div>
+              </div>
+
+              <!-- ============================================================
+                   Revisi 19 Juni 2026 — AI Problem Solver per olahraga
+                   Pola sama dengan Tanya Jawab Islami di islami.php.
+                   ============================================================ -->
+              <div class="card border-<?= $a['warna'] ?> mt-3">
+                <div class="card-header bg-<?= $a['warna'] ?>-subtle text-<?= $a['warna'] ?>-emphasis py-2">
+                  <i class="bi bi-robot"></i> <strong>AI Problem Solver — <?= htmlspecialchars($a['judul']) ?></strong>
+                </div>
+                <div class="card-body py-2 ao-ai-box" data-slug="<?= htmlspecialchars($a['slug']) ?>" data-jenis="<?= htmlspecialchars($a['judul']) ?>">
+                  <form class="ao-ai-form vstack gap-2 mb-2">
+                    <textarea class="form-control form-control-sm ao-ai-inp" rows="2"
+                              placeholder="Ceritakan kesulitan Anda di <?= htmlspecialchars($a['judul']) ?> (cedera, teknik, peralatan, pola latihan, dll)"></textarea>
+                    <div class="d-flex gap-2 flex-wrap">
+                      <button class="btn btn-<?= $a['warna'] ?> btn-sm" type="submit"><i class="bi bi-send"></i> Tanya AI</button>
+                      <button class="btn btn-outline-secondary btn-sm ao-ai-clear" type="button"><i class="bi bi-eraser"></i> Bersihkan</button>
+                      <small class="text-muted ms-auto align-self-center">Jawaban berbasis sport science, bukan diagnosis medis.</small>
+                    </div>
+                  </form>
+                  <div class="ao-ai-out border rounded p-2 bg-body-tertiary small text-muted" style="min-height:60px">Tulis pertanyaan lalu klik <b>Tanya AI</b>.</div>
+                  <div class="ao-ai-actions d-flex gap-2 mt-2" style="display:none !important">
+                    <button type="button" class="btn btn-outline-<?= $a['warna'] ?> btn-sm ao-ai-save"><i class="bi bi-bookmark-plus"></i> Simpan Konsultasi</button>
+                    <span class="ao-ai-stat small text-muted align-self-center"></span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -469,6 +562,161 @@ include __DIR__.'/includes/header.php'; ?>
     </div>
   <?php endforeach; ?>
 </div>
+
+<!-- ============================================================
+     Revisi 19 Juni 2026 — Daftar Konsultasi AI Tersimpan
+     ============================================================ -->
+<div class="card shadow-sm mt-4">
+  <div class="card-header bg-primary-subtle text-primary-emphasis">
+    <i class="bi bi-bookmark-star"></i> <strong>Konsultasi AI Olahraga Tersimpan</strong>
+    (<span id="qaSavedCount"><?= count($qaSaved) ?></span>)
+  </div>
+  <div class="card-body" id="qaSavedBox">
+    <?php if (!$qaSaved): ?>
+      <div class="small text-muted">Belum ada konsultasi tersimpan. Klik <b>Simpan Konsultasi</b> setelah AI menjawab.</div>
+    <?php else: foreach ($qaSaved as $qa): ?>
+      <div class="border rounded p-2 mb-2 small" data-qa-id="<?= (int)$qa['id'] ?>">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <strong class="text-primary"><i class="bi bi-patch-question"></i>
+            [<?= htmlspecialchars($qa['jenis'] ?: 'umum') ?>]
+            <?= htmlspecialchars(mb_strimwidth($qa['pertanyaan'],0,200,'…')) ?></strong>
+          <button type="button" class="btn btn-sm btn-link text-danger p-0 qa-del-btn" data-id="<?= (int)$qa['id'] ?>" title="Hapus"><i class="bi bi-trash"></i></button>
+        </div>
+        <div class="text-muted small mb-1"><?= htmlspecialchars(date('d M Y H:i', strtotime($qa['created_at']))) ?></div>
+        <details><summary class="text-primary">Lihat jawaban</summary>
+          <div class="mt-1" style="white-space:pre-wrap"><?= htmlspecialchars($qa['jawaban']) ?></div>
+        </details>
+      </div>
+    <?php endforeach; endif; ?>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CSRF = '<?= csrf_token() ?>';
+
+  /* ===== Pencarian Video YouTube ===== */
+  document.querySelectorAll('.ao-yt-box').forEach(function(box){
+    var btn = box.querySelector('.ao-yt-btn');
+    var inp = box.querySelector('.ao-yt-q');
+    var out = box.querySelector('.ao-yt-result');
+    var openA = box.querySelector('.ao-yt-open');
+    function doSearch(){
+      var q = (inp.value||'').trim();
+      if (!q) return;
+      // Update tombol "buka di YouTube"
+      openA.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+      // Embed hasil pencarian (YouTube playlist-search). Beberapa region men-disable,
+      // sehingga kami sediakan link fallback "buka di YouTube" di samping.
+      out.innerHTML =
+        '<div class="ratio ratio-16x9 rounded overflow-hidden border">' +
+          '<iframe loading="lazy" allowfullscreen ' +
+            'src="https://www.youtube-nocookie.com/embed?listType=search&list=' + encodeURIComponent(q) + '" ' +
+            'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+            'referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
+        '</div>' +
+        '<div class="small text-muted mt-1">Hasil pencarian: <b>' + q.replace(/[<>]/g,'') + '</b>. ' +
+        'Jika iframe kosong, klik <a href="' + openA.href + '" target="_blank" rel="noopener">buka di YouTube</a>.</div>';
+    }
+    btn.addEventListener('click', doSearch);
+    inp.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doSearch(); }});
+  });
+
+  /* ===== AI Problem Solver per olahraga ===== */
+  document.querySelectorAll('.ao-ai-box').forEach(function(box){
+    var form  = box.querySelector('.ao-ai-form');
+    var inp   = box.querySelector('.ao-ai-inp');
+    var out   = box.querySelector('.ao-ai-out');
+    var acts  = box.querySelector('.ao-ai-actions');
+    var stat  = box.querySelector('.ao-ai-stat');
+    var btnS  = box.querySelector('.ao-ai-save');
+    var btnC  = box.querySelector('.ao-ai-clear');
+    var jenis = box.dataset.jenis || '';
+    var lastQ = '', lastA = '';
+    var loading = false;
+
+    btnC.addEventListener('click', function(){
+      inp.value=''; out.className='ao-ai-out border rounded p-2 bg-body-tertiary small text-muted';
+      out.textContent='Tulis pertanyaan lalu klik Tanya AI.';
+      acts.style.display='none'; lastQ=''; lastA=''; stat.textContent='';
+    });
+
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      if (loading) return;
+      var q = (inp.value||'').trim(); if (!q) return;
+      if (q === lastQ && lastA){ stat.textContent='Pertanyaan sama — pakai jawaban sebelumnya.'; return; }
+      loading = true;
+      var b = form.querySelector('button[type=submit]'); var oh = b.innerHTML;
+      b.disabled=true; b.innerHTML='<span class="spinner-border spinner-border-sm"></span> AI menjawab...';
+      out.className='ao-ai-out border rounded p-2 bg-body-tertiary small text-muted';
+      out.textContent='Sedang menjawab... (mohon tunggu)';
+      acts.style.display='none';
+      try {
+        var fd = new FormData();
+        fd.append('csrf', CSRF);
+        fd.append('task', 'tanya_olahraga');
+        fd.append('jenis', jenis);
+        fd.append('prompt', q);
+        var r = await fetch('/api_ai.php',{method:'POST', body:fd, credentials:'same-origin'});
+        var j = await r.json();
+        if (!j.ok){
+          out.className='ao-ai-out border rounded p-2 bg-warning-subtle small';
+          out.textContent = 'Gagal: '+(j.err||'?');
+        } else {
+          out.className='ao-ai-out border rounded p-2 bg-body-tertiary small';
+          var html = (j.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                       .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                       .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+          out.innerHTML = '<p>'+html+'</p>';
+          lastQ = q; lastA = j.text||'';
+          acts.style.display='flex';
+        }
+      } catch(err){
+        out.className='ao-ai-out border rounded p-2 bg-warning-subtle small';
+        out.textContent = 'Error: '+err.message;
+      }
+      b.disabled=false; b.innerHTML=oh; loading=false;
+    });
+
+    btnS.addEventListener('click', async function(){
+      if (!lastQ || !lastA) return;
+      btnS.disabled = true;
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('_action','qa_save');
+      fd.append('jenis', jenis);
+      fd.append('pertanyaan', lastQ);
+      fd.append('jawaban', lastA);
+      try {
+        var r = await fetch('/artikel_olahraga.php',{method:'POST', body:fd, credentials:'same-origin'});
+        var j = await r.json();
+        if (j.ok){ stat.innerHTML='<i class="bi bi-check-circle text-success"></i> Tersimpan (#'+j.id+').'; }
+        else stat.textContent='Gagal menyimpan.';
+      } catch(e){ stat.textContent='Error: '+e.message; }
+      btnS.disabled = false;
+    });
+  });
+
+  /* Hapus konsultasi tersimpan */
+  document.querySelectorAll('.qa-del-btn').forEach(function(b){
+    b.addEventListener('click', async function(){
+      if (!confirm('Hapus konsultasi ini?')) return;
+      var id = b.dataset.id;
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('_action','qa_delete');
+      fd.append('id', id);
+      var r = await fetch('/artikel_olahraga.php',{method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      if (j.ok){
+        var el = document.querySelector('[data-qa-id="'+id+'"]'); if (el) el.remove();
+        var c = document.getElementById('qaSavedCount'); if (c) c.textContent = Math.max(0, (parseInt(c.textContent,10)||1)-1);
+      }
+    });
+  });
+})();
+</script>
 
 <div class="alert alert-info small mt-4 mb-0">
   <i class="bi bi-info-circle"></i> Konten edukatif umum yang dirangkum dari aturan resmi tiap federasi (BWF, ITTF, FIFA, WPA, FINA, IAU). Untuk pertandingan resmi, ikuti regulasi terbaru dari federasi yang relevan.

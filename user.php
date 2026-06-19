@@ -18,6 +18,9 @@ try {
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tinggi_cm NUMERIC(5,2)");
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS tanggal_lahir DATE");
     db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS riwayat_penyakit TEXT");
+    // Revisi 19 Juni 2026 Part Q
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS strava_account VARCHAR(120)");
+    db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(80)");
     // Tabel titip pesan (guestbook) — bisa di-reply
     db_exec("CREATE TABLE IF NOT EXISTS guest_messages (
         id SERIAL PRIMARY KEY,
@@ -30,7 +33,7 @@ try {
     )");
 } catch (Throwable $e) {}
 
-$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit FROM users WHERE id=$1", [$id]);
+$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit,strava_account,nickname FROM users WHERE id=$1", [$id]);
 if (!$user) { http_response_code(404); die('User tidak ditemukan.'); }
 $pageTitle = 'Profil '.$user['nama'];
 
@@ -149,8 +152,17 @@ include __DIR__.'/includes/header.php';
     <?= user_avatar(null, $user['nama'], 88) ?>
   <?php endif; ?>
   <div class="flex-grow-1">
-    <h4 class="mb-0"><?= htmlspecialchars($user['nama']) ?> <span class="badge bg-light text-dark">Lv <?= (int)$user['level'] ?></span></h4>
+    <h4 class="mb-0"><?= htmlspecialchars($user['nama']) ?>
+      <?php if(!empty($user['nickname'])): ?><span class="badge bg-info-subtle text-info border" title="Nickname"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($user['nickname']) ?></span><?php endif; ?>
+      <span class="badge bg-light text-dark">Lv <?= (int)$user['level'] ?></span>
+    </h4>
     <div class="text-muted small"><?= htmlspecialchars($user['role']) ?> · ⭐ <?= (int)$user['xp'] ?> XP · 🔥 <?= (int)$user['streak_minggu'] ?> minggu</div>
+    <?php if(!empty($user['strava_account'])):
+      $sv = trim($user['strava_account']);
+      $sUrl = preg_match('~^https?://~i',$sv) ? $sv : 'https://www.strava.com/athletes/'.urlencode(ltrim($sv,'@'));
+    ?>
+      <div class="mt-1"><a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="<?= htmlspecialchars($sUrl) ?>"><i class="bi bi-bicycle"></i> Strava: <?= htmlspecialchars($sv) ?></a></div>
+    <?php endif; ?>
     <?php if($user['bio']): ?><p class="mb-0 mt-1"><?= htmlspecialchars($user['bio']) ?></p><?php endif; ?>
     <?php if(!empty($user['nomor_wa'])):
         $waNum = preg_replace('/^0/','62', preg_replace('/\D+/','', $user['nomor_wa'])); ?>

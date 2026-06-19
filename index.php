@@ -66,6 +66,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $caption = substr(trim($_POST['caption'] ?? ''), 0, 500);
         $jenis = $_POST['jenis'] === 'story' ? 'story' : 'post';
         $fotoUrl = null;
+        $mediaType = 'image';
+        // Revisi 19 Juni 2026 Part O #6 — dukung upload VIDEO (maks 30 menit, divalidasi client-side).
+        // Jika user mengirim field 'video', upload via ImageKit (mendukung file biner).
+        if (!empty($_FILES['video']['name']) && empty($_FILES['foto']['name'])) {
+            $vErr = (int)($_FILES['video']['error'] ?? 0);
+            $vSize = (int)($_FILES['video']['size'] ?? 0);
+            $vTmp  = $_FILES['video']['tmp_name'] ?? '';
+            $vExt  = strtolower(pathinfo($_FILES['video']['name'], PATHINFO_EXTENSION) ?: 'mp4');
+            if (!in_array($vExt, ['mp4','webm','mov','m4v','ogg'], true)) $vExt='mp4';
+            if ($vErr===UPLOAD_ERR_OK && is_uploaded_file($vTmp) && $vSize < 200*1024*1024) {
+                require_once __DIR__.'/config/imagekit.php';
+                global $imageKit;
+                try {
+                    $name = preg_replace('/[^a-z0-9]/i','_',$u['nama']).'-'.$jenis.'-vid-'.time().'-'.bin2hex(random_bytes(4)).'.'.$vExt;
+                    $up = $imageKit->uploadFile([
+                        'file' => base64_encode(file_get_contents($vTmp)),
+                        'fileName' => $name,
+                        'folder' => '/sportapp/social/'.date('F_Y'),
+                    ]);
+                    if (empty($up->error) && !empty($up->result->url)) {
+                        $fotoUrl = $up->result->url;
+                        $mediaType = 'video';
+                    }
+                } catch (Throwable $e) {}
+            }
+        }
         if (!empty($_FILES['foto']['name'])) {
             [$ok, $extOrErr] = validate_image_upload($_FILES['foto']);
             if ($ok) {
@@ -84,12 +110,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 } catch (Throwable $e) { /* fail silently, post tanpa foto */ }
             }
         }
+        // Pastikan kolom media_type ada (idempotent).
+        try { db_exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR(10) NOT NULL DEFAULT 'image'"); } catch (Throwable $e) {}
         if ($jenis === 'story') {
-            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, now() + interval '24 hours') RETURNING id",
-                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
+            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, now() + interval '24 hours') RETURNING id",
+                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
         } else {
-            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,expired_at) VALUES($1,$2,$3,$4, NULL) RETURNING id",
-                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis]);
+            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, NULL) RETURNING id",
+                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
         }
         if (function_exists('sync_post_tags') && $newId) { sync_post_tags($newId, $caption); }
     } elseif ($a === 'like') {
@@ -99,6 +127,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $pid = (int)$_POST['post_id'];
         $isi = substr(trim($_POST['isi'] ?? ''), 0, 300);
         if ($isi !== '') db_exec("INSERT INTO post_comments(post_id,user_id,isi) VALUES($1,$2,$3)", [$pid, (int)$u['id'], $isi]);
+    } elseif ($a === 'comment_edit') {
+        // Revisi 19 Juni 2026 Part Q — pemilik komentar dapat mengedit komentarnya
+        try { db_exec("ALTER TABLE post_comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"); } catch (Throwable $e) {}
+        $cid = (int)($_POST['comment_id'] ?? 0);
+        $isi = substr(trim($_POST['isi'] ?? ''), 0, 300);
+        if ($cid && $isi !== '') {
+            $own = db_one("SELECT user_id FROM post_comments WHERE id=$1", [$cid]);
+            if ($own && ((int)$own['user_id']===(int)$u['id'] || $u['role']==='admin')) {
+                db_exec("UPDATE post_comments SET isi=$1, updated_at=now() WHERE id=$2", [$isi, $cid]);
+            }
+        }
     } elseif ($a === 'sapa_send') {
         $target = (int)($_POST['target_id'] ?? 0);
         $pesan  = trim(substr($_POST['pesan'] ?? '', 0, 500));
@@ -328,10 +367,24 @@ foreach ($chats as $c) {
 }
 
 // Social feed
-$stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto FROM posts p JOIN users u ON u.id=p.user_id
-                   WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
-                   ORDER BY p.created_at DESC LIMIT 20");
 $uidMe = (int)($u['id'] ?? 0);
+$stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto,
+                          (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
+                          (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id AND pl.user_id=$1) AS liked_by_me,
+                          (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments
+                   FROM posts p JOIN users u ON u.id=p.user_id
+                   WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
+                   ORDER BY p.created_at DESC LIMIT 20", [$uidMe]);
+// Revisi 19 Juni 2026 Part Q — komentar untuk Story Hari Ini (untuk modal interaksi)
+$storyCommentsByPost = [];
+if ($stories) {
+    $sIds = array_map(fn($x)=>(int)$x['id'], $stories);
+    $sRows = db_all("SELECT pc.id, pc.post_id, pc.user_id, pc.isi, pc.created_at, u.nama, u.foto_url
+                     FROM post_comments pc JOIN users u ON u.id=pc.user_id
+                     WHERE pc.post_id = ANY($1::int[]) ORDER BY pc.created_at ASC",
+                     ['{'.implode(',',$sIds).'}']);
+    foreach ($sRows as $r) $storyCommentsByPost[(int)$r['post_id']][] = $r;
+}
 
 // === Revisi: Social feed pagination — 2 data per halaman (server-side) ===
 $feedPerPage = 2;
@@ -340,7 +393,8 @@ $feedTotal = (int) db_val("SELECT COUNT(*) FROM posts WHERE jenis='post'");
 $feedPages = max(1, (int)ceil($feedTotal / $feedPerPage));
 if ($feedPage > $feedPages) $feedPage = $feedPages;
 $feedOffset = ($feedPage - 1) * $feedPerPage;
-$feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis, p.created_at,
+$feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis,
+                  COALESCE(p.media_type,'image') AS media_type, p.created_at,
                   u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
@@ -353,7 +407,9 @@ $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.je
 $feedIds = array_map(fn($x)=>(int)$x['id'], $feed);
 $commentsByPost = [];
 if ($feedIds) {
-    $rows = db_all("SELECT pc.id, pc.post_id, pc.isi, pc.created_at, u.nama, u.foto_url
+    // Revisi 19 Juni 2026 Part Q — sertakan user_id & updated_at untuk fitur edit komentar.
+    try { db_exec("ALTER TABLE post_comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"); } catch (Throwable $e) {}
+    $rows = db_all("SELECT pc.id, pc.post_id, pc.user_id, pc.isi, pc.created_at, pc.updated_at, u.nama, u.foto_url
                     FROM post_comments pc JOIN users u ON u.id=pc.user_id
                     WHERE pc.post_id = ANY($1::int[]) ORDER BY pc.created_at ASC", ['{'.implode(',', $feedIds).'}']);
     foreach ($rows as $r) $commentsByPost[(int)$r['post_id']][] = $r;
@@ -584,15 +640,28 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="story-strip" data-live="stories">
     <?php foreach($stories as $s):
       $sFotoDisp = $s['foto_url'] ? ltrim($s['foto_url'],'/') : '';
+      $sIsVideo  = (isset($s['media_type']) && $s['media_type']==='video') || ($sFotoDisp && preg_match('/\.(mp4|webm|mov|m4v|ogg)(\?|$)/i', $sFotoDisp));
     ?>
       <div class="story-item position-relative" style="cursor:pointer">
         <div onclick='showStory(<?= json_encode([
           "id"=>(int)$s["id"],
           "nama"=>$s["nama"],"foto"=>$sFotoDisp,"user_foto"=>$s["user_foto"] ?? "",
+          "is_video"=>$sIsVideo?1:0,
           "caption"=>$s["caption"] ?? "","created_at"=>$s["created_at"] ?? "",
+          // Revisi 19 Juni 2026 Part Q — data interaksi like/komentar untuk Story Hari Ini
+          "likes"=>(int)($s["likes"] ?? 0),
+          "liked_by_me"=>(int)($s["liked_by_me"] ?? 0),
+          "comments_count"=>(int)($s["comments"] ?? 0),
+          "comments"=>array_map(function($c){
+            return ["nama"=>$c["nama"],"foto"=>$c["foto_url"] ?? "","isi"=>$c["isi"],"created_at"=>$c["created_at"]];
+          }, $storyCommentsByPost[(int)$s["id"]] ?? []),
         ], JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
           <div class="story-ring">
-            <?php if ($sFotoDisp): ?>
+            <?php if ($sFotoDisp && $sIsVideo): ?>
+              <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;border-radius:50%">
+                <i class="bi bi-play-circle-fill" style="font-size:1.6rem"></i>
+              </div>
+            <?php elseif ($sFotoDisp): ?>
               <img src="<?= htmlspecialchars($sFotoDisp) ?>" alt="story" class="zoomable" onerror="this.style.display='none'">
             <?php elseif ($s['caption']): ?>
               <div title="<?= htmlspecialchars($s['caption']) ?>"><?= htmlspecialchars(mb_substr($s['nama'],0,1)) ?></div>
@@ -883,7 +952,13 @@ document.addEventListener('DOMContentLoaded', () => {
               </form>
             <?php endif; ?>
           </div>
-          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); ?><img src="<?= htmlspecialchars($pfDisp) ?>" data-full="<?= htmlspecialchars($pfDisp) ?>" class="rounded mb-2 zoomable d-block" style="max-height:220px;max-width:100%;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'"><?php endif; ?>
+          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); $isVid = (($p['media_type'] ?? 'image')==='video') || preg_match('/\.(mp4|webm|mov|m4v|ogg)(\?|$)/i', $pfDisp); ?>
+            <?php if ($isVid): ?>
+              <video src="<?= htmlspecialchars($pfDisp) ?>" controls preload="metadata" class="rounded mb-2 d-block" style="max-height:320px;max-width:100%;background:#000"></video>
+            <?php else: ?>
+              <img src="<?= htmlspecialchars($pfDisp) ?>" data-full="<?= htmlspecialchars($pfDisp) ?>" class="rounded mb-2 zoomable d-block" style="max-height:220px;max-width:100%;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'">
+            <?php endif; ?>
+          <?php endif; ?>
           <div class="mb-2"><?= nl2br(render_tags_and_mentions(htmlspecialchars($p['caption'] ?? ''))) ?></div>
           <div class="d-flex flex-wrap gap-2 small">
             <?php if($u): ?>
@@ -904,13 +979,31 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <?php $pcs = $commentsByPost[(int)$p['id']] ?? []; if($pcs): ?>
           <div class="mt-2 ps-2 border-start">
-            <?php foreach($pcs as $pc): ?>
-              <div class="d-flex align-items-start gap-2 mb-1">
+            <?php foreach($pcs as $pc):
+                $canEdit = $u && ((int)$pc['user_id']===(int)$u['id'] || $u['role']==='admin');
+            ?>
+              <div class="d-flex align-items-start gap-2 mb-1" id="cmt-<?= (int)$pc['id'] ?>">
                 <?= user_avatar($pc['foto_url'] ?? null, $pc['nama'], 22) ?>
                 <div class="small flex-grow-1"><strong><?= htmlspecialchars($pc['nama']) ?></strong>
-                  <span class="text-muted ms-1" style="font-size:.7rem"><?= date('d M H:i', strtotime($pc['created_at'])) ?></span><br>
-                  <?= nl2br(htmlspecialchars($pc['isi'])) ?>
+                  <span class="text-muted ms-1" style="font-size:.7rem"><?= date('d M H:i', strtotime($pc['created_at'])) ?><?php if(!empty($pc['updated_at'])): ?> · diedit<?php endif; ?></span><br>
+                  <span class="cmt-body"><?= nl2br(htmlspecialchars($pc['isi'])) ?></span>
+                  <?php if($canEdit): ?>
+                  <!-- Revisi 19 Juni 2026 Part Q — edit komentar oleh pemilik/admin -->
+                  <form method="post" class="d-none cmt-edit-form mt-1" data-ajax>
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="_action" value="comment_edit">
+                    <input type="hidden" name="comment_id" value="<?= (int)$pc['id'] ?>">
+                    <div class="input-group input-group-sm">
+                      <input class="form-control" name="isi" maxlength="300" value="<?= htmlspecialchars($pc['isi']) ?>" required>
+                      <button class="btn btn-outline-primary" type="submit"><i class="bi bi-save"></i></button>
+                      <button class="btn btn-outline-secondary" type="button" onclick="toggleCmtEdit(<?= (int)$pc['id'] ?>,false)"><i class="bi bi-x"></i></button>
+                    </div>
+                  </form>
+                  <?php endif; ?>
                 </div>
+                <?php if($canEdit): ?>
+                  <button class="btn btn-sm btn-link text-secondary p-0" type="button" title="Edit komentar" onclick="toggleCmtEdit(<?= (int)$pc['id'] ?>,true)"><i class="bi bi-pencil"></i></button>
+                <?php endif; ?>
                 <?php if($u && $u['role']==='admin'): ?>
                   <form method="post" class="d-inline" data-ajax onsubmit="return confirm('Hapus komentar ini?')">
                     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
@@ -921,6 +1014,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
+            <script>
+            function toggleCmtEdit(id, show){
+              var box = document.getElementById('cmt-'+id); if(!box) return;
+              var body = box.querySelector('.cmt-body');
+              var form = box.querySelector('.cmt-edit-form');
+              if(!body||!form) return;
+              if(show){ body.classList.add('d-none'); form.classList.remove('d-none'); form.querySelector('input[name=isi]').focus(); }
+              else { body.classList.remove('d-none'); form.classList.add('d-none'); }
+            }
+            </script>
           </div>
           <?php endif; ?>
           <?php if($u): ?>
@@ -1079,6 +1182,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <input type="file" name="foto" accept="image/*" class="form-control mb-1" id="postFotoInput" data-compress>
       <div class="form-text compress-info small">Foto MB akan otomatis dikompres ke KB sebelum diunggah.</div>
       <img id="postFotoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px">
+      <!-- Revisi 19 Juni 2026 Part O #6 — dukungan posting VIDEO -->
+      <label class="form-label small mt-2">Video (opsional, maks 30 menit · pilih SATU: foto ATAU video)</label>
+      <input type="file" name="video" accept="video/*" class="form-control mb-1" id="postVideoInput">
+      <div class="form-text small">Video akan ditolak otomatis jika durasi &gt; 30 menit. Untuk hemat data, rekam dengan kualitas standar (480p–720p) — browser tidak dapat memotong video secara akurat.</div>
+      <video id="postVideoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px" controls></video>
+      <div id="postVideoInfo" class="small text-muted"></div>
       <label class="form-label small">Caption</label>
       <textarea name="caption" class="form-control" rows="3" maxlength="500" placeholder="Tulis caption..."></textarea>
     </div>
@@ -1095,12 +1204,85 @@ document.addEventListener('DOMContentLoaded', function(){
     var f=this.files && this.files[0]; if(!f){ pv.style.display='none'; return; }
     pv.src=URL.createObjectURL(f); pv.style.display='block';
   });}
+  // Revisi 19 Juni 2026 Part O #6 — validasi durasi video maks 30 menit
+  var vi=document.getElementById('postVideoInput');
+  var vp=document.getElementById('postVideoPreview');
+  var vinfo=document.getElementById('postVideoInfo');
+  if (vi) vi.addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    vinfo.textContent = ''; if (vp){ vp.style.display='none'; vp.removeAttribute('src'); }
+    if (!f) return;
+    var url = URL.createObjectURL(f);
+    var v = document.createElement('video'); v.preload='metadata'; v.src=url;
+    v.onloadedmetadata = function(){
+      var dur = v.duration||0; var mins = Math.floor(dur/60), secs = Math.round(dur%60);
+      if (dur > 30*60){
+        alert('Durasi video '+mins+'m '+secs+'s melebihi batas 30 menit. Silakan potong video terlebih dahulu sebelum upload.');
+        vi.value = ''; URL.revokeObjectURL(url); return;
+      }
+      vp.src = url; vp.style.display='block';
+      vinfo.textContent = 'Durasi: '+mins+'m '+secs+'s · Ukuran: '+(f.size/1024/1024).toFixed(2)+' MB';
+      // Kosongkan input foto agar tidak dobel
+      if (fi) fi.value = '';
+    };
+    v.onerror = function(){ alert('Format video tidak didukung browser.'); vi.value=''; };
+  });
   // AJAX submit ditangani oleh handler global di footer (data-ajax).
 });
 </script>
 <?php endif; ?>
 
 <?php /* Revisi 6 Juni 2026: Modal QR Check-in dihapus. */ ?>
+
+<!-- Revisi 19 Juni 2026 Part Q — Modal Story Hari Ini (lihat foto/video + like + komentar) -->
+<div class="modal fade" id="storyModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-content">
+    <div class="modal-header py-2">
+      <h6 class="modal-title"><i class="bi bi-collection-play text-primary"></i> Story · <span id="storyName"></span></h6>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+      <div class="text-center mb-2" id="storyMediaBox">
+        <img id="storyImg" src="" alt="" style="max-width:100%;max-height:55vh;border-radius:8px;display:none">
+      </div>
+      <div id="storyCaption" class="small mb-1"></div>
+      <div class="small text-muted mb-2"><i class="bi bi-clock"></i> <span id="storyTime"></span></div>
+
+      <?php if($u): ?>
+      <!-- Aksi like + jumlah komentar -->
+      <div class="d-flex gap-2 align-items-center border-top border-bottom py-2 mb-2">
+        <form method="post" class="d-inline" data-ajax id="storyLikeForm">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="like">
+          <input type="hidden" name="post_id" id="storyLikePostId" value="">
+          <button class="btn btn-sm btn-outline-danger" id="storyLikeBtn" type="submit"><i class="bi bi-heart" id="storyLikeIcon"></i> <span id="storyLikeCount">0</span></button>
+        </form>
+        <span class="text-muted small"><i class="bi bi-chat"></i> <span id="storyCommentCount">0</span> komentar</span>
+        <span class="ms-auto small text-muted"><i class="bi bi-eye"></i> <span id="storyViewCount">0</span></span>
+      </div>
+
+      <!-- Daftar komentar -->
+      <div id="storyComments" class="mb-2" style="max-height:30vh;overflow:auto"></div>
+
+      <!-- Tambah komentar -->
+      <form method="post" class="d-flex gap-2" data-ajax id="storyCommentForm">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="comment">
+        <input type="hidden" name="post_id" id="storyCommentPostId" value="">
+        <input class="form-control form-control-sm" name="isi" maxlength="300" placeholder="Tulis komentar untuk story…" required>
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-send"></i></button>
+      </form>
+      <?php endif; ?>
+
+      <div class="mt-3 border-top pt-2">
+        <div class="small fw-semibold mb-1"><i class="bi bi-people"></i> Dilihat oleh</div>
+        <div id="storyViewers" class="small"><span class="text-muted">—</span></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+
 
 <script>
 let _qrM=null,_stM=null;
@@ -1129,11 +1311,50 @@ function showStory(d){
   if(!_stM) _stM=new bootstrap.Modal(document.getElementById('storyModal'));
   document.getElementById('storyName').textContent=d.nama||'';
   const img=document.getElementById('storyImg');
-  if(d.foto){ img.src=d.foto; img.style.display='block'; } else { img.style.display='none'; }
+  /* Revisi 19 Juni 2026 Part O #6 — dukung story video */
+  var box = img && img.parentElement;
+  var oldVid = box ? box.querySelector('video.story-video') : null;
+  if (oldVid) oldVid.remove();
+  if(d.foto && d.is_video){
+    img.style.display='none';
+    if (box){
+      var v=document.createElement('video'); v.className='story-video'; v.controls=true; v.autoplay=true;
+      v.src=d.foto; v.style.cssText='max-width:100%;max-height:70vh;background:#000;border-radius:8px';
+      box.insertBefore(v, img);
+    }
+  } else if(d.foto){
+    img.src=d.foto; img.style.display='block';
+  } else { img.style.display='none'; }
   document.getElementById('storyCaption').textContent=d.caption||'';
   document.getElementById('storyTime').textContent=d.created_at||'';
   document.getElementById('storyViewCount').textContent='0';
   document.getElementById('storyViewers').innerHTML='<span class="text-muted">memuat…</span>';
+  // Revisi 19 Juni 2026 Part Q — populasi like + komentar story
+  var lpId = document.getElementById('storyLikePostId');
+  var cpId = document.getElementById('storyCommentPostId');
+  var lcEl = document.getElementById('storyLikeCount');
+  var liEl = document.getElementById('storyLikeIcon');
+  var ccEl = document.getElementById('storyCommentCount');
+  var clEl = document.getElementById('storyComments');
+  if (lpId) lpId.value = d.id || '';
+  if (cpId) cpId.value = d.id || '';
+  if (lcEl) lcEl.textContent = d.likes || 0;
+  if (liEl) liEl.className = 'bi bi-heart' + ((d.liked_by_me>0)?'-fill':'');
+  if (ccEl) ccEl.textContent = d.comments_count || 0;
+  if (clEl) {
+    var arr = d.comments || [];
+    if (!arr.length) { clEl.innerHTML = '<div class="text-muted small text-center py-2">Belum ada komentar.</div>'; }
+    else {
+      clEl.innerHTML = arr.map(function(c){
+        var ava = c.foto ? '<img src="'+c.foto+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:6px">' :
+                   '<span class="d-inline-block rounded-circle bg-secondary text-white text-center" style="width:24px;height:24px;line-height:24px;font-size:.7rem;margin-right:6px">'+((c.nama||'?').substr(0,1).toUpperCase())+'</span>';
+        var t = c.created_at ? new Date(c.created_at.replace(' ','T')) : null;
+        var ts = t ? t.toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        var esc = function(s){return String(s||'').replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];});};
+        return '<div class="d-flex align-items-start mb-2">'+ava+'<div class="small flex-grow-1"><strong>'+esc(c.nama)+'</strong> <span class="text-muted" style="font-size:.7rem">'+ts+'</span><br>'+esc(c.isi)+'</div></div>';
+      }).join('');
+    }
+  }
   _stM.show();
   if (d.id){
     var fd=new FormData(); fd.append('post_id', d.id);

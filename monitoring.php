@@ -86,14 +86,31 @@ $wkLabels=[]; $wkVals=[];
 foreach($wkRows as $r){ $wkLabels[]=$r['wk']; $wkVals[]=(int)$r['c']; }
 
 // ---- Tren Performa Jogging Harian saya (30 hari) ----
-$jogRows = db_all("SELECT tanggal, jarak_km, pace_detik, durasi_menit FROM upload_harian
-                   WHERE user_id=$1 AND jenis ILIKE 'jogging' AND tanggal >= CURRENT_DATE - INTERVAL '30 days'
+// Revisi 19 Juni 2026 Part Q — perlonggar match jenis (Jogging/Lari/Run, case-insensitive, partial)
+// dan hitung pace fallback dari durasi/jarak bila pace_detik kosong supaya chart & statistik tidak nihil.
+$jogRows = db_all("SELECT tanggal, jarak_km, pace_detik, durasi_menit, pace FROM upload_harian
+                   WHERE user_id=$1
+                     AND (jenis ILIKE '%jogging%' OR jenis ILIKE '%lari%' OR jenis ILIKE '%run%')
+                     AND tanggal >= CURRENT_DATE - INTERVAL '30 days'
                    ORDER BY tanggal", [(int)$u['id']]);
 $jogLabels=[]; $jogDist=[]; $jogPace=[]; $jogDur=[];
 foreach($jogRows as $r){
     $jogLabels[]=$r['tanggal'];
     $jogDist[]=(float)$r['jarak_km'];
-    $jogPace[]=(int)$r['pace_detik'];
+    $pd = (int)$r['pace_detik'];
+    if ($pd <= 0) {
+        // 1) coba parse string "6'30"/km" → 390 detik
+        if (!empty($r['pace']) && preg_match('/(\d+)\D+(\d{1,2})/', (string)$r['pace'], $m)) {
+            $pd = (int)$m[1]*60 + (int)$m[2];
+        }
+        // 2) fallback dari durasi & jarak
+        if ($pd <= 0 && (float)$r['jarak_km'] > 0 && (int)$r['durasi_menit'] > 0) {
+            $pd = (int) round(((int)$r['durasi_menit']*60) / (float)$r['jarak_km']);
+        }
+        // Buang outlier kasar agar tren tidak skew
+        if ($pd < 120 || $pd > 900) $pd = 0;
+    }
+    $jogPace[]= $pd;
     $jogDur[]=(int)$r['durasi_menit'];
 }
 // ---- Revisi 15 Juni 2026: Statistik ringkas jogging (pace / durasi / jarak) ----

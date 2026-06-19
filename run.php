@@ -8,6 +8,11 @@ $u = current_user(); $uid = (int)$u['id'];
 $pageTitle = 'Tracking Jalur / Rute';
 $pageSkeleton = 'grid';
 
+// Revisi 19 Juni 2026 — foto profil user untuk ikon pelari di peta tracking
+$userRow = db_one("SELECT foto_url FROM users WHERE id=$1", [$uid]);
+$userPhoto = trim((string)($userRow['foto_url'] ?? ''));
+if ($userPhoto === '') $userPhoto = '/assets/img/avatar-default.png';
+
 // ===== Revisi 15 Jun 2026: tabel untuk Route Builder (idempotent, aman dijalankan di local) =====
 @db_exec("CREATE TABLE IF NOT EXISTS run_routes (
     id BIGSERIAL PRIMARY KEY,
@@ -383,7 +388,7 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
         p.t = nowT;
         points.push(p);
         seg.poly.addLatLng([p.lat,p.lng]); seg.pts.push([p.lat,p.lng]);
-        if (!marker) marker = L.marker([p.lat,p.lng]).addTo(map);
+        if (!marker) marker = L.marker([p.lat,p.lng], {icon: makeRunnerIcon()}).addTo(map);
         else marker.setLatLng([p.lat,p.lng]);
         map.setView([p.lat,p.lng], Math.max(map.getZoom(),16));
         if (sessionId) sendPointToServer(p);
@@ -406,7 +411,7 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
     p.t = nowT;
     points.push(p);
     line.addLatLng([p.lat,p.lng]);
-    if (!marker) marker = L.marker([p.lat,p.lng]).addTo(map);
+    if (!marker) marker = L.marker([p.lat,p.lng], {icon: makeRunnerIcon()}).addTo(map);
     else marker.setLatLng([p.lat,p.lng]);
     map.setView([p.lat,p.lng], Math.max(map.getZoom(),16));
     document.getElementById('runStatus').textContent='GPS akurasi: '+Math.round(p.acc)+' m';
@@ -677,42 +682,21 @@ document.addEventListener('click', function(ev){
           <label class="btn btn-outline-success" for="rbModeAI"><i class="bi bi-robot"></i> AI Import dari Gambar</label>
         </div>
 
-        <!-- ===== Panel AI Import Rute (Revisi 16 Juni 2026: Gemini 2.5 Flash) ===== -->
+        <!-- ===== Panel AI Import Rute — Revisi 19 Juni 2026: HANYA via prompt teks ===== -->
         <div id="rbAIPanel" class="border rounded p-2 mb-2 bg-success-subtle" style="display:none">
-          <ul class="nav nav-pills nav-fill mb-2" role="tablist">
-            <li class="nav-item"><button class="nav-link active py-1 px-2 small" data-bs-toggle="tab" data-bs-target="#aiTabPrompt" type="button"><i class="bi bi-chat-text"></i> Prompt Teks</button></li>
-            <li class="nav-item"><button class="nav-link py-1 px-2 small" data-bs-toggle="tab" data-bs-target="#aiTabImage" type="button"><i class="bi bi-image"></i> Dari Gambar</button></li>
-          </ul>
-          <div class="tab-content">
-            <!-- Prompt teks → Gemini → daftar tempat → Geocode -->
-            <div class="tab-pane fade show active" id="aiTabPrompt">
-              <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Buat Rute dari Prompt (AI Gemini)</div>
-              <div class="small text-muted mb-2">
-                Tulis kebutuhan Anda &mdash; AI akan menyusun daftar landmark/jalan lalu mengubahnya menjadi rute lari.
-                Contoh: <em>"Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"</em>.
-              </div>
-              <textarea id="aiPromptText" class="form-control form-control-sm mb-2" rows="3"
-                placeholder="cth: Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"></textarea>
-              <button id="btnAIPrompt" type="button" class="btn btn-success btn-sm w-100">
-                <i class="bi bi-stars"></i> Hasilkan Rute dengan AI
-              </button>
-              <div id="aiPromptStat" class="small text-muted mt-1"></div>
-            </div>
-            <!-- Gambar / screenshot -->
-            <div class="tab-pane fade" id="aiTabImage">
-              <div class="small fw-bold mb-1"><i class="bi bi-image text-success"></i> Import Rute dari Gambar (AI Gemini Vision)</div>
-              <div class="small text-muted mb-2">Unggah screenshot peta yang sudah berisi rute (Google Maps / Strava / dll). AI akan
-                mendeteksi <em>landmark berurutan</em> lalu di-geocode otomatis.</div>
-              <input id="aiRouteImg" type="file" accept="image/*" class="form-control form-control-sm mb-2">
-              <input id="aiRouteHint" type="text" class="form-control form-control-sm mb-2"
-                     placeholder="Petunjuk area (opsional), cth: 'GOR Senayan Jakarta'">
-              <button id="btnAIRoute" type="button" class="btn btn-success btn-sm w-100">
-                <i class="bi bi-stars"></i> Identifikasi &amp; Geocode dengan AI
-              </button>
-              <div id="aiRouteStat" class="small text-muted mt-1"></div>
-            </div>
+          <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Buat Rute dari Prompt (AI Gemini)</div>
+          <div class="small text-muted mb-2">
+            Tulis kebutuhan Anda &mdash; AI akan menyusun daftar landmark/jalan lalu mengubahnya menjadi rute lari.
+            Contoh: <em>"Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"</em>.
           </div>
+          <textarea id="aiPromptText" class="form-control form-control-sm mb-2" rows="3"
+            placeholder="cth: Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"></textarea>
+          <button id="btnAIPrompt" type="button" class="btn btn-success btn-sm w-100">
+            <i class="bi bi-stars"></i> Hasilkan Rute dengan AI
+          </button>
+          <div id="aiPromptStat" class="small text-muted mt-1"></div>
         </div>
+
 
         <div id="rbManualBox" class="d-none alert alert-info small py-2 mb-2">
           <b><i class="bi bi-hand-index"></i> Mode Manual</b> &mdash; klik peta untuk menambahkan titik (mulai, transit, finish).
@@ -943,6 +927,17 @@ document.addEventListener('click', function(ev){
   var OSRM = 'https://router.project-osrm.org/route/v1/foot/';
   var TILE = window.MAPBOX_TILE_URL;
   var CACHE_NAME = 'hf-tiles-v1';
+  /* Revisi 19 Juni 2026 — Ikon pelari pakai foto profil (Leaflet divIcon). */
+  var USER_PHOTO_URL = <?= json_encode($userPhoto) ?>;
+  function makeRunnerIcon(){
+    return L.divIcon({
+      className: 'run-user-icon',
+      html: '<div style="width:40px;height:40px;border-radius:50%;border:3px solid #3b82f6;'
+          + 'box-shadow:0 4px 10px rgba(0,0,0,.3);background:#fff center/cover no-repeat;'
+          + 'background-image:url('+JSON.stringify(USER_PHOTO_URL)+')"></div>',
+      iconSize:[40,40], iconAnchor:[20,20]
+    });
+  }
 
   // ===== Service worker untuk mem-serve tile dari cache saat offline =====
   if ('serviceWorker' in navigator) {
@@ -1457,13 +1452,18 @@ document.addEventListener('click', function(ev){
     if (ld){
       var r = await fetch('/api_run.php?route_load='+ld.dataset.rid); var d=await r.json();
       if (!d.ok) return alert('Gagal');
-      ensureBuilderMap();
-      clearBuilder();
-      bLine = L.polyline(d.coords,{color:'#16a34a',weight:5}).addTo(bMap);
-      bMap.fitBounds(bLine.getBounds(),{padding:[20,20]}); addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
-      bCurrentRoute = { coords: d.coords, jarak_m: d.jarak_m };
-      document.getElementById('rbInfo').textContent = '✓ Memuat rute tersimpan: '+(d.jarak_m/1000).toFixed(2)+' km';
-      document.getElementById('rbExport').disabled = false;
+      // Revisi 19 Juni 2026 Part O (#1) — tampilkan rute dalam popup map
+      showRouteInPopup(d);
+      // Tetap muat ke builder agar tombol Ekspor GPX & Simpan tetap berfungsi
+      try {
+        ensureBuilderMap(); clearBuilder();
+        bLine = L.polyline(d.coords,{color:'#16a34a',weight:5}).addTo(bMap);
+        bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
+        addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
+        bCurrentRoute = { coords: d.coords, jarak_m: d.jarak_m };
+        document.getElementById('rbInfo').textContent = '✓ Memuat rute tersimpan: '+(d.jarak_m/1000).toFixed(2)+' km';
+        document.getElementById('rbExport').disabled = false;
+      } catch(_){}
     }
     // Revisi 17 Juni 2026 Part I (#4) — Edit rute tersimpan
     var ed = ev.target.closest('.rb-edit');
@@ -1952,6 +1952,80 @@ document.addEventListener('click', function(ev){
   </div>
   <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan Perubahan</button></div>
 </form></div></div>
+
+<!-- Revisi 19 Juni 2026 Part O (#1) — Modal popup peta untuk Lihat Rute Tersimpan -->
+<div class="modal fade" id="routeViewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-map text-primary"></i> <span id="rvTitle">Lihat Rute</span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-2">
+        <div id="rvMap" style="height:60vh;border-radius:8px"></div>
+        <div class="small text-muted mt-2" id="rvInfo"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* Revisi 19 Juni 2026 Part O #1 — popup peta untuk Lihat Rute Tersimpan */
+var _rvMap=null, _rvLine=null;
+function showRouteInPopup(d){
+  var el = document.getElementById('routeViewModal'); if(!el || typeof L==='undefined') return;
+  document.getElementById('rvTitle').textContent = 'Lihat Rute: '+(d.nama||'') + ' · '+ ((d.jarak_m||0)/1000).toFixed(2)+' km';
+  document.getElementById('rvInfo').textContent = (d.coords||[]).length + ' titik koordinat.';
+  var m = new bootstrap.Modal(el); m.show();
+  el.addEventListener('shown.bs.modal', function once(){
+    el.removeEventListener('shown.bs.modal', once);
+    if (!_rvMap){
+      _rvMap = L.map('rvMap');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(_rvMap);
+    } else if (_rvLine){ _rvMap.removeLayer(_rvLine); _rvLine=null; }
+    _rvMap.invalidateSize();
+    _rvLine = L.polyline(d.coords||[], {color:'#dc2626', weight:5}).addTo(_rvMap);
+    if ((d.coords||[]).length) _rvMap.fitBounds(_rvLine.getBounds(),{padding:[20,20]});
+  });
+}
+
+/* Revisi 19 Juni 2026 Part O #2 — Pasang handler form Edit Rute SETELAH modal ada di DOM.
+   Sebelumnya skrip di tengah halaman tidak menemukan #routeEditForm (modal di bawah)
+   sehingga submit fallback ke GET default → perubahan tidak tersimpan. */
+(function(){
+  function bind(){
+    var feForm = document.getElementById('routeEditForm');
+    if (!feForm || feForm.dataset.bound) return;
+    feForm.dataset.bound = '1';
+    async function doSave(){
+      var btn = feForm.querySelector('button[type=submit]');
+      var orig = btn ? btn.innerHTML : '';
+      if (btn){ btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan…'; }
+      try {
+        var fd = new FormData();
+        fd.append('csrf', (typeof CSRF!=='undefined'?CSRF:(document.querySelector('input[name=csrf]')?.value||'')));
+        fd.append('_action', 'route_update');
+        fd.append('id',           document.getElementById('reId').value);
+        fd.append('nama',         document.getElementById('reNama').value);
+        fd.append('elevasi_pref', document.getElementById('reElev').value);
+        fd.append('surface_pref', document.getElementById('reSurf').value);
+        fd.append('is_public',    document.getElementById('rePub').checked ? '1':'0');
+        var r = await fetch('/api_run.php', { method:'POST', body: fd, credentials:'same-origin' });
+        var txt = await r.text();
+        var d; try { d = JSON.parse(txt); } catch(e){ throw new Error('Respon bukan JSON: '+txt.substring(0,200)); }
+        if (d.ok) { location.reload(); return; }
+        throw new Error(d.err || 'Server menolak update.');
+      } catch (err) {
+        alert('Gagal update rute: ' + (err && err.message ? err.message : err));
+        if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+      }
+    }
+    feForm.addEventListener('submit', function(e){ e.preventDefault(); e.stopPropagation(); doSave(); });
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') bind();
+  else document.addEventListener('DOMContentLoaded', bind);
+  window.addEventListener('load', bind);
+})();
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>
 

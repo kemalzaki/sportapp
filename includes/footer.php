@@ -298,7 +298,21 @@ document.addEventListener('DOMContentLoaded', function() {
       liveNodes.forEach(node=>{
         const key=node.getAttribute('data-live');
         const fresh=doc.querySelector('[data-live="'+key+'"]');
-        if(fresh && fresh.innerHTML !== node.innerHTML){
+        if(!fresh) return;
+        /* Revisi 19 Juni 2026 Part O #5 — bandingkan HTML yang TELAH dinormalisasi:
+           buang inline style display & pagination-bar agar pagination tidak ter-reset
+           tiap 25 detik (bug "Next/Prev tidak berfungsi" di Jadwal Terdekat). */
+        const norm = (root)=>{
+          const c = root.cloneNode(true);
+          c.querySelectorAll('.pagination-bar').forEach(b=>b.remove());
+          c.querySelectorAll('[style*="display"]').forEach(el=>{
+            el.style.display=''; if(!el.getAttribute('style')) el.removeAttribute('style');
+          });
+          c.querySelectorAll('[data-pg-init]').forEach(el=>el.removeAttribute('data-pg-init'));
+          c.querySelectorAll('[data-sort-init]').forEach(el=>el.removeAttribute('data-sort-init'));
+          return c.innerHTML;
+        };
+        if(norm(fresh) !== norm(node)){
           node.innerHTML=fresh.innerHTML; changed=true;
         }
       });

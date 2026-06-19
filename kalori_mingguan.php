@@ -34,6 +34,14 @@ try {
     )");
     // Revisi 17 Juni 2026 Part J — kolom file_id untuk hapus dari ImageKit
     db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS foto_file_id TEXT");
+    /* Revisi 19 Juni 2026 Part O #7 — kolom detail makro dari AI (gram) */
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS karbohidrat_g NUMERIC(7,2)");
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS protein_g     NUMERIC(7,2)");
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS lemak_g       NUMERIC(7,2)");
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS serat_g       NUMERIC(7,2)");
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS gula_g        NUMERIC(7,2)");
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS sodium_mg     NUMERIC(8,2)");
+    db_exec("ALTER TABLE kalori_makanan_log ADD COLUMN IF NOT EXISTS ai_detail     TEXT");
     db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_mkn_user_tgl ON kalori_makanan_log(user_id, tanggal DESC)");
     // Revisi 18 Juni 2026 (Lanjutan) — Setting sumber defisit kalori per user.
     // sumber: 'auto' (semua workout di kalori_log, default lama),
@@ -46,6 +54,19 @@ try {
         manual_harian  INT NOT NULL DEFAULT 0,
         updated_at     TIMESTAMP NOT NULL DEFAULT now()
     )");
+    // Revisi 19 Juni 2026 — Pembakaran kalori AKTIVITAS LAIN (selain makanan & olahraga utama).
+    // User mendeskripsikan aktivitas via teks → AI memperkirakan kalori → disimpan di sini.
+    db_exec("CREATE TABLE IF NOT EXISTS kalori_burn_lain (
+        id           SERIAL PRIMARY KEY,
+        user_id      INT NOT NULL,
+        tanggal      DATE NOT NULL DEFAULT CURRENT_DATE,
+        deskripsi    TEXT NOT NULL,
+        durasi_menit INT NOT NULL DEFAULT 0,
+        kalori       INT NOT NULL DEFAULT 0,
+        rincian      TEXT,
+        created_at   TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_kalori_lain_user_tgl ON kalori_burn_lain(user_id, tanggal DESC)");
 } catch (Throwable $e) {}
 
 // === Helper AI (Revisi 17 Juni 2026 Part J) ===
@@ -61,15 +82,29 @@ function ai_estimate_kalori($imagePath, $namaTeks=''){
             . ($hintTxt !== '' ? $hintTxt : '(tidak diisi)') . "\". "
             . "Tugas: BACA KEDUANYA. Jika teks nama diisi, gunakan sebagai petunjuk utama dan verifikasi dengan foto. "
             . "Jika teks nama kosong, tebak dari foto saja. Jika foto dan teks berbeda, prioritaskan foto namun sebut keduanya di 'rincian'. "
-            . "Hitung PERKIRAAN TOTAL KALORI (kcal, INTEGER) untuk porsi yang terlihat. Jumlahkan bila ada beberapa item. "
+            . "Hitung PERKIRAAN TOTAL KALORI (kcal, INTEGER) DAN PERKIRAAN MAKRO NUTRIEN untuk porsi yang terlihat. "
+            . "Jumlahkan bila ada beberapa item. Estimasi konservatif berbasis tabel komposisi pangan Indonesia (TKPI/USDA). "
             . "Balas HANYA JSON murni TANPA fence ```json``` dan TANPA kalimat pengantar: "
-            . "{\"nama\":\"...\",\"kalori\":<angka_integer>,\"rincian\":\"<opsional 1 kalimat singkat>\"}.";
+            . "{\"nama\":\"...\",\"kalori\":<int>,"
+            . "\"karbohidrat_g\":<number>,\"protein_g\":<number>,\"lemak_g\":<number>,"
+            . "\"serat_g\":<number>,\"gula_g\":<number>,\"sodium_mg\":<number>,"
+            . "\"rincian\":\"<1 kalimat: komposisi & catatan gizi>\"}.";
     $g = gemini_vision($prompt, $imagePath,
             ['json'=>true,'temperature'=>0.2,'max_tokens'=>1024]);
     if (!$g['ok']) return ['err'=>'Gemini: '.$g['err']];
     $obj = gemini_extract_json($g['text']);
     if (is_array($obj) && isset($obj['kalori'])) {
-        return ['nama'=>$obj['nama'] ?? '', 'kalori'=>(int)$obj['kalori'], 'rincian'=>$obj['rincian'] ?? ''];
+        return [
+            'nama'    => $obj['nama'] ?? '',
+            'kalori'  => (int)$obj['kalori'],
+            'karbohidrat_g' => isset($obj['karbohidrat_g']) ? (float)$obj['karbohidrat_g'] : null,
+            'protein_g'     => isset($obj['protein_g'])     ? (float)$obj['protein_g']     : null,
+            'lemak_g'       => isset($obj['lemak_g'])       ? (float)$obj['lemak_g']       : null,
+            'serat_g'       => isset($obj['serat_g'])       ? (float)$obj['serat_g']       : null,
+            'gula_g'        => isset($obj['gula_g'])        ? (float)$obj['gula_g']        : null,
+            'sodium_mg'     => isset($obj['sodium_mg'])     ? (float)$obj['sodium_mg']     : null,
+            'rincian' => $obj['rincian'] ?? '',
+        ];
     }
     // Fallback regex bila JSON gagal
     $raw = (string)$g['text'];
@@ -106,6 +141,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $kal  = (int)($_POST['kalori'] ?? 0);
         $cat  = trim($_POST['catatan'] ?? '');
         $foto = null; $fotoFileId = null; $aiUsed = false;
+        $aiMacro = ['karbohidrat_g'=>null,'protein_g'=>null,'lemak_g'=>null,'serat_g'=>null,'gula_g'=>null,'sodium_mg'=>null];
+        $aiDetail = null;
         $errs = []; $warns = [];
 
         // === Revisi 18 Juni 2026 — perbaiki upload kamera + AI kalori ===
@@ -151,6 +188,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                             }
                             // Simpan rincian AI ke catatan bila kosong supaya tetap terlihat di tabel.
                             if ($cat === '' && !empty($ai['rincian'])) $cat = 'AI: '.$ai['rincian'];
+                            // Revisi 19 Juni 2026 Part O #7 — simpan makro nutrien dari AI
+                            foreach ($aiMacro as $k => $_) if (array_key_exists($k,$ai)) $aiMacro[$k] = $ai[$k];
+                            $detailParts = [];
+                            foreach ([
+                                'karbohidrat_g'=>'Karbohidrat (g)',
+                                'protein_g'    =>'Protein (g)',
+                                'lemak_g'      =>'Lemak (g)',
+                                'serat_g'      =>'Serat (g)',
+                                'gula_g'       =>'Gula (g)',
+                                'sodium_mg'    =>'Sodium (mg)',
+                            ] as $k=>$lab) {
+                                if ($aiMacro[$k] !== null) $detailParts[] = $lab.': '.rtrim(rtrim(number_format($aiMacro[$k],2,'.',''),'0'),'.');
+                            }
+                            if ($detailParts) $aiDetail = implode(' · ', $detailParts);
                             $aiUsed = true;
                         } else {
                             $errMsg = (is_array($ai) && !empty($ai['err'])) ? $ai['err'] : 'AI tidak menjawab.';
@@ -195,12 +246,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if ($nama === '') $nama = 'Tanpa nama';
         if ($kal < 0) $kal = 0;
         // SELALU simpan entri agar data tidak hilang — meski foto gagal / AI gagal.
-        db_exec("INSERT INTO kalori_makanan_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,foto_file_id,ai_estimasi,catatan)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-            [$uid,$tgl,$jam,$nama,$kal,$foto,$fotoFileId,$aiUsed?'t':'f',$cat]);
+        db_exec(
+            "INSERT INTO kalori_makanan_log(user_id,tanggal,waktu,nama_makanan,kalori,foto_url,foto_file_id,ai_estimasi,catatan,
+                karbohidrat_g,protein_g,lemak_g,serat_g,gula_g,sodium_mg,ai_detail)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)",
+            [$uid,$tgl,$jam,$nama,$kal,$foto,$fotoFileId,$aiUsed?'t':'f',$cat,
+             $aiMacro['karbohidrat_g'],$aiMacro['protein_g'],$aiMacro['lemak_g'],
+             $aiMacro['serat_g'],$aiMacro['gula_g'],$aiMacro['sodium_mg'],$aiDetail]
+        );
         if ($errs)  $_SESSION['flash_err'] = implode(' • ', $errs);
         if ($warns) $_SESSION['flash_err'] = ($_SESSION['flash_err'] ?? '') . ' ' . implode(' • ', $warns);
         $okMsg = "Makanan ditambahkan ($kal kkal)".($aiUsed?' [AI]':'').($foto?' · foto OK':'');
+        if ($aiDetail) $okMsg .= ' · '.$aiDetail;
         $_SESSION['flash_ok'] = $okMsg;
     } elseif ($a==='delete') {
         // Hapus juga dari ImageKit jika ada file_id
@@ -224,6 +281,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                   [$tgl,$jam,$nama,$kal,$cat?:null,$id,$uid]);
           $_SESSION['flash_ok'] = "Entri diperbarui.";
         }
+    } elseif ($a==='lain_add') {
+        // Revisi 19 Juni 2026 — Tambah entri pembakaran kalori aktivitas LAIN
+        $tgl  = $_POST['tanggal'] ?: date('Y-m-d');
+        $desk = trim((string)($_POST['deskripsi'] ?? ''));
+        $dur  = max(0, (int)($_POST['durasi_menit'] ?? 0));
+        $kal  = max(0, (int)($_POST['kalori'] ?? 0));
+        $rinc = trim((string)($_POST['rincian'] ?? ''));
+        if ($desk === '') {
+            $_SESSION['flash_err'] = 'Deskripsi aktivitas wajib diisi.';
+        } else {
+            db_exec("INSERT INTO kalori_burn_lain(user_id,tanggal,deskripsi,durasi_menit,kalori,rincian)
+                     VALUES($1,$2,$3,$4,$5,$6)", [$uid,$tgl,$desk,$dur,$kal,$rinc?:null]);
+            $_SESSION['flash_ok'] = "Aktivitas lain ditambahkan ($kal kkal).";
+        }
+    } elseif ($a==='lain_delete') {
+        db_exec("DELETE FROM kalori_burn_lain WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
     }
     header('Location: kalori_mingguan.php'); exit;
 }
@@ -305,7 +378,28 @@ try {
             $burnDetail[] = ['jenis'=>'Defisit Manual','sesi'=>1,'menit'=>0,'kalori'=>$defManual*7];
         }
     }
+    // Revisi 19 Juni 2026 — Pembakaran kalori AKTIVITAS LAIN selalu dijumlahkan
+    // ke burnMap, tidak tergantung pilihan sumber defisit.
+    $lainRows = db_all(
+        "SELECT tanggal::text AS tgl, SUM(kalori)::int AS total
+           FROM kalori_burn_lain
+          WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3
+       GROUP BY tanggal", [$uid,$weekStart,$weekEnd]);
+    foreach ($lainRows as $r) $burnMap[$r['tgl']] = ($burnMap[$r['tgl']] ?? 0) + (int)$r['total'];
+    $lainTotalWk = (int)(db_one(
+        "SELECT COALESCE(SUM(kalori),0)::int AS t FROM kalori_burn_lain
+          WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3",[$uid,$weekStart,$weekEnd])['t'] ?? 0);
+    if ($lainTotalWk > 0) {
+        $burnDetail[] = ['jenis'=>'Aktivitas Lain (AI)','sesi'=>count($lainRows),
+                         'menit'=>0,'kalori'=>$lainTotalWk];
+    }
 } catch (Throwable $e) { /* tabel terkait belum ada → diabaikan */ }
+
+// Daftar entri aktivitas lain hari ini (untuk panel input)
+$lainToday = db_all(
+    "SELECT id, tanggal::text AS tgl, deskripsi, durasi_menit, kalori, rincian, created_at
+       FROM kalori_burn_lain WHERE user_id=$1 AND tanggal=$2 ORDER BY id DESC",
+    [$uid, date('Y-m-d')]);
 
 $labels=[]; $data=[]; $sisa=[]; $burnData=[]; $netData=[]; $deficitData=[];
 for($i=0;$i<7;$i++){
@@ -327,6 +421,14 @@ $totalNet     = $totalWeek - $totalBurn;
 $totalTarget  = $target * 7;
 $weekDeficit  = $totalTarget - $totalNet;   // >0 = defisit (bagus utk diet); <0 = surplus
 $avgDay = round($totalWeek/7);
+
+// Revisi 19 Juni 2026 — Sisa kalori HARI INI (untuk panel khusus)
+$todayKey      = date('Y-m-d');
+$todayCons     = (int)($map[$todayKey]     ?? 0);
+$todayBurn     = (int)($burnMap[$todayKey] ?? 0);
+$todayNet      = $todayCons - $todayBurn;
+$todayRemain   = $target - $todayNet;    // kkal yg masih bisa dimakan hari ini
+$todayPct      = $target>0 ? min(100, max(0, ($todayNet/$target)*100)) : 0;
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 $aiEnabled = (bool) (defined('GEMINI_API_KEY') ? GEMINI_API_KEY : (getenv('GEMINI_API_KEY') ?: ''));
@@ -380,6 +482,156 @@ include __DIR__.'/includes/header.php';
     <i class="bi bi-calendar3 fs-4 text-info"></i>
     <div class="fw-bold"><?= $avgDay ?> kkal</div><div class="small text-muted">Rata-rata / hari</div></div></div></div>
 </div>
+
+<!-- ============================================================
+     Revisi 19 Juni 2026 — Sisa Kalori HARI INI + Pembakaran "Lain" (AI)
+     ============================================================ -->
+<div class="row g-3 mb-3">
+  <div class="col-md-5">
+    <div class="card shadow-sm h-100 <?= $todayRemain>=0 ? 'border-success' : 'border-danger' ?>">
+      <div class="card-header py-2 <?= $todayRemain>=0 ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis' ?>">
+        <i class="bi bi-pie-chart-fill"></i> <strong>Sisa Kalori Hari Ini</strong>
+        <span class="small ms-2"><?= htmlspecialchars(date('D, d M Y')) ?></span>
+      </div>
+      <div class="card-body py-2">
+        <div class="d-flex align-items-center gap-3">
+          <div class="flex-fill">
+            <div class="display-6 fw-bold <?= $todayRemain>=0 ? 'text-success' : 'text-danger' ?>">
+              <?= ($todayRemain>=0?'':'+') ?><?= number_format($todayRemain) ?>
+              <small class="fs-6 text-muted">kkal</small>
+            </div>
+            <div class="small text-muted">
+              <?php if ($todayRemain>=0): ?>
+                masih bisa dikonsumsi hari ini
+              <?php else: ?>
+                <strong>melebihi target</strong> sebanyak <?= number_format(abs($todayRemain)) ?> kkal
+              <?php endif; ?>
+            </div>
+            <div class="progress mt-2" style="height:8px">
+              <div class="progress-bar <?= $todayPct>=100 ? 'bg-danger' : ($todayPct>=80?'bg-warning':'bg-success') ?>"
+                   role="progressbar" style="width:<?= number_format($todayPct,1) ?>%"></div>
+            </div>
+            <div class="small text-muted mt-1">
+              Konsumsi <b><?= number_format($todayCons) ?></b>
+              − Terbakar <b><?= number_format($todayBurn) ?></b>
+              = Net <b><?= number_format($todayNet) ?></b>
+              / Target <b><?= number_format($target) ?></b> kkal
+              (<?= number_format($todayPct,1) ?>%).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card shadow-sm h-100 border-info">
+      <div class="card-header py-2 bg-info-subtle text-info-emphasis">
+        <i class="bi bi-robot"></i> <strong>Input Pembakaran Kalori Lain (AI)</strong>
+        <small class="ms-2 text-muted">Selain makanan & selain olahraga utama</small>
+      </div>
+      <div class="card-body py-2">
+        <p class="small text-muted mb-2">
+          Tulis aktivitas pembakaran kalori yang tidak masuk di olahraga utama
+          (cth: <em>"jalan kaki ke pasar 25 menit"</em>, <em>"naik turun tangga kantor selama 15 menit"</em>,
+          <em>"mengasuh anak balita aktif selama 2 jam"</em>). AI akan memperkirakan kalori-nya
+          lalu disimpan ke akumulasi pembakaran harian.
+        </p>
+        <form id="lainForm" class="row g-2 align-items-end">
+          <div class="col-12">
+            <textarea id="lainPrompt" class="form-control form-control-sm" rows="2"
+                      placeholder="cth: jalan kaki ke pasar 25 menit, beban belanjaan ~3 kg"></textarea>
+          </div>
+          <div class="col-md-9 d-flex gap-2 flex-wrap">
+            <button type="button" id="btnLainAI" class="btn btn-info btn-sm">
+              <i class="bi bi-stars"></i> Estimasi dengan AI
+            </button>
+            <span id="lainStat" class="small text-muted align-self-center"></span>
+          </div>
+        </form>
+
+        <!-- Hasil AI (dapat diedit) → Simpan -->
+        <form method="post" id="lainSaveForm" class="row g-2 mt-2" style="display:none">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="lain_add">
+          <input type="hidden" name="rincian" id="lainRincian">
+          <div class="col-4"><label class="form-label small mb-0">Tanggal</label>
+            <input type="date" name="tanggal" id="lainTgl" class="form-control form-control-sm" value="<?= date('Y-m-d') ?>"></div>
+          <div class="col-8"><label class="form-label small mb-0">Aktivitas</label>
+            <input type="text" name="deskripsi" id="lainDesk" class="form-control form-control-sm" required></div>
+          <div class="col-4"><label class="form-label small mb-0">Durasi (menit)</label>
+            <input type="number" name="durasi_menit" id="lainDur" class="form-control form-control-sm" min="0" value="0"></div>
+          <div class="col-4"><label class="form-label small mb-0">Kalori (kkal)</label>
+            <input type="number" name="kalori" id="lainKal" class="form-control form-control-sm" min="0" value="0" required></div>
+          <div class="col-4 d-flex align-items-end">
+            <button class="btn btn-success btn-sm w-100"><i class="bi bi-save"></i> Simpan</button>
+          </div>
+        </form>
+
+        <?php if (!empty($lainToday)): ?>
+        <hr class="my-2">
+        <div class="small fw-semibold mb-1">Hari ini (<?= count($lainToday) ?>):</div>
+        <ul class="list-group list-group-flush small">
+          <?php foreach ($lainToday as $L): ?>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+              <div>
+                <span class="fw-semibold"><?= htmlspecialchars($L['deskripsi']) ?></span>
+                <span class="text-muted">— <?= (int)$L['durasi_menit'] ?> mnt, <b class="text-warning"><?= (int)$L['kalori'] ?> kkal</b></span>
+                <?php if (!empty($L['rincian'])): ?>
+                  <div class="text-muted small"><?= htmlspecialchars($L['rincian']) ?></div>
+                <?php endif; ?>
+              </div>
+              <form method="post" onsubmit="return confirm('Hapus aktivitas ini?')" class="m-0">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="_action" value="lain_delete">
+                <input type="hidden" name="id" value="<?= (int)$L['id'] ?>">
+                <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
+              </form>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CSRF = '<?= csrf_token() ?>';
+  var btn = document.getElementById('btnLainAI');
+  var inp = document.getElementById('lainPrompt');
+  var stat = document.getElementById('lainStat');
+  var saveForm = document.getElementById('lainSaveForm');
+  if (!btn) return;
+  btn.addEventListener('click', async function(){
+    var q = (inp.value||'').trim();
+    if (!q){ stat.textContent='Tulis aktivitas dulu.'; return; }
+    btn.disabled = true;
+    var oh = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menanya AI…';
+    stat.textContent = '';
+    try {
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('task', 'kalori_lain');
+      fd.append('prompt', q);
+      var r = await fetch('/api_ai.php',{method:'POST', body:fd, credentials:'same-origin'});
+      var j = await r.json();
+      if (!j.ok){ stat.innerHTML = '<span class="text-danger">Gagal: '+(j.err||'?')+'</span>'; }
+      else {
+        document.getElementById('lainDesk').value = j.aktivitas || q.substring(0,80);
+        document.getElementById('lainDur').value  = j.durasi_menit || 0;
+        document.getElementById('lainKal').value  = j.kalori || 0;
+        document.getElementById('lainRincian').value = j.rincian || '';
+        saveForm.style.display = 'flex';
+        stat.innerHTML = '<i class="bi bi-check-circle text-success"></i> AI: <b>'+(j.kalori||0)+' kkal</b> · '
+                       + (j.rincian||'').replace(/[<>]/g,'') + ' — silakan edit lalu Simpan.';
+      }
+    } catch(e){ stat.innerHTML = '<span class="text-danger">Error: '+e.message+'</span>'; }
+    btn.disabled = false; btn.innerHTML = oh;
+  });
+})();
+</script>
 
 <!-- Revisi 18 Juni 2026 (Lanjutan) — Pengaturan sumber Defisit Kalori -->
 <div class="card shadow-sm mb-3">
@@ -591,6 +843,29 @@ include __DIR__.'/includes/header.php';
           <?php endif; ?></td>
           <td><?= htmlspecialchars($r['nama_makanan']) ?>
             <?php if($r['ai_estimasi']==='t'||$r['ai_estimasi']===true||$r['ai_estimasi']==='1'): ?><span class="badge bg-success-subtle text-success ms-1">AI</span><?php endif; ?>
+            <?php
+              /* Revisi 19 Juni 2026 Part O #7 — tampilkan detail makro AI */
+              $macroBits = [];
+              foreach ([
+                'karbohidrat_g'=>'Karb',
+                'protein_g'    =>'Prot',
+                'lemak_g'      =>'Lemak',
+                'serat_g'      =>'Serat',
+                'gula_g'       =>'Gula',
+                'sodium_mg'    =>'Na',
+              ] as $k=>$lab) {
+                if (isset($r[$k]) && $r[$k] !== null && $r[$k] !== '') {
+                  $unit = ($k==='sodium_mg') ? 'mg' : 'g';
+                  $val = rtrim(rtrim(number_format((float)$r[$k],2,'.',''),'0'),'.');
+                  $macroBits[] = '<span class="badge bg-light text-dark border me-1 mt-1">'.$lab.': '.$val.' '.$unit.'</span>';
+                }
+              }
+              if ($macroBits): ?>
+                <div class="small mt-1"><?= implode('', $macroBits) ?></div>
+            <?php endif; ?>
+            <?php if(!empty($r['ai_detail'])): ?>
+              <div class="small text-muted mt-1"><i class="bi bi-stars text-success"></i> <?= htmlspecialchars($r['ai_detail']) ?></div>
+            <?php endif; ?>
           </td>
           <td class="text-end fw-semibold text-danger"><?= (int)$r['kalori'] ?></td>
           <td class="small text-muted"><?= htmlspecialchars($r['catatan']??'') ?></td>
