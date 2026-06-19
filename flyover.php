@@ -157,6 +157,15 @@ include __DIR__.'/includes/header.php';
           <input class="form-check-input" type="checkbox" id="optHud" checked>
           <label class="form-check-label small" for="optHud">Tampilkan popup statistik (HUD) saat playback</label>
         </div>
+        <!-- Revisi 19 Juni 2026 — Toggle Logo & Copyright HapFam pada video rekaman -->
+        <div class="form-check form-switch mb-1">
+          <input class="form-check-input" type="checkbox" id="optBrandLogo" checked>
+          <label class="form-check-label small" for="optBrandLogo"><i class="bi bi-image text-info"></i> Tampilkan Logo HapFam (pojok kanan-bawah)</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" id="optBrandCopyright" checked>
+          <label class="form-check-label small" for="optBrandCopyright"><i class="bi bi-c-circle text-info"></i> Tampilkan Copyright "© HapFam 2026 • Sport"</label>
+        </div>
         <div class="form-check form-switch mb-2">
           <input class="form-check-input" type="checkbox" id="optMusic">
           <label class="form-check-label small" for="optMusic"><i class="bi bi-music-note-beamed text-success"></i> Musik latar saat playback &amp; rekaman</label>
@@ -999,11 +1008,19 @@ var HAPFAM_LOGO_READY = false;
 HAPFAM_LOGO.onload = function(){ HAPFAM_LOGO_READY = true; };
 
 function drawHapFamBrand(ctx, w, h, sx, sy){
+  // Revisi 19 Juni 2026 — Toggle logo & copyright dari UI
+  var elLogo = document.getElementById('optBrandLogo');
+  var elCopy = document.getElementById('optBrandCopyright');
+  var showLogo = elLogo ? !!elLogo.checked : true;
+  var showCopy = elCopy ? !!elCopy.checked : true;
+  if (!showLogo && !showCopy) return;
+
   // Foto profil bulat di pojok kanan-bawah
   var size = Math.max(56, 64*sx);
   var pad  = 18*sx;
   var cx = w - size/2 - pad;
   var cy = h - size/2 - pad;
+  if (showLogo) {
   ctx.save();
   // background bulat putih
   ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
@@ -1027,7 +1044,9 @@ function drawHapFamBrand(ctx, w, h, sx, sy){
   ctx.strokeStyle = '#0ea5e9';
   ctx.beginPath(); ctx.arc(cx, cy, size/2, 0, Math.PI*2); ctx.stroke();
   ctx.restore();
+  }
 
+  if (showCopy) {
   // Copyright bar di bawah-tengah
   ctx.save();
   var txt = '© HapFam 2026 • Sport';
@@ -1042,6 +1061,7 @@ function drawHapFamBrand(ctx, w, h, sx, sy){
   ctx.fillStyle = '#f8fafc'; ctx.textAlign='left'; ctx.textBaseline='middle';
   ctx.fillText(txt, tx + 12*sx, ty + th/2);
   ctx.restore();
+  }
 }
 
 

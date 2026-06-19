@@ -154,6 +154,25 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
+<!-- ============================================================
+     Revisi 19 Juni 2026 — Pencarian Video Survival (YouTube)
+     Pola sama dengan artikel_olahraga.php (api_yt_search.php).
+     ============================================================ -->
+<div class="card shadow-sm mb-3 border-success ao-yt-box">
+  <div class="card-header bg-success-subtle text-success-emphasis">
+    <i class="bi bi-youtube"></i> <strong>Pencarian Video Survival</strong>
+    <small class="text-muted ms-2">Cari teknik / situasi tertentu di YouTube</small>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="text" class="form-control ao-yt-q"
+             placeholder="Contoh: cara membuat api dengan ferro rod, water filter darurat, navigasi tanpa kompas">
+      <button type="button" class="btn btn-success ao-yt-btn"><i class="bi bi-search"></i> Cari &amp; Putar</button>
+    </div>
+    <div class="ao-yt-result small text-muted">Ketik kata kunci lalu klik <b>Cari &amp; Putar</b> — 5 video teratas akan tampil di sini.</div>
+  </div>
+</div>
+
 <!-- Pengetahuan Survival di Hutan -->
 <div class="row g-3">
   <div class="col-md-6">
@@ -335,6 +354,44 @@ include __DIR__.'/includes/header.php';
       var j = await r.json();
       if (j.ok){ var el = document.querySelector('[data-qa-id="'+id+'"]'); if(el) el.remove(); }
     });
+  });
+
+  /* ===== Pencarian Video YouTube (Revisi 19 Juni 2026) ===== */
+  document.querySelectorAll('.ao-yt-box').forEach(function(box){
+    var btn = box.querySelector('.ao-yt-btn');
+    var inp = box.querySelector('.ao-yt-q');
+    var out = box.querySelector('.ao-yt-result');
+    if (!btn || !inp || !out) return;
+    function esc(s){ return String(s).replace(/[<>&"']/g,function(c){return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c];});}
+    async function doSearch(){
+      var q = (inp.value||'').trim(); if (!q) return;
+      out.innerHTML = '<div class="d-flex align-items-center gap-2 small text-muted py-2"><span class="spinner-border spinner-border-sm"></span> Mencari video di YouTube…</div>';
+      var oldHtml = btn.innerHTML; btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari…';
+      try {
+        var r = await fetch('/api_yt_search.php?q=' + encodeURIComponent(q), {credentials:'same-origin'});
+        var j = await r.json();
+        if (!j.ok) throw new Error(j.err || 'tidak ada hasil');
+        var ids = (j.ids && j.ids.length) ? j.ids : (j.video ? [j.video] : []);
+        if (!ids.length) throw new Error('tidak ada hasil');
+        ids = ids.slice(0,5);
+        var html = '<div class="small text-muted mb-2">Menampilkan <b>'+ids.length+'</b> video teratas untuk <b>'+esc(q)+'</b>:</div><div class="row g-2">';
+        ids.forEach(function(vid, i){
+          html += '<div class="col-12 col-md-6"><div class="ratio ratio-16x9 rounded overflow-hidden border">'+
+            '<iframe loading="lazy" allowfullscreen src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+'?rel=0" '+
+            'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>'+
+            '</div><div class="small text-muted mt-1">#'+(i+1)+' Hasil teratas</div></div>';
+        });
+        html += '</div>';
+        out.innerHTML = html;
+      } catch(e){
+        out.innerHTML = '<div class="small text-danger py-2"><i class="bi bi-exclamation-triangle"></i> Gagal mencari: '+esc(e.message||String(e))+'. Coba kata kunci lain.</div>';
+      } finally {
+        btn.disabled = false; btn.innerHTML = oldHtml;
+      }
+    }
+    btn.addEventListener('click', doSearch);
+    inp.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doSearch(); }});
   });
 })();
 </script>
