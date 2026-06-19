@@ -83,20 +83,34 @@ switch ($task) {
     /* ---------- Estimasi kalori aktivitas LAIN (kalori_mingguan.php) — Revisi 19 Juni 2026 ---------- */
     case 'kalori_lain': {
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
+        // Asumsi berat badan dewasa rata-rata Indonesia 65 kg agar estimasi MET realistis.
         $sys = "Anda ahli sport science. Pengguna mendeskripsikan aktivitas pembakaran kalori SELAIN makanan dan SELAIN ".
                "olahraga utama (cth: jalan kaki ke pasar, naik-turun tangga di kantor, mencuci mobil, berkebun, momong anak, dll). ".
-               "Berdasarkan deskripsi, estimasikan total kalori terbakar (kkal, integer). ".
-               "Balas HANYA JSON tanpa fence: {\"aktivitas\":\"...\",\"durasi_menit\":<int>,\"kalori\":<int>,\"rincian\":\"<1 kalimat>\"}";
-        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.3,'max_tokens'=>512]);
+               "Gunakan rumus MET: kalori = MET × berat(kg) × jam. Asumsi berat 65 kg jika tidak disebut. ".
+               "Tentukan MET berdasarkan tabel Compendium of Physical Activities (cth: jalan santai 3.0, jalan cepat 4.3, naik-turun tangga 8.0, momong balita aktif 4.0, mencuci mobil 3.5, berkebun ringan 3.8). ".
+               "WAJIB: estimasi durasi (menit) WAJIB > 0 dan kalori WAJIB > 0 (integer, minimal 5). Jangan pernah balas 0. ".
+               "Balas HANYA JSON tanpa fence: {\"aktivitas\":\"<ringkas>\",\"durasi_menit\":<int>,\"kalori\":<int>,\"rincian\":\"<MET × kg × jam = kkal>\"}";
+        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.2,'max_tokens'=>512]);
         if (!$r['ok']) { echo json_encode($r); exit; }
         $obj = gemini_extract_json($r['text']);
         $kal = (int)($obj['kalori'] ?? 0);
+        $dur = (int)($obj['durasi_menit'] ?? 0);
         if ($kal <= 0) {
             if (preg_match('/(\d{2,5})\s*(?:kkal|kcal|kal)/i', $r['text'], $mm)) $kal = (int)$mm[1];
         }
+        if ($dur <= 0) {
+            if (preg_match('/(\d{1,4})\s*(?:menit|min)/i', $prompt.' '.$r['text'], $mm2)) $dur = (int)$mm2[1];
+            if ($dur <= 0 && preg_match('/(\d{1,3})\s*jam/i', $prompt.' '.$r['text'], $mm3)) $dur = ((int)$mm3[1]) * 60;
+        }
+        // Fallback hitung manual jika AI tetap balas 0: pakai MET rata-rata 3.5 × 65kg.
+        if ($kal <= 0 && $dur > 0) {
+            $kal = (int) round(3.5 * 65.0 * ($dur / 60.0));
+        }
+        if ($kal <= 0) { $kal = 25; } // minimal supaya tidak 0
+        if ($dur <= 0) { $dur = 15; }
         echo json_encode(['ok'=>true,
-            'aktivitas'=>(string)($obj['aktivitas'] ?? ''),
-            'durasi_menit'=>(int)($obj['durasi_menit'] ?? 0),
+            'aktivitas'=>(string)($obj['aktivitas'] ?? trim(mb_substr($prompt,0,80))),
+            'durasi_menit'=>$dur,
             'kalori'=>$kal,
             'rincian'=>(string)($obj['rincian'] ?? ''),
             'raw'=>$r['text']
@@ -178,14 +192,26 @@ switch ($task) {
         if (!$r['ok']) { echo json_encode($r); exit; }
         $obj = gemini_extract_json($r['text']);
         $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
-        // fallback: pisah baris — hanya yang BUKAN bagian JSON
+        // Fallback A: ekstrak semua string ber-kutip dari raw text (handles JSON terpotong)
+        if (count($places) < 2) {
+            if (preg_match_all('/"([^"\\\\]{4,160})"/u', (string)$r['text'], $mm)) {
+                foreach ($mm[1] as $cand) {
+                    $cand = trim($cand);
+                    // saring key-key JSON umum
+                    if (in_array(strtolower($cand), ['places','note','name','nama','kota'], true)) continue;
+                    if (strlen($cand) > 4) $places[] = $cand;
+                }
+            }
+        }
+        // Fallback B: pisah per baris polos (markdown list / numbered)
         if (count($places) < 2) {
             foreach (preg_split('/\r?\n/', (string)$r['text']) as $ln) {
                 $ln = trim($ln);
-                // skip line yang masih mengandung token JSON
-                if ($ln === '' || strpbrk($ln, '{}[]":') !== false) continue;
+                if ($ln === '') continue;
+                if (strpbrk($ln, '{}[]') !== false) continue;
+                $ln = trim($ln, " \t\"',");
                 $ln = trim(preg_replace('/^[\-\*\d\.\)]+\s*/','', $ln));
-                if (strlen($ln) > 4 && strlen($ln) < 120) $places[] = $ln;
+                if (strlen($ln) > 4 && strlen($ln) < 160 && strpos($ln, ':') === false) $places[] = $ln;
             }
         }
         // pastikan tiap entry punya ", Indonesia" untuk geocoding bias

@@ -134,7 +134,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $isi = substr(trim($_POST['isi'] ?? ''), 0, 300);
         if ($cid && $isi !== '') {
             $own = db_one("SELECT user_id FROM post_comments WHERE id=$1", [$cid]);
-            if ($own && ((int)$own['user_id']===(int)$u['id'] || $u['role']==='admin')) {
+            // Revisi 19 Juni 2026 Part R — HANYA pemilik komentar yang boleh mengedit.
+            if ($own && (int)$own['user_id']===(int)$u['id']) {
                 db_exec("UPDATE post_comments SET isi=$1, updated_at=now() WHERE id=$2", [$isi, $cid]);
             }
         }
@@ -980,7 +981,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <?php $pcs = $commentsByPost[(int)$p['id']] ?? []; if($pcs): ?>
           <div class="mt-2 ps-2 border-start">
             <?php foreach($pcs as $pc):
-                $canEdit = $u && ((int)$pc['user_id']===(int)$u['id'] || $u['role']==='admin');
+                // Revisi 19 Juni 2026 Part R — hanya pemilik komentar yang boleh mengedit.
+                $canEdit = $u && (int)$pc['user_id']===(int)$u['id'];
             ?>
               <div class="d-flex align-items-start gap-2 mb-1" id="cmt-<?= (int)$pc['id'] ?>">
                 <?= user_avatar($pc['foto_url'] ?? null, $pc['nama'], 22) ?>
@@ -1185,7 +1187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Revisi 19 Juni 2026 Part O #6 — dukungan posting VIDEO -->
       <label class="form-label small mt-2">Video (opsional, maks 30 menit · pilih SATU: foto ATAU video)</label>
       <input type="file" name="video" accept="video/*" class="form-control mb-1" id="postVideoInput">
-      <div class="form-text small">Video akan ditolak otomatis jika durasi &gt; 30 menit. Untuk hemat data, rekam dengan kualitas standar (480p–720p) — browser tidak dapat memotong video secara akurat.</div>
+      <div class="form-text small">Video otomatis dikompres ke kualitas hemat (≤720p, ~1 Mbps) sebelum diunggah agar lolos batas server &amp; lebih ringan di ImageKit. Maks durasi 30 menit.</div>
       <video id="postVideoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px" controls></video>
       <div id="postVideoInfo" class="small text-muted"></div>
       <label class="form-label small">Caption</label>
@@ -1227,7 +1229,99 @@ document.addEventListener('DOMContentLoaded', function(){
     };
     v.onerror = function(){ alert('Format video tidak didukung browser.'); vi.value=''; };
   });
-  // AJAX submit ditangani oleh handler global di footer (data-ajax).
+
+  /* Revisi 19 Juni 2026 Part R — Kompresi video sebelum upload.
+   * Server PHP & ImageKit lebih sering menolak file besar (post_max_size, dll)
+   * yang muncul sebagai "failed to fetch" di sisi browser. Kita transcode
+   * video di sisi klien menggunakan <video> + canvas.captureStream() +
+   * MediaRecorder pada bitrate rendah (~1 Mbps) dan downscale ke maks 720p.
+   * Hasilnya ditukar masuk ke input file sebelum form di-submit.
+   */
+  async function compressVideoFile(file){
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return file;
+    return await new Promise(function(resolve){
+      var url = URL.createObjectURL(file);
+      var vv = document.createElement('video');
+      vv.muted = true; vv.playsInline = true; vv.preload = 'auto'; vv.src = url;
+      vv.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
+      vv.onloadedmetadata = async function(){
+        try {
+          var maxH = 720;
+          var srcW = vv.videoWidth, srcH = vv.videoHeight;
+          if (!srcW || !srcH) { URL.revokeObjectURL(url); return resolve(file); }
+          var scale = Math.min(1, maxH/srcH);
+          var dstW = Math.round(srcW*scale/2)*2;
+          var dstH = Math.round(srcH*scale/2)*2;
+          var c = document.createElement('canvas');
+          c.width = dstW; c.height = dstH;
+          var cx = c.getContext('2d');
+          var stream = c.captureStream(24);
+          // Tambahkan audio dari sumber bila ada
+          try {
+            var elStream = vv.captureStream ? vv.captureStream() : null;
+            if (elStream){
+              elStream.getAudioTracks().forEach(function(t){ stream.addTrack(t); });
+            }
+          } catch(_){}
+          var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
+                  : (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm');
+          var rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1000000, audioBitsPerSecond: 96000 });
+          var chunks = [];
+          rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+          rec.onstop = function(){
+            try { vv.pause(); URL.revokeObjectURL(url); } catch(_){}
+            var blob = new Blob(chunks, { type: 'video/webm' });
+            if (!blob.size) return resolve(file);
+            var out = new File([blob], (file.name||'video').replace(/\.[^.]+$/,'')+'_c.webm', { type:'video/webm' });
+            // Hanya pakai hasil kompresi bila lebih kecil
+            resolve(out.size < file.size ? out : file);
+          };
+          rec.start(500);
+          var drew = false;
+          function tick(){
+            if (vv.ended || vv.paused) { rec.stop(); return; }
+            cx.drawImage(vv, 0, 0, dstW, dstH);
+            drew = true;
+            requestAnimationFrame(tick);
+          }
+          vv.onended = function(){ try { rec.stop(); } catch(_){} };
+          try { await vv.play(); } catch(_){}
+          tick();
+          // Safety timeout — selalu stop setelah durasi+2dtk
+          setTimeout(function(){ if (rec.state==='recording') rec.stop(); }, (vv.duration||60)*1000 + 2000);
+        } catch(e){
+          URL.revokeObjectURL(url); resolve(file);
+        }
+      };
+    });
+  }
+
+  // Override submit: kompresi → kirim via fetch dengan error handling jelas.
+  var pf = document.getElementById('postNewForm');
+  if (pf){
+    pf.addEventListener('submit', async function(ev){
+      var vfile = vi && vi.files && vi.files[0];
+      if (!vfile) return; // tidak ada video → biarkan flow default (data-ajax handler)
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      var btn = document.getElementById('postSubmitBtn');
+      var orig = btn ? btn.innerHTML : '';
+      if (btn){ btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengompres video…'; }
+      try {
+        var compressed = await compressVideoFile(vfile);
+        if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengunggah ('+(compressed.size/1024/1024).toFixed(1)+' MB)…';
+        var fd = new FormData(pf);
+        // Ganti field video dengan versi terkompres
+        fd.set('video', compressed, compressed.name);
+        var r = await fetch(window.location.pathname, { method:'POST', body: fd, credentials:'same-origin' });
+        if (!r.ok) throw new Error('Server menolak (HTTP '+r.status+'). Coba video yang lebih pendek.');
+        // Reload feed setelah berhasil
+        window.location.reload();
+      } catch(err){
+        alert('Gagal posting video: '+(err && err.message ? err.message : err));
+        if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+      }
+    }, true); // capture phase agar mendahului handler data-ajax global
+  }
 });
 </script>
 <?php endif; ?>

@@ -601,22 +601,32 @@ include __DIR__.'/includes/header.php'; ?>
     var inp = box.querySelector('.ao-yt-q');
     var out = box.querySelector('.ao-yt-result');
     var openA = box.querySelector('.ao-yt-open');
-    function doSearch(){
+    async function doSearch(){
       var q = (inp.value||'').trim();
       if (!q) return;
-      // Update tombol "buka di YouTube"
       openA.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
-      // Embed hasil pencarian (YouTube playlist-search). Beberapa region men-disable,
-      // sehingga kami sediakan link fallback "buka di YouTube" di samping.
-      out.innerHTML =
-        '<div class="ratio ratio-16x9 rounded overflow-hidden border">' +
-          '<iframe loading="lazy" allowfullscreen ' +
-            'src="https://www.youtube-nocookie.com/embed?listType=search&list=' + encodeURIComponent(q) + '" ' +
-            'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
-            'referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
-        '</div>' +
-        '<div class="small text-muted mt-1">Hasil pencarian: <b>' + q.replace(/[<>]/g,'') + '</b>. ' +
-        'Jika iframe kosong, klik <a href="' + openA.href + '" target="_blank" rel="noopener">buka di YouTube</a>.</div>';
+      out.innerHTML = '<div class="d-flex align-items-center gap-2 small text-muted py-2"><span class="spinner-border spinner-border-sm"></span> Mencari video di YouTube…</div>';
+      var oldHtml = btn.innerHTML; btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari…';
+      try {
+        var r = await fetch('/api_yt_search.php?q=' + encodeURIComponent(q), {credentials:'same-origin'});
+        var j = await r.json();
+        if (!j.ok || !j.video) throw new Error(j.err || 'tidak ada hasil');
+        out.innerHTML =
+          '<div class="ratio ratio-16x9 rounded overflow-hidden border">' +
+            '<iframe loading="lazy" allowfullscreen ' +
+              'src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(j.video) + '?rel=0" ' +
+              'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+              'referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
+          '</div>' +
+          '<div class="small text-muted mt-1">Hasil teratas untuk <b>' + q.replace(/[<>]/g,'') + '</b>. ' +
+          '<a href="' + openA.href + '" target="_blank" rel="noopener">Lihat semua hasil di YouTube</a>.</div>';
+      } catch(e) {
+        out.innerHTML = '<div class="small text-danger py-2"><i class="bi bi-exclamation-triangle"></i> Gagal mencari: ' +
+          (e.message||e) + '. <a href="' + openA.href + '" target="_blank" rel="noopener">Buka YouTube</a>.</div>';
+      } finally {
+        btn.disabled = false; btn.innerHTML = oldHtml;
+      }
     }
     btn.addEventListener('click', doSearch);
     inp.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doSearch(); }});

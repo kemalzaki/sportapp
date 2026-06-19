@@ -1450,20 +1450,34 @@ document.addEventListener('click', function(ev){
     }
     var ld = ev.target.closest('.rb-load');
     if (ld){
-      var r = await fetch('/api_run.php?route_load='+ld.dataset.rid); var d=await r.json();
-      if (!d.ok) return alert('Gagal');
-      // Revisi 19 Juni 2026 Part O (#1) — tampilkan rute dalam popup map
-      showRouteInPopup(d);
-      // Tetap muat ke builder agar tombol Ekspor GPX & Simpan tetap berfungsi
+      // Revisi 19 Juni 2026 Part R — tampilkan spinner kecil di tombol mata saat memuat
+      var icon = ld.querySelector('i');
+      var origCls = icon ? icon.className : '';
+      if (icon){ icon.className = ''; icon.innerHTML = ''; }
+      var prevHtml = ld.innerHTML;
+      ld.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.85rem;height:.85rem"></span>';
+      ld.disabled = true;
       try {
-        ensureBuilderMap(); clearBuilder();
-        bLine = L.polyline(d.coords,{color:'#16a34a',weight:5}).addTo(bMap);
-        bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
-        addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
-        bCurrentRoute = { coords: d.coords, jarak_m: d.jarak_m };
-        document.getElementById('rbInfo').textContent = '✓ Memuat rute tersimpan: '+(d.jarak_m/1000).toFixed(2)+' km';
-        document.getElementById('rbExport').disabled = false;
-      } catch(_){}
+        var r = await fetch('/api_run.php?route_load='+ld.dataset.rid);
+        var d = await r.json();
+        if (!d.ok){ alert('Gagal memuat rute'); return; }
+        // Revisi 19 Juni 2026 Part O (#1) — tampilkan rute dalam popup map
+        showRouteInPopup(d);
+        try {
+          ensureBuilderMap(); clearBuilder();
+          bLine = L.polyline(d.coords,{color:'#16a34a',weight:5}).addTo(bMap);
+          bMap.fitBounds(bLine.getBounds(),{padding:[20,20]});
+          addTurnMarkers(bLine.getLatLngs().map(function(p){return [p.lat,p.lng];}));
+          bCurrentRoute = { coords: d.coords, jarak_m: d.jarak_m };
+          document.getElementById('rbInfo').textContent = '✓ Memuat rute tersimpan: '+(d.jarak_m/1000).toFixed(2)+' km. Lihat detail lengkapnya di peta pembuatan rute.';
+          document.getElementById('rbExport').disabled = false;
+        } catch(_){}
+      } catch(e){
+        alert('Gagal memuat rute: '+(e.message||e));
+      } finally {
+        ld.innerHTML = prevHtml; ld.disabled = false;
+      }
+      return;
     }
     // Revisi 17 Juni 2026 Part I (#4) — Edit rute tersimpan
     var ed = ev.target.closest('.rb-edit');
@@ -1974,7 +1988,8 @@ var _rvMap=null, _rvLine=null;
 function showRouteInPopup(d){
   var el = document.getElementById('routeViewModal'); if(!el || typeof L==='undefined') return;
   document.getElementById('rvTitle').textContent = 'Lihat Rute: '+(d.nama||'') + ' · '+ ((d.jarak_m||0)/1000).toFixed(2)+' km';
-  document.getElementById('rvInfo').textContent = (d.coords||[]).length + ' titik koordinat.';
+  document.getElementById('rvInfo').innerHTML = (d.coords||[]).length + ' titik koordinat. ' +
+    '<span class="text-info"><i class="bi bi-info-circle"></i> Lihat detail lengkapnya di peta pembuatan rute.</span>';
   var m = new bootstrap.Modal(el); m.show();
   el.addEventListener('shown.bs.modal', function once(){
     el.removeEventListener('shown.bs.modal', once);

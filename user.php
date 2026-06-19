@@ -159,7 +159,22 @@ include __DIR__.'/includes/header.php';
     <div class="text-muted small"><?= htmlspecialchars($user['role']) ?> · ⭐ <?= (int)$user['xp'] ?> XP · 🔥 <?= (int)$user['streak_minggu'] ?> minggu</div>
     <?php if(!empty($user['strava_account'])):
       $sv = trim($user['strava_account']);
-      $sUrl = preg_match('~^https?://~i',$sv) ? $sv : 'https://www.strava.com/athletes/'.urlencode(ltrim($sv,'@'));
+      // Revisi 19 Juni 2026 Part R — perbaiki link Strava agar tidak 404.
+      // URL profil Strava memerlukan ID numerik atau slug athlete. Bila value
+      // berupa nama lengkap (mengandung spasi/karakter selain alfanumerik
+      // dasar) kita fallback ke pencarian Google site:strava.com.
+      $svClean = ltrim($sv, '@');
+      if (preg_match('~^https?://~i', $sv)) {
+          $sUrl = $sv;
+      } elseif (preg_match('~^\d{3,}$~', $svClean)) {
+          $sUrl = 'https://www.strava.com/athletes/'.$svClean;
+      } elseif (preg_match('~^[a-zA-Z0-9._-]{3,40}$~', $svClean)) {
+          // Kemungkinan slug athlete (mis. "jane-doe")
+          $sUrl = 'https://www.strava.com/athletes/'.rawurlencode($svClean);
+      } else {
+          // Nama dengan spasi → cari di Google
+          $sUrl = 'https://www.google.com/search?q='.urlencode('site:strava.com/athletes "'.$svClean.'"');
+      }
     ?>
       <div class="mt-1"><a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="<?= htmlspecialchars($sUrl) ?>"><i class="bi bi-bicycle"></i> Strava: <?= htmlspecialchars($sv) ?></a></div>
     <?php endif; ?>

@@ -224,6 +224,48 @@ include __DIR__.'/includes/header.php';
               <i class="bi bi-stars"></i> Sinkron Lirik dgn Musik via AI (LRC)
             </button>
             <small id="lyricStat" class="text-muted d-block mt-1">Belum ada lirik.</small>
+
+            <!-- Revisi 19 Juni 2026 Part R — Pengaturan tampilan subtitle & foto pelari -->
+            <hr class="my-2">
+            <label class="form-label small fw-bold mb-1"><i class="bi bi-sliders"></i> Desain Subtitle & Foto Pelari</label>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small mb-0">Ukuran subtitle</label>
+                <select id="optLyricSize" class="form-select form-select-sm">
+                  <option value="18">Kecil (18px)</option>
+                  <option value="22">Sedang (22px)</option>
+                  <option value="26" selected>Normal (26px)</option>
+                  <option value="32">Besar (32px)</option>
+                  <option value="40">Ekstra Besar (40px)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label small mb-0">Jenis huruf subtitle</label>
+                <select id="optLyricFont" class="form-select form-select-sm">
+                  <option value="system-ui, sans-serif" selected>System Sans</option>
+                  <option value="'Poppins', system-ui, sans-serif">Poppins</option>
+                  <option value="'Inter', system-ui, sans-serif">Inter</option>
+                  <option value="'Roboto', system-ui, sans-serif">Roboto</option>
+                  <option value="'Montserrat', system-ui, sans-serif">Montserrat</option>
+                  <option value="Georgia, 'Times New Roman', serif">Georgia (serif)</option>
+                  <option value="'Courier New', monospace">Monospace</option>
+                  <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label small mb-0">Warna subtitle</label>
+                <input type="color" id="optLyricColor" class="form-control form-control-color form-control-sm" value="#fef9c3">
+              </div>
+              <div class="col-6">
+                <label class="form-label small mb-0">Ukuran foto pelari</label>
+                <select id="optRunnerSize" class="form-select form-select-sm">
+                  <option value="20">Kecil</option>
+                  <option value="26" selected>Ideal</option>
+                  <option value="34">Sedang</option>
+                  <option value="44">Besar</option>
+                </select>
+              </div>
+            </div>
           </div>
 
 
@@ -762,7 +804,16 @@ setInterval(() => {
   const a = $('musicAudio');
   if (!$('optLyric').checked || !LYRICS.lines.length || !a || a.paused){ el.style.display='none'; return; }
   const line = currentLyricLine(a.currentTime);
-  if (line){ el.textContent = line; el.style.display=''; } else { el.style.display='none'; }
+  if (line){
+    // Revisi 19 Juni 2026 Part R — preview overlay ikut style user
+    const sizeOpt = document.getElementById('optLyricSize');
+    const fontOpt = document.getElementById('optLyricFont');
+    const colorOpt = document.getElementById('optLyricColor');
+    if (sizeOpt) el.style.fontSize = (parseFloat(sizeOpt.value)||26)+'px';
+    if (fontOpt) el.style.fontFamily = fontOpt.value;
+    if (colorOpt) el.style.color = colorOpt.value;
+    el.textContent = line; el.style.display='';
+  } else { el.style.display='none'; }
 }, 120);
 
 /* HUD helpers — Revisi 17 Juni 2026: kecepatan memakai DURASI REAL aktivitas
@@ -831,7 +882,10 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     p = project(finish); drawCircleIcon(ctx, p[0], p[1], 24*sx, '#111827', '#fff', '🏁');
     kmMarkerPoints.forEach(k => { const q = project(k.lngLat); drawCircleIcon(ctx, q[0], q[1], 18*sx, '#f59e0b', '#111827', String(k.n), 'KM'); });
     if (runnerLngLat){
-      const r = project(runnerLngLat); const rad = 28*sx;
+      // Revisi 19 Juni 2026 Part R — ukuran foto pelari dapat diatur user (default ideal 26px)
+      const runnerOpt = document.getElementById('optRunnerSize');
+      const runnerBase = runnerOpt ? parseFloat(runnerOpt.value)||26 : 26;
+      const r = project(runnerLngLat); const rad = runnerBase*sx;
       // Revisi 19 Juni 2026 — gambar foto profil user di posisi pelari
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
@@ -905,8 +959,15 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     const lyric = currentLyricLine(tNow);
     if (lyric){
       ctx.save();
-      const fs = Math.max(20, 26*sx);
-      ctx.font = '800 '+fs+'px system-ui, sans-serif';
+      // Revisi 19 Juni 2026 Part R — subtitle font-size, family & color dari opsi UI
+      const sizeOpt = document.getElementById('optLyricSize');
+      const fontOpt = document.getElementById('optLyricFont');
+      const colorOpt = document.getElementById('optLyricColor');
+      const userSize = sizeOpt ? (parseFloat(sizeOpt.value)||26) : 26;
+      const fontFam = fontOpt ? (fontOpt.value || "system-ui, sans-serif") : "system-ui, sans-serif";
+      const subtitleColor = colorOpt ? (colorOpt.value || '#fef9c3') : '#fef9c3';
+      const fs = Math.max(14, userSize*sx);
+      ctx.font = '800 '+fs+'px '+fontFam;
       const padX = 22*sx, padY = 14*sy;
       const tw = Math.min(w-40*sx, ctx.measureText(lyric).width + padX*2);
       const th = fs + padY*2;
@@ -918,7 +979,7 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
       ctx.fillStyle=g; rr(ctx,x,y,tw,th,18*sx); ctx.fill();
       ctx.shadowColor='transparent';
       ctx.strokeStyle='rgba(186,230,253,.45)'; ctx.lineWidth=2; ctx.stroke();
-      ctx.fillStyle='#fef9c3'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=subtitleColor; ctx.textAlign='center'; ctx.textBaseline='middle';
       drawTextFit(ctx, lyric, x+tw/2, y+th/2, tw-padX*2);
       ctx.restore();
     }
@@ -1107,6 +1168,11 @@ async function runFlyover({record=false}={}) {
     const el = document.createElement('div');
     el.className = 'fly-icon runner';
     el.style.backgroundImage = 'url("'+USER_PHOTO_URL.replace(/"/g,'%22')+'")';
+    // Revisi 19 Juni 2026 Part R — ukuran marker pelari mengikuti pilihan user (diameter px)
+    const runnerOpt = document.getElementById('optRunnerSize');
+    const runnerPx = runnerOpt ? Math.max(16, (parseFloat(runnerOpt.value)||26)*2) : 52;
+    el.style.width = runnerPx+'px';
+    el.style.height = runnerPx+'px';
     runnerMarker = new maplibregl.Marker({element:el, anchor:'center'}).setLngLat(coords[0]).addTo(map);
   }
   let kmAnnounced = 0;

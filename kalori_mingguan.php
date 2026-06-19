@@ -844,28 +844,39 @@ include __DIR__.'/includes/header.php';
           <td><?= htmlspecialchars($r['nama_makanan']) ?>
             <?php if($r['ai_estimasi']==='t'||$r['ai_estimasi']===true||$r['ai_estimasi']==='1'): ?><span class="badge bg-success-subtle text-success ms-1">AI</span><?php endif; ?>
             <?php
-              /* Revisi 19 Juni 2026 Part O #7 — tampilkan detail makro AI */
-              $macroBits = [];
-              foreach ([
-                'karbohidrat_g'=>'Karb',
-                'protein_g'    =>'Prot',
-                'lemak_g'      =>'Lemak',
-                'serat_g'      =>'Serat',
-                'gula_g'       =>'Gula',
-                'sodium_mg'    =>'Na',
-              ] as $k=>$lab) {
-                if (isset($r[$k]) && $r[$k] !== null && $r[$k] !== '') {
-                  $unit = ($k==='sodium_mg') ? 'mg' : 'g';
+              /* Revisi 19 Juni 2026 Part R — detail makro & rincian AI dipindah ke popup. */
+              $macroMap = [
+                'karbohidrat_g'=>['Karbohidrat','g'],
+                'protein_g'    =>['Protein','g'],
+                'lemak_g'      =>['Lemak','g'],
+                'serat_g'      =>['Serat','g'],
+                'gula_g'       =>['Gula','g'],
+                'sodium_mg'    =>['Sodium','mg'],
+              ];
+              $hasMacro = false;
+              foreach ($macroMap as $k=>$_) { if (isset($r[$k]) && $r[$k]!==null && $r[$k]!=='') { $hasMacro = true; break; } }
+              $hasDetail = $hasMacro || !empty($r['ai_detail']) || !empty($r['catatan']);
+              $detailPayload = [
+                'nama'    => $r['nama_makanan'],
+                'tanggal' => $r['tanggal'],
+                'waktu'   => substr($r['waktu'],0,5),
+                'kalori'  => (int)$r['kalori'],
+                'catatan' => $r['catatan'] ?? '',
+                'detail'  => $r['ai_detail'] ?? '',
+                'foto'    => $r['foto_url'] ?? '',
+                'makro'   => [],
+              ];
+              foreach ($macroMap as $k=>$meta) {
+                if (isset($r[$k]) && $r[$k]!==null && $r[$k]!=='') {
                   $val = rtrim(rtrim(number_format((float)$r[$k],2,'.',''),'0'),'.');
-                  $macroBits[] = '<span class="badge bg-light text-dark border me-1 mt-1">'.$lab.': '.$val.' '.$unit.'</span>';
+                  $detailPayload['makro'][] = ['label'=>$meta[0],'value'=>$val,'unit'=>$meta[1]];
                 }
               }
-              if ($macroBits): ?>
-                <div class="small mt-1"><?= implode('', $macroBits) ?></div>
-            <?php endif; ?>
-            <?php if(!empty($r['ai_detail'])): ?>
-              <div class="small text-muted mt-1"><i class="bi bi-stars text-success"></i> <?= htmlspecialchars($r['ai_detail']) ?></div>
-            <?php endif; ?>
+              if ($hasDetail): ?>
+                <button type="button" class="btn btn-link btn-sm p-0 ms-1 km-detail-btn"
+                        data-detail='<?= htmlspecialchars(json_encode($detailPayload, JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>'
+                        title="Lihat detail gizi"><i class="bi bi-info-circle"></i> Detail</button>
+              <?php endif; ?>
           </td>
           <td class="text-end fw-semibold text-danger"><?= (int)$r['kalori'] ?></td>
           <td class="small text-muted"><?= htmlspecialchars($r['catatan']??'') ?></td>
@@ -945,6 +956,65 @@ function kmInitEditAndZoom(){
 }
 if (document.readyState === 'complete') kmInitEditAndZoom();
 else window.addEventListener('load', kmInitEditAndZoom);
+</script>
+
+<!-- Revisi 19 Juni 2026 Part R — Modal Detail Gizi (popup detail riwayat makanan) -->
+<div class="modal fade" id="detailGiziModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h5 class="modal-title"><i class="bi bi-clipboard-data text-success"></i> Detail Gizi & Catatan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="dgBody">
+        <div class="text-muted small">Memuat…</div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function kmInitDetailGizi(){
+  if (typeof bootstrap === 'undefined' || !bootstrap.Modal){ setTimeout(kmInitDetailGizi, 120); return; }
+  var el = document.getElementById('detailGiziModal'); if (!el) return;
+  var modal = new bootstrap.Modal(el);
+  var body  = document.getElementById('dgBody');
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+  });}
+  function render(d){
+    var html = '';
+    html += '<div class="d-flex gap-2 align-items-start mb-2">';
+    if (d.foto) html += '<img src="'+esc(d.foto)+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px">';
+    html += '<div><div class="fw-bold">'+esc(d.nama)+'</div>'+
+      '<div class="small text-muted">'+esc(d.tanggal)+' · '+esc(d.waktu)+'</div>'+
+      '<div class="mt-1"><span class="badge bg-danger">'+(d.kalori|0)+' kkal</span></div></div>';
+    html += '</div>';
+    if (d.makro && d.makro.length){
+      html += '<table class="table table-sm mb-2"><tbody>';
+      d.makro.forEach(function(m){
+        html += '<tr><td class="text-muted">'+esc(m.label)+'</td><td class="text-end fw-semibold">'+esc(m.value)+' '+esc(m.unit)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<div class="small text-muted mb-2">Tidak ada data makro (entri lama atau tanpa AI).</div>';
+    }
+    if (d.detail) html += '<div class="alert alert-success py-2 small mb-2"><i class="bi bi-stars"></i> '+esc(d.detail)+'</div>';
+    if (d.catatan) html += '<div class="small"><b>Catatan:</b> '+esc(d.catatan)+'</div>';
+    body.innerHTML = html;
+  }
+  document.querySelectorAll('.km-detail-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      try { render(JSON.parse(this.dataset.detail||'{}')); }
+      catch(e){ body.innerHTML = '<div class="text-danger small">Gagal membaca detail.</div>'; }
+      modal.show();
+    });
+  });
+}
+if (document.readyState === 'complete') kmInitDetailGizi();
+else window.addEventListener('load', kmInitDetailGizi);
 </script>
 
 <script>
