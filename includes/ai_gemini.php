@@ -70,28 +70,50 @@ function _gemini_key() {
 
 /**
  * Revisi 17 Juni 2026 (Part I) — Dukungan multi-key rotation.
- * Set GEMINI_API_KEYS=key1,key2,key3 di env.local.php untuk fallback
- * otomatis saat satu key kena quota (429 / RESOURCE_EXHAUSTED).
- * GEMINI_API_KEY tunggal tetap didukung (akan digabung ke list).
+ * Sumber key (urutan prioritas, semuanya digabung & deduplikasi):
+ *   1. GEMINI_API_KEY           (single key, format lama)
+ *   2. GEMINI_API_KEY_1, GEMINI_API_KEY_2, ... GEMINI_API_KEY_20
+ *      (Revisi 19 Juni 2026 — format bernomor, paling direkomendasikan
+ *       untuk antisipasi quota habis di AI Studio Google)
+ *   3. GEMINI_API_KEYS=key1,key2,key3   (CSV/space/semicolon separated)
+ * Saat satu key kena 429 / 401 / 403 / RESOURCE_EXHAUSTED, helper
+ * otomatis mencoba key berikutnya tanpa mengganggu user.
  */
 function _gemini_keys() {
     $keys = [];
-    $single = getenv('GEMINI_API_KEY');
-    if (!$single && isset($_ENV['GEMINI_API_KEY']))    $single = $_ENV['GEMINI_API_KEY'];
-    if (!$single && isset($_SERVER['GEMINI_API_KEY'])) $single = $_SERVER['GEMINI_API_KEY'];
-    if ($single && stripos($single,'GANTI')===false) $keys[] = trim($single);
 
-    $multi = getenv('GEMINI_API_KEYS') ?: ($_ENV['GEMINI_API_KEYS'] ?? '');
+    // helper ambil env var dari getenv / $_ENV / $_SERVER
+    $readEnv = function($name) {
+        $v = getenv($name);
+        if ($v === false || $v === '') $v = $_ENV[$name]    ?? '';
+        if ($v === '')                 $v = $_SERVER[$name] ?? '';
+        return is_string($v) ? trim($v) : '';
+    };
+    $push = function($v) use (&$keys) {
+        if ($v === '' || stripos($v,'GANTI')!==false) return;
+        $keys[] = $v;
+    };
+
+    // 1) Single key (backward compatible)
+    $push($readEnv('GEMINI_API_KEY'));
+
+    // 2) GEMINI_API_KEY_1 .. GEMINI_API_KEY_20 (Revisi 19 Juni 2026)
+    for ($i = 1; $i <= 20; $i++) {
+        $push($readEnv('GEMINI_API_KEY_' . $i));
+    }
+
+    // 3) GEMINI_API_KEYS=key1,key2,... (CSV)
+    $multi = $readEnv('GEMINI_API_KEYS');
     if ($multi) {
         foreach (preg_split('/[,\s;]+/', $multi) as $kk) {
-            $kk = trim($kk);
-            if ($kk !== '' && stripos($kk,'GANTI')===false) $keys[] = $kk;
+            $push(trim($kk));
         }
     }
+
     if (!$keys && GEMINI_API_KEY_DEFAULT !== '') $keys[] = GEMINI_API_KEY_DEFAULT;
     if (!$keys) {
-        $tok = getenv('GEMINI_ACCESS_TOKEN') ?: ($_ENV['GEMINI_ACCESS_TOKEN'] ?? '');
-        if ($tok) $keys[] = trim($tok);
+        $tok = $readEnv('GEMINI_ACCESS_TOKEN');
+        if ($tok) $keys[] = $tok;
     }
     return array_values(array_unique(array_filter($keys)));
 }
@@ -119,8 +141,10 @@ function _gemini_key_kind($k) {
 
 function gemini_config_status() {
     $k = _gemini_key();
+    $all = _gemini_keys();
     return [
         'has_key'    => $k !== '' ? 1 : 0,
+        'key_count'  => count($all),
         'mode'       => _gemini_key_kind($k),
         'key_masked' => $k === '' ? '' : (substr($k, 0, 6) . '…' . substr($k, -4)),
         'model'      => _gemini_model(),
@@ -220,7 +244,7 @@ function _gemini_call(array $parts, array $opts = []) {
                 $msg .= ' [hint: cek format key. Mode: '.$kind.']';
             }
             if ($isQuota) {
-                $msg .= ' [Tip: set GEMINI_API_KEYS=key1,key2,... untuk rotasi otomatis saat quota habis.]';
+                $msg .= ' [Tip: tambahkan GEMINI_API_KEY_1, GEMINI_API_KEY_2, dst. (atau GEMINI_API_KEYS=key1,key2,...) untuk rotasi otomatis saat quota habis.]';
             }
             return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
         }
