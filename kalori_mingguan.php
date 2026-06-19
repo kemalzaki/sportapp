@@ -472,15 +472,25 @@ include __DIR__.'/includes/header.php';
   <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
     <i class="bi bi-bullseye fs-4 text-primary"></i>
     <div class="fw-bold"><?= $target ?> kkal</div><div class="small text-muted">Target Harian</div></div></div></div>
-  <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
+  <?php /* Revisi 19 Juni 2026 — "Total Konsumsi" sekarang dihitung NET (sudah dikurangi
+       pembakaran). Sebelumnya hanya menampilkan makanan masuk, sehingga ketika user
+       menambah entri "Input Pembakaran Kalori Lain (AI)" angka ini terlihat tidak turun.
+       Sekarang Total Konsumsi = Makanan − Terbakar (gross & net ditampilkan di tooltip). */ ?>
+  <?php $totalKonsumsiNet = max(0, $totalWeek - $totalBurn); ?>
+  <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center"
+       title="Makanan masuk <?= number_format($totalWeek) ?> kkal − Terbakar <?= number_format($totalBurn) ?> kkal">
     <i class="bi bi-fire fs-4 text-danger"></i>
-    <div class="fw-bold"><?= $totalWeek ?> kkal</div><div class="small text-muted">Total Konsumsi</div></div></div></div>
+    <div class="fw-bold"><?= number_format($totalKonsumsiNet) ?> kkal</div>
+    <div class="small text-muted">Total Konsumsi (net)</div>
+    <div class="small text-muted" style="font-size:.72rem">
+      Makanan <?= number_format($totalWeek) ?> − Bakar <?= number_format($totalBurn) ?>
+    </div></div></div></div>
   <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
     <i class="bi bi-lightning-charge-fill fs-4 text-warning"></i>
-    <div class="fw-bold"><?= $totalBurn ?> kkal</div><div class="small text-muted">Terbakar (olahraga)</div></div></div></div>
+    <div class="fw-bold"><?= $totalBurn ?> kkal</div><div class="small text-muted">Terbakar (semua)</div></div></div></div>
   <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body p-3 text-center">
     <i class="bi bi-calendar3 fs-4 text-info"></i>
-    <div class="fw-bold"><?= $avgDay ?> kkal</div><div class="small text-muted">Rata-rata / hari</div></div></div></div>
+    <div class="fw-bold"><?= round($totalKonsumsiNet/7) ?> kkal</div><div class="small text-muted">Rata-rata net / hari</div></div></div></div>
 </div>
 
 <!-- ============================================================
@@ -879,7 +889,8 @@ include __DIR__.'/includes/header.php';
               <?php endif; ?>
           </td>
           <td class="text-end fw-semibold text-danger"><?= (int)$r['kalori'] ?></td>
-          <td class="small text-muted"><?= htmlspecialchars($r['catatan']??'') ?></td>
+          <td class="small text-muted" style="max-width:220px;word-break:break-word;overflow-wrap:anywhere;"><?= htmlspecialchars(mb_strimwidth((string)($r['catatan']??''),0,140,'…')) ?></td>
+
           <td class="text-end">
             <button type="button" class="btn btn-sm btn-outline-primary btn-edit-kal"
                     data-id="<?= (int)$r['id'] ?>"
@@ -975,6 +986,21 @@ else window.addEventListener('load', kmInitEditAndZoom);
     </div>
   </div>
 </div>
+<style>
+/* Revisi 19 Juni 2026 (R2) — fix layout Detail Gizi: cegah teks nabrak. */
+#detailGiziModal .modal-body{word-break:break-word;overflow-wrap:anywhere;}
+#detailGiziModal .dg-head{display:flex;gap:.6rem;align-items:flex-start;flex-wrap:wrap;}
+#detailGiziModal .dg-head img{width:72px;height:72px;object-fit:cover;border-radius:8px;flex:0 0 72px;}
+#detailGiziModal .dg-head .dg-meta{min-width:0;flex:1;}
+#detailGiziModal .dg-head .dg-nama{font-weight:700;line-height:1.25;word-break:break-word;}
+#detailGiziModal table.dg-makro{margin-bottom:.75rem;}
+#detailGiziModal table.dg-makro td{padding:.3rem .5rem;vertical-align:top;}
+#detailGiziModal .dg-detail{white-space:pre-wrap;word-break:break-word;}
+#detailGiziModal .dg-catatan-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:.5rem .65rem;}
+[data-bs-theme=dark] #detailGiziModal .dg-catatan-box{background:#0b1220;border-color:#1f2937;}
+#detailGiziModal .dg-catatan-box .dg-catatan-text{white-space:pre-wrap;word-break:break-word;line-height:1.4;margin-top:.25rem;}
+#detailGiziModal .dg-ai-json{margin:0;padding:.5rem;background:#0f172a;color:#e2e8f0;border-radius:6px;font-size:.72rem;max-height:220px;overflow:auto;}
+</style>
 <script>
 function kmInitDetailGizi(){
   if (typeof bootstrap === 'undefined' || !bootstrap.Modal){ setTimeout(kmInitDetailGizi, 120); return; }
@@ -984,25 +1010,44 @@ function kmInitDetailGizi(){
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){
     return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
   });}
+  // Revisi 19 Juni 2026 (R2) — kalau catatan berupa "AI: {...json...}" tampilkan
+  // sebagai blok JSON yg dapat di-scroll, bukan satu baris panjang yang nabrak.
+  function renderCatatan(catRaw){
+    if (!catRaw) return '';
+    var raw = String(catRaw).trim();
+    var jsonMatch = raw.match(/^AI\s*:\s*(\{[\s\S]*\})\s*$/i);
+    if (jsonMatch) {
+      var pretty = jsonMatch[1];
+      try { pretty = JSON.stringify(JSON.parse(jsonMatch[1]), null, 2); } catch(e){}
+      return '<div class="dg-catatan-box mt-2">'+
+        '<div class="small"><b><i class="bi bi-robot"></i> Catatan AI (rincian):</b></div>'+
+        '<pre class="dg-ai-json mt-1">'+esc(pretty)+'</pre>'+
+      '</div>';
+    }
+    return '<div class="dg-catatan-box mt-2">'+
+      '<div class="small"><b>Catatan:</b></div>'+
+      '<div class="small dg-catatan-text">'+esc(raw)+'</div>'+
+    '</div>';
+  }
   function render(d){
-    var html = '';
-    html += '<div class="d-flex gap-2 align-items-start mb-2">';
-    if (d.foto) html += '<img src="'+esc(d.foto)+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px">';
-    html += '<div><div class="fw-bold">'+esc(d.nama)+'</div>'+
+    var html = '<div class="dg-head mb-2">';
+    if (d.foto) html += '<img src="'+esc(d.foto)+'" alt="">';
+    html += '<div class="dg-meta">'+
+      '<div class="dg-nama">'+esc(d.nama)+'</div>'+
       '<div class="small text-muted">'+esc(d.tanggal)+' · '+esc(d.waktu)+'</div>'+
-      '<div class="mt-1"><span class="badge bg-danger">'+(d.kalori|0)+' kkal</span></div></div>';
-    html += '</div>';
+      '<div class="mt-1"><span class="badge bg-danger">'+(d.kalori|0)+' kkal</span></div>'+
+    '</div></div>';
     if (d.makro && d.makro.length){
-      html += '<table class="table table-sm mb-2"><tbody>';
+      html += '<table class="table table-sm dg-makro"><tbody>';
       d.makro.forEach(function(m){
         html += '<tr><td class="text-muted">'+esc(m.label)+'</td><td class="text-end fw-semibold">'+esc(m.value)+' '+esc(m.unit)+'</td></tr>';
       });
       html += '</tbody></table>';
     } else {
-      html += '<div class="small text-muted mb-2">Tidak ada data makro (entri lama atau tanpa AI).</div>';
+      html += '<div class="small text-muted mb-2"><i class="bi bi-info-circle"></i> Tidak ada data makro (entri lama atau tanpa AI).</div>';
     }
-    if (d.detail) html += '<div class="alert alert-success py-2 small mb-2"><i class="bi bi-stars"></i> '+esc(d.detail)+'</div>';
-    if (d.catatan) html += '<div class="small"><b>Catatan:</b> '+esc(d.catatan)+'</div>';
+    if (d.detail) html += '<div class="alert alert-success py-2 small mb-2 dg-detail"><i class="bi bi-stars"></i> '+esc(d.detail)+'</div>';
+    html += renderCatatan(d.catatan);
     body.innerHTML = html;
   }
   document.querySelectorAll('.km-detail-btn').forEach(function(b){
@@ -1016,6 +1061,7 @@ function kmInitDetailGizi(){
 if (document.readyState === 'complete') kmInitDetailGizi();
 else window.addEventListener('load', kmInitDetailGizi);
 </script>
+
 
 <script>
 // Revisi 18 Juni 2026 — Chart kini menampilkan Konsumsi vs Terbakar vs Defisit harian.

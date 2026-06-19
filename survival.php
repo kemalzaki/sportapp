@@ -58,7 +58,50 @@ include __DIR__.'/includes/header.php';
       <h1 class="h3 mb-1 fw-bold">Bertahan Hidup di Alam Liar</h1>
       <p class="small mb-0 opacity-85">Pengetahuan dasar &amp; AI Survival Coach untuk pendaki, pelari trail, dan petualang outdoor.</p>
     </div>
-    <span class="badge bg-light text-dark fs-6 px-3 py-2"><i class="bi bi-telephone-fill"></i> Darurat: 115 (Basarnas) · 112</span>
+    <div class="d-flex flex-column gap-2 align-items-end">
+      <span class="badge bg-light text-dark fs-6 px-3 py-2"><i class="bi bi-telephone-fill"></i> Darurat: 115 (Basarnas) · 112</span>
+      <?php
+        // Revisi 19 Juni 2026 — Tombol pesan tour guide untuk camping/survival/hiking
+        $waGuide = 'https://wa.me/6281234567890?text='.rawurlencode("Halo Admin SportApp, saya tertarik memesan jasa Tour Guide untuk camping/survival/hiking. Mohon info lebih lanjut.");
+      ?>
+      <a class="btn btn-warning btn-sm fw-semibold" href="<?= $waGuide ?>" target="_blank" rel="noopener">
+        <i class="bi bi-person-badge"></i> Pesan Tour Guide (Camping &amp; Survival)
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Revisi 19 Juni 2026 — Video Edukasi Survival (YouTube)
+     ============================================================ -->
+<div class="card shadow-sm mb-3">
+  <div class="card-header bg-success-subtle text-success-emphasis">
+    <i class="bi bi-play-btn-fill"></i> <strong>Video Edukasi Survival</strong>
+    <small class="text-muted ms-2">Tonton sebelum berangkat ke alam liar</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <?php
+      $survVideos = [
+        ['AzZ2pqK7V9A','Cara Membangun Shelter Darurat','bi-house-heart'],
+        ['rSKc15X6Bes','Cara Menyalakan Api Survival di Hutan','bi-fire'],
+        ['N340_KCX5bY','Cara Mencari Makanan di Alam Liar','bi-basket'],
+        ['jUlL3hc4qXE','Cara Menggunakan Navigasi Pohon (Wayfinding)','bi-tree'],
+      ];
+      foreach ($survVideos as $v): ?>
+        <div class="col-md-6">
+          <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm">
+            <iframe src="https://www.youtube-nocookie.com/embed/<?= $v[0] ?>"
+                    title="<?= htmlspecialchars($v[1]) ?>" loading="lazy"
+                    allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+          </div>
+          <div class="small mt-1"><i class="bi <?= $v[2] ?> text-success"></i>
+            <strong><?= htmlspecialchars($v[1]) ?></strong>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
   </div>
 </div>
 
@@ -145,6 +188,9 @@ include __DIR__.'/includes/header.php';
         <div class="row g-2">
           <div class="col-12">
             <div class="small fw-semibold text-success mb-1"><i class="bi bi-check2-circle"></i> Umumnya AMAN dimakan (Indonesia)</div>
+            <!-- Revisi 19 Juni 2026 — Ilustrasi makanan AMAN (AI-generated) -->
+            <img src="/assets/img/survival/makanan_aman.jpg" alt="Contoh makanan aman di hutan: pisang hutan, pakis muda, rebung, jambu hutan, ikan sungai, belalang"
+                 class="img-fluid rounded shadow-sm mb-2 border border-success-subtle" loading="lazy">
             <ul class="small mb-2">
               <li>Pisang hutan (buah &amp; jantung), pakis muda (digodok), bambu muda (rebung) — buang air rebusan pertama.</li>
               <li>Daun selada air liar di tepi sungai bersih — rebus dulu.</li>
@@ -155,6 +201,9 @@ include __DIR__.'/includes/header.php';
           </div>
           <div class="col-12">
             <div class="small fw-semibold text-danger mb-1"><i class="bi bi-x-octagon"></i> JANGAN dimakan / waspada tinggi</div>
+            <!-- Revisi 19 Juni 2026 — Ilustrasi makanan BERBAHAYA (AI-generated) -->
+            <img src="/assets/img/survival/makanan_bahaya.jpg" alt="Contoh makanan berbahaya di hutan: jamur beracun, kodok berwarna mencolok, jarak pagar, bangkai hewan"
+                 class="img-fluid rounded shadow-sm mb-2 border border-danger-subtle" loading="lazy">
             <ul class="small mb-0">
               <li>Jamur liar berwarna mencolok (merah, kuning cerah, putih bercak) — banyak yang mematikan, sulit dibedakan untuk awam. <b>Lewati.</b></li>
               <li>Buah bergetah putih susu, biji yang sangat pahit, atau yang membuat bibir kebas — tanda alkaloid beracun.</li>

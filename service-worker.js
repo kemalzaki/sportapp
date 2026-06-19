@@ -9,7 +9,7 @@
  *
  * Ganti CACHE_VERSION setiap kali deploy supaya client lama auto-update.
  */
-const CACHE_VERSION = 'v5-htmx-2026-06-15';
+const CACHE_VERSION = 'v6-htmx-2026-06-19';
 const SHELL_CACHE   = `sportapp-shell-${CACHE_VERSION}`;
 const FRAG_CACHE    = `sportapp-frag-${CACHE_VERSION}`;
 const PAGE_CACHE    = `sportapp-page-${CACHE_VERSION}`;

@@ -281,7 +281,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
           <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode <span class="badge bg-success ms-1">AI</span></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode</a>
         </div>
 
         <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
@@ -498,7 +498,9 @@ body[data-hf-loading="1"] main{visibility:hidden;}
     return top;
   }
   function bottomOffset(){
-    var bn = document.querySelector('.bottom-nav,.mobile-bottom-nav,nav.fixed-bottom');
+    // Revisi 19 Juni 2026 — sertakan juga .gj-nav (navigasi mobile baru, gaya Gojek)
+    // agar overlay skeleton tidak menutupi bottom nav PWA di mobile.
+    var bn = document.querySelector('.gj-nav,.bottom-nav,.mobile-bottom-nav,nav.fixed-bottom');
     return bn ? bn.offsetHeight : 0;
   }
   function isInternalNav(a){
@@ -566,6 +568,33 @@ body[data-hf-loading="1"] main{visibility:hidden;}
     var bar = document.getElementById('hfTransBar'); if (bar) bar.remove();
     document.body.removeAttribute('data-hf-loading');
   });
+
+  // Revisi 19 Juni 2026 — Issue #7: ketika user beralih tab di mobile saat halaman
+  // sedang loading, lalu kembali ke aplikasi, kadang overlay/skeleton stuck dan
+  // tampilan jadi "tanpa CSS". Bersihkan overlay saat visibility kembali visible
+  // dan pastikan halaman di-paint ulang. Bila document.readyState belum complete
+  // setelah 1.5s, paksa reload lembut sekali agar CSS/JS lengkap.
+  var _hfHidAt = 0;
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden'){ _hfHidAt = Date.now(); return; }
+    // visible again
+    var ov = document.getElementById('hfPageTransOverlay'); if (ov) ov.classList.remove('active');
+    var bar = document.getElementById('hfTransBar'); if (bar) bar.remove();
+    document.body.removeAttribute('data-hf-loading');
+    // Paksa repaint untuk fix layout/CSS yang stuck di mobile Chrome
+    try {
+      document.body.style.opacity = '0.999';
+      requestAnimationFrame(function(){ document.body.style.opacity = ''; });
+    } catch(_){}
+    // Bila balik dari background >5 detik & dokumen belum complete -> reload sekali
+    if (_hfHidAt && (Date.now() - _hfHidAt) > 5000 && document.readyState !== 'complete'){
+      if (!sessionStorage.getItem('_hfReloaded')){
+        sessionStorage.setItem('_hfReloaded','1');
+        setTimeout(function(){ if (document.readyState !== 'complete') location.reload(); }, 1200);
+      }
+    }
+  });
+  window.addEventListener('load', function(){ try{ sessionStorage.removeItem('_hfReloaded'); }catch(_){} });
 
   // Saat halaman baru DOMContentLoaded, jika $pageSkeleton diset → isi skeleton awal
   // pada elemen utama (main/.main-content/container) sampai window load selesai.

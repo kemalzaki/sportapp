@@ -380,10 +380,27 @@ include __DIR__.'/includes/header.php';
         </div>
         <?php if(!empty($me['strava_account'])):
           $sv = trim($me['strava_account']);
-          $sUrl = preg_match('~^https?://~i',$sv) ? $sv : 'https://www.strava.com/athletes/'.urlencode(ltrim($sv,'@'));
+          // Revisi 19 Juni 2026 (R2) — selalu link ke strava.com (jangan pernah Google).
+          $svClean = ltrim($sv, '@');
+          if (preg_match('~^https?://~i', $sv)) {
+              $sUrl = $sv;
+          } elseif (preg_match('~^\d{3,}$~', $svClean)) {
+              $sUrl = 'https://www.strava.com/athletes/'.$svClean;
+          } elseif (preg_match('~^[a-zA-Z0-9._-]{3,40}$~', $svClean)) {
+              $sUrl = 'https://www.strava.com/athletes/'.rawurlencode($svClean);
+          } else {
+              $slug = strtolower(trim(preg_replace('~[^a-z0-9]+~i','-', $svClean), '-'));
+              $sUrl = $slug !== ''
+                  ? 'https://www.strava.com/athletes/'.rawurlencode($slug)
+                  : 'https://www.strava.com/';
+          }
         ?>
-          <div class="mt-2"><a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="<?= htmlspecialchars($sUrl) ?>"><i class="bi bi-box-arrow-up-right"></i> Buka profil Strava</a></div>
+          <div class="mt-2">
+            <a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="<?= htmlspecialchars($sUrl) ?>"><i class="bi bi-box-arrow-up-right"></i> Buka profil Strava</a>
+            <div class="form-text mt-1"><i class="bi bi-info-circle"></i> Untuk hasil terbaik isi <b>ID numerik Strava</b> (cth: <code>12345678</code>) atau URL lengkap profil Anda (cth: <code>https://www.strava.com/athletes/12345678</code>).</div>
+          </div>
         <?php endif; ?>
+
       </form>
 
       <form data-ajax method="post" class="text-start mt-3">

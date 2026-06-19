@@ -159,25 +159,29 @@ include __DIR__.'/includes/header.php';
     <div class="text-muted small"><?= htmlspecialchars($user['role']) ?> · ⭐ <?= (int)$user['xp'] ?> XP · 🔥 <?= (int)$user['streak_minggu'] ?> minggu</div>
     <?php if(!empty($user['strava_account'])):
       $sv = trim($user['strava_account']);
-      // Revisi 19 Juni 2026 Part R — perbaiki link Strava agar tidak 404.
-      // URL profil Strava memerlukan ID numerik atau slug athlete. Bila value
-      // berupa nama lengkap (mengandung spasi/karakter selain alfanumerik
-      // dasar) kita fallback ke pencarian Google site:strava.com.
+      // Revisi 19 Juni 2026 (R2) — selalu arahkan ke domain strava.com (jangan ke Google).
+      // Jika input berupa URL utuh, gunakan apa adanya.
+      // Jika numerik → /athletes/{id}. Jika slug valid → /athletes/{slug}.
+      // Jika nama dengan spasi/karakter aneh → slugify (huruf kecil, spasi → '-') lalu
+      // tetap arahkan ke /athletes/{slug}; Strava akan menampilkan 404 yang jelas
+      // bila tidak ditemukan — jauh lebih informatif daripada pencarian Google.
       $svClean = ltrim($sv, '@');
       if (preg_match('~^https?://~i', $sv)) {
           $sUrl = $sv;
       } elseif (preg_match('~^\d{3,}$~', $svClean)) {
           $sUrl = 'https://www.strava.com/athletes/'.$svClean;
       } elseif (preg_match('~^[a-zA-Z0-9._-]{3,40}$~', $svClean)) {
-          // Kemungkinan slug athlete (mis. "jane-doe")
           $sUrl = 'https://www.strava.com/athletes/'.rawurlencode($svClean);
       } else {
-          // Nama dengan spasi → cari di Google
-          $sUrl = 'https://www.google.com/search?q='.urlencode('site:strava.com/athletes "'.$svClean.'"');
+          $slug = strtolower(trim(preg_replace('~[^a-z0-9]+~i','-', $svClean), '-'));
+          $sUrl = $slug !== ''
+              ? 'https://www.strava.com/athletes/'.rawurlencode($slug)
+              : 'https://www.strava.com/';
       }
     ?>
       <div class="mt-1"><a class="btn btn-sm btn-outline-warning" target="_blank" rel="noopener" href="<?= htmlspecialchars($sUrl) ?>"><i class="bi bi-bicycle"></i> Strava: <?= htmlspecialchars($sv) ?></a></div>
     <?php endif; ?>
+
     <?php if($user['bio']): ?><p class="mb-0 mt-1"><?= htmlspecialchars($user['bio']) ?></p><?php endif; ?>
     <?php if(!empty($user['nomor_wa'])):
         $waNum = preg_replace('/^0/','62', preg_replace('/\D+/','', $user['nomor_wa'])); ?>

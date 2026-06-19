@@ -233,6 +233,10 @@ $ARTIKEL = [
     'menang' => 'Menang: catatan waktu terbaik atau finish pertama. Kalah/diskualifikasi: salah jalur (lintasan), false start ≥1 kali (sprint), menerima estafet di luar zona, atau bantuan tidak sah.',
     'video'  => 'https://www.youtube.com/watch?v=A3D0ONk17dg&t=76s',
     'videoLabel' => 'Teknik Lari yang Benar',
+    'manfaat' => 'Meningkatkan kapasitas jantung &amp; paru (VO₂max), membakar lemak efektif (±400–700 kkal/jam), memperkuat otot kaki &amp; tulang, melepaskan endorfin (mengurangi stres &amp; depresi), serta memperbaiki kualitas tidur. Lari rutin terbukti menurunkan risiko penyakit jantung, diabetes tipe-2, dan hipertensi.',
+    'penyembuhan' => 'Membantu mengontrol <b>diabetes tipe-2</b> (meningkatkan sensitivitas insulin), menurunkan <b>hipertensi</b> ringan-sedang, memperbaiki <b>kolesterol</b> (HDL naik, LDL turun), mengurangi gejala <b>depresi &amp; gangguan cemas ringan</b>, menurunkan risiko <b>stroke</b> dan <b>penyakit jantung koroner</b>, serta meredakan <b>insomnia</b> non-klinis.',
+    'hormon'      => '<b>Endorfin</b> (pereda nyeri alami / runner\'s high), <b>dopamin</b> (motivasi &amp; reward), <b>serotonin</b> (mood &amp; tidur), <b>norepinefrin</b> (fokus), <b>BDNF</b> (regenerasi neuron), <b>HGH / growth hormone</b> (regenerasi otot), serta penurunan <b>kortisol</b> kronis.',
+    'mental'      => '<b>Disiplin</b> (jadwal latihan), <b>ketekunan</b> (menyelesaikan jarak), <b>ketahanan mental</b> (push through fatigue), <b>fokus</b>, <b>kepercayaan diri</b> (mencapai PR pribadi), <b>manajemen stres</b>, dan <b>kesadaran tubuh</b> (mind-body awareness).',
     'peralatan' => [
       ['nama'=>'Sepatu lari (running shoes)','img'=>'/assets/img/peralatan/eq00.jpg','desc'=>'Bantalan EVA, drop 8–10 mm untuk pemula.'],
       ['nama'=>'Kaos & celana lari','img'=>'/assets/img/peralatan/eq01.jpg','desc'=>'Bahan dry-fit, ringan, menyerap keringat.'],
@@ -254,6 +258,10 @@ $ARTIKEL = [
     'menang' => 'Menang: 2 set kemenangan dari best of 3. Kalah/pelanggaran: kok menyentuh net & jatuh di sisi sendiri, keluar lapangan, double hit, badan/raket menyentuh net, atau servis tidak sah.',
     'video'  => 'https://www.youtube.com/watch?v=f9jsnYh6CCE&t=82s',
     'videoLabel' => 'Teknik Dasar Badminton',
+    'manfaat' => 'Melatih refleks &amp; koordinasi mata–tangan, meningkatkan kelincahan (agility) dan kekuatan otot tungkai/lengan, membakar 350–500 kkal/jam, melatih kapasitas anaerobik, memperbaiki postur tubuh, serta menjadi olahraga sosial yang menyenangkan untuk semua usia.',
+    'penyembuhan' => 'Mengurangi risiko <b>penyakit jantung &amp; hipertensi</b>, memperbaiki <b>profil lipid</b>, membantu <b>obesitas</b> (kalori tinggi), meningkatkan <b>fungsi kognitif lansia</b> (mencegah dementia ringan), meredakan <b>gejala depresi</b>, memperbaiki <b>postur</b> &amp; nyeri punggung bawah ringan, serta menjaga <b>kepadatan tulang</b>.',
+    'hormon'      => '<b>Adrenalin / epinefrin</b> (lonjakan saat rally), <b>dopamin</b> (kesenangan menang poin), <b>endorfin</b>, <b>serotonin</b>, <b>HGH</b>, serta penurunan <b>kortisol</b>.',
+    'mental'      => '<b>Konsentrasi cepat</b>, <b>pengambilan keputusan sepersekian detik</b>, <b>ketenangan di bawah tekanan</b>, <b>sportivitas</b>, <b>strategi</b> (membaca pola lawan), <b>kerja sama</b> (di ganda), dan <b>resiliensi</b> (bangkit setelah kalah set).',
     'peralatan' => [
       ['nama'=>'Raket bulu tangkis','img'=>'/assets/img/peralatan/eq04.jpg','desc'=>'Berat 80–95 g, senar 22–28 lbs.'],
       ['nama'=>'Shuttlecock (kok)','img'=>'/assets/img/peralatan/eq05.jpg','desc'=>'Bulu angsa untuk turnamen, plastik untuk latihan.'],
@@ -275,6 +283,10 @@ $ARTIKEL = [
     'menang' => 'Menang: waktu tercepat menyentuh finish. Diskualifikasi: false start, gaya tidak sah (mis. gaya dada mengangkat kepala terlalu lama, gaya kupu-kupu tangan tidak simetris), tidak menyentuh dinding di turn, atau menyeberang lintasan.',
     'video'  => 'https://www.youtube.com/watch?v=LVy9mwWfXxc&t=101s',
     'videoLabel' => 'Teknik Dasar Renang',
+    'manfaat' => 'Olahraga full-body low-impact (ramah sendi), memperkuat otot punggung, dada, bahu, dan core, meningkatkan kapasitas paru-paru, melatih pernapasan ritmis, membakar 400–700 kkal/jam, serta sangat baik untuk rehabilitasi cedera dan penderita asma.',
+    'penyembuhan' => 'Sangat baik untuk <b>asma</b> (latihan pernapasan terkontrol), <b>rehabilitasi cedera sendi</b> &amp; pasca operasi, <b>osteoarthritis</b> &amp; <b>nyeri lutut</b> (tanpa beban impact), <b>nyeri punggung bawah kronis</b>, <b>skoliosis ringan</b>, mengurangi <b>hipertensi</b>, membantu <b>obesitas</b>, dan mendukung <b>kehamilan</b> (tetap aktif aman).',
+    'hormon'      => '<b>Endorfin</b>, <b>serotonin</b>, <b>dopamin</b>, <b>oksitosin</b> (efek menenangkan air), <b>HGH</b> (regenerasi), dan penurunan signifikan <b>kortisol</b> berkat efek hidrostatis air.',
+    'mental'      => '<b>Ketenangan</b> (efek meditatif air), <b>kontrol pernapasan</b>, <b>kesabaran</b> (teknik berulang), <b>keberanian</b> (mengatasi takut air), <b>fokus internal</b>, dan <b>mindfulness</b>.',
     'peralatan' => [
       ['nama'=>'Kacamata renang','img'=>'/assets/img/peralatan/eq08.jpg','desc'=>'Anti-fog & UV, karet silikon empuk.'],
       ['nama'=>'Baju renang','img'=>'/assets/img/peralatan/eq09.jpg','desc'=>'Polyester/Lycra, jahitan flat untuk hidrodinamis.'],
@@ -296,6 +308,10 @@ $ARTIKEL = [
     'menang' => 'Tujuan: kembali pulang dengan selamat. "Kalah" = harus turun (turun gunung) sebelum puncak karena cuaca, cedera, atau kondisi tubuh. Etika: leave no trace — jangan tinggalkan sampah.',
     'video'  => 'https://www.youtube.com/watch?v=w_4K5Pm0Qsc&t=143s',
     'videoLabel' => 'Teknik Hiking yang Benar',
+    'manfaat' => 'Meningkatkan daya tahan kardiovaskular pada elevasi tinggi, memperkuat otot tungkai &amp; gluteus, membakar 350–550 kkal/jam, menurunkan stres berkat paparan alam (forest bathing), meningkatkan kepadatan tulang, serta melatih mental tangguh dan kerja sama tim ekspedisi.',
+    'penyembuhan' => 'Menurunkan <b>tekanan darah</b>, memperbaiki <b>kolesterol</b>, menurunkan <b>gula darah</b> (diabetes tipe-2), mengatasi <b>depresi ringan-sedang</b> (terapi alam terbukti efektif), meredakan <b>burnout</b> &amp; <b>kelelahan mental kronis</b>, memperkuat <b>sistem imun</b> (phytoncides hutan), serta mengurangi risiko <b>osteoporosis</b>.',
+    'hormon'      => '<b>Endorfin</b>, <b>serotonin</b> (paparan sinar matahari), <b>vitamin D</b> (pro-hormon), <b>dopamin</b>, <b>oksitosin</b> (ikatan sosial tim), <b>melatonin</b> (tidur lebih baik), serta penurunan drastis <b>kortisol</b> di lingkungan hijau.',
+    'mental'      => '<b>Mental tangguh</b> (grit), <b>kesabaran</b>, <b>kemandirian</b>, <b>problem-solving</b> (navigasi &amp; cuaca), <b>kerjasama tim</b>, <b>rendah hati</b> (menghadapi alam), <b>fokus jangka panjang</b>, serta <b>rasa syukur</b> &amp; <b>spiritualitas</b>.',
     'peralatan' => [
       ['nama'=>'Sepatu hiking','img'=>'/assets/img/peralatan/eq12.jpg','desc'=>'Sol Vibram, water-resistant, ankle support.'],
       ['nama'=>'Ransel / carrier','img'=>'/assets/img/peralatan/eq13.jpg','desc'=>'Kapasitas 40–60 L untuk pendakian 1–2 malam.'],
@@ -317,6 +333,10 @@ $ARTIKEL = [
     'menang' => 'Menang: 4 set lebih dulu dari best of 7 (atau 3 dari best of 5). Pelanggaran: servis menyentuh net & masuk berkali-kali (let), bola memantul dua kali, badan menyentuh meja, atau memukul sebelum bola memantul.',
     'video'  => 'https://www.youtube.com/watch?v=MasmG88gzFA',
     'videoLabel' => 'Teknik Dasar PingPong',
+    'manfaat' => 'Melatih kecepatan reaksi (refleks ekstrem), koordinasi mata–tangan, dan fokus mental, membakar 200–350 kkal/jam, meningkatkan keseimbangan, baik untuk kesehatan otak lansia (terbukti menunda demensia), serta bisa dimainkan di ruang sempit.',
+    'penyembuhan' => 'Memperbaiki <b>fungsi kognitif</b> (terbukti memperlambat <b>Alzheimer</b> &amp; <b>demensia</b>), bermanfaat untuk pemulihan <b>stroke ringan</b> (motorik halus), <b>parkinson tahap awal</b> (koordinasi), menurunkan <b>kecemasan</b>, serta menjaga <b>kebugaran lansia</b> tanpa beban impact pada sendi.',
+    'hormon'      => '<b>Dopamin</b> (kepuasan reaksi cepat), <b>endorfin</b>, <b>asetilkolin</b> (neurotransmitter fokus), <b>norepinefrin</b> (kewaspadaan), serta <b>BDNF</b> (neuroplastisitas otak).',
+    'mental'      => '<b>Fokus laser-sharp</b>, <b>refleks cepat</b>, <b>kontrol emosi</b> (tidak panik di rally cepat), <b>ketangkasan kognitif</b>, <b>strategi membaca lawan</b>, dan <b>kesabaran</b>.',
     'peralatan' => [
       ['nama'=>'Bet (raket)','img'=>'/assets/img/peralatan/eq16.jpg','desc'=>'Karet 2 mm, 1 sisi merah & 1 sisi hitam.'],
       ['nama'=>'Bola seluloid 40+ mm','img'=>'/assets/img/peralatan/eq17.jpg','desc'=>'Diameter 40 mm, bintang ★★★ untuk turnamen.'],
@@ -338,6 +358,10 @@ $ARTIKEL = [
     'menang' => 'Menang: poin (gol) lebih banyak setelah 2 babak. Imbang di kompetisi: extra time 2 × 5 menit lalu adu penalti. Kalah teknis: pemain di lapangan < 3 (kiper merah / cedera tanpa cadangan).',
     'video'  => 'https://www.youtube.com/watch?v=tRrEHQSsfiA&t=8s',
     'videoLabel' => 'Teknik Dasar Futsal',
+    'manfaat' => 'Olahraga kardio interval intens, membakar 500–800 kkal/jam, meningkatkan kelincahan, kecepatan, daya ledak otot kaki, melatih kerja sama tim &amp; pengambilan keputusan cepat, memperkuat tulang &amp; otot inti, serta mengembangkan jiwa kompetitif yang sehat.',
+    'penyembuhan' => 'Membakar lemak agresif (bantu <b>obesitas</b>), memperbaiki <b>kontrol gula darah</b>, menurunkan <b>tekanan darah</b>, mengurangi <b>stres</b> &amp; <b>agresivitas terpendam</b> (penyaluran energi positif), memperkuat <b>kepadatan tulang</b>, serta memperbaiki <b>kualitas tidur</b>.',
+    'hormon'      => '<b>Adrenalin</b> (intensitas tinggi), <b>endorfin</b>, <b>dopamin</b> (mencetak gol), <b>testosteron</b> (kompetitif), <b>HGH</b> (pemulihan otot), <b>oksitosin</b> (ikatan tim), serta penurunan <b>kortisol</b>.',
+    'mental'      => '<b>Kerja sama tim</b>, <b>komunikasi cepat</b>, <b>kepemimpinan</b>, <b>sportivitas</b>, <b>pengambilan keputusan di bawah tekanan</b>, <b>fair play</b>, <b>resiliensi</b> (bangkit setelah kebobolan), dan <b>kepercayaan rekan</b>.',
     'peralatan' => [
       ['nama'=>'Bola futsal (low bounce)','img'=>'/assets/img/peralatan/eq20.jpg','desc'=>'Ukuran 4, pantulan rendah 50–65 cm dari 2 m.'],
       ['nama'=>'Sepatu futsal (sol karet)','img'=>'/assets/img/peralatan/eq21.jpg','desc'=>'Non-marking, cocok untuk lantai parket/vinyl.'],
@@ -359,6 +383,10 @@ $ARTIKEL = [
     'menang' => 'Menang 8-Ball: masukkan semua bola grup (solid/stripe) lalu masukkan bola 8 di pocket yang dideklarasikan. Foul: cue ball masuk lubang (scratch), menyentuh bola lawan duluan, atau tidak ada bola yang menyentuh ban.',
     'video'  => 'https://www.youtube.com/watch?v=taf9JBG9iLA',
     'videoLabel' => 'Teknik Dasar Biliar',
+    'manfaat' => 'Melatih konsentrasi tinggi, kesabaran, dan presisi geometri (sudut &amp; gaya), memperbaiki postur tegak saat membungkuk, melatih koordinasi tangan halus, serta menjadi sarana sosialisasi dan strategi mental seperti catur fisik — cocok untuk relaksasi pikiran setelah kerja.',
+    'penyembuhan' => 'Terapi <b>tremor halus</b> (Parkinson tahap awal), pemulihan <b>koordinasi pasca stroke ringan</b>, terapi <b>kecemasan</b> (efek meditatif), mencegah <b>demensia lansia</b>, membantu <b>nyeri leher/punggung ringan</b> berkat postur sadar, serta relaksasi bagi penderita <b>insomnia non-klinis</b>.',
+    'hormon'      => '<b>Dopamin</b> (kepuasan presisi), <b>serotonin</b> (mood relaks), <b>endorfin</b>, <b>asetilkolin</b> (fokus), serta penurunan <b>kortisol</b> di lingkungan santai.',
+    'mental'      => '<b>Kesabaran ekstrem</b>, <b>fokus berkelanjutan</b>, <b>kontrol emosi</b> (tidak terburu-buru), <b>perencanaan strategis</b> (memvisualisasikan beberapa langkah), <b>ketenangan</b>, dan <b>kepercayaan diri</b>.',
     'peralatan' => [
       ['nama'=>'Stik biliar (cue)','img'=>'/assets/img/peralatan/eq24.jpg','desc'=>'Panjang 145–150 cm, tip 12–13 mm.'],
       ['nama'=>'Set bola pool','img'=>'/assets/img/peralatan/eq25.jpg','desc'=>'1 cue ball putih + 15 bola bernomor.'],
@@ -480,6 +508,52 @@ include __DIR__.'/includes/header.php'; ?>
                 <div class="small"><?= htmlspecialchars($a['menang']) ?></div>
               </div>
 
+              <?php /* Revisi 19 Juni 2026 — Manfaat olahraga */ ?>
+              <?php if (!empty($a['manfaat'])): ?>
+              <div class="mb-3">
+                <strong class="text-<?= $a['warna'] ?>"><i class="bi bi-heart-pulse-fill"></i> Manfaat untuk Tubuh:</strong>
+                <div class="small alert alert-light border mt-1 mb-0 py-2"><?= $a['manfaat'] /* sudah HTML-safe (hanya &amp;) */ ?></div>
+              </div>
+              <?php endif; ?>
+
+              <?php /* Revisi 19 Juni 2026 (R2) — Manfaat penyembuhan penyakit & khasiat */ ?>
+              <?php if (!empty($a['penyembuhan'])): ?>
+              <div class="mb-3">
+                <strong class="text-<?= $a['warna'] ?>"><i class="bi bi-bandaid-fill"></i> Khasiat &amp; Manfaat Penyembuhan Penyakit:</strong>
+                <div class="small alert alert-success border mt-1 mb-0 py-2"><?= $a['penyembuhan'] ?></div>
+              </div>
+              <?php endif; ?>
+
+              <?php /* Revisi 19 Juni 2026 (R2) — Hormon yang keluar */ ?>
+              <?php if (!empty($a['hormon'])): ?>
+              <div class="mb-3">
+                <strong class="text-<?= $a['warna'] ?>"><i class="bi bi-droplet-half"></i> Hormon yang Dikeluarkan:</strong>
+                <div class="small alert alert-info border mt-1 mb-0 py-2"><?= $a['hormon'] ?></div>
+              </div>
+              <?php endif; ?>
+
+              <?php /* Revisi 19 Juni 2026 (R2) — Mental yang terasah */ ?>
+              <?php if (!empty($a['mental'])): ?>
+              <div class="mb-3">
+                <strong class="text-<?= $a['warna'] ?>"><i class="bi bi-brain"></i> Mental yang Diasah:</strong>
+                <div class="small alert alert-warning border mt-1 mb-0 py-2"><?= $a['mental'] ?></div>
+              </div>
+              <?php endif; ?>
+
+
+              <?php /* Revisi 19 Juni 2026 — Tombol Pesan Tour Guide khusus hiking */ ?>
+              <?php if (in_array($a['slug'], ['hiking'], true)):
+                  $waGuideH = 'https://wa.me/6281234567890?text='.rawurlencode('Halo Admin SportApp, saya tertarik memesan Tour Guide untuk Hiking. Mohon info paket & jadwal.');
+              ?>
+              <div class="mb-3">
+                <a class="btn btn-warning btn-sm fw-semibold" href="<?= $waGuideH ?>" target="_blank" rel="noopener">
+                  <i class="bi bi-person-badge"></i> Pesan Tour Guide Hiking
+                </a>
+                <small class="text-muted ms-2">via WhatsApp Admin</small>
+              </div>
+              <?php endif; ?>
+
+
               <?php if(!empty($a['peralatan'])): ?>
               <div>
                 <strong class="text-<?= $a['warna'] ?>"><i class="bi bi-tools"></i> Peralatan yang Dibutuhkan:</strong>
@@ -522,9 +596,8 @@ include __DIR__.'/includes/header.php'; ?>
                          placeholder="cth: tutorial <?= htmlspecialchars($a['judul']) ?> pemula"
                          value="tutorial <?= htmlspecialchars($a['judul']) ?>">
                   <button type="button" class="btn btn-danger btn-sm ao-yt-btn"><i class="bi bi-search"></i> Cari & Putar</button>
-                  <a class="btn btn-outline-secondary btn-sm ao-yt-open"
-                     href="https://www.youtube.com/results?search_query=<?= rawurlencode($a['judul'].' tutorial') ?>"
-                     target="_blank" rel="noopener" title="Buka hasil di YouTube"><i class="bi bi-box-arrow-up-right"></i></a>
+                  <?php /* Revisi 19 Juni 2026 (R2) — Tombol "buka di YouTube" dihapus sesuai permintaan. */ ?>
+
                 </div>
                 <div class="ao-yt-result small text-muted">Tekan tombol <b>Cari & Putar</b> — video akan langsung diputar di sini.</div>
               </div>
@@ -595,35 +668,43 @@ include __DIR__.'/includes/header.php'; ?>
 (function(){
   var CSRF = '<?= csrf_token() ?>';
 
-  /* ===== Pencarian Video YouTube ===== */
+  /* ===== Pencarian Video YouTube (Revisi R2 — Top 5 hasil, tanpa link YT) ===== */
   document.querySelectorAll('.ao-yt-box').forEach(function(box){
     var btn = box.querySelector('.ao-yt-btn');
     var inp = box.querySelector('.ao-yt-q');
     var out = box.querySelector('.ao-yt-result');
-    var openA = box.querySelector('.ao-yt-open');
+    function esc(s){ return String(s).replace(/[<>&"']/g,function(c){return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c];});}
     async function doSearch(){
       var q = (inp.value||'').trim();
       if (!q) return;
-      openA.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
       out.innerHTML = '<div class="d-flex align-items-center gap-2 small text-muted py-2"><span class="spinner-border spinner-border-sm"></span> Mencari video di YouTube…</div>';
       var oldHtml = btn.innerHTML; btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari…';
       try {
         var r = await fetch('/api_yt_search.php?q=' + encodeURIComponent(q), {credentials:'same-origin'});
         var j = await r.json();
-        if (!j.ok || !j.video) throw new Error(j.err || 'tidak ada hasil');
-        out.innerHTML =
-          '<div class="ratio ratio-16x9 rounded overflow-hidden border">' +
-            '<iframe loading="lazy" allowfullscreen ' +
-              'src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(j.video) + '?rel=0" ' +
-              'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
-              'referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
-          '</div>' +
-          '<div class="small text-muted mt-1">Hasil teratas untuk <b>' + q.replace(/[<>]/g,'') + '</b>. ' +
-          '<a href="' + openA.href + '" target="_blank" rel="noopener">Lihat semua hasil di YouTube</a>.</div>';
+        if (!j.ok) throw new Error(j.err || 'tidak ada hasil');
+        var ids = (j.ids && j.ids.length) ? j.ids : (j.video ? [j.video] : []);
+        if (!ids.length) throw new Error('tidak ada hasil');
+        ids = ids.slice(0,5);
+        var html = '<div class="small text-muted mb-2">Menampilkan <b>'+ids.length+'</b> video teratas untuk <b>'+esc(q)+'</b>:</div>';
+        html += '<div class="row g-2">';
+        ids.forEach(function(vid, i){
+          html += '<div class="col-12 col-md-6">' +
+            '<div class="ratio ratio-16x9 rounded overflow-hidden border">' +
+              '<iframe loading="lazy" allowfullscreen ' +
+                'src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+'?rel=0" ' +
+                'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+                'referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
+            '</div>' +
+            '<div class="small text-muted mt-1">#'+(i+1)+' Hasil teratas</div>' +
+          '</div>';
+        });
+        html += '</div>';
+        out.innerHTML = html;
       } catch(e) {
         out.innerHTML = '<div class="small text-danger py-2"><i class="bi bi-exclamation-triangle"></i> Gagal mencari: ' +
-          (e.message||e) + '. <a href="' + openA.href + '" target="_blank" rel="noopener">Buka YouTube</a>.</div>';
+          esc(e.message||String(e)) + '. Coba kata kunci lain.</div>';
       } finally {
         btn.disabled = false; btn.innerHTML = oldHtml;
       }
@@ -631,6 +712,7 @@ include __DIR__.'/includes/header.php'; ?>
     btn.addEventListener('click', doSearch);
     inp.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doSearch(); }});
   });
+
 
   /* ===== AI Problem Solver per olahraga ===== */
   document.querySelectorAll('.ao-ai-box').forEach(function(box){
