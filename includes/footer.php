@@ -511,7 +511,11 @@ document.addEventListener('submit', async function(ev){
   if(btn) btn.disabled = true;
   showMiniLoader(f.getAttribute('data-ajax-label')||'Menyimpan...');
   try{
-    const fd = new FormData(f);
+    // Revisi 20 Juni 2026 — sertakan tombol submit yang diklik (ev.submitter)
+    // ke dalam FormData, supaya form dengan beberapa tombol "name=_action"
+    // (mis. Upload Foto vs Hapus Foto di admin/members.php) mengirim action
+    // yang benar ke server. Tanpa ini, _action kosong dan upload tidak jalan.
+    const fd = new FormData(f, ev.submitter || undefined);
     const r = await fetch(f.action || location.pathname+location.search, {
       method: (f.method||'POST').toUpperCase(),
       body: fd, credentials:'same-origin',
@@ -808,6 +812,42 @@ document.addEventListener('submit', async function(ev){
     requestAnimationFrame(function(){ bar.style.width = '80%'; });
   }, true);
   window.addEventListener('pageshow', function(){ bar.style.width = '0'; });
+})();
+
+/* ============================================================
+ * Revisi 20 Juni 2026 — Auto-close navigasi mobile saat link diklik.
+ * Berlaku untuk offcanvas drawer (#gtDrawer) dan navbar collapse (#nav).
+ * Klik link biasa di dalam menu mobile akan otomatis menutup drawer/menu.
+ * Klik elemen dropdown/collapse toggler (mis. grup "Kalori", "Agenda")
+ * TIDAK menutup drawer karena dia hanya membuka sub-menu.
+ * ============================================================ */
+(function(){
+  function isToggler(a){
+    return a.hasAttribute('data-bs-toggle')
+        || a.classList.contains('dropdown-toggle')
+        || (a.getAttribute('href') || '').startsWith('#');
+  }
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    if (isToggler(a)) return;
+    if (!window.bootstrap) return;
+
+    // 1) Offcanvas drawer (mobile sidebar)
+    var oc = a.closest('.offcanvas.show');
+    if (oc) {
+      var inst = bootstrap.Offcanvas.getInstance(oc) || bootstrap.Offcanvas.getOrCreateInstance(oc);
+      if (inst) inst.hide();
+    }
+
+    // 2) Navbar collapse (mobile top nav). Hanya tutup bila collapse sedang terbuka
+    //    (kelas .show). Saat layar desktop, .navbar-collapse tidak punya .show.
+    var coll = a.closest('.navbar-collapse.show');
+    if (coll) {
+      var inst2 = bootstrap.Collapse.getInstance(coll) || bootstrap.Collapse.getOrCreateInstance(coll, {toggle:false});
+      if (inst2) inst2.hide();
+    }
+  }, true);
 })();
 </script>
 </body></html>

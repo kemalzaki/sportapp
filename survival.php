@@ -60,13 +60,7 @@ include __DIR__.'/includes/header.php';
     </div>
     <div class="d-flex flex-column gap-2 align-items-end">
       <span class="badge bg-light text-dark fs-6 px-3 py-2"><i class="bi bi-telephone-fill"></i> Darurat: 115 (Basarnas) · 112</span>
-      <?php
-        // Revisi 19 Juni 2026 — Tombol pesan tour guide untuk camping/survival/hiking
-        $waGuide = 'https://wa.me/6281234567890?text='.rawurlencode("Halo Admin SportApp, saya tertarik memesan jasa Tour Guide untuk camping/survival/hiking. Mohon info lebih lanjut.");
-      ?>
-      <a class="btn btn-warning btn-sm fw-semibold" href="<?= $waGuide ?>" target="_blank" rel="noopener">
-        <i class="bi bi-person-badge"></i> Pesan Tour Guide (Camping &amp; Survival)
-      </a>
+      <?php /* Revisi 20 Juni 2026 — Tombol "Pesan Tour Guide" dihapus sesuai permintaan. */ ?>
     </div>
   </div>
 </div>

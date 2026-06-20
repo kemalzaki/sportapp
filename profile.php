@@ -322,7 +322,10 @@ include __DIR__.'/includes/header.php';
         </script>
       </div>
 
-      <form data-ajax method="post" enctype="multipart/form-data" class="mt-3 text-start">
+      <?php /* Revisi 20 Juni 2026 — Ganti foto profil: TIDAK pakai data-ajax,
+              agar setelah upload sukses, server me-redirect ke profile.php
+              sehingga halaman ter-reload penuh & foto baru langsung tampil. */ ?>
+      <form data-no-ajax method="post" enctype="multipart/form-data" class="mt-3 text-start">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_foto">
         <label class="form-label small fw-semibold">Ganti Foto Profil</label>
@@ -538,6 +541,29 @@ include __DIR__.'/includes/header.php';
 
     <div class="card shadow-sm"><div class="card-header"><i class="bi bi-award-fill text-warning"></i> Badge & Achievement</div>
     <div class="card-body">
+      <?php /* Revisi 20 Juni 2026 — Penjelasan cara mendapatkan Badge & Achievement */ ?>
+      <div class="alert alert-info small mb-3">
+        <div class="fw-semibold mb-1"><i class="bi bi-info-circle-fill"></i> Apa itu Badge & Achievement?</div>
+        <p class="mb-2">Badge adalah lencana digital yang Anda dapatkan otomatis setelah memenuhi syarat aktivitas tertentu di SportApp.
+        Setiap badge memberi bonus <strong>XP</strong> yang menambah level akun Anda.</p>
+        <div class="fw-semibold mb-1">Cara mendapatkan:</div>
+        <ul class="mb-2 ps-3">
+          <li><i class="bi bi-qr-code-scan text-primary"></i> <strong>First Check-in</strong> (+30 XP) — Lakukan check-in pertama via QR di sesi olahraga.</li>
+          <li><i class="bi bi-person-running text-success"></i> <strong>Jogging 10x</strong> (+100 XP) — Hadir di sesi <em>Jogging</em> sebanyak 10 kali.</li>
+          <li><i class="bi bi-shield-fill-check text-info"></i> <strong>Badminton Warrior</strong> (+120 XP) — Hadir di sesi <em>Badminton</em> sebanyak 10 kali.</li>
+          <li><i class="bi bi-stars text-warning"></i> <strong>All Rounder</strong> (+150 XP) — Hadir di minimal 3 jenis olahraga berbeda.</li>
+          <li><i class="bi bi-moon-stars text-dark"></i> <strong>Night Runner</strong> (+80 XP) — Hadir 5x di sesi olahraga malam (jam mulai ≥ 18:00).</li>
+          <li><i class="bi bi-fire text-danger"></i> <strong>Rajin 4 Minggu</strong> (+150 XP) — Hadir minimal 1x setiap minggu selama 4 minggu berturut-turut.</li>
+          <li><i class="bi bi-trophy-fill text-warning"></i> <strong>Top Attendance</strong> (+200 XP) — Masuk Top 3 kehadiran bulanan komunitas.</li>
+          <li><i class="bi bi-graph-up text-success"></i> <strong>Consistency King</strong> (+180 XP) — Skor konsistensi kehadiran &gt; 85%.</li>
+          <li><i class="bi bi-sun text-warning"></i> <strong>Early Bird</strong> (+60 XP) — 5x check-in lebih cepat dari 10 menit sebelum sesi dimulai.</li>
+          <li><i class="bi bi-chat-heart-fill text-danger"></i> <strong>Forum Star</strong> (+70 XP) — Mengirim 50 post di forum komunitas.</li>
+        </ul>
+        <div class="small text-muted mb-0">
+          <i class="bi bi-lightbulb"></i> Tips: tiap <strong>200 XP</strong> = naik 1 Level. Badge yang masih terkunci (abu-abu) berarti syaratnya belum terpenuhi —
+          terus aktif berolahraga &amp; check-in untuk membuka semuanya!
+        </div>
+      </div>
       <div class="row g-2">
       <?php foreach($allBadges as $b): $owned = in_array((int)$b['id'], $ownBadgeIds, true); ?>
         <div class="col-6 col-md-4 col-lg-3">

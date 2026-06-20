@@ -18,15 +18,26 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $pic = ($_POST['pic_admin_id'] ?? '') !== '' ? (int)$_POST['pic_admin_id'] : null;
         db_exec("UPDATE users SET pic_admin_id=$1 WHERE id=$2", [$pic, (int)$_POST['id']]);
     } elseif ($a==='toggle_aktif') {
+        // Revisi 20 Juni 2026 — deteksi tipe kolom `aktif` (SMALLINT vs BOOLEAN)
+        // agar tidak terjadi "invalid input syntax for type smallint: 'f'".
         $aktif = ((int)($_POST['aktif'] ?? 1)) === 1;
         $catatan = trim($_POST['nonaktif_catatan'] ?? '') ?: null;
+        $dt = (string) db_val("SELECT data_type FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='aktif'");
+        $isBool = stripos($dt, 'bool') !== false;
+        $val = $isBool ? ($aktif ? 't' : 'f') : ($aktif ? 1 : 0);
         try {
           db_exec("UPDATE users SET aktif=$1, nonaktif_catatan=$2 WHERE id=$3",
-                  [$aktif ? 't' : 'f', $aktif ? null : $catatan, (int)$_POST['id']]);
+                  [$val, $aktif ? null : $catatan, (int)$_POST['id']]);
         } catch (Throwable $e) {
-          // fallback bila kolom aktif bertipe smallint (0/1)
-          db_exec("UPDATE users SET aktif=$1 WHERE id=$2", [$aktif ? 1 : 0, (int)$_POST['id']]);
+          // fallback: coba tipe lain
+          $val2 = $isBool ? ($aktif ? 1 : 0) : ($aktif ? 't' : 'f');
+          db_exec("UPDATE users SET aktif=$1, nonaktif_catatan=$2 WHERE id=$3",
+                  [$val2, $aktif ? null : $catatan, (int)$_POST['id']]);
         }
+        // Bersihkan pesan error stale dari sesi sebelumnya (jika ada),
+        // supaya tidak salah ditampilkan setelah redirect.
+        unset($_SESSION['error_popup']);
+        $_SESSION['flash'] = $aktif ? 'Member berhasil diaktifkan.' : 'Member berhasil di-nonaktifkan.';
     } elseif ($a==='delete') {
         db_exec("DELETE FROM users WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='create') {
@@ -50,22 +61,36 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='upload_foto') {
         $id = (int)$_POST['id'];
         $target = db_one("SELECT * FROM users WHERE id=$1", [$id]);
-        if ($target && !empty($_FILES['foto']['name'])) {
-            require_once __DIR__.'/../config/imagekit.php';
-            global $imageKit;
-            $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
-            $safe = preg_replace('/[^a-z0-9]/i','_',$target['nama'])."-avatar-".time().".".$ext;
-            $up = $imageKit->uploadFile([
-                'file' => base64_encode(file_get_contents($_FILES['foto']['tmp_name'])),
-                'fileName' => $safe,
-                'folder' => '/sportapp/avatar'
-            ]);
-            if (!$up->error) {
-                if (!empty($target['foto_file_id'])) { try { $imageKit->deleteFile($target['foto_file_id']); } catch(Throwable $e){} }
-                db_exec("UPDATE users SET foto_url=$1, foto_file_id=$2 WHERE id=$3",
-                        [$up->result->url, $up->result->fileId, $id]);
+        if (!$target) {
+            $_SESSION['flash_err'] = 'Member tidak ditemukan.';
+        } elseif (empty($_FILES['foto']) || empty($_FILES['foto']['tmp_name']) || ($_FILES['foto']['error'] ?? 1) !== 0) {
+            $errCode = $_FILES['foto']['error'] ?? 'tidak ada file';
+            $_SESSION['flash_err'] = 'Upload foto gagal (error: '.$errCode.'). Cek ukuran file & upload_max_filesize.';
+        } else {
+            try {
+                require_once __DIR__.'/../config/imagekit.php';
+                global $imageKit;
+                $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION)) ?: 'jpg';
+                $safe = preg_replace('/[^a-z0-9]/i','_',$target['nama'])."-avatar-".time().".".$ext;
+                $up = $imageKit->uploadFile([
+                    'file' => base64_encode(file_get_contents($_FILES['foto']['tmp_name'])),
+                    'fileName' => $safe,
+                    'folder' => '/sportapp/avatar'
+                ]);
+                if (!empty($up->error)) {
+                    $em = is_object($up->error) ? ($up->error->message ?? json_encode($up->error)) : (string)$up->error;
+                    $_SESSION['flash_err'] = 'ImageKit menolak upload: '.$em;
+                } else {
+                    if (!empty($target['foto_file_id'])) { try { $imageKit->deleteFile($target['foto_file_id']); } catch(Throwable $e){} }
+                    db_exec("UPDATE users SET foto_url=$1, foto_file_id=$2 WHERE id=$3",
+                            [$up->result->url, $up->result->fileId, $id]);
+                    $_SESSION['flash'] = 'Foto profil member berhasil diperbarui.';
+                }
+            } catch (Throwable $e) {
+                $_SESSION['flash_err'] = 'Upload foto gagal: '.$e->getMessage();
             }
         }
+        unset($_SESSION['error_popup']);
     } elseif ($a==='delete_foto') {
         $id = (int)$_POST['id'];
         $target = db_one("SELECT foto_file_id FROM users WHERE id=$1", [$id]);

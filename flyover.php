@@ -241,11 +241,12 @@ include __DIR__.'/includes/header.php';
               <div class="col-6">
                 <label class="form-label small mb-0">Ukuran subtitle</label>
                 <select id="optLyricSize" class="form-select form-select-sm">
-                  <option value="18">Kecil (18px)</option>
-                  <option value="22">Sedang (22px)</option>
-                  <option value="26" selected>Normal (26px)</option>
+                  <option value="12">Subtitle Film XS (12px)</option>
+                  <option value="14" selected>Subtitle Film (14px) — default</option>
+                  <option value="16">Subtitle Film Sedang (16px)</option>
+                  <option value="20">Sedang (20px)</option>
+                  <option value="26">Normal (26px)</option>
                   <option value="32">Besar (32px)</option>
-                  <option value="40">Ekstra Besar (40px)</option>
                 </select>
               </div>
               <div class="col-6">
@@ -303,12 +304,14 @@ include __DIR__.'/includes/header.php';
           </div>
           <div id="flyRec" class="fly-badge"><i class="bi bi-record-circle-fill"></i> REC</div>
           <div id="flyPopup" class="fly-popup"></div>
-          <!-- Revisi 18 Juni 2026 — subtitle lirik di preview -->
-          <div id="flyLyric" style="position:absolute;left:50%;bottom:78px;transform:translateX(-50%);z-index:6;
-               background:linear-gradient(180deg,rgba(8,47,73,.92),rgba(14,116,144,.92));color:#fef9c3;
-               font-weight:800;font-size:1.05rem;padding:10px 22px;border-radius:14px;
-               border:1px solid rgba(186,230,253,.45);box-shadow:0 8px 24px rgba(0,0,0,.45);
-               max-width:80%;text-align:center;display:none"></div>
+          <!-- Revisi 20 Juni 2026 — Subtitle gaya FILM: tanpa kotak,
+               teks putih kecil dengan outline hitam, multi-baris bila panjang. -->
+          <div id="flyLyric" style="position:absolute;left:50%;bottom:54px;transform:translateX(-50%);z-index:6;
+               color:#fff;font-weight:600;font-size:14px;line-height:1.25;
+               text-shadow:0 0 4px #000,0 0 4px #000,1px 1px 2px #000,-1px 1px 2px #000,1px -1px 2px #000,-1px -1px 2px #000;
+               max-width:84%;text-align:center;display:none;
+               font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+               white-space:pre-line"></div>
         </div>
         <div class="small text-muted mt-2 px-2">
           <i class="bi bi-info-circle"></i>
@@ -583,34 +586,31 @@ var LYRICS = { lines: [], src: '' };
 async function fetchLyricsByMeta(artist, title){
   if (!title){ $('lyricStat').textContent='Belum ada judul lagu.'; return; }
   $('lyricStat').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari lirik…';
+  // Revisi 20 Juni 2026 — pakai proxy /api_lyrics.php (server-side, paralel
+  // ke lrclib.net + lyrics.ovh) supaya pencarian CEPAT dan banyak yang ketemu.
+  // Pakai AbortController dengan timeout 8 detik agar tidak pernah "lama".
+  const ctrl = new AbortController();
+  const tid = setTimeout(()=>ctrl.abort(), 8000);
   try {
-    // 1) coba lyrics.ovh langsung dengan artist+title
-    let lyr = '';
-    try {
-      const r = await fetch('https://api.lyrics.ovh/v1/'+encodeURIComponent(artist||'')+'/'+encodeURIComponent(title||''));
-      if (r.ok){ const j = await r.json(); lyr = (j.lyrics||'').trim(); }
-    } catch(_){}
-    // 2) fallback: pakai iTunes hasil pertama utk ambil artist resmi
-    if (!lyr) {
-      try {
-        const q = (artist? artist+' ':'')+title;
-        const r2 = await fetch('https://itunes.apple.com/search?media=music&entity=song&limit=1&term='+encodeURIComponent(q));
-        const j2 = await r2.json();
-        if (j2.results && j2.results[0]){
-          const art = j2.results[0].artistName, tit = j2.results[0].trackName;
-          const r3 = await fetch('https://api.lyrics.ovh/v1/'+encodeURIComponent(art)+'/'+encodeURIComponent(tit));
-          if (r3.ok){ const j3 = await r3.json(); lyr = (j3.lyrics||'').trim(); }
-        }
-      } catch(_){}
+    const r = await fetch('/api_lyrics.php?artist='+encodeURIComponent(artist||'')+'&title='+encodeURIComponent(title||''),
+                         { signal: ctrl.signal, cache:'no-store' });
+    clearTimeout(tid);
+    const j = r.ok ? await r.json() : null;
+    const lyr = (j && j.ok) ? ((j.lrc||'').trim() || (j.lyrics||'').trim()) : '';
+    if (!lyr){
+      $('lyricStat').textContent = 'Lirik tidak ditemukan ('+(j && j.err ? j.err : 'sumber tidak punya')+'). Tempel manual di bawah.';
+      return;
     }
-    if (!lyr){ $('lyricStat').textContent='Lirik tidak ditemukan. Bisa tempel manual di bawah.'; return; }
-    // Isi textbox manual, dan biarkan handler 'input' textbox memparse + distribusi waktu
     $('lyricManual').value = lyr;
     $('lyricManual').dispatchEvent(new Event('input'));
     $('optLyric').checked = true;
-    LYRICS.src = 'lyrics.ovh';
-    $('lyricStat').textContent = LYRICS.lines.length+' baris lirik siap (sumber: lyrics.ovh).';
-  } catch(e){ $('lyricStat').textContent='Error: '+e.message; }
+    LYRICS.src = (j.source||'proxy');
+    $('lyricStat').textContent = LYRICS.lines.length+' baris lirik siap (sumber: '+LYRICS.src+').';
+  } catch(e){
+    clearTimeout(tid);
+    if (e.name === 'AbortError') $('lyricStat').textContent = 'Pencarian lirik timeout (8 dtk). Coba lagi atau tempel manual.';
+    else $('lyricStat').textContent = 'Error: '+e.message;
+  }
 }
 
 // Tombol cari lirik manual (mirip pencarian musik): pakai iTunes utk list pilihan
@@ -961,35 +961,64 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     ctx.restore();
   }
 
-  /* Revisi 18 Juni 2026 — Subtitle lirik karaoke pada video */
+  /* Revisi 20 Juni 2026 — Subtitle gaya FILM pada video rekaman:
+     - Tanpa kotak/background (clean cinematic).
+     - Ukuran default KECIL (≈14px logical, mirip subtitle film).
+     - Word-wrap multi-baris bila kalimat panjang agar tidak terpotong.
+     - Outline hitam (text-shadow) supaya tetap terbaca di atas peta. */
   if ($('optLyric') && $('optLyric').checked && LYRICS.lines.length){
     const a = $('musicAudio');
     const tNow = a && !a.paused ? a.currentTime : (o.tSec||0);
     const lyric = currentLyricLine(tNow);
     if (lyric){
       ctx.save();
-      // Revisi 19 Juni 2026 Part R — subtitle font-size, family & color dari opsi UI
       const sizeOpt = document.getElementById('optLyricSize');
       const fontOpt = document.getElementById('optLyricFont');
       const colorOpt = document.getElementById('optLyricColor');
-      const userSize = sizeOpt ? (parseFloat(sizeOpt.value)||26) : 26;
+      const userSize = sizeOpt ? (parseFloat(sizeOpt.value)||14) : 14; // default kecil
       const fontFam = fontOpt ? (fontOpt.value || "system-ui, sans-serif") : "system-ui, sans-serif";
-      const subtitleColor = colorOpt ? (colorOpt.value || '#fef9c3') : '#fef9c3';
-      const fs = Math.max(14, userSize*sx);
-      ctx.font = '800 '+fs+'px '+fontFam;
-      const padX = 22*sx, padY = 14*sy;
-      const tw = Math.min(w-40*sx, ctx.measureText(lyric).width + padX*2);
-      const th = fs + padY*2;
-      // Posisikan agak di atas popup (~96 px dari bawah)
-      const x = (w-tw)/2, y = h - th - 90*sy;
-      ctx.shadowColor='rgba(0,0,0,.55)'; ctx.shadowBlur=22; ctx.shadowOffsetY=6;
-      const g = ctx.createLinearGradient(x,y,x,y+th);
-      g.addColorStop(0,'rgba(8,47,73,.92)'); g.addColorStop(1,'rgba(14,116,144,.92)');
-      ctx.fillStyle=g; rr(ctx,x,y,tw,th,18*sx); ctx.fill();
-      ctx.shadowColor='transparent';
-      ctx.strokeStyle='rgba(186,230,253,.45)'; ctx.lineWidth=2; ctx.stroke();
-      ctx.fillStyle=subtitleColor; ctx.textAlign='center'; ctx.textBaseline='middle';
-      drawTextFit(ctx, lyric, x+tw/2, y+th/2, tw-padX*2);
+      const subtitleColor = colorOpt ? (colorOpt.value || '#ffffff') : '#ffffff';
+      const fs = Math.max(12, userSize*sx);
+      ctx.font = '600 '+fs+'px '+fontFam;
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+
+      // ===== Word-wrap manual: pisah per kata, tampung ke baris yg muat di maxW.
+      const maxW = w*0.84;
+      const words = String(lyric).split(/\s+/).filter(Boolean);
+      const lines = [];
+      let cur = '';
+      words.forEach(wd => {
+        const test = cur ? (cur+' '+wd) : wd;
+        if (ctx.measureText(test).width > maxW && cur){ lines.push(cur); cur = wd; }
+        else { cur = test; }
+      });
+      if (cur) lines.push(cur);
+      // Maks 3 baris (cukup untuk subtitle film). Sisanya dipotong.
+      const maxLines = 3;
+      let shown = lines.slice(0, maxLines);
+      if (lines.length > maxLines){
+        let last = shown[maxLines-1];
+        while (ctx.measureText(last+'…').width > maxW && last.length>3) last = last.slice(0,-2);
+        shown[maxLines-1] = last + '…';
+      }
+
+      const lh = fs * 1.22;
+      const totalH = lh * shown.length;
+      const baseY = h - 30*sy - totalH + lh*0.85; // 30px dari bawah
+
+      // Outline hitam tebal (stroke berlapis) lalu fill warna user.
+      ctx.lineJoin = 'round'; ctx.miterLimit = 2;
+      ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+      ctx.lineWidth = Math.max(3, fs*0.22);
+      shown.forEach((ln, i) => {
+        const yy = baseY + i*lh;
+        ctx.strokeText(ln, w/2, yy);
+      });
+      ctx.fillStyle = subtitleColor;
+      shown.forEach((ln, i) => {
+        const yy = baseY + i*lh;
+        ctx.fillText(ln, w/2, yy);
+      });
       ctx.restore();
     }
   }
