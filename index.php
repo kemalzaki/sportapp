@@ -77,87 +77,69 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $jenis = $_POST['jenis'] === 'story' ? 'story' : 'post';
         $fotoUrl = null;
         $mediaType = 'image';
-        // Revisi 19 Juni 2026 Part O #6 — dukung upload VIDEO (maks 30 menit, divalidasi client-side).
-        // Jika user mengirim field 'video', upload via ImageKit (mendukung file biner).
-        if (!empty($_FILES['video']['name']) && empty($_FILES['foto']['name'])) {
-            $vErr = (int)($_FILES['video']['error'] ?? 0);
-            $vSize = (int)($_FILES['video']['size'] ?? 0);
-            $vTmp  = $_FILES['video']['tmp_name'] ?? '';
-            $vExt  = strtolower(pathinfo($_FILES['video']['name'], PATHINFO_EXTENSION) ?: 'mp4');
-            if (!in_array($vExt, ['mp4','webm','mov','m4v','ogg'], true)) $vExt='mp4';
-            // Revisi 20 Juni 2026 R4 — laporkan SEMUA error upload PHP secara eksplisit
-            // supaya klien tidak hanya melihat "Failed to fetch" tanpa sebab.
-            if ($vErr !== UPLOAD_ERR_OK) {
-                $map = [
-                    UPLOAD_ERR_INI_SIZE=>'Ukuran video melebihi batas server (upload_max_filesize). Naikkan di .user.ini / php.ini.',
-                    UPLOAD_ERR_FORM_SIZE=>'Ukuran video melebihi batas form (MAX_FILE_SIZE).',
-                    UPLOAD_ERR_PARTIAL=>'Upload terputus di tengah jalan. Coba lagi pada koneksi stabil.',
-                    UPLOAD_ERR_NO_FILE=>'File video tidak terkirim.',
-                    UPLOAD_ERR_NO_TMP_DIR=>'Server tidak punya folder tmp untuk upload.',
-                    UPLOAD_ERR_CANT_WRITE=>'Server gagal menulis file tmp upload.',
-                    UPLOAD_ERR_EXTENSION=>'Extension PHP memblokir upload.',
+        $imagesUrls = []; // Revisi 21 Juni 2026 R4 — multi-image post
+
+        /* ============================================================
+         * Revisi 21 Juni 2026 R4 — Posting video DIGANTI menjadi multi-image.
+         * Field 'fotos[]' (multiple) dipakai sebagai sumber utama. Field
+         * 'foto' lama (single) tetap diterima untuk kompatibilitas mundur.
+         * Maksimum 10 gambar / posting.
+         * ============================================================ */
+        $allFiles = [];
+        if (!empty($_FILES['fotos']) && is_array($_FILES['fotos']['name'])) {
+            $cnt = count($_FILES['fotos']['name']);
+            for ($i=0; $i<$cnt && count($allFiles)<10; $i++) {
+                if (empty($_FILES['fotos']['name'][$i])) continue;
+                $allFiles[] = [
+                    'name'     => $_FILES['fotos']['name'][$i],
+                    'type'     => $_FILES['fotos']['type'][$i] ?? '',
+                    'tmp_name' => $_FILES['fotos']['tmp_name'][$i] ?? '',
+                    'error'    => $_FILES['fotos']['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+                    'size'     => $_FILES['fotos']['size'][$i] ?? 0,
                 ];
-                $postNewErr = $map[$vErr] ?? ('Gagal upload video (kode '.$vErr.').');
-            } elseif ($vSize >= 200*1024*1024) {
-                $postNewErr = 'Ukuran video '.round($vSize/1048576,1).' MB melebihi 200 MB. Kompres lebih dulu.';
-            } elseif (!is_uploaded_file($vTmp)) {
-                $postNewErr = 'File tmp upload tidak valid.';
-            } else {
-                require_once __DIR__.'/config/imagekit.php';
-                global $imageKit;
-                try {
-                    $name = preg_replace('/[^a-z0-9]/i','_',$u['nama']).'-'.$jenis.'-vid-'.time().'-'.bin2hex(random_bytes(4)).'.'.$vExt;
-                    $bin  = @file_get_contents($vTmp);
-                    if ($bin === false) {
-                        $postNewErr = 'Gagal membaca file video (mungkin memory_limit terlalu kecil).';
-                    } else {
-                        $up = $imageKit->uploadFile([
-                            'file' => base64_encode($bin),
-                            'fileName' => $name,
-                            'folder' => '/sportapp/social/'.date('F_Y'),
-                        ]);
-                        unset($bin);
-                        if (!empty($up->error)) {
-                            $postNewErr = 'ImageKit menolak upload: '.(is_object($up->error) && isset($up->error->message) ? $up->error->message : 'unknown');
-                        } elseif (!empty($up->result->url)) {
-                            $fotoUrl = $up->result->url;
-                            $mediaType = 'video';
-                        } else {
-                            $postNewErr = 'ImageKit tidak mengembalikan URL.';
-                        }
-                    }
-                } catch (Throwable $e) {
-                    $postNewErr = 'Exception saat upload: '.$e->getMessage();
-                }
             }
         }
-        if (!empty($_FILES['foto']['name'])) {
-            [$ok, $extOrErr] = validate_image_upload($_FILES['foto']);
-            if ($ok) {
-                $name = preg_replace('/[^a-z0-9]/i','_', $u['nama']).'-'.$jenis.'-'.time().'-'.bin2hex(random_bytes(4)).'.'.$extOrErr;
-                require_once __DIR__.'/config/imagekit.php';
-                global $imageKit;
+        if (empty($allFiles) && !empty($_FILES['foto']['name'])) {
+            $allFiles[] = $_FILES['foto'];
+        }
+
+        if (!empty($allFiles)) {
+            require_once __DIR__.'/config/imagekit.php';
+            global $imageKit;
+            foreach ($allFiles as $idx => $fImg) {
+                [$ok, $extOrErr] = validate_image_upload($fImg);
+                if (!$ok) { $postNewErr = $postNewErr ?: ('Gambar #'.($idx+1).': '.$extOrErr); continue; }
+                $name = preg_replace('/[^a-z0-9]/i','_', $u['nama']).'-'.$jenis.'-'.time().'-'.$idx.'-'.bin2hex(random_bytes(3)).'.'.$extOrErr;
                 try {
                     $uploadFile = $imageKit->uploadFile([
-                        'file' => base64_encode(file_get_contents($_FILES['foto']['tmp_name'])),
+                        'file' => base64_encode(file_get_contents($fImg['tmp_name'])),
                         'fileName' => $name,
                         'folder' => '/sportapp/social/'.date('F_Y'),
                     ]);
-                    if (!$uploadFile->error) {
-                        $fotoUrl = $uploadFile->result->url;
+                    if (!$uploadFile->error && !empty($uploadFile->result->url)) {
+                        $imagesUrls[] = $uploadFile->result->url;
                     }
-                } catch (Throwable $e) { /* fail silently, post tanpa foto */ }
+                } catch (Throwable $e) { /* lewati gambar yang gagal */ }
+            }
+            if (!empty($imagesUrls)) {
+                $fotoUrl = $imagesUrls[0]; // first image jadi cover (kompatibilitas mundur)
+                $mediaType = 'image';
+                $postNewErr = ''; // sukses paling tidak satu gambar terupload
             }
         }
-        // Pastikan kolom media_type ada (idempotent).
+
+        // Pastikan kolom media_type & images_json ada (idempotent).
         try { db_exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR(10) NOT NULL DEFAULT 'image'"); } catch (Throwable $e) {}
+        try { db_exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS images_json TEXT"); } catch (Throwable $e) {}
+
         if ($postNewErr === '') {
+            $imagesJson = !empty($imagesUrls) ? json_encode(array_values($imagesUrls), JSON_UNESCAPED_SLASHES) : null;
             if ($jenis === 'story') {
-                $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, now() + interval '24 hours') RETURNING id",
-                    [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
+                $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,images_json,expired_at) VALUES($1,$2,$3,$4,$5,$6, now() + interval '24 hours') RETURNING id",
+                    [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType, $imagesJson]);
             } else {
-                $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, NULL) RETURNING id",
-                    [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
+                $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,images_json,expired_at) VALUES($1,$2,$3,$4,$5,$6, NULL) RETURNING id",
+                    [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType, $imagesJson]);
             }
             if (function_exists('sync_post_tags') && $newId) { sync_post_tags($newId, $caption); }
             $postNewOk = true;
@@ -464,8 +446,10 @@ $feedTotal = (int) db_val("SELECT COUNT(*) FROM posts WHERE jenis='post'");
 $feedPages = max(1, (int)ceil($feedTotal / $feedPerPage));
 if ($feedPage > $feedPages) $feedPage = $feedPages;
 $feedOffset = ($feedPage - 1) * $feedPerPage;
+// Revisi 21 Juni 2026 R4 — pastikan kolom images_json ada lalu sertakan dalam SELECT
+try { db_exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS images_json TEXT"); } catch (Throwable $e) {}
 $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis,
-                  COALESCE(p.media_type,'image') AS media_type, p.created_at,
+                  COALESCE(p.media_type,'image') AS media_type, p.images_json, p.created_at,
                   u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
@@ -1023,12 +1007,49 @@ document.addEventListener('DOMContentLoaded', () => {
               </form>
             <?php endif; ?>
           </div>
-          <?php if(!empty($p['post_foto'])): $pfDisp = ltrim($p['post_foto'],'/'); $isVid = (($p['media_type'] ?? 'image')==='video') || preg_match('/\.(mp4|webm|mov|m4v|ogg)(\?|$)/i', $pfDisp); ?>
-            <?php if ($isVid): ?>
-              <video src="<?= htmlspecialchars($pfDisp) ?>" controls preload="metadata" class="rounded mb-2 d-block" style="max-height:320px;max-width:100%;background:#000"></video>
-            <?php else: ?>
-              <img src="<?= htmlspecialchars($pfDisp) ?>" data-full="<?= htmlspecialchars($pfDisp) ?>" class="rounded mb-2 zoomable d-block" style="max-height:220px;max-width:100%;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'">
-            <?php endif; ?>
+          <?php
+            // Revisi 21 Juni 2026 R4 — Multi-image: render sebagai Bootstrap carousel (slider) bila > 1 gambar.
+            $imgList = [];
+            if (!empty($p['images_json'])) {
+                $tmp = json_decode($p['images_json'], true);
+                if (is_array($tmp)) $imgList = array_values(array_filter(array_map('strval', $tmp)));
+            }
+            if (empty($imgList) && !empty($p['post_foto'])) $imgList = [$p['post_foto']];
+            $pfDisp = !empty($p['post_foto']) ? ltrim($p['post_foto'],'/') : '';
+            $isVid  = (($p['media_type'] ?? 'image')==='video') || ($pfDisp && preg_match('/\.(mp4|webm|mov|m4v|ogg)(\?|$)/i', $pfDisp));
+          ?>
+          <?php if ($isVid && $pfDisp): ?>
+            <!-- Posting video LEGACY (sebelum R4): tetap dirender supaya data lama tidak hilang. -->
+            <video src="<?= htmlspecialchars($pfDisp) ?>" controls preload="metadata" class="rounded mb-2 d-block" style="max-height:320px;max-width:100%;background:#000"></video>
+          <?php elseif (count($imgList) > 1): ?>
+            <?php $cid = 'pcar'.(int)$p['id']; ?>
+            <div id="<?= $cid ?>" class="carousel slide rounded mb-2" data-bs-ride="false" data-bs-interval="false" style="max-width:100%">
+              <div class="carousel-indicators">
+                <?php foreach($imgList as $ii=>$im): ?>
+                  <button type="button" data-bs-target="#<?= $cid ?>" data-bs-slide-to="<?= $ii ?>" <?= $ii===0?'class="active" aria-current="true"':'' ?> aria-label="Slide <?= $ii+1 ?>"></button>
+                <?php endforeach; ?>
+              </div>
+              <div class="carousel-inner rounded" style="background:#000">
+                <?php foreach($imgList as $ii=>$im): $imd = ltrim($im,'/'); ?>
+                  <div class="carousel-item <?= $ii===0?'active':'' ?>" style="text-align:center">
+                    <img src="<?= htmlspecialchars($imd) ?>" class="d-block mx-auto zoomable" data-full="<?= htmlspecialchars($imd) ?>" style="max-height:380px;max-width:100%;object-fit:contain;cursor:zoom-in" onerror="this.style.display='none'">
+                  </div>
+                <?php endforeach; ?>
+              </div>
+              <button class="carousel-control-prev" type="button" data-bs-target="#<?= $cid ?>" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Sebelumnya</span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#<?= $cid ?>" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Berikutnya</span></button>
+              <div class="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75 small"><i class="bi bi-images"></i> <span class="js-cur">1</span>/<?= count($imgList) ?></div>
+            </div>
+            <script>
+              (function(){
+                var el = document.getElementById('<?= $cid ?>'); if (!el) return;
+                el.addEventListener('slid.bs.carousel', function(ev){
+                  var n = el.querySelector('.js-cur'); if (n) n.textContent = (ev.to+1);
+                });
+              })();
+            </script>
+          <?php elseif (count($imgList) === 1): $imd = ltrim($imgList[0],'/'); ?>
+            <img src="<?= htmlspecialchars($imd) ?>" data-full="<?= htmlspecialchars($imd) ?>" class="rounded mb-2 zoomable d-block" style="max-height:380px;max-width:100%;width:auto;object-fit:cover;cursor:zoom-in;" onerror="this.style.display='none'">
           <?php endif; ?>
           <div class="mb-2"><?= nl2br(render_tags_and_mentions(htmlspecialchars($p['caption'] ?? ''))) ?></div>
           <div class="d-flex flex-wrap gap-2 small">
@@ -1250,16 +1271,12 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="modal-body">
       <label class="form-label small">Tipe</label>
       <select name="jenis" class="form-select mb-2"><option value="post">Post (feed)</option><option value="story">Story (24 jam)</option></select>
-      <label class="form-label small">Foto (opsional, otomatis dikompresi)</label>
-      <input type="file" name="foto" accept="image/*" class="form-control mb-1" id="postFotoInput" data-compress>
-      <div class="form-text compress-info small">Foto MB akan otomatis dikompres ke KB sebelum diunggah.</div>
-      <img id="postFotoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px">
-      <!-- Revisi 19 Juni 2026 Part O #6 — dukungan posting VIDEO -->
-      <label class="form-label small mt-2">Video (opsional, maks 30 menit · pilih SATU: foto ATAU video)</label>
-      <input type="file" name="video" accept="video/*" class="form-control mb-1" id="postVideoInput">
-      <div class="form-text small">Video otomatis dikompres ke kualitas hemat (≤720p, ~1 Mbps) sebelum diunggah agar lolos batas server &amp; lebih ringan di ImageKit. Maks durasi 30 menit.</div>
-      <video id="postVideoPreview" class="img-fluid rounded mb-2" style="display:none;max-height:240px" controls></video>
-      <div id="postVideoInfo" class="small text-muted"></div>
+      <!-- Revisi 21 Juni 2026 R4 — Multi-image post (mengganti posting video) -->
+      <label class="form-label small">Foto (boleh pilih beberapa, maks 10)</label>
+      <input type="file" name="fotos[]" accept="image/*" multiple class="form-control mb-1" id="postFotosInput">
+      <div class="form-text small">Pilih satu atau beberapa gambar sekaligus. Akan ditampilkan sebagai slider di feed bila lebih dari satu.</div>
+      <div id="postFotosPreview" class="d-flex flex-wrap gap-2 mb-2"></div>
+      <div id="postFotosInfo" class="small text-muted"></div>
       <label class="form-label small">Caption</label>
       <textarea name="caption" class="form-control" rows="3" maxlength="500" placeholder="Tulis caption..."></textarea>
     </div>
@@ -1269,147 +1286,31 @@ document.addEventListener('DOMContentLoaded', () => {
   </form>
 </div></div>
 <script>
+/* Revisi 21 Juni 2026 R4 — Preview multi-image (mengganti preview video). */
 document.addEventListener('DOMContentLoaded', function(){
-  var fi=document.getElementById('postFotoInput');
-  var pv=document.getElementById('postFotoPreview');
-  if(fi){ fi.addEventListener('change', function(){
-    var f=this.files && this.files[0]; if(!f){ pv.style.display='none'; return; }
-    pv.src=URL.createObjectURL(f); pv.style.display='block';
-  });}
-  // Revisi 19 Juni 2026 Part O #6 — validasi durasi video maks 30 menit
-  var vi=document.getElementById('postVideoInput');
-  var vp=document.getElementById('postVideoPreview');
-  var vinfo=document.getElementById('postVideoInfo');
-  if (vi) vi.addEventListener('change', function(){
-    var f = this.files && this.files[0];
-    vinfo.textContent = ''; if (vp){ vp.style.display='none'; vp.removeAttribute('src'); }
-    if (!f) return;
-    var url = URL.createObjectURL(f);
-    var v = document.createElement('video'); v.preload='metadata'; v.src=url;
-    v.onloadedmetadata = function(){
-      var dur = v.duration||0; var mins = Math.floor(dur/60), secs = Math.round(dur%60);
-      if (dur > 30*60){
-        alert('Durasi video '+mins+'m '+secs+'s melebihi batas 30 menit. Silakan potong video terlebih dahulu sebelum upload.');
-        vi.value = ''; URL.revokeObjectURL(url); return;
-      }
-      vp.src = url; vp.style.display='block';
-      vinfo.textContent = 'Durasi: '+mins+'m '+secs+'s · Ukuran: '+(f.size/1024/1024).toFixed(2)+' MB';
-      // Kosongkan input foto agar tidak dobel
-      if (fi) fi.value = '';
-    };
-    v.onerror = function(){ alert('Format video tidak didukung browser.'); vi.value=''; };
-  });
-
-  /* Revisi 19 Juni 2026 Part R — Kompresi video sebelum upload.
-   * Server PHP & ImageKit lebih sering menolak file besar (post_max_size, dll)
-   * yang muncul sebagai "failed to fetch" di sisi browser. Kita transcode
-   * video di sisi klien menggunakan <video> + canvas.captureStream() +
-   * MediaRecorder pada bitrate rendah (~1 Mbps) dan downscale ke maks 720p.
-   * Hasilnya ditukar masuk ke input file sebelum form di-submit.
-   */
-  async function compressVideoFile(file){
-    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return file;
-    return await new Promise(function(resolve){
-      var url = URL.createObjectURL(file);
-      var vv = document.createElement('video');
-      vv.muted = true; vv.playsInline = true; vv.preload = 'auto'; vv.src = url;
-      vv.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
-      vv.onloadedmetadata = async function(){
-        try {
-          var maxH = 540; // Revisi 20 Juni 2026 R4 — turunkan ke 540p agar file lebih kecil
-          var srcW = vv.videoWidth, srcH = vv.videoHeight;
-          if (!srcW || !srcH) { URL.revokeObjectURL(url); return resolve(file); }
-          var scale = Math.min(1, maxH/srcH);
-          var dstW = Math.round(srcW*scale/2)*2;
-          var dstH = Math.round(srcH*scale/2)*2;
-          var c = document.createElement('canvas');
-          c.width = dstW; c.height = dstH;
-          var cx = c.getContext('2d');
-          var stream = c.captureStream(24);
-          // Tambahkan audio dari sumber bila ada
-          try {
-            var elStream = vv.captureStream ? vv.captureStream() : null;
-            if (elStream){
-              elStream.getAudioTracks().forEach(function(t){ stream.addTrack(t); });
-            }
-          } catch(_){}
-          var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
-                  : (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm');
-          var rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 700000, audioBitsPerSecond: 64000 });
-          var chunks = [];
-          rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
-          rec.onstop = function(){
-            try { vv.pause(); URL.revokeObjectURL(url); } catch(_){}
-            var blob = new Blob(chunks, { type: 'video/webm' });
-            if (!blob.size) return resolve(file);
-            var out = new File([blob], (file.name||'video').replace(/\.[^.]+$/,'')+'_c.webm', { type:'video/webm' });
-            // Hanya pakai hasil kompresi bila lebih kecil
-            resolve(out.size < file.size ? out : file);
-          };
-          rec.start(500);
-          var drew = false;
-          function tick(){
-            if (vv.ended || vv.paused) { rec.stop(); return; }
-            cx.drawImage(vv, 0, 0, dstW, dstH);
-            drew = true;
-            requestAnimationFrame(tick);
-          }
-          vv.onended = function(){ try { rec.stop(); } catch(_){} };
-          try { await vv.play(); } catch(_){}
-          tick();
-          // Safety timeout — selalu stop setelah durasi+2dtk
-          setTimeout(function(){ if (rec.state==='recording') rec.stop(); }, (vv.duration||60)*1000 + 2000);
-        } catch(e){
-          URL.revokeObjectURL(url); resolve(file);
-        }
-      };
+  var fi = document.getElementById('postFotosInput');
+  var pv = document.getElementById('postFotosPreview');
+  var info = document.getElementById('postFotosInfo');
+  if (!fi) return;
+  fi.addEventListener('change', function(){
+    pv.innerHTML = ''; info.textContent = '';
+    var files = Array.from(this.files || []);
+    if (files.length > 10) {
+      alert('Maksimum 10 gambar per posting. Hanya 10 pertama yang akan diunggah.');
+    }
+    files = files.slice(0, 10);
+    var totalKB = 0;
+    files.forEach(function(f){
+      if (!/^image\//.test(f.type)) return;
+      totalKB += f.size/1024;
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.style.cssText = 'width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--bs-border-color,#dee2e6)';
+      img.alt = f.name;
+      pv.appendChild(img);
     });
-  }
-
-  // Override submit: kompresi → kirim via fetch dengan error handling jelas.
-  var pf = document.getElementById('postNewForm');
-  if (pf){
-    pf.addEventListener('submit', async function(ev){
-      var vfile = vi && vi.files && vi.files[0];
-      if (!vfile) return; // tidak ada video → biarkan flow default (data-ajax handler)
-      ev.preventDefault(); ev.stopImmediatePropagation();
-      var btn = document.getElementById('postSubmitBtn');
-      var orig = btn ? btn.innerHTML : '';
-      if (btn){ btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengompres video…'; }
-      try {
-        var compressed = await compressVideoFile(vfile);
-        if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengunggah ('+(compressed.size/1024/1024).toFixed(1)+' MB)…';
-        var fd = new FormData(pf);
-        // Ganti field video dengan versi terkompres
-        fd.set('video', compressed, compressed.name);
-        // Revisi 20 Juni 2026 R4 — minta server kirim JSON, dan kirim header AJAX
-        fd.set('_ajax', '1');
-        var r;
-        try {
-          r = await fetch(window.location.pathname, {
-            method:'POST', body: fd, credentials:'same-origin',
-            headers: { 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }
-          });
-        } catch (netErr) {
-          throw new Error('Koneksi terputus saat upload ('+(compressed.size/1024/1024).toFixed(1)+' MB). '
-            +'Kemungkinan ukuran melebihi post_max_size/upload_max_filesize di php.ini, '
-            +'atau koneksi internet putus. Periksa .user.ini (sudah disertakan) dan restart server.');
-        }
-        var j = null;
-        try { j = await r.json(); } catch(_) {}
-        if (!r.ok || !j) {
-          throw new Error('Server menolak (HTTP '+r.status+'). '
-            +(j && j.err ? j.err : 'Coba video lebih pendek atau cek log PHP.'));
-        }
-        if (!j.ok) throw new Error(j.err || 'Upload gagal tanpa pesan.');
-        // Reload feed setelah berhasil
-        window.location.reload();
-      } catch(err){
-        alert('Gagal posting video: '+(err && err.message ? err.message : err));
-        if (btn){ btn.disabled = false; btn.innerHTML = orig; }
-      }
-    }, true); // capture phase agar mendahului handler data-ajax global
-  }
+    info.textContent = files.length+' gambar dipilih · total '+(totalKB/1024).toFixed(2)+' MB';
+  });
 });
 </script>
 <?php endif; ?>

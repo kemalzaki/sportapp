@@ -154,13 +154,15 @@ $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
 $jenisList = db_all("SELECT id, nama FROM jenis_olahraga ORDER BY nama");
 $statuses = ['tersedia','booked','renovasi','tutup'];
 
-/* Rute tersimpan milik admin (untuk dropdown hiking/camping) */
+/* Revisi 21 Juni 2026 R4 — Tampilkan SEMUA rute tersimpan dari run.php
+   (admin perlu bisa pilih rute milik member untuk hiking/camping). */
 $adminId = (int)($_SESSION['user_id'] ?? ($_SESSION['uid'] ?? 0));
 $savedRoutes = [];
 try {
-  $savedRoutes = db_all("SELECT id, nama, jarak_m FROM run_routes
-                         WHERE user_id=$1 OR is_public = true
-                         ORDER BY id DESC LIMIT 100", [$adminId]);
+  $savedRoutes = db_all("SELECT r.id, r.nama, r.jarak_m, r.user_id, u.nama AS owner_nama
+                         FROM run_routes r
+                         LEFT JOIN users u ON u.id = r.user_id
+                         ORDER BY r.id DESC LIMIT 200");
 } catch (Throwable $e) { $savedRoutes = []; }
 
 /* Set ID jenis yang trail untuk dipakai di JS */
@@ -232,8 +234,9 @@ include __DIR__.'/../includes/header.php'; ?>
             <select class="form-select" name="run_route_id">
               <option value="">— tidak memakai rute tersimpan —</option>
               <?php foreach($savedRoutes as $rr): ?>
-                <option value="<?= (int)$rr['id'] ?>"><?= htmlspecialchars($rr['nama']) ?> · <?= round(((float)$rr['jarak_m'])/1000,2) ?> km</option>
+                <option value="<?= (int)$rr['id'] ?>"><?= htmlspecialchars($rr['nama']) ?> · <?= round(((float)$rr['jarak_m'])/1000,2) ?> km<?= !empty($rr['owner_nama']) ? ' · '.htmlspecialchars($rr['owner_nama']) : '' ?></option>
               <?php endforeach; ?>
+              <?php if (!$savedRoutes): ?><option value="" disabled>Belum ada rute tersimpan di run.php</option><?php endif; ?>
             </select>
             <small class="text-muted">Bila keduanya diisi, file GPX yang dipakai untuk visualisasi peta.</small>
           </div>
@@ -398,6 +401,25 @@ document.addEventListener('DOMContentLoaded', function(){
         </form>
       </td>
       <td class="text-end text-nowrap">
+        <?php
+          $isTrailRow = is_trail_jenis($r['jenis_nama'] ?? '');
+          $hasGpx     = !empty($r['gpx_path']);
+          $hasRunRt   = !empty($r['run_route_id']);
+        ?>
+        <?php if ($isTrailRow && ($hasGpx || $hasRunRt)): ?>
+          <!-- Revisi 21 Juni 2026 R4 — Tombol Lihat Peta untuk rute hiking/camping (.gpx atau rute tersimpan) -->
+          <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#tpMap<?= $r['id'] ?>" title="Lihat peta rute">
+            <i class="bi bi-map"></i> Lihat Peta
+          </button>
+        <?php elseif ($isTrailRow): ?>
+          <button class="btn btn-sm btn-outline-secondary" disabled title="Belum ada GPX / rute tersimpan">
+            <i class="bi bi-map"></i> Lihat Peta
+          </button>
+        <?php elseif (!empty($r['lat']) && !empty($r['lng'])): ?>
+          <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener"
+             href="https://www.openstreetmap.org/?mlat=<?= (float)$r['lat'] ?>&mlon=<?= (float)$r['lng'] ?>#map=17/<?= (float)$r['lat'] ?>/<?= (float)$r['lng'] ?>"
+             title="Lihat di OSM"><i class="bi bi-map"></i> Lihat Peta</a>
+        <?php endif; ?>
         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tpE<?= $r['id'] ?>"><i class="bi bi-pencil"></i></button>
         <form method="post" class="d-inline" onsubmit="return confirm('Hapus tempat ini?')">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<?= $r['id'] ?>">
@@ -466,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 <option value="">— tidak memakai rute tersimpan —</option>
                 <?php foreach($savedRoutes as $rr): ?>
                   <option value="<?= (int)$rr['id'] ?>" <?= ((string)($r['run_route_id'] ?? '')===(string)$rr['id'])?'selected':'' ?>>
-                    <?= htmlspecialchars($rr['nama']) ?> · <?= round(((float)$rr['jarak_m'])/1000,2) ?> km
+                    <?= htmlspecialchars($rr['nama']) ?> · <?= round(((float)$rr['jarak_m'])/1000,2) ?> km<?= !empty($rr['owner_nama']) ? ' · '.htmlspecialchars($rr['owner_nama']) : '' ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -499,6 +521,96 @@ document.addEventListener('DOMContentLoaded', function(){
   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
 </form></div></div>
 <?php endforeach; ?>
+
+<?php
+/* Revisi 21 Juni 2026 R4 — Modal Lihat Peta untuk tempat hiking/camping (.gpx atau rute tersimpan) */
+foreach ($rows as $r):
+  $isTrailRow = is_trail_jenis($r['jenis_nama'] ?? '');
+  if (!$isTrailRow) continue;
+  $hasGpx   = !empty($r['gpx_path']);
+  $hasRunRt = !empty($r['run_route_id']);
+  if (!$hasGpx && !$hasRunRt) continue;
+  $rrGeo = null;
+  if (!$hasGpx && $hasRunRt) {
+    try {
+      $sr = db_one("SELECT geojson FROM run_routes WHERE id=$1", [(int)$r['run_route_id']]);
+      if ($sr) $rrGeo = is_array($sr['geojson']) ? json_encode($sr['geojson']) : $sr['geojson'];
+    } catch (Throwable $e) {}
+  }
+?>
+<div class="modal fade" id="tpMap<?= (int)$r['id'] ?>" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="bi bi-map text-success"></i> Peta Rute — <?= htmlspecialchars($r['nama']) ?></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-0">
+      <div id="trailMapAdmin<?= (int)$r['id'] ?>" style="height:520px;width:100%"></div>
+      <div class="p-2 small d-flex flex-wrap gap-2 align-items-center border-top">
+        <span id="trailInfoAdmin<?= (int)$r['id'] ?>" class="text-muted">Memuat rute…</span>
+        <?php if ($hasGpx): ?>
+          <a class="btn btn-sm btn-outline-success" href="<?= htmlspecialchars($r['gpx_path']) ?>" download><i class="bi bi-download"></i> Unduh GPX</a>
+        <?php endif; ?>
+        <a class="btn btn-sm btn-outline-primary" id="trailGmaps<?= (int)$r['id'] ?>" target="_blank" rel="noopener" href="#"><i class="bi bi-google"></i> Buka di Google Maps</a>
+        <a class="btn btn-sm btn-outline-secondary" id="trailSv<?= (int)$r['id'] ?>" target="_blank" rel="noopener" href="#"><i class="bi bi-camera"></i> Street View titik awal</a>
+      </div>
+    </div>
+  </div></div>
+</div>
+<script>
+(function(){
+  var MID = <?= (int)$r['id'] ?>;
+  var GPX_URL = <?= json_encode($hasGpx ? $r['gpx_path'] : '') ?>;
+  var GEOJSON = <?= $rrGeo ? $rrGeo : 'null' ?>;
+  var initialized = false, lmap = null;
+  document.getElementById('tpMap'+MID).addEventListener('shown.bs.modal', function(){
+    if (initialized) { setTimeout(function(){ lmap.invalidateSize(); }, 100); return; }
+    initialized = true;
+    lmap = L.map('trailMapAdmin'+MID).setView([-6.9,107.6], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(lmap);
+    setTimeout(function(){ lmap.invalidateSize(); }, 200);
+
+    function fitAndDraw(latlngs){
+      if (!latlngs || !latlngs.length){ document.getElementById('trailInfoAdmin'+MID).textContent = 'Rute kosong / tidak terbaca.'; return; }
+      var line = L.polyline(latlngs, {color:'#dc2626', weight:5, opacity:.85}).addTo(lmap);
+      L.marker(latlngs[0]).addTo(lmap).bindPopup('Start');
+      L.marker(latlngs[latlngs.length-1]).addTo(lmap).bindPopup('Finish');
+      lmap.fitBounds(line.getBounds(), {padding:[20,20]});
+      var distM = 0;
+      for (var i=1;i<latlngs.length;i++) distM += lmap.distance(latlngs[i-1], latlngs[i]);
+      document.getElementById('trailInfoAdmin'+MID).textContent = (latlngs.length+' titik · '+(distM/1000).toFixed(2)+' km');
+      var s = latlngs[0], f = latlngs[latlngs.length-1], via = latlngs[Math.floor(latlngs.length/2)];
+      document.getElementById('trailGmaps'+MID).href = 'https://www.google.com/maps/dir/?api=1&origin='+s.lat+','+s.lng+'&destination='+f.lat+','+f.lng+'&waypoints='+via.lat+','+via.lng+'&travelmode=walking';
+      document.getElementById('trailSv'+MID).href = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+s.lat+','+s.lng;
+    }
+    function fromGeoJson(g){
+      var pts = []; try {
+        if (typeof g==='string') g = JSON.parse(g);
+        var coords = null;
+        if (g.type==='FeatureCollection' && g.features && g.features[0] && g.features[0].geometry) coords = g.features[0].geometry.coordinates;
+        else if (g.type==='Feature' && g.geometry) coords = g.geometry.coordinates;
+        else if (g.coordinates) coords = g.coordinates;
+        if (coords && coords[0] && typeof coords[0][0]==='number') coords.forEach(function(c){ pts.push(L.latLng(c[1], c[0])); });
+        else if (coords && coords[0] && Array.isArray(coords[0][0])) coords[0].forEach(function(c){ pts.push(L.latLng(c[1], c[0])); });
+      } catch(e){}
+      return pts;
+    }
+    if (GPX_URL){
+      fetch(GPX_URL).then(function(r){ return r.text(); }).then(function(xml){
+        var doc = new DOMParser().parseFromString(xml,'application/xml');
+        var trkpts = doc.getElementsByTagName('trkpt'); var pts = [];
+        for (var i=0;i<trkpts.length;i++) pts.push(L.latLng(parseFloat(trkpts[i].getAttribute('lat')), parseFloat(trkpts[i].getAttribute('lon'))));
+        if (!pts.length){ var rp = doc.getElementsByTagName('rtept'); for (var j=0;j<rp.length;j++) pts.push(L.latLng(parseFloat(rp[j].getAttribute('lat')), parseFloat(rp[j].getAttribute('lon')))); }
+        fitAndDraw(pts);
+      }).catch(function(e){ document.getElementById('trailInfoAdmin'+MID).textContent='Gagal memuat GPX: '+e.message; });
+    } else if (GEOJSON){
+      fitAndDraw(fromGeoJson(GEOJSON));
+    }
+  });
+})();
+</script>
+<?php endforeach; ?>
+
 
 <?php include __DIR__.'/../includes/footer.php'; ?>
 

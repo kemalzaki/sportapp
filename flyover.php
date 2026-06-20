@@ -297,6 +297,19 @@ include __DIR__.'/includes/header.php';
                   <option value="44">Besar</option>
                 </select>
               </div>
+              <!-- Revisi 21 Juni 2026 R4 — Posisi subtitle di video -->
+              <div class="col-12">
+                <label class="form-label small mb-0"><i class="bi bi-arrows-move"></i> Posisi Subtitle</label>
+                <select id="optLyricPos" class="form-select form-select-sm">
+                  <option value="bottom-center" selected>Bawah · Tengah (default)</option>
+                  <option value="bottom-left">Bawah · Kiri</option>
+                  <option value="bottom-right">Bawah · Kanan</option>
+                  <option value="top-center">Atas · Tengah</option>
+                  <option value="top-left">Atas · Kiri</option>
+                  <option value="top-right">Atas · Kanan</option>
+                  <option value="middle-center">Tengah Layar</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -458,12 +471,24 @@ function drawAll(){
 $('optMusic').onchange = e => { $('musicBox').style.display = e.target.checked ? '' : 'none'; setupMusicSrc(); };
 $('musicFile').addEventListener('change', setupMusicSrc);
 function setupMusicSrc(){
-  const a = $('musicAudio');
+  let a = $('musicAudio');
   const f = $('musicFile').files[0];
-  if (f){ a.src = URL.createObjectURL(f); a.crossOrigin = null; MUSIC.currentTitle=f.name; MUSIC.currentArtist=''; }
-  else if (!a.src){
+  if (f){
+    // Revisi 21 Juni 2026 R4 — Upload sendiri TIDAK butuh CORS (blob: URL same-origin).
+    // Ganti elemen agar MediaElementSource lama (yg ber-CORS anonymous) tidak ikut.
+    const newA = a.cloneNode(false);
+    newA.id='musicAudio'; newA.preload='auto'; newA.controls=true; newA.className='w-100 mt-2'; newA.style.height='34px';
+    try { a.pause(); a.removeAttribute('src'); a.load(); } catch(_){}
+    a.replaceWith(newA); a = newA;
+    a.crossOrigin = null;
+    a.removeAttribute('crossorigin');
+    const blobUrl = URL.createObjectURL(f);
+    a.src = blobUrl; a.dataset.originalSrc = blobUrl;
+    MUSIC.currentTitle=f.name; MUSIC.currentArtist='';
+  } else if (!a.src){
     a.src = 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e3a8af6c4.mp3?filename=energetic-indie-rock-30sec-117279.mp3';
     a.crossOrigin = 'anonymous';
+    a.dataset.originalSrc = a.src;
     MUSIC.currentTitle='Energetic Indie Rock'; MUSIC.currentArtist='Pixabay (free)';
   }
   a.loop = true; a.load();
@@ -530,18 +555,25 @@ async function searchMusic(){
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function pickMusic(t){
-  const a = $('musicAudio');
-  // Revisi 20 Juni 2026 R3 — reset agar lagu ke-2/3 dst pasti bisa diputar
-  try { a.pause(); a.removeAttribute('src'); a.load(); } catch(_) {}
+  // Revisi 21 Juni 2026 R4 — Ganti elemen audio sepenuhnya supaya:
+  //  (1) Lagu ke-2 dst PASTI bisa diputar (lepas dari MediaElementSource lama).
+  //  (2) Tidak bentrok bila sebelumnya di-record (createMediaElementSource hanya boleh sekali per elemen).
+  let a = $('musicAudio');
+  const newA = a.cloneNode(false);
+  newA.id = 'musicAudio'; newA.preload='auto'; newA.controls=true; newA.className='w-100 mt-2'; newA.style.height='34px';
+  // Putus referensi MediaElementSource pada elemen lama
+  try { a.pause(); a.removeAttribute('src'); a.load(); } catch(_){}
+  a.replaceWith(newA);
+  a = newA;
   a.crossOrigin = 'anonymous';
-  delete a.dataset.originalSrc;
+  a.dataset.originalSrc = t.previewUrl;
   a.src = t.previewUrl; a.loop = true; a.load();
   $('musicMeta').innerHTML = '<i class="bi bi-music-note"></i> '+escapeHtml(t.trackName)+' — '+escapeHtml(t.artistName);
   MUSIC.currentTitle = t.trackName||''; MUSIC.currentArtist = t.artistName||'';
   $('lyricTitle').value = MUSIC.currentTitle;
   $('lyricArtist').value = MUSIC.currentArtist;
   TRIM.start=0; TRIM.end=0;
-  LYRICS.trans = {}; // bersihkan cache terjemahan saat ganti lagu
+  LYRICS.trans = {};
   a.addEventListener('loadedmetadata', onAudioMeta, { once:true });
   if ($('optLyricAuto') && $('optLyricAuto').checked) {
     fetchLyricsByMeta(MUSIC.currentArtist, MUSIC.currentTitle);
@@ -586,7 +618,7 @@ $('btnTrimApply').onclick = async () => {
   $('trimStat').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses…';
   try {
     if (!a.dataset.originalSrc) a.dataset.originalSrc = a.src;
-    const resp = await fetch(a.dataset.originalSrc, { mode:'cors' });
+    const resp = await fetch(a.dataset.originalSrc, a.dataset.originalSrc.startsWith('blob:')?{}:{mode:'cors'});
     const buf  = await resp.arrayBuffer();
     const ac   = new (window.AudioContext||window.webkitAudioContext)();
     const decoded = await ac.decodeAudioData(buf.slice(0));
@@ -771,7 +803,7 @@ async function syncLyricsToBeats(){
   const srcUrl = a.dataset.originalSrc || a.currentSrc || a.src;
   if (!srcUrl) return false;
   try {
-    const resp = await fetch(srcUrl, { mode:'cors' });
+    const resp = await fetch(srcUrl, srcUrl.startsWith('blob:')?{}:{mode:'cors'});
     if (!resp.ok) throw new Error('fetch audio gagal');
     const buf  = await resp.arrayBuffer();
     const ac   = new (window.AudioContext||window.webkitAudioContext)();
@@ -866,6 +898,8 @@ setInterval(() => {
     el.style.display='none'; if(elId) elId.style.display='none'; return;
   }
   const line = currentLyricLine(a.currentTime);
+  // Revisi 21 Juni 2026 R4 — terapkan posisi subtitle pada overlay HTML
+  applyLyricPos(el, elId);
   if (line){
     const sizeOpt = document.getElementById('optLyricSize');
     const fontOpt = document.getElementById('optLyricFont');
@@ -874,7 +908,6 @@ setInterval(() => {
     if (fontOpt) el.style.fontFamily = fontOpt.value;
     if (colorOpt) el.style.color = colorOpt.value;
     el.textContent = line; el.style.display='';
-    // Revisi 20 Juni 2026 R3 — Terjemahan EN → ID di bawah lirik
     if (elId){
       const trOn = document.getElementById('optLyricTranslate');
       if (trOn && trOn.checked){
@@ -887,6 +920,36 @@ setInterval(() => {
     }
   } else { el.style.display='none'; if(elId) elId.style.display='none'; }
 }, 120);
+
+/* Revisi 21 Juni 2026 R4 — Hitung & terapkan posisi subtitle (atas/bawah/kiri/kanan/tengah) */
+function getLyricPos(){
+  var s = document.getElementById('optLyricPos');
+  return s ? (s.value || 'bottom-center') : 'bottom-center';
+}
+function applyLyricPos(el, elId){
+  var pos = getLyricPos();
+  // Reset
+  [el, elId].forEach(function(x){ if(!x) return;
+    x.style.left=''; x.style.right=''; x.style.top=''; x.style.bottom=''; x.style.transform='';
+    x.style.textAlign='center';
+  });
+  if (!el) return;
+  var topMain, bottomMain;
+  if (pos.indexOf('top-')===0)        { el.style.top='14px';    topMain=true; }
+  else if (pos.indexOf('middle-')===0){ el.style.top='50%';     el.style.transform='translate(-50%,-50%)'; }
+  else                                { el.style.bottom='54px'; bottomMain=true; }
+  if (pos.endsWith('-left'))      { el.style.left='12px';  el.style.textAlign='left';  if(el.style.transform)el.style.transform=''; }
+  else if (pos.endsWith('-right')){ el.style.right='12px'; el.style.textAlign='right'; if(el.style.transform)el.style.transform=''; }
+  else                            { el.style.left='50%'; el.style.transform = (pos.indexOf('middle-')===0?'translate(-50%,-50%)':'translateX(-50%)'); }
+  if (elId){
+    if (pos.indexOf('top-')===0)        { elId.style.top='38px'; }
+    else if (pos.indexOf('middle-')===0){ elId.style.top='calc(50% + 22px)'; elId.style.transform='translate(-50%,-50%)'; }
+    else                                { elId.style.bottom='30px'; }
+    if (pos.endsWith('-left'))      { elId.style.left='12px';  elId.style.textAlign='left';  if(elId.style.transform)elId.style.transform=''; }
+    else if (pos.endsWith('-right')){ elId.style.right='12px'; elId.style.textAlign='right'; if(elId.style.transform)elId.style.transform=''; }
+    else                            { elId.style.left='50%'; elId.style.transform = (pos.indexOf('middle-')===0?'translate(-50%,-50%)':'translateX(-50%)'); }
+  }
+}
 
 /* Revisi 20 Juni 2026 R3 — Terjemah baris lirik EN → ID via MyMemory (gratis, tanpa key) */
 var _trInflight = {};
@@ -1053,50 +1116,97 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
       const sizeOpt = document.getElementById('optLyricSize');
       const fontOpt = document.getElementById('optLyricFont');
       const colorOpt = document.getElementById('optLyricColor');
-      const userSize = sizeOpt ? (parseFloat(sizeOpt.value)||14) : 14; // default kecil
+      const posOpt  = document.getElementById('optLyricPos');
+      const trOpt   = document.getElementById('optLyricTranslate');
+      const userSize = sizeOpt ? (parseFloat(sizeOpt.value)||14) : 14;
       const fontFam = fontOpt ? (fontOpt.value || "system-ui, sans-serif") : "system-ui, sans-serif";
       const subtitleColor = colorOpt ? (colorOpt.value || '#ffffff') : '#ffffff';
+      const pos = posOpt ? (posOpt.value || 'bottom-center') : 'bottom-center';
       const fs = Math.max(12, userSize*sx);
-      ctx.font = '600 '+fs+'px '+fontFam;
-      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
 
-      // ===== Word-wrap manual: pisah per kata, tampung ke baris yg muat di maxW.
-      const maxW = w*0.84;
-      const words = String(lyric).split(/\s+/).filter(Boolean);
-      const lines = [];
-      let cur = '';
-      words.forEach(wd => {
-        const test = cur ? (cur+' '+wd) : wd;
-        if (ctx.measureText(test).width > maxW && cur){ lines.push(cur); cur = wd; }
-        else { cur = test; }
-      });
-      if (cur) lines.push(cur);
-      // Maks 3 baris (cukup untuk subtitle film). Sisanya dipotong.
-      const maxLines = 3;
-      let shown = lines.slice(0, maxLines);
-      if (lines.length > maxLines){
-        let last = shown[maxLines-1];
-        while (ctx.measureText(last+'…').width > maxW && last.length>3) last = last.slice(0,-2);
-        shown[maxLines-1] = last + '…';
+      // Helper word-wrap & draw a block of text at (anchorX, baseY) with align
+      function wrap(text, ctxx, maxWW){
+        const ws = String(text).split(/\s+/).filter(Boolean);
+        const ls = []; let curw = '';
+        ws.forEach(wd => {
+          const test = curw ? (curw+' '+wd) : wd;
+          if (ctxx.measureText(test).width > maxWW && curw){ ls.push(curw); curw = wd; }
+          else { curw = test; }
+        });
+        if (curw) ls.push(curw);
+        const maxLines = 3;
+        let shown = ls.slice(0, maxLines);
+        if (ls.length > maxLines){
+          let last = shown[maxLines-1];
+          while (ctxx.measureText(last+'…').width > maxWW && last.length>3) last = last.slice(0,-2);
+          shown[maxLines-1] = last + '…';
+        }
+        return shown;
+      }
+      function blockPos(blockH, fsz){
+        // Returns {x, y, align} - x=anchor, y=top baseline of first line
+        let align='center', ax=w/2, ay;
+        if (pos.endsWith('-left'))      { align='left';  ax = 18*sx; }
+        else if (pos.endsWith('-right')){ align='right'; ax = w - 18*sx; }
+        if (pos.indexOf('top-')===0)        ay = 18*sy + fsz*0.85;
+        else if (pos.indexOf('middle-')===0)ay = (h - blockH)/2 + fsz*0.85;
+        else                                ay = h - 30*sy - blockH + fsz*0.85;
+        return { ax: ax, ay: ay, align: align };
+      }
+      function drawBlock(text, fsz, color){
+        ctx.font = '600 '+fsz+'px '+fontFam;
+        const maxW = (pos.endsWith('-left')||pos.endsWith('-right')) ? w*0.6 : w*0.84;
+        const shown = wrap(text, ctx, maxW);
+        const lh = fsz * 1.22;
+        const blockH = lh * shown.length;
+        const p = blockPos(blockH, fsz);
+        ctx.textAlign = p.align; ctx.textBaseline='alphabetic';
+        ctx.lineJoin='round'; ctx.miterLimit=2;
+        ctx.strokeStyle='rgba(0,0,0,0.92)';
+        ctx.lineWidth = Math.max(3, fsz*0.22);
+        shown.forEach((ln,i)=>{ ctx.strokeText(ln, p.ax, p.ay + i*lh); });
+        ctx.fillStyle = color;
+        shown.forEach((ln,i)=>{ ctx.fillText(ln, p.ax, p.ay + i*lh); });
+        return blockH + lh*0.25; // total used vertical space for stacking
       }
 
-      const lh = fs * 1.22;
-      const totalH = lh * shown.length;
-      const baseY = h - 30*sy - totalH + lh*0.85; // 30px dari bawah
+      // Draw EN line
+      const usedH = drawBlock(lyric, fs, subtitleColor);
 
-      // Outline hitam tebal (stroke berlapis) lalu fill warna user.
-      ctx.lineJoin = 'round'; ctx.miterLimit = 2;
-      ctx.strokeStyle = 'rgba(0,0,0,0.92)';
-      ctx.lineWidth = Math.max(3, fs*0.22);
-      shown.forEach((ln, i) => {
-        const yy = baseY + i*lh;
-        ctx.strokeText(ln, w/2, yy);
-      });
-      ctx.fillStyle = subtitleColor;
-      shown.forEach((ln, i) => {
-        const yy = baseY + i*lh;
-        ctx.fillText(ln, w/2, yy);
-      });
+      // Revisi 21 Juni 2026 R4 — Render terjemahan EN→ID di bawah lirik utama (ke video rekaman juga)
+      if (trOpt && trOpt.checked){
+        const tline = LYRICS.trans[lyric];
+        if (tline){
+          const fs2 = Math.max(11, fs*0.78);
+          // Geser baseline: untuk top — di bawah; untuk middle — di bawah; untuk bottom — di atas? Simplify: stack below for top/middle, above for bottom.
+          ctx.font = '600 '+fs2+'px '+fontFam;
+          const maxW2 = (pos.endsWith('-left')||pos.endsWith('-right')) ? w*0.6 : w*0.84;
+          const shown2 = wrap(tline, ctx, maxW2);
+          const lh2 = fs2 * 1.22;
+          const blockH2 = lh2 * shown2.length;
+          // Anchor selalu pakai blockPos dengan offset
+          const p = blockPos(blockH2, fs2);
+          let offY;
+          if (pos.indexOf('bottom-')===0) {
+            // letakkan di atas lirik utama (sebelumnya bottom = h-30-blockH+fs*.85)
+            // baris EN paling atas berada di h-30sy - usedH + fs*.85
+            offY = -(usedH - blockH2*0.05);
+          } else {
+            // letakkan di bawah lirik utama
+            offY = usedH + lh2*0.1;
+          }
+          ctx.textAlign = p.align; ctx.textBaseline='alphabetic';
+          ctx.lineJoin='round'; ctx.miterLimit=2;
+          ctx.strokeStyle='rgba(0,0,0,0.92)';
+          ctx.lineWidth = Math.max(2.5, fs2*0.22);
+          shown2.forEach((ln,i)=>{ ctx.strokeText(ln, p.ax, p.ay + offY + i*lh2); });
+          ctx.fillStyle = '#fde68a';
+          shown2.forEach((ln,i)=>{ ctx.fillText(ln, p.ax, p.ay + offY + i*lh2); });
+        } else {
+          // Belum ada terjemahan — picu fetch
+          if (typeof translateLineToID === 'function') translateLineToID(lyric);
+        }
+      }
       ctx.restore();
     }
   }
@@ -1256,10 +1366,17 @@ async function runFlyover({record=false}={}) {
     let stream = vStream;
     if (useMusic){
       try {
-        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        const src = audioCtx.createMediaElementSource(audioEl);
+        // Revisi 21 Juni 2026 R4 — cache MediaElementSource per <audio> agar
+        // record ke-2 dst tidak gagal ("HTMLMediaElement already connected").
+        if (audioEl._audioCtx && audioEl._audioCtx.state === 'closed') { audioEl._audioCtx = null; audioEl._mediaSrc = null; }
+        if (!audioEl._audioCtx) audioEl._audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        audioCtx = audioEl._audioCtx;
+        if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch(_){} }
+        if (!audioEl._mediaSrc) audioEl._mediaSrc = audioCtx.createMediaElementSource(audioEl);
+        const src = audioEl._mediaSrc;
         audioDest = audioCtx.createMediaStreamDestination();
-        src.connect(audioDest); src.connect(audioCtx.destination); // tetap kedengaran user
+        try { src.disconnect(); } catch(_){}
+        src.connect(audioDest); src.connect(audioCtx.destination);
         stream = new MediaStream([...vStream.getVideoTracks(), ...audioDest.stream.getAudioTracks()]);
       } catch(e){ console.warn('Audio mix gagal:', e); }
     }
@@ -1355,7 +1472,7 @@ async function runFlyover({record=false}={}) {
     recorder.stop();
     await stopped;
     $('flyRec').classList.remove('show');
-    if (useMusic){ try{ audioEl.pause(); }catch(_){ } if (audioCtx) try{audioCtx.close();}catch(_){ } }
+    if (useMusic){ try{ audioEl.pause(); }catch(_){ } /* JANGAN tutup audioCtx — direuse pada record berikutnya */ }
     const blob = new Blob(chunks, { type:'video/webm' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1454,7 +1571,7 @@ $('btnRecord').onclick  = ()=> {
     stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI menganalisa musik + lirik (bisa 30–60 detik)…';
     try {
       // Ambil audio blob dari elemen player (URL bisa berupa blob:, data:, atau http remote)
-      var resp = await fetch(a.src, { mode:'cors' });
+      var resp = await fetch(a.src, (a.src||'').startsWith('blob:')?{}:{mode:'cors'});
       var blob = await resp.blob();
       var ext  = 'mp3';
       if (blob.type) {
