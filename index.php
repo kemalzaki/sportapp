@@ -23,6 +23,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     csrf_check();
     rate_limit_or_die('post:'.$u['id'], 30, 60);
     $a = $_POST['_action'] ?? '';
+
+    // Revisi 20 Juni 2026 R4 — upload video bisa besar; naikkan batas runtime
+    // supaya tidak putus di tengah jalan (penyebab "Failed to fetch" di klien).
+    $isVideoPost = ($a === 'post_new' && !empty($_FILES['video']['name']));
+    $isAjaxPost  = !empty($_POST['_ajax']) || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest');
+    if ($isVideoPost) {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+    }
+    $postNewErr = ''; $postNewOk = false;
     if ($a === 'chat_post') {
         $pesan = trim($_POST['pesan'] ?? '');
         $parent = (int)($_POST['parent_id'] ?? 0) ?: null;
@@ -75,21 +85,50 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
             $vTmp  = $_FILES['video']['tmp_name'] ?? '';
             $vExt  = strtolower(pathinfo($_FILES['video']['name'], PATHINFO_EXTENSION) ?: 'mp4');
             if (!in_array($vExt, ['mp4','webm','mov','m4v','ogg'], true)) $vExt='mp4';
-            if ($vErr===UPLOAD_ERR_OK && is_uploaded_file($vTmp) && $vSize < 200*1024*1024) {
+            // Revisi 20 Juni 2026 R4 — laporkan SEMUA error upload PHP secara eksplisit
+            // supaya klien tidak hanya melihat "Failed to fetch" tanpa sebab.
+            if ($vErr !== UPLOAD_ERR_OK) {
+                $map = [
+                    UPLOAD_ERR_INI_SIZE=>'Ukuran video melebihi batas server (upload_max_filesize). Naikkan di .user.ini / php.ini.',
+                    UPLOAD_ERR_FORM_SIZE=>'Ukuran video melebihi batas form (MAX_FILE_SIZE).',
+                    UPLOAD_ERR_PARTIAL=>'Upload terputus di tengah jalan. Coba lagi pada koneksi stabil.',
+                    UPLOAD_ERR_NO_FILE=>'File video tidak terkirim.',
+                    UPLOAD_ERR_NO_TMP_DIR=>'Server tidak punya folder tmp untuk upload.',
+                    UPLOAD_ERR_CANT_WRITE=>'Server gagal menulis file tmp upload.',
+                    UPLOAD_ERR_EXTENSION=>'Extension PHP memblokir upload.',
+                ];
+                $postNewErr = $map[$vErr] ?? ('Gagal upload video (kode '.$vErr.').');
+            } elseif ($vSize >= 200*1024*1024) {
+                $postNewErr = 'Ukuran video '.round($vSize/1048576,1).' MB melebihi 200 MB. Kompres lebih dulu.';
+            } elseif (!is_uploaded_file($vTmp)) {
+                $postNewErr = 'File tmp upload tidak valid.';
+            } else {
                 require_once __DIR__.'/config/imagekit.php';
                 global $imageKit;
                 try {
                     $name = preg_replace('/[^a-z0-9]/i','_',$u['nama']).'-'.$jenis.'-vid-'.time().'-'.bin2hex(random_bytes(4)).'.'.$vExt;
-                    $up = $imageKit->uploadFile([
-                        'file' => base64_encode(file_get_contents($vTmp)),
-                        'fileName' => $name,
-                        'folder' => '/sportapp/social/'.date('F_Y'),
-                    ]);
-                    if (empty($up->error) && !empty($up->result->url)) {
-                        $fotoUrl = $up->result->url;
-                        $mediaType = 'video';
+                    $bin  = @file_get_contents($vTmp);
+                    if ($bin === false) {
+                        $postNewErr = 'Gagal membaca file video (mungkin memory_limit terlalu kecil).';
+                    } else {
+                        $up = $imageKit->uploadFile([
+                            'file' => base64_encode($bin),
+                            'fileName' => $name,
+                            'folder' => '/sportapp/social/'.date('F_Y'),
+                        ]);
+                        unset($bin);
+                        if (!empty($up->error)) {
+                            $postNewErr = 'ImageKit menolak upload: '.(is_object($up->error) && isset($up->error->message) ? $up->error->message : 'unknown');
+                        } elseif (!empty($up->result->url)) {
+                            $fotoUrl = $up->result->url;
+                            $mediaType = 'video';
+                        } else {
+                            $postNewErr = 'ImageKit tidak mengembalikan URL.';
+                        }
                     }
-                } catch (Throwable $e) {}
+                } catch (Throwable $e) {
+                    $postNewErr = 'Exception saat upload: '.$e->getMessage();
+                }
             }
         }
         if (!empty($_FILES['foto']['name'])) {
@@ -112,21 +151,46 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         }
         // Pastikan kolom media_type ada (idempotent).
         try { db_exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR(10) NOT NULL DEFAULT 'image'"); } catch (Throwable $e) {}
-        if ($jenis === 'story') {
-            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, now() + interval '24 hours') RETURNING id",
-                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
-        } else {
-            $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, NULL) RETURNING id",
-                [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
+        if ($postNewErr === '') {
+            if ($jenis === 'story') {
+                $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, now() + interval '24 hours') RETURNING id",
+                    [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
+            } else {
+                $newId = (int)db_val("INSERT INTO posts(user_id,caption,foto_url,jenis,media_type,expired_at) VALUES($1,$2,$3,$4,$5, NULL) RETURNING id",
+                    [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType]);
+            }
+            if (function_exists('sync_post_tags') && $newId) { sync_post_tags($newId, $caption); }
+            $postNewOk = true;
         }
-        if (function_exists('sync_post_tags') && $newId) { sync_post_tags($newId, $caption); }
     } elseif ($a === 'like') {
+        // Revisi 20 Juni 2026 R4 — kirim notifikasi ke pemilik post saat ada like baru.
         $pid = (int)$_POST['post_id'];
-        try { db_exec("INSERT INTO post_likes(post_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [$pid, (int)$u['id']]); } catch (Throwable $e) {}
+        try {
+            $ins = db_one("INSERT INTO post_likes(post_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING post_id", [$pid, (int)$u['id']]);
+            if ($ins) {
+                $own = db_one("SELECT user_id FROM posts WHERE id=$1", [$pid]);
+                if ($own && (int)$own['user_id'] !== (int)$u['id']) {
+                    notify((int)$own['user_id'], 'like',
+                        '❤️ '.$u['nama'].' menyukai post Anda',
+                        '', '/index.php#feed');
+                }
+            }
+        } catch (Throwable $e) {}
     } elseif ($a === 'comment') {
+        // Revisi 20 Juni 2026 R4 — kirim notifikasi ke pemilik post saat ada komentar baru.
         $pid = (int)$_POST['post_id'];
         $isi = substr(trim($_POST['isi'] ?? ''), 0, 300);
-        if ($isi !== '') db_exec("INSERT INTO post_comments(post_id,user_id,isi) VALUES($1,$2,$3)", [$pid, (int)$u['id'], $isi]);
+        if ($isi !== '') {
+            db_exec("INSERT INTO post_comments(post_id,user_id,isi) VALUES($1,$2,$3)", [$pid, (int)$u['id'], $isi]);
+            try {
+                $own = db_one("SELECT user_id FROM posts WHERE id=$1", [$pid]);
+                if ($own && (int)$own['user_id'] !== (int)$u['id']) {
+                    notify((int)$own['user_id'], 'comment',
+                        '💬 '.$u['nama'].' mengomentari post Anda',
+                        mb_substr($isi, 0, 120), '/index.php#feed');
+                }
+            } catch (Throwable $e) {}
+        }
     } elseif ($a === 'comment_edit') {
         // Revisi 19 Juni 2026 Part Q — pemilik komentar dapat mengedit komentarnya
         try { db_exec("ALTER TABLE post_comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"); } catch (Throwable $e) {}
@@ -192,6 +256,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 }
             } catch (Throwable $e) {}
         }
+    }
+    // Revisi 20 Juni 2026 R4 — bila video posting via AJAX, kirim JSON agar klien
+    // bisa menampilkan pesan error yang sesungguhnya (bukan "Failed to fetch").
+    if ($a === 'post_new' && $isAjaxPost) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok'=>$postNewOk, 'err'=>$postNewErr]); exit;
     }
     header('Location: /index.php#feed'); exit;
 }
@@ -1246,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', function(){
       vv.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
       vv.onloadedmetadata = async function(){
         try {
-          var maxH = 720;
+          var maxH = 540; // Revisi 20 Juni 2026 R4 — turunkan ke 540p agar file lebih kecil
           var srcW = vv.videoWidth, srcH = vv.videoHeight;
           if (!srcW || !srcH) { URL.revokeObjectURL(url); return resolve(file); }
           var scale = Math.min(1, maxH/srcH);
@@ -1265,7 +1335,7 @@ document.addEventListener('DOMContentLoaded', function(){
           } catch(_){}
           var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
                   : (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm');
-          var rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1000000, audioBitsPerSecond: 96000 });
+          var rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 700000, audioBitsPerSecond: 64000 });
           var chunks = [];
           rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
           rec.onstop = function(){
@@ -1312,8 +1382,26 @@ document.addEventListener('DOMContentLoaded', function(){
         var fd = new FormData(pf);
         // Ganti field video dengan versi terkompres
         fd.set('video', compressed, compressed.name);
-        var r = await fetch(window.location.pathname, { method:'POST', body: fd, credentials:'same-origin' });
-        if (!r.ok) throw new Error('Server menolak (HTTP '+r.status+'). Coba video yang lebih pendek.');
+        // Revisi 20 Juni 2026 R4 — minta server kirim JSON, dan kirim header AJAX
+        fd.set('_ajax', '1');
+        var r;
+        try {
+          r = await fetch(window.location.pathname, {
+            method:'POST', body: fd, credentials:'same-origin',
+            headers: { 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }
+          });
+        } catch (netErr) {
+          throw new Error('Koneksi terputus saat upload ('+(compressed.size/1024/1024).toFixed(1)+' MB). '
+            +'Kemungkinan ukuran melebihi post_max_size/upload_max_filesize di php.ini, '
+            +'atau koneksi internet putus. Periksa .user.ini (sudah disertakan) dan restart server.');
+        }
+        var j = null;
+        try { j = await r.json(); } catch(_) {}
+        if (!r.ok || !j) {
+          throw new Error('Server menolak (HTTP '+r.status+'). '
+            +(j && j.err ? j.err : 'Coba video lebih pendek atau cek log PHP.'));
+        }
+        if (!j.ok) throw new Error(j.err || 'Upload gagal tanpa pesan.');
         // Reload feed setelah berhasil
         window.location.reload();
       } catch(err){

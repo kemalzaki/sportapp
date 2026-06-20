@@ -231,6 +231,8 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur</a>
           <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon</a>
           <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D</a>
+          <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih -->
+          <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</a>
         </div>
 
         <?php /* Grup: Perhitungan Kalori Olahraga */ ?>
@@ -275,6 +277,7 @@ if (empty($pageSkeleton)) {
         </a>
         <div class="collapse" id="grpInfoWawasan">
           <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca <span class="badge bg-success ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
           <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal</a>

@@ -452,10 +452,21 @@ include __DIR__.'/includes/header.php'; ?>
   <?php foreach($ARTIKEL as $a): $vid = $ytId($a['video']); ?>
     <div class="col-12">
       <div class="card shadow-sm border-<?= $a['warna'] ?>" id="<?= htmlspecialchars($a['slug']) ?>">
-        <div class="card-header bg-<?= $a['warna'] ?>-subtle text-<?= $a['warna'] ?>-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span><i class="bi <?= $a['icon'] ?>"></i> <strong><?= htmlspecialchars($a['judul']) ?></strong></span>
-          <a href="#<?= htmlspecialchars($a['slug']) ?>" class="small text-decoration-none">#<?= htmlspecialchars($a['slug']) ?></a>
-        </div>
+        <!-- Revisi 20 Juni 2026 R3 — Spoiler mode per jenis olahraga (klik untuk buka/tutup) -->
+        <button class="card-header bg-<?= $a['warna'] ?>-subtle text-<?= $a['warna'] ?>-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2 w-100 border-0 ao-spoiler-btn collapsed"
+          type="button" data-bs-toggle="collapse"
+          data-bs-target="#aoBody_<?= htmlspecialchars($a['slug']) ?>"
+          aria-expanded="false" aria-controls="aoBody_<?= htmlspecialchars($a['slug']) ?>"
+          style="text-align:left;cursor:pointer;">
+          <span><i class="bi <?= $a['icon'] ?>"></i> <strong><?= htmlspecialchars($a['judul']) ?></strong>
+            <span class="small ms-2 d-none d-sm-inline opacity-75">— klik untuk membuka detail</span>
+          </span>
+          <span class="d-flex align-items-center gap-2">
+            <a href="#<?= htmlspecialchars($a['slug']) ?>" class="small text-decoration-none" onclick="event.stopPropagation()">#<?= htmlspecialchars($a['slug']) ?></a>
+            <i class="bi bi-chevron-down ao-spoiler-caret"></i>
+          </span>
+        </button>
+        <div class="collapse" id="aoBody_<?= htmlspecialchars($a['slug']) ?>">
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-5">
@@ -633,6 +644,7 @@ include __DIR__.'/includes/header.php'; ?>
         </div>
       </div>
     </div>
+        </div><!-- /.collapse Revisi 20 Juni 2026 R3 -->
   <?php endforeach; ?>
 </div>
 

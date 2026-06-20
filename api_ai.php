@@ -261,6 +261,26 @@ switch ($task) {
         echo json_encode(['ok'=>true,'coords'=>$coords,'places'=>$places,'note'=>$obj['note'] ?? '','gagal_geocode'=>$failures]); exit;
     }
 
+    /* ---------- Generate Lirik (Revisi 20 Juni 2026 R4) ---------- */
+    case 'lyrics_gen': {
+        if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'judul/artis kosong']); exit; }
+        $sys = "Anda asisten penulis lirik. Tugas: cari/tuliskan ULANG lirik lengkap dari lagu yang diminta user. ".
+               "Aturan output WAJIB:\n".
+               "- HANYA teks lirik mentah, satu baris per baris (tanpa nomor, tanpa pengantar, tanpa penjelasan).\n".
+               "- Pertahankan bahasa asli lagu (jangan diterjemahkan).\n".
+               "- Jangan tulis 'Verse 1', 'Chorus', dll — cukup baris kosong sebagai pemisah bagian.\n".
+               "- Bila lagu tidak Anda kenali atau lirik tidak pasti, balas TEPAT: 'LIRIK_TIDAK_DITEMUKAN'.";
+        $r = gemini_text("Judul / artis: ".$prompt, ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>2048]);
+        if (!empty($r['ok'])) {
+            $txt = trim((string)($r['text'] ?? ''));
+            if ($txt === '' || stripos($txt, 'LIRIK_TIDAK_DITEMUKAN') !== false) {
+                echo json_encode(['ok'=>false,'err'=>'AI tidak menemukan lirik untuk "'.$prompt.'". Coba tombol "Cari di Google".']); exit;
+            }
+            echo json_encode(['ok'=>true,'text'=>$txt,'lyrics'=>$txt]); exit;
+        }
+        echo json_encode($r); exit;
+    }
+
     /* ---------- Chat free-form ---------- */
     default: {
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }

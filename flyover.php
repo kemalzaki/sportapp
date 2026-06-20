@@ -183,6 +183,11 @@ include __DIR__.'/includes/header.php';
           <input type="file" id="musicFile" class="form-control form-control-sm" accept="audio/*">
           <small class="text-muted d-block mt-1">Preview iTunes ±30 detik. Kalau kosong, dipakai musik bawaan.</small>
           <audio id="musicAudio" preload="auto" controls class="w-100 mt-2" style="height:34px"></audio>
+          <!-- Revisi 20 Juni 2026 R3 — Tombol Refresh Preview iTunes (atasi audio tidak bisa play saat pilih lagu ke-2) -->
+          <button type="button" id="btnMusicRefresh" class="btn btn-sm btn-outline-warning w-100 mt-1">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Preview iTunes
+          </button>
+          <small class="text-muted d-block">Tekan jika musik tidak bisa diputar setelah memilih lagu lain.</small>
           <div id="musicMeta" class="small text-muted mt-1"></div>
 
           <!-- Revisi 18 Juni 2026 — Trim audio (potong start/end detik) -->
@@ -218,6 +223,11 @@ include __DIR__.'/includes/header.php';
               <input class="form-check-input" type="checkbox" id="optLyricAuto" checked>
               <label class="form-check-label small" for="optLyricAuto">Auto-ambil lirik tiap kali memilih musik (deteksi otomatis)</label>
             </div>
+            <!-- Revisi 20 Juni 2026 R3 — Terjemah lirik EN → ID (subtitle ganda) -->
+            <div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" id="optLyricTranslate">
+              <label class="form-check-label small" for="optLyricTranslate"><i class="bi bi-translate text-primary"></i> Tampilkan terjemahan Indonesia di bawah lirik EN</label>
+            </div>
             <!-- Cari lirik manual via pencarian (mirip pencarian musik) -->
             <label class="form-label small mb-1 mt-1"><i class="bi bi-search"></i> Cari Lirik</label>
             <div class="input-group input-group-sm mb-1">
@@ -228,6 +238,18 @@ include __DIR__.'/includes/header.php';
             <input type="hidden" id="lyricTitle">
             <input type="hidden" id="lyricArtist">
             <textarea id="lyricManual" class="form-control form-control-sm mt-1" rows="3" placeholder="Atau tempel lirik manual (1 baris = 1 subtitle, atau format LRC [mm:ss.xx]baris)"></textarea>
+            <!-- Revisi 20 Juni 2026 R4 — Tombol direct Google + Generate lirik via AI -->
+            <div class="d-flex gap-1 mt-1 flex-wrap">
+              <button type="button" id="btnLyricGoogle" class="btn btn-outline-danger btn-sm flex-fill">
+                <i class="bi bi-google"></i> Cari di Google
+              </button>
+              <button type="button" id="btnLyricGen" class="btn btn-success btn-sm flex-fill">
+                <i class="bi bi-magic"></i> Generate Lirik (AI)
+              </button>
+            </div>
+            <small class="text-muted d-block mt-1">
+              <i class="bi bi-info-circle"></i> <b>Cari di Google</b> membuka tab baru hasil pencarian lirik (mudah copy-paste). <b>Generate Lirik (AI)</b> meminta Google Gemini menuliskan lirik lengkap berdasarkan judul/artis.
+            </small>
             <!-- Revisi 19 Juni 2026 — Sinkron Lirik & Musik via Gemini AI (→ format LRC) -->
             <button type="button" id="btnLrcAI" class="btn btn-info btn-sm w-100 mt-1">
               <i class="bi bi-stars"></i> Sinkron Lirik dgn Musik via AI (LRC)
@@ -312,6 +334,12 @@ include __DIR__.'/includes/header.php';
                max-width:84%;text-align:center;display:none;
                font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
                white-space:pre-line"></div>
+          <!-- Revisi 20 Juni 2026 R3 — Subtitle terjemahan EN→ID di bawah lirik asli -->
+          <div id="flyLyricID" style="position:absolute;left:50%;bottom:30px;transform:translateX(-50%);z-index:6;
+               color:#fde68a;font-weight:600;font-size:12px;line-height:1.2;
+               text-shadow:0 0 4px #000,0 0 4px #000,1px 1px 2px #000,-1px 1px 2px #000,1px -1px 2px #000,-1px -1px 2px #000;
+               max-width:84%;text-align:center;display:none;font-style:italic;
+               font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;white-space:pre-line"></div>
         </div>
         <div class="small text-muted mt-2 px-2">
           <i class="bi bi-info-circle"></i>
@@ -503,19 +531,40 @@ async function searchMusic(){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function pickMusic(t){
   const a = $('musicAudio');
+  // Revisi 20 Juni 2026 R3 — reset agar lagu ke-2/3 dst pasti bisa diputar
+  try { a.pause(); a.removeAttribute('src'); a.load(); } catch(_) {}
   a.crossOrigin = 'anonymous';
+  delete a.dataset.originalSrc;
   a.src = t.previewUrl; a.loop = true; a.load();
   $('musicMeta').innerHTML = '<i class="bi bi-music-note"></i> '+escapeHtml(t.trackName)+' — '+escapeHtml(t.artistName);
   MUSIC.currentTitle = t.trackName||''; MUSIC.currentArtist = t.artistName||'';
   $('lyricTitle').value = MUSIC.currentTitle;
   $('lyricArtist').value = MUSIC.currentArtist;
   TRIM.start=0; TRIM.end=0;
+  LYRICS.trans = {}; // bersihkan cache terjemahan saat ganti lagu
   a.addEventListener('loadedmetadata', onAudioMeta, { once:true });
-  // Revisi 18 Juni 2026 (C) — Auto-deteksi: ambil lirik otomatis (lyrics.ovh, BUKAN AI)
   if ($('optLyricAuto') && $('optLyricAuto').checked) {
     fetchLyricsByMeta(MUSIC.currentArtist, MUSIC.currentTitle);
   }
 }
+
+/* Revisi 20 Juni 2026 R3 — Tombol refresh preview iTunes */
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('btnMusicRefresh');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var a = document.getElementById('musicAudio');
+    if (!a) return;
+    var src = a.dataset.originalSrc || a.currentSrc || a.src;
+    if (!src){ alert('Belum ada musik dipilih.'); return; }
+    try { a.pause(); } catch(_){}
+    a.removeAttribute('src'); a.load();
+    setTimeout(function(){
+      a.src = src; a.load();
+      var p = a.play(); if (p && p.catch) p.catch(function(){});
+    }, 80);
+  });
+});
 
 
 /* ============================================================
@@ -574,14 +623,14 @@ function audioBufferToWav(buf){
 /* ============================================================
    Revisi 18 Juni 2026 — Lirik AI (Gemini) sebagai subtitle karaoke
    ============================================================ */
-var LYRICS = { lines: [], src: '' };
+/* (legacy LYRICS var dideklarasikan ulang di bawah dengan field trans) */
 /* ============================================================
    Revisi 18 Juni 2026 (C) — Lirik dari pencarian publik (iTunes + lyrics.ovh)
    Tidak menggunakan AI. Saat user memilih lagu dari pencarian musik (atau
    pencarian lirik di bawah), lirik diambil otomatis dari lyrics.ovh dan
    langsung mengisi textbox/subtitle.
    ============================================================ */
-var LYRICS = { lines: [], src: '' };
+var LYRICS = { lines: [], src: '', trans: {} };
 
 async function fetchLyricsByMeta(artist, title){
   if (!title){ $('lyricStat').textContent='Belum ada judul lagu.'; return; }
@@ -809,12 +858,15 @@ function currentLyricLine(audioTime){
 }
 // Ticker live untuk overlay HTML subtitle di preview
 setInterval(() => {
-  const el = document.getElementById('flyLyric'); if (!el) return;
+  const el = document.getElementById('flyLyric');
+  const elId = document.getElementById('flyLyricID');
+  if (!el) return;
   const a = $('musicAudio');
-  if (!$('optLyric').checked || !LYRICS.lines.length || !a || a.paused){ el.style.display='none'; return; }
+  if (!$('optLyric').checked || !LYRICS.lines.length || !a || a.paused){
+    el.style.display='none'; if(elId) elId.style.display='none'; return;
+  }
   const line = currentLyricLine(a.currentTime);
   if (line){
-    // Revisi 19 Juni 2026 Part R — preview overlay ikut style user
     const sizeOpt = document.getElementById('optLyricSize');
     const fontOpt = document.getElementById('optLyricFont');
     const colorOpt = document.getElementById('optLyricColor');
@@ -822,8 +874,34 @@ setInterval(() => {
     if (fontOpt) el.style.fontFamily = fontOpt.value;
     if (colorOpt) el.style.color = colorOpt.value;
     el.textContent = line; el.style.display='';
-  } else { el.style.display='none'; }
+    // Revisi 20 Juni 2026 R3 — Terjemahan EN → ID di bawah lirik
+    if (elId){
+      const trOn = document.getElementById('optLyricTranslate');
+      if (trOn && trOn.checked){
+        if (fontOpt) elId.style.fontFamily = fontOpt.value;
+        if (sizeOpt) elId.style.fontSize = (Math.max(11,(parseFloat(sizeOpt.value)||26)*0.78))+'px';
+        const cached = LYRICS.trans[line];
+        if (cached){ elId.textContent = cached; elId.style.display=''; }
+        else { elId.style.display='none'; translateLineToID(line); }
+      } else { elId.style.display='none'; }
+    }
+  } else { el.style.display='none'; if(elId) elId.style.display='none'; }
 }, 120);
+
+/* Revisi 20 Juni 2026 R3 — Terjemah baris lirik EN → ID via MyMemory (gratis, tanpa key) */
+var _trInflight = {};
+async function translateLineToID(line){
+  if (!line || LYRICS.trans[line] || _trInflight[line]) return;
+  _trInflight[line] = true;
+  try{
+    const url = 'https://api.mymemory.translated.net/get?q='+encodeURIComponent(line)+'&langpair=en|id';
+    const r = await fetch(url, { cache: 'force-cache' });
+    const j = await r.json();
+    const t = (j && j.responseData && j.responseData.translatedText) ? String(j.responseData.translatedText) : '';
+    if (t) LYRICS.trans[line] = t;
+  }catch(_){ /* abaikan */ }
+  finally { delete _trInflight[line]; }
+}
 
 /* HUD helpers — Revisi 17 Juni 2026: kecepatan memakai DURASI REAL aktivitas
  * (jarak_m / durasi_dtk dari run_sessions), bukan waktu animasi.
@@ -1403,6 +1481,52 @@ $('btnRecord').onclick  = ()=> {
       }
     } catch(e){ stat.innerHTML = '<span class="text-danger">Error: '+e.message+' (kemungkinan CORS pada sumber audio — coba upload file audio sendiri).</span>'; }
     btn.disabled = false; btn.innerHTML = oh;
+  });
+})();
+
+/* === Revisi 20 Juni 2026 R4 — Tombol Google + Generate Lirik via AI === */
+(function(){
+  function pickQuery(){
+    var t = (document.getElementById('lyricTitle')||{}).value || '';
+    var a = (document.getElementById('lyricArtist')||{}).value || '';
+    var q = document.getElementById('lyricQ');
+    if ((!t && !a) && q) return q.value || '';
+    return (a+' '+t).trim();
+  }
+  var bG = document.getElementById('btnLyricGoogle');
+  if (bG) bG.addEventListener('click', function(){
+    var q = pickQuery();
+    if (!q){ alert('Isi judul/artis dulu (atau pilih musik).'); return; }
+    var url = 'https://www.google.com/search?q='+encodeURIComponent('lirik '+q);
+    window.open(url, '_blank', 'noopener');
+  });
+  var bAI = document.getElementById('btnLyricGen');
+  if (bAI) bAI.addEventListener('click', async function(){
+    var q = pickQuery();
+    if (!q){ alert('Isi judul/artis dulu (atau pilih musik).'); return; }
+    var stat = document.getElementById('lyricStat');
+    var ta   = document.getElementById('lyricManual');
+    var orig = bAI.innerHTML;
+    bAI.disabled = true; bAI.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating…';
+    if (stat) stat.textContent = 'Meminta lirik ke Google Gemini…';
+    try {
+      var fd = new FormData();
+      fd.append('csrf', '<?= csrf_token() ?>');
+      fd.append('task', 'lyrics_gen');
+      fd.append('prompt', q);
+      var r = await fetch('/api_ai.php', { method:'POST', body:fd, credentials:'same-origin' });
+      var j = await r.json();
+      if (!j.ok){ if (stat) stat.innerHTML = '<span class="text-danger">Gagal: '+(j.err||'?')+'</span>'; return; }
+      var lyr = (j.text||j.lyrics||'').trim();
+      if (!lyr){ if (stat) stat.innerHTML = '<span class="text-warning">AI tidak menghasilkan lirik.</span>'; return; }
+      if (ta){ ta.value = lyr; ta.dispatchEvent(new Event('input')); }
+      var opt = document.getElementById('optLyric'); if (opt) opt.checked = true;
+      if (stat) stat.innerHTML = '<i class="bi bi-check-circle text-success"></i> Lirik di-generate oleh Google Gemini ('+lyr.split(/\n/).filter(Boolean).length+' baris).';
+    } catch(e){
+      if (stat) stat.innerHTML = '<span class="text-danger">Error: '+e.message+'</span>';
+    } finally {
+      bAI.disabled = false; bAI.innerHTML = orig;
+    }
   });
 })();
 </script>

@@ -56,6 +56,12 @@ include __DIR__.'/includes/header.php';
   </div>
 </a>
 
+<!-- Revisi 20 Juni 2026 R3 — Tombol cepat ke menu Eksplorasi (terutama untuk mobile / Jogging Progress) -->
+<a href="#eksplorasi" class="btn btn-outline-primary w-100 mb-3 d-md-none">
+  <i class="bi bi-compass"></i> Eksplorasi Rute &amp; Peta Canggih
+</a>
+
+
 <div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
   <div class="card-body py-3">
     <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Tracking Jalur / Rute Realtime</h6>
@@ -628,7 +634,7 @@ document.addEventListener('click', function(ev){
 <!-- ====== Revisi 15 Jun 2026: Eksplorasi Rute & Peta Canggih ======== -->
 <!-- ================================================================== -->
 <hr class="my-4">
-<h4 class="mb-3"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
+<h4 class="mb-3" id="eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
 
 <div class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
   <div class="card-body py-3">

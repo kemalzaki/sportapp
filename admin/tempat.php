@@ -5,44 +5,122 @@ require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle='Manajemen Tempat';
 
+/* ============================================================
+ * Revisi 20 Juni 2026 R3 — Tambah kolom rute hiking/camping:
+ *   gpx_path TEXT, parkir_info TEXT, run_route_id BIGINT
+ * Idempotent (ALTER ... IF NOT EXISTS) — aman dijalankan berulang.
+ * ============================================================ */
+@db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS gpx_path TEXT");
+@db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS parkir_info TEXT");
+@db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS run_route_id BIGINT");
+
+/* Jenis olahraga yang dianggap "outdoor trail" (butuh GPX) */
+function is_trail_jenis($namaJenis){
+    $n = mb_strtolower(trim((string)$namaJenis));
+    return in_array($n, ['hiking','camping'], true);
+}
+
+/* Helper: simpan upload GPX, mengembalikan path relatif atau null */
+function save_gpx_upload($field='gpx_file'){
+    if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? 4) !== 0) return null;
+    $tmp = $_FILES[$field]['tmp_name'];
+    $orig = $_FILES[$field]['name'] ?? 'route.gpx';
+    $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    if ($ext !== 'gpx') return null;
+    $sz = (int)($_FILES[$field]['size'] ?? 0);
+    if ($sz <= 0 || $sz > 8 * 1024 * 1024) return null; // maks 8 MB
+    $head = @file_get_contents($tmp, false, null, 0, 512);
+    if (!$head || stripos($head, '<gpx') === false) return null;
+    $dir = __DIR__.'/../uploads/gpx';
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $name = 'gpx_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.gpx';
+    $dest = $dir.'/'.$name;
+    if (!@move_uploaded_file($tmp, $dest)) return null;
+    return '/uploads/gpx/'.$name;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? 'create';
     if ($a==='delete') {
+        // Hapus juga file GPX yg terkait bila ada
+        $old = db_one("SELECT gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
+        if ($old && !empty($old['gpx_path'])) {
+            $p = __DIR__.'/..'.$old['gpx_path'];
+            if (is_file($p)) @unlink($p);
+        }
         db_exec("DELETE FROM tempat WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='edit') {
-        $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
-        $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
+        $jenisId = ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null;
+        $jenisRow = $jenisId ? db_one("SELECT nama FROM jenis_olahraga WHERE id=$1", [$jenisId]) : null;
+        $isTrail = $jenisRow ? is_trail_jenis($jenisRow['nama']) : false;
+
+        // Khusus hiking/camping: kosongkan lat/lng. Selain itu: pertahankan / update.
+        if ($isTrail) { $lat = null; $lng = null; }
+        else {
+            $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
+            $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
+        }
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
+
+        // GPX: kalau ada upload baru, ganti; kalau ada flag hapus_gpx, hapus.
+        $newGpx = $isTrail ? save_gpx_upload('gpx_file') : null;
+        $hapusGpx = !empty($_POST['hapus_gpx']);
+        $gpxSql = ''; $extraParams = [];
+        $existing = db_one("SELECT gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
+        $gpxFinal = $existing['gpx_path'] ?? null;
+        if ($newGpx) {
+            if ($gpxFinal) { $p = __DIR__.'/..'.$gpxFinal; if (is_file($p)) @unlink($p); }
+            $gpxFinal = $newGpx;
+        } elseif ($hapusGpx && $gpxFinal) {
+            $p = __DIR__.'/..'.$gpxFinal; if (is_file($p)) @unlink($p);
+            $gpxFinal = null;
+        }
+        if (!$isTrail) { $gpxFinal = null; }
+
+        $parkir = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
+        $runRouteId = ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
+
         db_exec("UPDATE tempat SET nama=$1, alamat=$2, harga_lapang=$3, harga_per_jam=$4,
                    harga_tiket=$5, harga_parkir=$6, status_booking=$7, catatan=$8,
-                   pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13, tampil_booking=$14
-                 WHERE id=$15",
+                   pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13, tampil_booking=$14,
+                   gpx_path=$15, parkir_info=$16, run_route_id=$17
+                 WHERE id=$18",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
              $_POST['status_booking'] ?? 'tersedia', trim($_POST['catatan'] ?? ''),
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
-             ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null,
-             $lat, $lng, $tampil,
+             $jenisId, $lat, $lng, $tampil,
+             $gpxFinal, $parkir, $runRouteId,
              (int)$_POST['id']]);
     } elseif ($a==='toggle_booking') {
         db_exec("UPDATE tempat SET tampil_booking = NOT tampil_booking WHERE id=$1", [(int)$_POST['id']]);
     } else {
-        $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
-        $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
+        $jenisId = ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null;
+        $jenisRow = $jenisId ? db_one("SELECT nama FROM jenis_olahraga WHERE id=$1", [$jenisId]) : null;
+        $isTrail = $jenisRow ? is_trail_jenis($jenisRow['nama']) : false;
+        if ($isTrail) { $lat = null; $lng = null; }
+        else {
+            $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
+            $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
+        }
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
-        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
+        $gpxFinal  = $isTrail ? save_gpx_upload('gpx_file') : null;
+        $parkir    = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
+        $runRouteId= ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
+
+        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking,gpx_path,parkir_info,run_route_id)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
              $_POST['status_booking'] ?? 'tersedia', trim($_POST['catatan'] ?? ''),
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
-             ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null,
-             $lat, $lng, $tampil]);
+             $jenisId, $lat, $lng, $tampil,
+             $gpxFinal, $parkir, $runRouteId]);
     }
     header('Location: tempat.php'); exit;
 }
@@ -76,6 +154,21 @@ $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
 $jenisList = db_all("SELECT id, nama FROM jenis_olahraga ORDER BY nama");
 $statuses = ['tersedia','booked','renovasi','tutup'];
 
+/* Rute tersimpan milik admin (untuk dropdown hiking/camping) */
+$adminId = (int)($_SESSION['user_id'] ?? ($_SESSION['uid'] ?? 0));
+$savedRoutes = [];
+try {
+  $savedRoutes = db_all("SELECT id, nama, jarak_m FROM run_routes
+                         WHERE user_id=$1 OR is_public = true
+                         ORDER BY id DESC LIMIT 100", [$adminId]);
+} catch (Throwable $e) { $savedRoutes = []; }
+
+/* Set ID jenis yang trail untuk dipakai di JS */
+$trailJenisIds = [];
+foreach ($jenisList as $jn) {
+    if (is_trail_jenis($jn['nama'])) $trailJenisIds[] = (int)$jn['id'];
+}
+
 function sort_link($key, $label, $sort, $dir){
     $nextDir = ($sort===$key && $dir==='asc') ? 'desc' : 'asc';
     $arrow = $sort===$key ? ($dir==='asc' ? ' <i class="bi bi-caret-up-fill small"></i>' : ' <i class="bi bi-caret-down-fill small"></i>') : '';
@@ -84,13 +177,14 @@ function sort_link($key, $label, $sort, $dir){
 }
 
 include __DIR__.'/../includes/header.php'; ?>
+<script>window.TRAIL_JENIS_IDS = <?= json_encode($trailJenisIds) ?>;</script>
 
 <h2 class="mb-3"><i class="bi bi-geo-alt text-primary"></i> Manajemen Tempat</h2>
 <p class="text-muted">Daftar lapangan / GOR beserta detail biaya, PIC admin, kontak WA, dan jenis olahraga.</p>
 
 <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Tempat</div>
 <div class="card-body">
-  <form method="post" class="row g-2">
+  <form method="post" class="row g-2" enctype="multipart/form-data" id="newForm" data-trail-form="1">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
     <input type="hidden" name="_action" value="create">
     <div class="col-md-3"><label class="form-label small fw-semibold">Nama Tempat</label><input class="form-control" name="nama" required></div>
@@ -123,7 +217,37 @@ include __DIR__.'/../includes/header.php'; ?>
       <label class="form-check-label small fw-semibold" for="newTampil"><i class="bi bi-calendar2-check text-primary"></i> Tampilkan di Booking</label>
     </div></div>
 
-    <!-- Lat/Lng + Map Picker -->
+    <!-- Revisi 20 Juni 2026 R3 — Panel khusus Hiking/Camping -->
+    <div class="col-12 trail-panel" style="display:none">
+      <div class="border rounded p-2 bg-success-subtle">
+        <div class="fw-bold small mb-2"><i class="bi bi-tree text-success"></i> Khusus Hiking / Camping — Rute Perjalanan</div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold"><i class="bi bi-cloud-upload"></i> Upload File .GPX (rute)</label>
+            <input type="file" name="gpx_file" class="form-control" accept=".gpx,application/gpx+xml">
+            <small class="text-muted">Maks 8 MB. Bisa diekspor dari Strava, Google My Maps, dll.</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold"><i class="bi bi-signpost-2"></i> Atau pilih Rute Tersimpan (run.php)</label>
+            <select class="form-select" name="run_route_id">
+              <option value="">— tidak memakai rute tersimpan —</option>
+              <?php foreach($savedRoutes as $rr): ?>
+                <option value="<?= (int)$rr['id'] ?>"><?= htmlspecialchars($rr['nama']) ?> · <?= round(((float)$rr['jarak_m'])/1000,2) ?> km</option>
+              <?php endforeach; ?>
+            </select>
+            <small class="text-muted">Bila keduanya diisi, file GPX yang dipakai untuk visualisasi peta.</small>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold"><i class="bi bi-p-square text-primary"></i> Tempat Parkir yang Disarankan</label>
+            <textarea name="parkir_info" rows="2" class="form-control" placeholder="cth: Parkir di basecamp Cibodas, biaya Rp 10.000 / motor, jaga 24 jam."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lat/Lng + Map Picker (selain hiking/camping) -->
+    <div class="col-12 nontrail-section">
+    <div class="row g-2">
     <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Latitude</label>
       <input class="form-control" name="lat" id="newLat" placeholder="cth: -6.9214" inputmode="decimal"></div>
     <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Longitude</label>
@@ -135,6 +259,8 @@ include __DIR__.'/../includes/header.php'; ?>
     <div class="col-12"><label class="form-label small fw-semibold">Pin lokasi (klik / drag marker)</label>
       <div id="newMap" style="height:260px;border-radius:8px;border:1px solid #ddd;"></div>
       <small class="text-muted">Klik peta untuk memindahkan pin. Lat/Lng akan auto-terisi.</small>
+    </div>
+    </div>
     </div>
 
     <div class="col-12"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</button></div>
@@ -283,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function(){
   </tbody></table></div></div>
 
 <?php foreach($rows as $r): ?>
-<div class="modal fade" id="tpE<?= $r['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><form method="post" class="modal-content">
+<div class="modal fade" id="tpE<?= $r['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><form method="post" class="modal-content" enctype="multipart/form-data" data-trail-form="1">
   <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="edit"><input type="hidden" name="id" value="<?= $r['id'] ?>">
   <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Tempat</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
@@ -317,6 +443,44 @@ document.addEventListener('DOMContentLoaded', function(){
         <label class="form-check-label small fw-semibold" for="editTampil<?= (int)$r['id'] ?>"><i class="bi bi-calendar2-check text-primary"></i> Tampilkan di Booking</label>
       </div></div>
 
+      <!-- Revisi 20 Juni 2026 R3 — Panel Hiking/Camping (edit) -->
+      <div class="col-12 trail-panel" style="display:none">
+        <div class="border rounded p-2 bg-success-subtle">
+          <div class="fw-bold small mb-2"><i class="bi bi-tree text-success"></i> Rute Perjalanan (Hiking / Camping)</div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold"><i class="bi bi-cloud-upload"></i> Ganti file .GPX</label>
+              <input type="file" name="gpx_file" class="form-control" accept=".gpx,application/gpx+xml">
+              <?php if (!empty($r['gpx_path'])): ?>
+                <div class="small mt-1">
+                  <a href="<?= htmlspecialchars($r['gpx_path']) ?>" download><i class="bi bi-file-earmark-arrow-down"></i> Unduh GPX saat ini</a>
+                  <label class="ms-3"><input type="checkbox" name="hapus_gpx" value="1"> Hapus rute saat ini</label>
+                </div>
+              <?php else: ?>
+                <small class="text-muted d-block">Belum ada rute terupload.</small>
+              <?php endif; ?>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold"><i class="bi bi-signpost-2"></i> Rute Tersimpan (run.php)</label>
+              <select class="form-select" name="run_route_id">
+                <option value="">— tidak memakai rute tersimpan —</option>
+                <?php foreach($savedRoutes as $rr): ?>
+                  <option value="<?= (int)$rr['id'] ?>" <?= ((string)($r['run_route_id'] ?? '')===(string)$rr['id'])?'selected':'' ?>>
+                    <?= htmlspecialchars($rr['nama']) ?> · <?= round(((float)$rr['jarak_m'])/1000,2) ?> km
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold"><i class="bi bi-p-square text-primary"></i> Tempat Parkir yang Disarankan</label>
+              <textarea name="parkir_info" rows="2" class="form-control"><?= htmlspecialchars($r['parkir_info'] ?? '') ?></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 nontrail-section">
+      <div class="row g-2">
       <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Latitude</label>
         <input class="form-control" name="lat" id="editLat<?= (int)$r['id'] ?>" value="<?= htmlspecialchars($r['lat'] ?? '') ?>" inputmode="decimal"></div>
       <div class="col-md-3"><label class="form-label small fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Longitude</label>
@@ -328,6 +492,8 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="col-12"><label class="form-label small fw-semibold">Pin lokasi</label>
         <div id="editMap<?= (int)$r['id'] ?>" style="height:260px;border-radius:8px;border:1px solid #ddd;"></div>
       </div>
+      </div>
+      </div>
     </div>
   </div>
   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
@@ -335,3 +501,26 @@ document.addEventListener('DOMContentLoaded', function(){
 <?php endforeach; ?>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>
+
+<script>
+/* Revisi 20 Juni 2026 R3 — Toggle panel Hiking/Camping berdasar pilihan Jenis */
+(function(){
+  var TRAIL = (window.TRAIL_JENIS_IDS||[]).map(String);
+  function applyForm(form){
+    var sel = form.querySelector('select[name="jenis_id"]');
+    if(!sel) return;
+    var isTrail = TRAIL.indexOf(String(sel.value)) >= 0;
+    form.querySelectorAll('.trail-panel').forEach(function(el){ el.style.display = isTrail ? '' : 'none'; });
+    form.querySelectorAll('.nontrail-section').forEach(function(el){ el.style.display = isTrail ? 'none' : ''; });
+    // Pastikan input lat/lng tidak dikirim saat trail
+    form.querySelectorAll('.nontrail-section input[name="lat"], .nontrail-section input[name="lng"]').forEach(function(inp){
+      inp.disabled = isTrail;
+    });
+  }
+  document.querySelectorAll('form[data-trail-form="1"]').forEach(function(f){
+    var sel = f.querySelector('select[name="jenis_id"]');
+    if(sel){ sel.addEventListener('change', function(){ applyForm(f); }); }
+    applyForm(f);
+  });
+})();
+</script>
