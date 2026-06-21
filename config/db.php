@@ -147,7 +147,7 @@ try {
     }
 } catch (Throwable $e) { /* ignore */ }
 
-/* ---------- Revisi 30 Mei 2026: tabel baru ---------- */
+/* ---------- Auto-migration: JANGAN DIJALANKAN DI SETIAP LOAD (MATIKAN) ----------
 try {
     // Donasi Kegiatan: rekening dikelola admin via CRUD
     @pg_query(db(), "CREATE TABLE IF NOT EXISTS donasi_rekening (
@@ -268,3 +268,4 @@ try {
             ('DANA','081234567890','Bendahara Kegiatan',3,true)");
     }
 } catch (Throwable $e) { /* ignore */ }
+---------- */
