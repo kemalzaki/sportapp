@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Hapus paksa semua berkas load MPM event agar tidak bentrok dengan prefork saat runtime
+# Hapus paksa berkas pemicu konflik MPM ganda di runtime
 rm -f /etc/apache2/mods-enabled/mpm_event.load
 rm -f /etc/apache2/mods-enabled/mpm_event.conf
 
-# Jalankan Apache bawaan di foreground
+# Jalankan perintah utama bawaan apache
 exec apache2-foreground
