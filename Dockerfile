@@ -7,21 +7,25 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Bersihkan total modul MPM yang bertabrakan secara paksa di level OS
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.load \
-    && rm -f /etc/apache2/mods-enabled/mpm_event.conf \
-    && a2enmod mpm_prefork \
+# Aktifkan modul dasar yang dibutuhkan .htaccess
+RUN a2enmod mpm_prefork \
     && a2enmod rewrite \
     && a2enmod deflate \
     && a2enmod expires \
     && a2enmod headers
 
-# Copy seluruh file aplikasi ke Apache web root
+# Copy application files
 COPY . /var/www/html/
 
-# Set ownership dan permission yang aman
+# Set secure permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-# Biarkan Apache berjalan di port default container (80)
+# Salin script entrypoint dan berikan izin eksekusi
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
+
+# Jalankan entrypoint kustom kita
+ENTRYPOINT ["/entrypoint.sh"]
