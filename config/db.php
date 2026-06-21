@@ -147,125 +147,76 @@ try {
     }
 } catch (Throwable $e) { /* ignore */ }
 
-/* ---------- Auto-migration: JANGAN DIJALANKAN DI SETIAP LOAD (MATIKAN) ----------
+/* ---------- Auto-migration: MATIKAN DI PRODUCTION AGAR TIDAK LEMOT ---------- */
+/* try {
+    @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS jam_mulai TIME");
+    @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS jam_selesai TIME");
+    @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS durasi_menit INTEGER");
+    @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS nomor_wa VARCHAR(25)");
+    @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS jenis_kelamin VARCHAR(10)");
+    @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION");
+    @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION");
+    @pg_query(db(), "ALTER TABLE chat_forum ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP");
+    @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS status VARCHAR(12)");
+    @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS keterangan TEXT");
+    
+    $cekTampil = @pg_query(db(), "SELECT 1 FROM information_schema.columns WHERE table_name='tempat' AND column_name='tampil_booking'");
+    if ($cekTampil !== false && pg_num_rows($cekTampil) === 0) {
+        @pg_query(db(), "ALTER TABLE tempat ADD COLUMN tampil_booking BOOLEAN NOT NULL DEFAULT false");
+        @pg_query(db(), "UPDATE tempat SET tampil_booking = true WHERE jenis_id IN (SELECT id FROM jenis_olahraga WHERE nama IN ('Badminton','Futsal','Biliar','Biliard'))");
+    }
+} catch (Throwable $e) { }
+*/
+
+/* ---------- Auto-migration: MATIKAN DI PRODUCTION AGAR TIDAK LEMOT ---------- */
+/* try {
+    @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS jam_mulai TIME");
+    @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS jam_selesai TIME");
+    @pg_query(db(), "ALTER TABLE jadwal ADD COLUMN IF NOT EXISTS durasi_menit INTEGER");
+    @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS nomor_wa VARCHAR(25)");
+    @pg_query(db(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS jenis_kelamin VARCHAR(10)");
+    @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION");
+    @pg_query(db(), "ALTER TABLE tempat ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION");
+    @pg_query(db(), "ALTER TABLE chat_forum ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP");
+    @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS status VARCHAR(12)");
+    @pg_query(db(), "ALTER TABLE event_peserta ADD COLUMN IF NOT EXISTS keterangan TEXT");
+    
+    $cekTampil = @pg_query(db(), "SELECT 1 FROM information_schema.columns WHERE table_name='tempat' AND column_name='tampil_booking'");
+    if ($cekTampil !== false && pg_num_rows($cekTampil) === 0) {
+        @pg_query(db(), "ALTER TABLE tempat ADD COLUMN tampil_booking BOOLEAN NOT NULL DEFAULT false");
+        @pg_query(db(), "UPDATE tempat SET tampil_booking = true WHERE jenis_id IN (SELECT id FROM jenis_olahraga WHERE nama IN ('Badminton','Futsal','Biliar','Biliard'))");
+    }
+} catch (Throwable $e) { }
+*/
+
+/* ---------- Revisi 30 Mei 2026: tabel baru (MATIKAN) ---------- */
+/*
 try {
-    // Donasi Kegiatan: rekening dikelola admin via CRUD
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS donasi_rekening (
-        id SERIAL PRIMARY KEY,
-        bank VARCHAR(60) NOT NULL,
-        nomor VARCHAR(60) NOT NULL,
-        atas_nama VARCHAR(120) NOT NULL,
-        keterangan VARCHAR(200),
-        aktif BOOLEAN NOT NULL DEFAULT true,
-        urutan INT NOT NULL DEFAULT 0,
-        created_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
-
-    // Rekap pengeluaran kegiatan olahraga (relasi ke jadwal)
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS pengeluaran_kegiatan (
-        id SERIAL PRIMARY KEY,
-        jadwal_id INT REFERENCES jadwal(id) ON DELETE SET NULL,
-        tanggal DATE NOT NULL DEFAULT CURRENT_DATE,
-        kategori VARCHAR(60),
-        judul VARCHAR(200) NOT NULL,
-        jumlah BIGINT NOT NULL DEFAULT 0,
-        catatan TEXT,
-        bukti_url TEXT,
-        created_by INT REFERENCES users(id) ON DELETE SET NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
-
-    // === Jajanan (Gojek-style) ===
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan (
-        id SERIAL PRIMARY KEY,
-        nama VARCHAR(160) NOT NULL,
-        deskripsi TEXT,
-        harga INT NOT NULL DEFAULT 0,
-        stok INT NOT NULL DEFAULT 0,
-        foto_url TEXT,
-        kategori VARCHAR(60),
-        aktif BOOLEAN NOT NULL DEFAULT true,
-        created_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan_pesanan (
-        id SERIAL PRIMARY KEY,
-        kode VARCHAR(20) UNIQUE NOT NULL,
-        nama_pemesan VARCHAR(120) NOT NULL,
-        no_wa VARCHAR(25) NOT NULL,
-        alamat TEXT NOT NULL,
-        catatan TEXT,
-        subtotal BIGINT NOT NULL DEFAULT 0,
-        ongkir BIGINT NOT NULL DEFAULT 0,
-        total BIGINT NOT NULL DEFAULT 0,
-        metode VARCHAR(20) DEFAULT 'cod',
-        status VARCHAR(20) NOT NULL DEFAULT 'baru',
-        kurir_user_id INT REFERENCES users(id) ON DELETE SET NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT now(),
-        updated_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan_pesanan_item (
-        id SERIAL PRIMARY KEY,
-        pesanan_id INT NOT NULL REFERENCES jajanan_pesanan(id) ON DELETE CASCADE,
-        jajanan_id INT REFERENCES jajanan(id) ON DELETE SET NULL,
-        nama VARCHAR(160) NOT NULL,
-        harga INT NOT NULL DEFAULT 0,
-        qty INT NOT NULL DEFAULT 1
-    )");
-
-    // === Revisi 31 Mei 2026 v2: kolom & tabel tambahan ===
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS donasi_rekening (id SERIAL PRIMARY KEY, bank VARCHAR(60) NOT NULL, nomor VARCHAR(60) NOT NULL, atas_nama VARCHAR(120) NOT NULL, keterangan VARCHAR(200), aktif BOOLEAN NOT NULL DEFAULT true, urutan INT NOT NULL DEFAULT 0, created_at TIMESTAMP NOT NULL DEFAULT now())");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS pengeluaran_kegiatan (id SERIAL PRIMARY KEY, jadwal_id INT REFERENCES jadwal(id) ON DELETE SET NULL, tanggal DATE NOT NULL DEFAULT CURRENT_DATE, kategori VARCHAR(60), judul VARCHAR(200) NOT NULL, jumlah BIGINT NOT NULL DEFAULT 0, catatan TEXT, bukti_url TEXT, created_by INT REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP NOT NULL DEFAULT now())");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan (id SERIAL PRIMARY KEY, nama VARCHAR(160) NOT NULL, deskripsi TEXT, harga INT NOT NULL DEFAULT 0, stok INT NOT NULL DEFAULT 0, foto_url TEXT, kategori VARCHAR(60), aktif BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMP NOT NULL DEFAULT now())");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan_pesanan (id SERIAL PRIMARY KEY, kode VARCHAR(20) UNIQUE NOT NULL, nama_pemesan VARCHAR(120) NOT NULL, no_wa VARCHAR(25) NOT NULL, alamat TEXT NOT NULL, catatan TEXT, subtotal BIGINT NOT NULL DEFAULT 0, ongkir BIGINT NOT NULL DEFAULT 0, total BIGINT NOT NULL DEFAULT 0, metode VARCHAR(20) DEFAULT 'cod', status VARCHAR(20) NOT NULL DEFAULT 'baru', kurir_user_id INT REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now())");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS jajanan_pesanan_item (id SERIAL PRIMARY KEY, pesanan_id INT NOT NULL REFERENCES jajanan_pesanan(id) ON DELETE CASCADE, jajanan_id INT REFERENCES jajanan(id) ON DELETE SET NULL, nama VARCHAR(160) NOT NULL, harga INT NOT NULL DEFAULT 0, qty INT NOT NULL DEFAULT 1)");
     @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS foto_file_id VARCHAR(120)");
-    // === Revisi 1 Jun 2026: lat/lng lokasi jajanan ===
     @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS lat NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS lng NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lat NUMERIC(10,6)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS pickup_lng NUMERIC(10,6)");
-
-    // === Revisi 2 Jun 2026 (lanjutan): Toko / Pedagang ===
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS toko (
-        id SERIAL PRIMARY KEY,
-        nama VARCHAR(160) NOT NULL,
-        deskripsi TEXT,
-        alamat TEXT,
-        no_wa VARCHAR(25),
-        lat NUMERIC(10,6),
-        lng NUMERIC(10,6),
-        aktif BOOLEAN NOT NULL DEFAULT true,
-        created_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS toko (id SERIAL PRIMARY KEY, nama VARCHAR(160) NOT NULL, deskripsi TEXT, alamat TEXT, no_wa VARCHAR(25), lat NUMERIC(10,6), lng NUMERIC(10,6), aktif BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMP NOT NULL DEFAULT now())");
     @pg_query(db(), "ALTER TABLE jajanan ADD COLUMN IF NOT EXISTS toko_id INT REFERENCES toko(id) ON DELETE SET NULL");
     @pg_query(db(), "CREATE INDEX IF NOT EXISTS jajanan_toko_idx ON jajanan(toko_id)");
-
-    // === Revisi 2 Jun 2026: Midtrans columns ===
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'pending'");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS midtrans_order_id VARCHAR(40)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS snap_token VARCHAR(120)");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS snap_redirect TEXT");
     @pg_query(db(), "ALTER TABLE jajanan_pesanan ADD COLUMN IF NOT EXISTS stok_dipotong BOOLEAN NOT NULL DEFAULT false");
-
-    // === Lacak HP oleh admin (heartbeat lokasi tiap user) ===
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS device_locations (
-        user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-        lat NUMERIC(10,6) NOT NULL,
-        lng NUMERIC(10,6) NOT NULL,
-        accuracy_m NUMERIC(8,2),
-        device_label VARCHAR(120),
-        updated_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
-    @pg_query(db(), "CREATE TABLE IF NOT EXISTS device_location_history (
-        id BIGSERIAL PRIMARY KEY,
-        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        lat NUMERIC(10,6) NOT NULL,
-        lng NUMERIC(10,6) NOT NULL,
-        accuracy_m NUMERIC(8,2),
-        created_at TIMESTAMP NOT NULL DEFAULT now()
-    )");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS device_locations (user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, lat NUMERIC(10,6) NOT NULL, lng NUMERIC(10,6) NOT NULL, accuracy_m NUMERIC(8,2), device_label VARCHAR(120), updated_at TIMESTAMP NOT NULL DEFAULT now())");
+    @pg_query(db(), "CREATE TABLE IF NOT EXISTS device_location_history (id BIGSERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, lat NUMERIC(10,6) NOT NULL, lng NUMERIC(10,6) NOT NULL, accuracy_m NUMERIC(8,2), created_at TIMESTAMP NOT NULL DEFAULT now())");
     @pg_query(db(), "CREATE INDEX IF NOT EXISTS device_loc_hist_user_idx ON device_location_history(user_id, created_at DESC)");
+    
     $cnt = @pg_fetch_row(@pg_query(db(), "SELECT COUNT(*) FROM donasi_rekening"));
     if ($cnt && (int)$cnt[0] === 0) {
-        @pg_query(db(), "INSERT INTO donasi_rekening(bank,nomor,atas_nama,urutan,aktif) VALUES
-            ('BCA','1234567890','Bendahara Kegiatan',1,true),
-            ('Mandiri','9876543210','Bendahara Kegiatan',2,true),
-            ('DANA','081234567890','Bendahara Kegiatan',3,true)");
+        @pg_query(db(), "INSERT INTO donasi_rekening(bank,nomor,atas_nama,urutan,aktif) VALUES ('BCA','1234567890','Bendahara Kegiatan',1,true), ('Mandiri','9876543210','Bendahara Kegiatan',2,true), ('DANA','081234567890','Bendahara Kegiatan',3,true)");
     }
-} catch (Throwable $e) { /* ignore */ }
----------- */
+} catch (Throwable $e) { }
+*/
