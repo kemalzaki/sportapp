@@ -35,13 +35,13 @@ if ($DATABASE_URL) {
     $DB_USER = $u['user'] ?? 'postgres';
     $DB_PASS = $u['pass'] ?? '';
 } else {
-    $DB_HOST = getenv('DB_HOST') ?: 'pg-c8c7f-adamsasmita534-4b4d.e.aivencloud.com';
-    $DB_PORT = getenv('DB_PORT') ?: '18028';
-    $DB_NAME = getenv('DB_NAME') ?: 'defaultdb';
-    $DB_USER = getenv('DB_USER') ?: 'avnadmin';
-    $DB_PASS = getenv('DB_PASS') ?: 'AVNS_y5gOzXZcbIzr4ENiNug';
+    $DB_HOST = getenv('DB_HOST') ?: 'postgresql-hapfam.alwaysdata.net';
+    $DB_PORT = getenv('DB_PORT') ?: '5432';
+    $DB_NAME = getenv('DB_NAME') ?: 'hapfam_sportapp';
+    $DB_USER = getenv('DB_USER') ?: 'hapfam';
+    $DB_PASS = getenv('DB_PASS') ?: 'kmzwa8awaa@@@';
 }
-$DB_SSL = getenv('DB_SSLMODE') ?: 'require';
+$DB_SSL = getenv('DB_SSLMODE') ?: 'prefer';
 
 $conninfo = sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
     $DB_HOST, $DB_PORT, $DB_NAME, $DB_USER, $DB_PASS, $DB_SSL);

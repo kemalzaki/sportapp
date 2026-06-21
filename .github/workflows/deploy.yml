@@ -1,0 +1,26 @@
+name: Deploy to Alwaysdata via SSH
+
+on:
+  push:
+    branches:
+      - main  # Atau sesuaikan dengan nama branch utama Anda (misal: master)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Deploy via SSH rsync
+        uses: Burnett01/rsync-deployments@5.2.1
+        with:
+          switches: -avzr --delete
+          path: ./
+          remote_path: /home/hapfam/www/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          remote_key: "" # Kosongkan karena kita pakai password
+          remote_port: "22"
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
