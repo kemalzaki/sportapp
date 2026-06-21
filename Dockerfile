@@ -14,6 +14,10 @@ RUN a2enmod mpm_prefork \
     && a2enmod expires \
     && a2enmod headers
 
+# UBAH PORT APACHE AGAR DINAMIS MENGIKUTI RAILWAY
+RUN sed -i 's/Listen 80/Listen ${PORT}/g' /etc/apache2/ports.conf \
+    && sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:${PORT}>/g' /etc/apache2/sites-available/000-default.conf
+
 # Copy application files
 COPY . /var/www/html/
 
@@ -25,7 +29,8 @@ RUN chown -R www-data:www-data /var/www/html \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 80
+# Buka port dinamis
+EXPOSE ${PORT}
 
-# Jalankan entrypoint kustom kita
+# Jalankan entrypoint kustom
 ENTRYPOINT ["/entrypoint.sh"]
