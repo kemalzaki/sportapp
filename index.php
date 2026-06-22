@@ -943,14 +943,30 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
             <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($j['jenis']) ?></span></td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
-            <td data-label="Lokasi">
-              <?php
-                $maps = ($j['tp_lat'] && $j['tp_lng'])
-                  ? 'https://www.google.com/maps?q='.$j['tp_lat'].','.$j['tp_lng']
-                  : 'https://www.google.com/maps/search/'.urlencode($j['tempat']);
-              ?>
-              <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($maps) ?>" title="Lihat di Google Maps"><i class="bi bi-google"></i> Lokasi</a>
-            </td>
+             <td data-label="Lokasi">
+               <?php
+                 $maps = ($j['tp_lat'] && $j['tp_lng'])
+                   ? 'https://www.google.com/maps?q='.$j['tp_lat'].','.$j['tp_lng']
+                   : 'https://www.google.com/maps/search/'.urlencode($j['tempat']);
+               ?>
+               <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($maps) ?>" title="Lihat di Google Maps"><i class="bi bi-google"></i> Lokasi</a>
+               <?php
+                 // Revisi 22 Juni 2026 v3 — tombol popup peta rute Hiking
+                 if (mb_strtolower(trim((string)$j['jenis'])) === 'hiking') {
+                   $__gpx = (string)($j['tp_gpx_path'] ?? '');
+                   $__geo = $jadwalRouteGeo[$jid] ?? null;
+                   if ($__gpx || $__geo) {
+                     echo '<button type="button" class="btn btn-sm btn-outline-danger ms-1 hk-route-btn" '
+                        . 'data-bs-toggle="modal" data-bs-target="#hkRouteModal" '
+                        . 'data-hk-id="'.$jid.'" '
+                        . 'data-hk-title="'.htmlspecialchars($j['tanggal'].' — '.$j['tempat'], ENT_QUOTES).'" '
+                        . 'data-hk-gpx="'.htmlspecialchars($__gpx, ENT_QUOTES).'" '
+                        . 'data-hk-geo="'.htmlspecialchars($__geo ?: '', ENT_QUOTES).'" '
+                        . 'title="Lihat rute perjalanan"><i class="bi bi-map"></i> Peta Rute</button>';
+                   }
+                 }
+               ?>
+             </td>
             <td data-label="Koord"><a class="text-decoration-none" href="/user.php?id=<?= (int)$j['koordinator_id'] ?>"><?= user_name_with_avatar($j['koord_foto'] ?? null, $j['koordinator'] ?? '-', false, 24) ?></a></td>
             <td data-label="Absensi Saya">
               <?php if($u):
@@ -1028,99 +1044,101 @@ document.addEventListener('DOMContentLoaded', () => {
         </tbody></table></div>
 
         <?php
-          // Revisi 22 Juni 2026 — Map rute Hiking dirender DI LUAR tabel (di bawahnya)
-          // agar tidak terpengaruh oleh pagination/responsive-stack tabel.
-          $hikingMaps = [];
+          // Revisi 22 Juni 2026 v3 — modal popup peta rute Hiking (dirender sekali)
+          $__hasHikingRoute = false;
           foreach ($jadwalTerdekat as $__hj) {
             if (mb_strtolower(trim((string)$__hj['jenis'])) !== 'hiking') continue;
-            $__gpx = (string)($__hj['tp_gpx_path'] ?? '');
-            $__geo = $jadwalRouteGeo[(int)$__hj['id']] ?? null;
-            if (!$__gpx && !$__geo) continue;
-            $hikingMaps[] = [
-              'id'      => (int)$__hj['id'],
-              'tanggal' => (string)$__hj['tanggal'],
-              'tempat'  => (string)$__hj['tempat'],
-              'gpx'     => $__gpx,
-              'geo'     => $__geo,
-            ];
+            if (!empty($__hj['tp_gpx_path']) || !empty($jadwalRouteGeo[(int)$__hj['id']])) { $__hasHikingRoute = true; break; }
           }
         ?>
-        <?php if ($hikingMaps): ?>
-        <div class="px-3 pb-3 pt-2 border-top">
-          <div class="small text-muted mb-2"><i class="bi bi-tree text-success"></i> Rute Perjalanan (Hiking) pada Jadwal Terdekat</div>
-          <div class="row g-3">
-            <?php foreach ($hikingMaps as $hm): $hid = $hm['id']; ?>
-              <div class="col-12 col-lg-6">
-                <div class="border rounded p-2 h-100">
-                  <div class="small fw-semibold mb-1"><?= htmlspecialchars($hm['tanggal']) ?> — <?= htmlspecialchars($hm['tempat']) ?></div>
-                  <div id="hkMap<?= $hid ?>" style="height:280px;border-radius:8px;overflow:hidden;border:1px solid var(--bs-border-color,#dee2e6);background:#eef2f5"></div>
-                  <div class="small text-muted mt-1" id="hkInfo<?= $hid ?>">Memuat peta…</div>
-                </div>
+        <?php if ($__hasHikingRoute): ?>
+        <div class="modal fade" id="hkRouteModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="bi bi-tree text-success"></i> Rute Perjalanan — <span id="hkRouteTitle">Hiking</span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
               </div>
-            <?php endforeach; ?>
+              <div class="modal-body p-2">
+                <div id="hkRouteMap" style="height:420px;border-radius:8px;overflow:hidden;border:1px solid var(--bs-border-color,#dee2e6);background:#eef2f5"></div>
+                <div class="small text-muted mt-2" id="hkRouteInfo">Memuat peta…</div>
+              </div>
+            </div>
           </div>
-          <script>
-          (function(){
-            var MAPS = <?= json_encode(array_map(function($m){
-              return ['id'=>$m['id'],'gpx'=>$m['gpx'],'geo'=>$m['geo'] ? json_decode($m['geo'], true) : null];
-            }, $hikingMaps), JSON_UNESCAPED_SLASHES) ?>;
-            function renderAll(){
-              if (typeof L === 'undefined') { setTimeout(renderAll, 150); return; }
-              MAPS.forEach(function(m){
-                var el = document.getElementById('hkMap'+m.id);
-                if (!el || el.dataset.init) return; el.dataset.init = '1';
-                var map = L.map(el).setView([-2.5, 118.0], 4);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
-                setTimeout(function(){ map.invalidateSize(); }, 200);
-                function draw(pts){
-                  var info = document.getElementById('hkInfo'+m.id);
-                  if (!pts || !pts.length){ if(info) info.textContent='Rute kosong / tidak valid.'; return; }
-                  var line = L.polyline(pts, {color:'#dc2626', weight:5, opacity:.85}).addTo(map);
-                  L.marker(pts[0]).addTo(map).bindPopup('Start');
-                  L.marker(pts[pts.length-1]).addTo(map).bindPopup('Finish');
-                  map.fitBounds(line.getBounds(), {padding:[20,20]});
-                  var d=0; for (var i=1;i<pts.length;i++) d += map.distance(pts[i-1], pts[i]);
-                  if (info) info.textContent = pts.length+' titik · '+(d/1000).toFixed(2)+' km';
-                }
-                function fromGeo(g){
-                  var pts=[]; try{
-                    var c=null;
-                    if (!g) return pts;
-                    if (g.type==='FeatureCollection' && g.features && g.features[0] && g.features[0].geometry) c=g.features[0].geometry.coordinates;
-                    else if (g.type==='Feature' && g.geometry) c=g.geometry.coordinates;
-                    else if (g.coordinates) c=g.coordinates;
-                    if (!c) return pts;
-                    if (typeof c[0][0]==='number') c.forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
-                    else if (Array.isArray(c[0][0])) c[0].forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
-                  }catch(e){}
-                  return pts;
-                }
-                if (m.gpx){
-                  fetch(m.gpx).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }).then(function(xml){
-                    var doc=new DOMParser().parseFromString(xml,'application/xml');
-                    var nodes=doc.getElementsByTagName('trkpt');
-                    var pts=[]; for (var i=0;i<nodes.length;i++) pts.push(L.latLng(parseFloat(nodes[i].getAttribute('lat')), parseFloat(nodes[i].getAttribute('lon'))));
-                    if (!pts.length){ var rt=doc.getElementsByTagName('rtept'); for (var j=0;j<rt.length;j++) pts.push(L.latLng(parseFloat(rt[j].getAttribute('lat')), parseFloat(rt[j].getAttribute('lon')))); }
-                    if (!pts.length){ var wp=doc.getElementsByTagName('wpt'); for (var k=0;k<wp.length;k++) pts.push(L.latLng(parseFloat(wp[k].getAttribute('lat')), parseFloat(wp[k].getAttribute('lon')))); }
-                    draw(pts);
-                  }).catch(function(e){ var i=document.getElementById('hkInfo'+m.id); if(i) i.textContent='Gagal memuat GPX: '+e.message; });
-                } else {
-                  draw(fromGeo(m.geo));
-                }
-              });
-            }
-            if (typeof L === 'undefined'){
-              if (!window.__leafletLoading){
-                window.__leafletLoading = true;
-                var css=document.createElement('link'); css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
-                var js=document.createElement('script'); js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; js.onload=renderAll; document.head.appendChild(js);
-              } else {
-                renderAll();
-              }
-            } else { renderAll(); }
-          })();
-          </script>
         </div>
+        <script>
+        (function(){
+          var modalEl = document.getElementById('hkRouteModal');
+          if (!modalEl) return;
+          var mapInstance = null;
+          function ensureLeaflet(cb){
+            if (typeof L !== 'undefined') return cb();
+            if (window.__leafletLoading){ var iv=setInterval(function(){ if(typeof L!=='undefined'){clearInterval(iv); cb();} }, 100); return; }
+            window.__leafletLoading = true;
+            var css=document.createElement('link'); css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+            var js=document.createElement('script'); js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; js.onload=cb; document.head.appendChild(js);
+          }
+          function fromGeo(g){
+            var pts=[]; try{
+              var c=null;
+              if (!g) return pts;
+              if (g.type==='FeatureCollection' && g.features && g.features[0] && g.features[0].geometry) c=g.features[0].geometry.coordinates;
+              else if (g.type==='Feature' && g.geometry) c=g.geometry.coordinates;
+              else if (g.coordinates) c=g.coordinates;
+              if (!c) return pts;
+              if (typeof c[0][0]==='number') c.forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
+              else if (Array.isArray(c[0][0])) c[0].forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
+            }catch(e){}
+            return pts;
+          }
+          function draw(pts){
+            var info = document.getElementById('hkRouteInfo');
+            if (!pts || !pts.length){ if(info) info.textContent='Rute kosong / tidak valid.'; return; }
+            var line = L.polyline(pts, {color:'#dc2626', weight:5, opacity:.85}).addTo(mapInstance);
+            L.marker(pts[0]).addTo(mapInstance).bindPopup('Start');
+            L.marker(pts[pts.length-1]).addTo(mapInstance).bindPopup('Finish');
+            mapInstance.fitBounds(line.getBounds(), {padding:[20,20]});
+            var d=0; for (var i=1;i<pts.length;i++) d += mapInstance.distance(pts[i-1], pts[i]);
+            if (info) info.textContent = pts.length+' titik · '+(d/1000).toFixed(2)+' km';
+          }
+          function render(btn){
+            var title = btn.getAttribute('data-hk-title') || 'Hiking';
+            var gpx   = btn.getAttribute('data-hk-gpx') || '';
+            var geoS  = btn.getAttribute('data-hk-geo') || '';
+            document.getElementById('hkRouteTitle').textContent = title;
+            document.getElementById('hkRouteInfo').textContent = 'Memuat peta…';
+            ensureLeaflet(function(){
+              var el = document.getElementById('hkRouteMap');
+              if (mapInstance){ mapInstance.remove(); mapInstance = null; }
+              el.innerHTML = '';
+              mapInstance = L.map(el).setView([-2.5,118.0], 4);
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mapInstance);
+              setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 250);
+              if (gpx){
+                fetch(gpx).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }).then(function(xml){
+                  var doc=new DOMParser().parseFromString(xml,'application/xml');
+                  var nodes=doc.getElementsByTagName('trkpt');
+                  var pts=[]; for (var i=0;i<nodes.length;i++) pts.push(L.latLng(parseFloat(nodes[i].getAttribute('lat')), parseFloat(nodes[i].getAttribute('lon'))));
+                  if (!pts.length){ var rt=doc.getElementsByTagName('rtept'); for (var j=0;j<rt.length;j++) pts.push(L.latLng(parseFloat(rt[j].getAttribute('lat')), parseFloat(rt[j].getAttribute('lon')))); }
+                  if (!pts.length){ var wp=doc.getElementsByTagName('wpt'); for (var k=0;k<wp.length;k++) pts.push(L.latLng(parseFloat(wp[k].getAttribute('lat')), parseFloat(wp[k].getAttribute('lon')))); }
+                  draw(pts);
+                }).catch(function(e){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent='Gagal memuat GPX: '+e.message; });
+              } else if (geoS){
+                try { draw(fromGeo(JSON.parse(geoS))); } catch(e){ document.getElementById('hkRouteInfo').textContent='Gagal parse GeoJSON.'; }
+              } else {
+                document.getElementById('hkRouteInfo').textContent='Tidak ada data rute.';
+              }
+            });
+          }
+          modalEl.addEventListener('show.bs.modal', function(ev){
+            var btn = ev.relatedTarget; if (!btn) return;
+            render(btn);
+          });
+          modalEl.addEventListener('hidden.bs.modal', function(){
+            if (mapInstance){ mapInstance.remove(); mapInstance=null; }
+          });
+        })();
+        </script>
         <?php endif; ?>
       </div>
     </div>
