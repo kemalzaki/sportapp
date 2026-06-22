@@ -949,27 +949,13 @@ document.addEventListener('DOMContentLoaded', () => {
                    : 'https://www.google.com/maps/search/'.urlencode($j['tempat']);
                ?>
                <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="<?= htmlspecialchars($maps) ?>" title="Lihat di Google Maps"><i class="bi bi-google"></i> Lokasi</a>
-               <?php
-                 // Revisi 22 Juni 2026 v3 — tombol popup peta rute Hiking
-                 if (mb_strtolower(trim((string)$j['jenis'])) === 'hiking') {
-                   $__gpx = (string)($j['tp_gpx_path'] ?? '');
-                   $__geo = $jadwalRouteGeo[$jid] ?? null;
-                    if ($__gpx || $__geo) {
-                      $__routePayload = [
-                         'title' => (string)$j['tanggal'].' — '.(string)$j['tempat'],
-                         'nama' => (string)$j['tempat'],
-                         'lat' => $j['tp_lat'],
-                         'lng' => $j['tp_lng'],
-                         'gpx_path' => $__gpx,
-                         'geojson' => $__geo ?: '',
-                      ];
-                       $__routeJson = json_encode($__routePayload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_TAG);
-                      echo '<button type="button" class="btn btn-sm btn-outline-danger ms-1" '
-                         . "onclick='showHkRoute(".$__routeJson.")' "
-                         . 'title="Lihat rute perjalanan"><i class="bi bi-map"></i> Peta Rute</button>';
-                   }
-                 }
-               ?>
+                <?php
+                  // Revisi 22 Juni 2026 R15 — tombol "Peta Rute" dihapus.
+                  // Untuk rute perjalanan (Hiking/Camping), lihat di Daftar Tempat → popup Detail.
+                  if (mb_strtolower(trim((string)$j['jenis'])) === 'hiking') {
+                    echo '<div class="small text-muted mt-1"><i class="bi bi-info-circle"></i> Rute perjalanan dapat dilihat di <a href="/tempat_list.php" class="text-decoration-none">Daftar Tempat</a>.</div>';
+                  }
+                ?>
              </td>
             <td data-label="Koord"><a class="text-decoration-none" href="/user.php?id=<?= (int)$j['koordinator_id'] ?>"><?= user_name_with_avatar($j['koord_foto'] ?? null, $j['koordinator'] ?? '-', false, 24) ?></a></td>
             <td data-label="Absensi Saya">
@@ -1047,133 +1033,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <?php endforeach; ?>
         </tbody></table></div>
 
-        <?php
-          // Revisi 22 Juni 2026 v3 — modal popup peta rute Hiking (dirender sekali)
-          $__hasHikingRoute = false;
-          foreach ($jadwalTerdekat as $__hj) {
-            if (mb_strtolower(trim((string)$__hj['jenis'])) !== 'hiking') continue;
-            if (!empty($__hj['tp_gpx_path']) || !empty($jadwalRouteGeo[(int)$__hj['id']])) { $__hasHikingRoute = true; break; }
-          }
-        ?>
-        <?php if ($__hasHikingRoute): ?>
-        <!-- Leaflet (untuk peta rute di popup) — Revisi 22 Juni 2026 R14: disamakan dengan tempat_list.php -->
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
-        <div class="modal fade" id="hkRouteModal" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header py-2">
-                <h6 class="modal-title"><i class="bi bi-tree text-success"></i> Rute Perjalanan — <span id="hkRouteTitle">Hiking</span></h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-              </div>
-              <div class="modal-body p-2">
-                <div id="hkRouteMap" style="height:420px;border-radius:8px;overflow:hidden;border:1px solid var(--bs-border-color,#dee2e6);background:#eef2f5"></div>
-                <div class="small text-muted mt-2" id="hkRouteInfo">Memuat peta…</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <script>
-        (function(){
-          var modalEl = document.getElementById('hkRouteModal');
-          if (!modalEl) return;
-          var hkModal = null;
-          var _hkLeaflet = null;
-          function setInfo(t){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent=t; }
-          function destroyMap(){
-            if (_hkLeaflet){ try{ _hkLeaflet.remove(); }catch(e){} _hkLeaflet = null; }
-            var el = document.getElementById('hkRouteMap'); if (el) el.innerHTML = '';
-          }
-          function fromGeo(g){
-            var pts=[];
-            function addCoord(c){
-              if (!Array.isArray(c) || !c.length) return;
-              if (typeof c[0] === 'number' && typeof c[1] === 'number') { pts.push(L.latLng(c[1], c[0])); return; }
-              c.forEach(addCoord);
-            }
-            try{
-              if (!g) return pts;
-              if (typeof g === 'string') g = JSON.parse(g);
-              if (g.type === 'FeatureCollection' && Array.isArray(g.features)) g.features.forEach(function(f){ if(f && f.geometry) addCoord(f.geometry.coordinates); });
-              else if (g.type === 'Feature' && g.geometry) addCoord(g.geometry.coordinates);
-              else if (g.coordinates) addCoord(g.coordinates);
-            }catch(e){}
-            return pts;
-          }
-          function ptsFromGpx(xml){
-            var doc = new DOMParser().parseFromString(xml,'application/xml');
-            var pts = [];
-            ['trkpt','rtept','wpt'].forEach(function(tag){
-              var nodes = doc.getElementsByTagName(tag);
-              for (var i=0;i<nodes.length;i++) {
-                var lat = parseFloat(nodes[i].getAttribute('lat'));
-                var lon = parseFloat(nodes[i].getAttribute('lon'));
-                if (!isNaN(lat) && !isNaN(lon)) pts.push(L.latLng(lat, lon));
-              }
-            });
-            return pts;
-          }
-          function draw(pts){
-            if (!pts || !pts.length){ setInfo('Rute kosong / tidak valid.'); return; }
-            var line = L.polyline(pts, {color:'#198754', weight:5, opacity:.85}).addTo(_hkLeaflet);
-            L.marker(pts[0]).addTo(_hkLeaflet).bindPopup('Start');
-            L.marker(pts[pts.length-1]).addTo(_hkLeaflet).bindPopup('Finish');
-            try { _hkLeaflet.fitBounds(line.getBounds(), {padding:[20,20]}); } catch(e){}
-            var d=0; for (var i=1;i<pts.length;i++) d += _hkLeaflet.distance(pts[i-1], pts[i]);
-            setInfo(pts.length+' titik · '+(d/1000).toFixed(2)+' km');
-          }
-          function render(d){
-            if (typeof L === 'undefined') { setTimeout(function(){ render(d); }, 250); return; }
-            var title = d.title || 'Hiking';
-            var gpx   = d.gpx_path || '';
-            var geoS  = d.geojson || '';
-            var hasCoord = d.lat && d.lng;
-            document.getElementById('hkRouteTitle').textContent = title;
-            setInfo('Memuat rute…');
-            try {
-              destroyMap();
-              var center = hasCoord ? [Number(d.lat), Number(d.lng)] : [-6.9,107.6];
-              _hkLeaflet = L.map('hkRouteMap').setView(center, hasCoord?15:12);
-              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(_hkLeaflet);
-              setTimeout(function(){ if(_hkLeaflet) _hkLeaflet.invalidateSize(); }, 200);
-              if (hasCoord) L.marker(center).addTo(_hkLeaflet).bindPopup('<b>'+(d.nama||title||'')+'</b>').openPopup();
-              setInfo(hasCoord ? 'Peta lokasi tampil.' : 'Peta tampil. Memuat jalur rute…');
-            } catch(e){ setInfo('Gagal menginisialisasi peta: '+e.message); return; }
-            var geoPts = [];
-            if (geoS){ try { geoPts = fromGeo(geoS); } catch(e){ geoPts = []; } }
-            if (geoPts.length){
-              draw(geoPts);
-            } else if (gpx){
-              var controller = window.AbortController ? new AbortController() : null;
-              var gpxTimer = controller ? setTimeout(function(){ controller.abort(); }, 8000) : null;
-              fetch(gpx, {signal: controller ? controller.signal : undefined})
-                .then(function(r){ return r.text(); })
-                .then(function(xml){
-                  if (gpxTimer) clearTimeout(gpxTimer);
-                  draw(ptsFromGpx(xml));
-                }).catch(function(e){
-                  if (gpxTimer) clearTimeout(gpxTimer);
-                  setInfo(hasCoord ? 'Peta lokasi tampil. GPX tidak bisa dimuat.' : 'Peta tampil. GPX tidak bisa dimuat.');
-                });
-            } else {
-              setInfo(hasCoord ? 'Peta lokasi tampil.' : 'Tidak ada data rute.');
-            }
-          }
-          window.showHkRoute = function(d){
-            if (!hkModal) {
-              hkModal = new bootstrap.Modal(modalEl);
-              modalEl.addEventListener('hidden.bs.modal', destroyMap);
-            }
-            document.getElementById('hkRouteTitle').textContent = (d && d.title) ? d.title : 'Hiking';
-            setInfo('Memuat rute…');
-            hkModal.show();
-            // Sama seperti tempat_list.php: render peta setelah modal tampil agar ukuran benar.
-            setTimeout(function(){ render(d || {}); }, 250);
-          };
-        })();
-        </script>
-        <?php endif; ?>
+        <?php /* Revisi 22 Juni 2026 R15 — modal peta rute Hiking dihapus. Lihat di /tempat_list.php */ ?>
       </div>
     </div>
 
