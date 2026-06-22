@@ -1071,12 +1071,23 @@ document.addEventListener('DOMContentLoaded', () => {
           var modalEl = document.getElementById('hkRouteModal');
           if (!modalEl) return;
           var mapInstance = null;
-          function ensureLeaflet(cb){
+          var pendingBtn  = null;
+          function setInfo(t){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent=t; }
+          function ensureLeaflet(cb, onErr){
             if (typeof L !== 'undefined') return cb();
-            if (window.__leafletLoading){ var iv=setInterval(function(){ if(typeof L!=='undefined'){clearInterval(iv); cb();} }, 100); return; }
+            if (window.__leafletLoading){
+              var iv=setInterval(function(){ if(typeof L!=='undefined'){clearInterval(iv); cb();} }, 100);
+              setTimeout(function(){ clearInterval(iv); if(typeof L==='undefined' && onErr) onErr(); }, 12000);
+              return;
+            }
             window.__leafletLoading = true;
             var css=document.createElement('link'); css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
-            var js=document.createElement('script'); js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; js.onload=cb; document.head.appendChild(js);
+            var js=document.createElement('script'); js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            js.onload=function(){ cb(); };
+            js.onerror=function(){ window.__leafletLoading=false; if(onErr) onErr(); };
+            document.head.appendChild(js);
+            // safety: bila CDN sangat lambat / diblok
+            setTimeout(function(){ if (typeof L === 'undefined' && onErr) onErr(); }, 12000);
           }
           function fromGeo(g){
             var pts=[]; try{
@@ -1092,50 +1103,55 @@ document.addEventListener('DOMContentLoaded', () => {
             return pts;
           }
           function draw(pts){
-            var info = document.getElementById('hkRouteInfo');
-            if (!pts || !pts.length){ if(info) info.textContent='Rute kosong / tidak valid.'; return; }
+            if (!pts || !pts.length){ setInfo('Rute kosong / tidak valid.'); return; }
             var line = L.polyline(pts, {color:'#dc2626', weight:5, opacity:.85}).addTo(mapInstance);
             L.marker(pts[0]).addTo(mapInstance).bindPopup('Start');
             L.marker(pts[pts.length-1]).addTo(mapInstance).bindPopup('Finish');
-            mapInstance.fitBounds(line.getBounds(), {padding:[20,20]});
+            try { mapInstance.fitBounds(line.getBounds(), {padding:[20,20]}); } catch(e){}
             var d=0; for (var i=1;i<pts.length;i++) d += mapInstance.distance(pts[i-1], pts[i]);
-            if (info) info.textContent = pts.length+' titik · '+(d/1000).toFixed(2)+' km';
+            setInfo(pts.length+' titik · '+(d/1000).toFixed(2)+' km');
           }
           function render(btn){
+            if (!btn) return;
             var title = btn.getAttribute('data-hk-title') || 'Hiking';
             var gpx   = btn.getAttribute('data-hk-gpx') || '';
             var geoS  = btn.getAttribute('data-hk-geo') || '';
             document.getElementById('hkRouteTitle').textContent = title;
-            document.getElementById('hkRouteInfo').textContent = 'Memuat peta…';
+            setInfo('Memuat peta…');
             ensureLeaflet(function(){
-              var el = document.getElementById('hkRouteMap');
-              if (mapInstance){ mapInstance.remove(); mapInstance = null; }
-              el.innerHTML = '';
-              mapInstance = L.map(el).setView([-2.5,118.0], 4);
-              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mapInstance);
-              setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 250);
+              try {
+                var el = document.getElementById('hkRouteMap');
+                if (mapInstance){ try{ mapInstance.remove(); }catch(e){} mapInstance = null; }
+                el.innerHTML = '';
+                mapInstance = L.map(el, { zoomControl:true }).setView([-2.5,118.0], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mapInstance);
+                // Penting: invalidateSize setelah modal benar2 tampil agar tiles terlihat.
+                setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 50);
+                setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 350);
+              } catch(e){ setInfo('Gagal menginisialisasi peta: '+e.message); return; }
               if (gpx){
-                fetch(gpx).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }).then(function(xml){
+                fetch(gpx, {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }).then(function(xml){
                   var doc=new DOMParser().parseFromString(xml,'application/xml');
                   var nodes=doc.getElementsByTagName('trkpt');
                   var pts=[]; for (var i=0;i<nodes.length;i++) pts.push(L.latLng(parseFloat(nodes[i].getAttribute('lat')), parseFloat(nodes[i].getAttribute('lon'))));
                   if (!pts.length){ var rt=doc.getElementsByTagName('rtept'); for (var j=0;j<rt.length;j++) pts.push(L.latLng(parseFloat(rt[j].getAttribute('lat')), parseFloat(rt[j].getAttribute('lon')))); }
                   if (!pts.length){ var wp=doc.getElementsByTagName('wpt'); for (var k=0;k<wp.length;k++) pts.push(L.latLng(parseFloat(wp[k].getAttribute('lat')), parseFloat(wp[k].getAttribute('lon')))); }
                   draw(pts);
-                }).catch(function(e){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent='Gagal memuat GPX: '+e.message; });
+                }).catch(function(e){ setInfo('Gagal memuat GPX: '+e.message); });
               } else if (geoS){
-                try { draw(fromGeo(JSON.parse(geoS))); } catch(e){ document.getElementById('hkRouteInfo').textContent='Gagal parse GeoJSON.'; }
+                try { draw(fromGeo(JSON.parse(geoS))); } catch(e){ setInfo('Gagal parse GeoJSON.'); }
               } else {
-                document.getElementById('hkRouteInfo').textContent='Tidak ada data rute.';
+                setInfo('Tidak ada data rute.');
               }
-            });
+            }, function(){ setInfo('Gagal memuat pustaka peta (Leaflet). Cek koneksi internet.'); });
           }
-          modalEl.addEventListener('show.bs.modal', function(ev){
-            var btn = ev.relatedTarget; if (!btn) return;
-            render(btn);
-          });
+          // Revisi 22 Juni 2026 R7 — gunakan event "shown" (bukan "show") supaya
+          // kontainer peta sudah punya ukuran sebelum Leaflet diinisialisasi.
+          modalEl.addEventListener('show.bs.modal', function(ev){ pendingBtn = ev.relatedTarget || null; setInfo('Memuat peta…'); });
+          modalEl.addEventListener('shown.bs.modal', function(){ render(pendingBtn); });
           modalEl.addEventListener('hidden.bs.modal', function(){
-            if (mapInstance){ mapInstance.remove(); mapInstance=null; }
+            if (mapInstance){ try{ mapInstance.remove(); }catch(e){} mapInstance=null; }
+            pendingBtn = null;
           });
         })();
         </script>

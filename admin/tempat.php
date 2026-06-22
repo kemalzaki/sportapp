@@ -20,22 +20,30 @@ function is_trail_jenis($namaJenis){
     return in_array($n, ['hiking','camping'], true);
 }
 
-/* Helper: simpan upload GPX, mengembalikan path relatif atau null */
+/* Helper: simpan upload GPX, mengembalikan path relatif atau null.
+ * Revisi 22 Juni 2026 R7 — lebih permisif (deteksi GPX longgar, fallback bila ekstensi salah),
+ * dan pastikan folder uploads/gpx ada. Sebelumnya beberapa upload diam-diam ditolak. */
 function save_gpx_upload($field='gpx_file'){
     if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? 4) !== 0) return null;
-    $tmp = $_FILES[$field]['tmp_name'];
+    $tmp  = $_FILES[$field]['tmp_name'];
     $orig = $_FILES[$field]['name'] ?? 'route.gpx';
-    $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-    if ($ext !== 'gpx') return null;
-    $sz = (int)($_FILES[$field]['size'] ?? 0);
-    if ($sz <= 0 || $sz > 8 * 1024 * 1024) return null; // maks 8 MB
-    $head = @file_get_contents($tmp, false, null, 0, 512);
-    if (!$head || stripos($head, '<gpx') === false) return null;
+    $ext  = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    $sz   = (int)($_FILES[$field]['size'] ?? 0);
+    if ($sz <= 0 || $sz > 16 * 1024 * 1024) return null; // maks 16 MB
+    $head = @file_get_contents($tmp, false, null, 0, 4096);
+    $looksGpx = $head && (stripos($head, '<gpx') !== false || stripos($head, '<trk') !== false || stripos($head, '<wpt') !== false);
+    if ($ext !== 'gpx' && !$looksGpx) return null;
+    if ($ext === 'gpx' && !$looksGpx && $head && stripos($head, '<?xml') === false) return null;
     $dir = __DIR__.'/../uploads/gpx';
     if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    if (!is_dir($dir) || !is_writable($dir)) return null;
     $name = 'gpx_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.gpx';
     $dest = $dir.'/'.$name;
-    if (!@move_uploaded_file($tmp, $dest)) return null;
+    if (!@move_uploaded_file($tmp, $dest)) {
+        // fallback (jarang): coba copy bila move_uploaded_file gagal pada sebagian environment
+        if (!@copy($tmp, $dest)) return null;
+    }
+    @chmod($dest, 0644);
     return '/uploads/gpx/'.$name;
 }
 
@@ -64,9 +72,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
 
         // GPX: kalau ada upload baru, ganti; kalau ada flag hapus_gpx, hapus.
-        $newGpx = $isTrail ? save_gpx_upload('gpx_file') : null;
+        // Revisi 22 Juni 2026 R7 — GPX dipertahankan untuk SEMUA jenis tempat
+        // (tidak lagi dihapus paksa saat jenis bukan hiking/camping) supaya tidak hilang.
+        $newGpx   = save_gpx_upload('gpx_file');
         $hapusGpx = !empty($_POST['hapus_gpx']);
-        $gpxSql = ''; $extraParams = [];
         $existing = db_one("SELECT gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
         $gpxFinal = $existing['gpx_path'] ?? null;
         if ($newGpx) {
@@ -76,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $p = __DIR__.'/..'.$gpxFinal; if (is_file($p)) @unlink($p);
             $gpxFinal = null;
         }
-        if (!$isTrail) { $gpxFinal = null; }
 
         $parkir = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
         $runRouteId = ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
@@ -107,7 +115,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
         }
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
-        $gpxFinal  = $isTrail ? save_gpx_upload('gpx_file') : null;
+        // Revisi 22 Juni 2026 R7 — GPX boleh disimpan untuk jenis apa pun.
+        $gpxFinal  = save_gpx_upload('gpx_file');
         $parkir    = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
         $runRouteId= ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
 
