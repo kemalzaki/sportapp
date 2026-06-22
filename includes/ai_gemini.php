@@ -235,8 +235,13 @@ function _gemini_call(array $parts, array $opts = []) {
             $isQuota = ($code===429) || stripos($msg,'quota')!==false
                        || stripos($msg,'exceeded')!==false || stripos($msg,'RESOURCE_EXHAUSTED')!==false
                        || stripos($msg,'rate limit')!==false;
-            // rotasi key bila quota / 401 / 403 dan masih ada key cadangan
-            if (($isQuota || $code===401 || $code===403) && $keyIdx < count($keys)-1) {
+            // Revisi R10 — deteksi "model overloaded / high demand / 503 UNAVAILABLE"
+            // sebagai transient → rotasi key bila ada cadangan, dan beri pesan ramah.
+            $isOverloaded = ($code===503) || stripos($msg,'overloaded')!==false
+                       || stripos($msg,'high demand')!==false || stripos($msg,'UNAVAILABLE')!==false
+                       || stripos($msg,'try again')!==false;
+            // rotasi key bila quota / 401 / 403 / overloaded dan masih ada key cadangan
+            if (($isQuota || $isOverloaded || $code===401 || $code===403) && $keyIdx < count($keys)-1) {
                 $lastErr = '[key#'.($keyIdx+1).' '.$kind.' gagal: '.substr($msg,0,140).'] — coba key berikutnya';
                 continue; // try next key
             }
@@ -246,7 +251,12 @@ function _gemini_call(array $parts, array $opts = []) {
             if ($isQuota) {
                 $msg .= ' [Tip: tambahkan GEMINI_API_KEY_1, GEMINI_API_KEY_2, dst. (atau GEMINI_API_KEYS=key1,key2,...) untuk rotasi otomatis saat quota habis.]';
             }
+            if ($isOverloaded) {
+                // Pesan ringkas yang aman ditampilkan ke user.
+                $msg = 'Model AI sedang sibuk (high demand). Coba lagi sebentar, atau tambahkan GEMINI_API_KEY cadangan agar otomatis dirotasi.';
+            }
             return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
+
         }
         $text = '';
         if (isset($json['candidates'][0]['content']['parts']) && is_array($json['candidates'][0]['content']['parts'])) {

@@ -19,6 +19,12 @@ $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_ur
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id $wsql ORDER BY t.nama ASC", $params);
 $jenisList = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
+/* Revisi 22 Juni 2026 R10 — Section khusus Tempat Hiking & Camping.
+   Dipindahkan dari tempat.php agar berada bersama Daftar Tempat. */
+$trails = db_all("SELECT t.*, COALESCE(j.nama,'') AS jenis_nama
+                  FROM tempat t LEFT JOIN jenis_olahraga j ON j.id=t.jenis_id
+                  WHERE LOWER(COALESCE(j.nama,'')) IN ('hiking','camping')
+                  ORDER BY j.nama, t.nama");
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Daftar Tempat Olahraga</h2>
@@ -150,4 +156,108 @@ function showTempatDetail(d){
   _tmM.show();
 }
 </script>
+<?php /* ============================================================
+   Revisi 22 Juni 2026 R10 — Section Tempat Hiking & Camping
+   Dipindahkan dari tempat.php. Menampilkan tempat dengan jenis
+   hiking/camping (di-input admin di /admin/tempat.php) beserta peta
+   rute GPX-nya.
+   ============================================================ */ ?>
+<?php if ($trails): ?>
+<div class="card shadow-sm mb-3 mt-4 border-success">
+  <div class="card-header bg-success-subtle text-success-emphasis">
+    <i class="bi bi-tree-fill"></i> <strong>Tempat Hiking &amp; Camping</strong>
+    <small class="text-muted ms-2">Peta rute oleh admin (jenis: hiking / camping)</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-2">
+    <?php foreach($trails as $t):
+      $hasRoute = !empty($t['gpx_path']) || (!empty($t['lat']) && !empty($t['lng'])); ?>
+      <div class="col-md-6 col-lg-4">
+        <div class="border rounded p-2 h-100 d-flex flex-column">
+          <div><strong><i class="bi bi-geo-alt-fill text-success"></i> <?= htmlspecialchars($t['nama']) ?></strong>
+            <span class="badge bg-success-subtle text-success-emphasis ms-1 text-capitalize"><?= htmlspecialchars($t['jenis_nama']) ?></span>
+          </div>
+          <?php if(!empty($t['alamat'])): ?><div class="small text-muted"><i class="bi bi-signpost"></i> <?= htmlspecialchars($t['alamat']) ?></div><?php endif; ?>
+          <?php if(!empty($t['gpx_path'])): ?><div class="small text-success"><i class="bi bi-bezier2"></i> Rute GPX tersedia</div><?php endif; ?>
+          <div class="mt-auto pt-2 d-flex flex-wrap gap-1">
+            <?php if ($hasRoute): ?>
+              <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#tlUserMap<?= (int)$t['id'] ?>">
+                <i class="bi bi-map"></i> Lihat Rute
+              </button>
+            <?php endif; ?>
+            <a class="btn btn-sm btn-outline-info" href="/tempat_detail.php?id=<?= (int)$t['id'] ?>"><i class="bi bi-info-circle"></i> Detail</a>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+<?php foreach($trails as $t):
+  $hasMapT = (!empty($t['lat']) && !empty($t['lng'])) || !empty($t['gpx_path']);
+  if (!$hasMapT) continue; ?>
+<div class="modal fade" id="tlUserMap<?= (int)$t['id'] ?>" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="bi bi-geo-alt-fill text-danger"></i> Peta — <?= htmlspecialchars($t['nama']) ?></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-0">
+      <div id="tlMap<?= (int)$t['id'] ?>" style="height:460px;width:100%"></div>
+      <div class="p-3 small">
+        <div><strong><i class="bi bi-pin-map text-danger"></i> <?= htmlspecialchars($t['nama']) ?></strong></div>
+        <?php if(!empty($t['alamat'])): ?><div class="text-muted"><i class="bi bi-signpost"></i> <?= htmlspecialchars($t['alamat']) ?></div><?php endif; ?>
+        <?php if(!empty($t['jenis_nama'])): ?><div><span class="badge bg-success-subtle text-success-emphasis text-capitalize"><i class="bi bi-tag"></i> <?= htmlspecialchars($t['jenis_nama']) ?></span></div><?php endif; ?>
+        <div class="mt-2 d-flex flex-wrap gap-1">
+          <?php if(!empty($t['lat']) && !empty($t['lng'])): ?>
+            <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+               href="https://www.google.com/maps/dir/?api=1&destination=<?= (float)$t['lat'] ?>,<?= (float)$t['lng'] ?>&travelmode=driving"><i class="bi bi-google"></i> Rute</a>
+          <?php endif; ?>
+          <a class="btn btn-sm btn-outline-info" href="/tempat_detail.php?id=<?= (int)$t['id'] ?>"><i class="bi bi-info-circle"></i> Detail</a>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+<script>
+(function(){
+  var TID = <?= (int)$t['id'] ?>;
+  var LAT = <?= !empty($t['lat']) ? (float)$t['lat'] : 'null' ?>;
+  var LNG = <?= !empty($t['lng']) ? (float)$t['lng'] : 'null' ?>;
+  var GPX = <?= json_encode(!empty($t['gpx_path']) ? $t['gpx_path'] : '') ?>;
+  var NAMA = <?= json_encode($t['nama']) ?>;
+  var initialized = false, lmap = null;
+  var modal = document.getElementById('tlUserMap'+TID);
+  if (!modal) return;
+  modal.addEventListener('shown.bs.modal', function(){
+    if (typeof L === 'undefined') { setTimeout(function(){ modal.dispatchEvent(new Event('shown.bs.modal')); }, 200); return; }
+    if (initialized) { setTimeout(function(){ lmap.invalidateSize(); }, 100); return; }
+    initialized = true;
+    var center = (LAT && LNG) ? [LAT,LNG] : [-6.9,107.6];
+    lmap = L.map('tlMap'+TID).setView(center, (LAT&&LNG)?16:12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(lmap);
+    setTimeout(function(){ lmap.invalidateSize(); }, 200);
+    if (LAT && LNG) L.marker([LAT,LNG]).addTo(lmap).bindPopup('<b>'+NAMA+'</b>').openPopup();
+    if (GPX) {
+      fetch(GPX).then(function(r){return r.text();}).then(function(xml){
+        var doc = new DOMParser().parseFromString(xml,'application/xml');
+        var trkpts = doc.getElementsByTagName('trkpt'); var pts = [];
+        for (var i=0;i<trkpts.length;i++) pts.push(L.latLng(parseFloat(trkpts[i].getAttribute('lat')), parseFloat(trkpts[i].getAttribute('lon'))));
+        if (pts.length){
+          var line = L.polyline(pts,{color:'#198754',weight:5,opacity:.85}).addTo(lmap);
+          L.marker(pts[0]).addTo(lmap).bindPopup('Start');
+          L.marker(pts[pts.length-1]).addTo(lmap).bindPopup('Finish');
+          lmap.fitBounds(line.getBounds(),{padding:[20,20]});
+        }
+      }).catch(function(){});
+    }
+  });
+})();
+</script>
+<?php endforeach; ?>
+<?php endif; ?>
 <?php include __DIR__.'/includes/footer.php'; ?>
+
