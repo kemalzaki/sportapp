@@ -363,7 +363,7 @@ include __DIR__.'/includes/header.php';
       var oldHtml = btn.innerHTML; btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari…';
       try {
-        var r = await fetch('/api_yt_search.php?q=' + encodeURIComponent(q), {credentials:'same-origin'});
+        var r = await fetch('/api_yt_search.php?cat=survival&q=' + encodeURIComponent(q), {credentials:'same-origin'});
         var j = await r.json();
         if (!j.ok) throw new Error(j.err || 'tidak ada hasil');
         var ids = (j.ids && j.ids.length) ? j.ids : (j.video ? [j.video] : []);

@@ -176,8 +176,11 @@ include __DIR__.'/includes/header.php';
           <div class="input-group input-group-sm mb-1">
             <input type="text" id="musicQ" class="form-control form-control-sm" placeholder="Judul / artis (mis. Coldplay yellow)">
             <button type="button" class="btn btn-outline-secondary" id="btnMusicSearch"><i class="bi bi-search"></i></button>
+            <button type="button" class="btn btn-outline-danger" id="btnMusicYt" title="Cari di YouTube (alternatif iTunes)"><i class="bi bi-youtube"></i></button>
           </div>
           <div id="musicResults" class="list-group list-group-flush small mb-1" style="max-height:180px;overflow:auto;border:1px solid var(--bs-border-color,#e5e7eb);border-radius:8px;display:none"></div>
+          <!-- Revisi 22 Juni 2026 R7 — hasil YouTube (alternatif iTunes) -->
+          <div id="musicYtResults" class="mb-1" style="display:none"></div>
 
           <label class="form-label small mb-1 mt-1">Atau upload file audio sendiri</label>
           <input type="file" id="musicFile" class="form-control form-control-sm" accept="audio/*">
@@ -553,6 +556,41 @@ async function searchMusic(){
     });
   } catch(e){ box.innerHTML = '<div class="list-group-item small text-danger">Error: '+e.message+'</div>'; }
 }
+
+/* Revisi 22 Juni 2026 R7 — Tombol pencarian lagu via YouTube (alternatif iTunes
+   yang sering tidak ada hasil). Menggunakan endpoint /api_yt_search.php (pola
+   sama dengan artikel_olahraga.php). Hasil ditampilkan sebagai iframe embed yang
+   bisa diputar — tidak terhubung ke trim/record, hanya pemutar tambahan. */
+document.addEventListener('DOMContentLoaded', function(){
+  var btnYt = document.getElementById('btnMusicYt');
+  if (!btnYt) return;
+  btnYt.addEventListener('click', async function(){
+    var q = ($('musicQ').value||'').trim();
+    var out = document.getElementById('musicYtResults');
+    if (!q) { out.style.display='none'; return; }
+    out.style.display='block';
+    out.innerHTML = '<div class="small text-muted py-2"><span class="spinner-border spinner-border-sm"></span> Mencari di YouTube…</div>';
+    try {
+      var r = await fetch('/api_yt_search.php?q='+encodeURIComponent(q+' lagu'), {credentials:'same-origin'});
+      var j = await r.json();
+      if (!j.ok) throw new Error(j.err||'tidak ada hasil');
+      var ids = (j.ids&&j.ids.length) ? j.ids : (j.video?[j.video]:[]);
+      if (!ids.length) throw new Error('tidak ada hasil');
+      ids = ids.slice(0,3);
+      var html = '<div class="small text-muted mb-1"><b>YouTube</b> — alternatif jika iTunes kosong. Putar untuk dengar musik (tidak terhubung ke trim/record).</div>';
+      ids.forEach(function(vid){
+        html += '<div class="ratio ratio-16x9 mb-1 rounded overflow-hidden border">'+
+          '<iframe loading="lazy" allowfullscreen src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+'?rel=0" '+
+          'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>'+
+          '</div>';
+      });
+      out.innerHTML = html;
+    } catch(e) {
+      out.innerHTML = '<div class="small text-danger py-2"><i class="bi bi-exclamation-triangle"></i> Gagal: '+escapeHtml(e.message||String(e))+'</div>';
+    }
+  });
+});
+
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function pickMusic(t){
   // Revisi 21 Juni 2026 R4 — Ganti elemen audio sepenuhnya supaya:
@@ -618,7 +656,23 @@ $('btnTrimApply').onclick = async () => {
   $('trimStat').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses…';
   try {
     if (!a.dataset.originalSrc) a.dataset.originalSrc = a.src;
-    const resp = await fetch(a.dataset.originalSrc, a.dataset.originalSrc.startsWith('blob:')?{}:{mode:'cors'});
+    var srcRaw = a.dataset.originalSrc;
+    /* Revisi 22 Juni 2026 R7 — Atasi "Failed to fetch" (CORS audio sumber).
+       Audio iTunes / mzstatic kadang tidak mengembalikan header CORS, sehingga
+       fetch() di browser gagal walau MediaElement bisa memutarnya. Solusi:
+       route URL melalui /api_audio_proxy.php (whitelist host) yang merespon
+       dengan Access-Control-Allow-Origin: *. URL blob:/data: dilewatkan. */
+    var fetchUrl = srcRaw;
+    if (/^https?:/i.test(srcRaw)) {
+      try {
+        var h = (new URL(srcRaw)).host.toLowerCase();
+        if (/(\.mzstatic\.com|\.apple\.com|itunes\.apple\.com)$/.test(h)) {
+          fetchUrl = '/api_audio_proxy.php?u=' + encodeURIComponent(srcRaw);
+        }
+      } catch(_) {}
+    }
+    var resp = await fetch(fetchUrl, srcRaw.startsWith('blob:')?{}:{mode:'cors', credentials:'same-origin'});
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
     const buf  = await resp.arrayBuffer();
     const ac   = new (window.AudioContext||window.webkitAudioContext)();
     const decoded = await ac.decodeAudioData(buf.slice(0));
@@ -633,10 +687,9 @@ $('btnTrimApply').onclick = async () => {
     a.src = URL.createObjectURL(wavBlob); a.crossOrigin = null; a.load();
     TRIM = { start:s, end:e, applied:true };
     $('trimStat').textContent = 'Trim diterapkan: '+s.toFixed(2)+'s → '+e.toFixed(2)+'s ('+(e-s).toFixed(2)+'s).';
-    // Revisi 18 Juni 2026 (D) — re-time lirik mengikuti durasi hasil trim.
     if ($('lyricManual').value.trim()){ $('lyricManual').dispatchEvent(new Event('input')); }
     try{ ac.close(); }catch(_){}
-  } catch(err){ $('trimStat').textContent = 'Gagal: '+err.message+' (mungkin CORS audio sumber)'; }
+  } catch(err){ $('trimStat').textContent = 'Gagal: '+err.message+' — coba refresh preview iTunes lalu trim lagi.'; }
 };
 function audioBufferToWav(buf){
   const ch = buf.numberOfChannels, sr = buf.sampleRate, len = buf.length*ch*2;

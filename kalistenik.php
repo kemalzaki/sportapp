@@ -191,6 +191,58 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </div>
 
+<!-- Revisi 22 Juni 2026 R7 — Kolom pencarian video YouTube khusus olahraga.
+     Server (api_yt_search.php?cat=olahraga) menyaring query agar tetap di topik
+     olahraga berdasarkan tabel search_keywords (di-CRUD oleh admin di
+     /admin/keywords.php — menu "Pengaturan Lainnya"). -->
+<div class="card shadow-sm mb-3 border-success kal-yt-box">
+  <div class="card-header bg-success-subtle text-success-emphasis">
+    <i class="bi bi-youtube"></i> <strong>Pencarian Video Olahraga / Kalistenik</strong>
+    <small class="text-muted ms-2">Hasil di-filter agar relevan dengan olahraga</small>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="text" class="form-control kal-yt-q" placeholder="Contoh: pertandingan badminton, tutorial push up, match futsal">
+      <button type="button" class="btn btn-success kal-yt-btn"><i class="bi bi-search"></i> Cari &amp; Putar</button>
+    </div>
+    <div class="kal-yt-result small text-muted">Ketik kata kunci lalu klik <b>Cari &amp; Putar</b>. Kata kunci non-olahraga otomatis dikecualikan oleh sistem.</div>
+  </div>
+</div>
+<script>
+(function(){
+  var box = document.querySelector('.kal-yt-box'); if (!box) return;
+  var btn = box.querySelector('.kal-yt-btn'), inp = box.querySelector('.kal-yt-q'), out = box.querySelector('.kal-yt-result');
+  function esc(s){ return String(s).replace(/[<>&"']/g,function(c){return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c];});}
+  async function doSearch(){
+    var q = (inp.value||'').trim(); if (!q) return;
+    out.innerHTML = '<div class="small text-muted py-2"><span class="spinner-border spinner-border-sm"></span> Mencari video di YouTube…</div>';
+    btn.disabled = true; var old = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+      var r = await fetch('/api_yt_search.php?cat=olahraga&q='+encodeURIComponent(q), {credentials:'same-origin'});
+      var j = await r.json();
+      if (!j.ok) throw new Error(j.err || 'tidak ada hasil');
+      var ids = (j.ids && j.ids.length) ? j.ids : (j.video ? [j.video] : []);
+      if (!ids.length) throw new Error('tidak ada hasil');
+      ids = ids.slice(0,5);
+      var html = '<div class="small text-muted mb-2">Menampilkan <b>'+ids.length+'</b> video teratas untuk <b>'+esc(q)+'</b> (kategori: olahraga):</div><div class="row g-2">';
+      ids.forEach(function(vid,i){
+        html += '<div class="col-12 col-md-6"><div class="ratio ratio-16x9 rounded overflow-hidden border">'+
+          '<iframe loading="lazy" allowfullscreen src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+'?rel=0" '+
+          'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>'+
+          '</div><div class="small text-muted mt-1">#'+(i+1)+'</div></div>';
+      });
+      html += '</div>';
+      out.innerHTML = html;
+    } catch(e){
+      out.innerHTML = '<div class="small text-danger py-2"><i class="bi bi-exclamation-triangle"></i> Gagal mencari: '+esc(e.message||String(e))+'.</div>';
+    } finally { btn.disabled=false; btn.innerHTML=old; }
+  }
+  btn.addEventListener('click', doSearch);
+  inp.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doSearch(); }});
+})();
+</script>
+
+
 <?php ip_card_open('Paket Bugar Kalistenik', 'bi-person-arms-up'); ?>
 
 <p class="text-muted small mb-3">

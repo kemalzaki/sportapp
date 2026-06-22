@@ -205,12 +205,19 @@ include __DIR__.'/includes/ai_qa_widget.php';
 ?>
 
 <div class="row g-3">
-  <?php foreach($CEDERA as $c): ?>
+  <?php foreach($CEDERA as $idx=>$c): $cid='ced_'.$idx; ?>
     <div class="col-md-6">
       <div class="card h-100 shadow-sm border-<?= $c['warna'] ?>">
-        <div class="card-header bg-<?= $c['warna'] ?>-subtle text-<?= $c['warna'] ?>-emphasis">
-          <i class="bi <?= $c['icon'] ?>"></i> <strong><?= htmlspecialchars($c['nama']) ?></strong>
-        </div>
+        <!-- Revisi 22 Juni 2026 R7 — spoiler/collapse per item agar tidak memanjang ke bawah -->
+        <button class="card-header bg-<?= $c['warna'] ?>-subtle text-<?= $c['warna'] ?>-emphasis d-flex justify-content-between align-items-center w-100 border-0 ced-spoiler-btn collapsed"
+                type="button" data-bs-toggle="collapse" data-bs-target="#<?= $cid ?>" aria-expanded="false" aria-controls="<?= $cid ?>"
+                style="text-align:left;cursor:pointer;">
+          <span><i class="bi <?= $c['icon'] ?>"></i> <strong><?= htmlspecialchars($c['nama']) ?></strong>
+            <span class="small ms-2 d-none d-sm-inline opacity-75">— klik untuk buka/tutup</span>
+          </span>
+          <i class="bi bi-chevron-down ced-spoiler-caret"></i>
+        </button>
+        <div class="collapse" id="<?= $cid ?>">
         <div class="card-body">
           <div class="small mb-2"><strong>Gejala:</strong>
             <ul class="mb-2"><?php foreach($c['gejala'] as $g): ?><li><?= htmlspecialchars($g) ?></li><?php endforeach; ?></ul>
@@ -239,10 +246,16 @@ include __DIR__.'/includes/ai_qa_widget.php';
             </div>
           <?php endif; ?>
         </div>
+        </div><!-- /.collapse -->
       </div>
     </div>
   <?php endforeach; ?>
 </div>
+
+<style>
+.ced-spoiler-btn .ced-spoiler-caret{transition:transform .25s ease;}
+.ced-spoiler-btn[aria-expanded="true"] .ced-spoiler-caret{transform:rotate(180deg);}
+</style>
 
 <div class="alert alert-danger mt-4 small">
   <i class="bi bi-telephone-fill"></i> <strong>Darurat medis:</strong> hubungi <strong>119</strong> (Layanan Gawat Darurat) atau <strong>118</strong> (Ambulans) bila terjadi tidak sadar &gt; 1 menit, sesak napas berat, nyeri dada, atau perdarahan tidak berhenti.

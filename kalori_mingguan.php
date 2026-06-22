@@ -863,7 +863,12 @@ include __DIR__.'/includes/header.php';
           <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="use_ai" id="uai" value="1" checked>
             <label class="form-check-label small" for="uai">Gunakan AI untuk estimasi kalori dari foto</label></div>
           <?php endif; ?>
-          <div class="col-12"><label class="form-label small">Catatan</label><input class="form-control form-control-sm" name="catatan"></div>
+          <?php /* Revisi 22 Juni 2026 R7 — catatan diubah ke textarea dengan scrolling agar teks panjang tidak terpotong. */ ?>
+          <div class="col-12"><label class="form-label small">Catatan</label>
+            <textarea class="form-control form-control-sm" name="catatan" rows="3"
+              style="max-height:160px;overflow-y:auto;resize:vertical;white-space:pre-wrap;"
+              placeholder="Tambahkan catatan (porsi, lokasi, dll). Bisa banyak baris — scroll bila panjang."></textarea>
+          </div>
           <div class="col-12"><button class="btn btn-primary btn-sm w-100"><i class="bi bi-save"></i> Simpan</button></div>
         </form>
         <hr>
@@ -976,7 +981,11 @@ include __DIR__.'/includes/header.php';
     <div class="col-5"><label class="form-label small">Waktu</label><input type="time" name="waktu" id="ek_jam" class="form-control form-control-sm" required></div>
     <div class="col-8"><label class="form-label small">Nama makanan</label><input name="nama_makanan" id="ek_nama" class="form-control form-control-sm" required></div>
     <div class="col-4"><label class="form-label small">Kalori (kkal)</label><input type="number" min="0" name="kalori" id="ek_kal" class="form-control form-control-sm" required></div>
-    <div class="col-12"><label class="form-label small">Catatan</label><input name="catatan" id="ek_cat" class="form-control form-control-sm"></div>
+    <?php /* Revisi 22 Juni 2026 R7 — textarea scrolling. */ ?>
+    <div class="col-12"><label class="form-label small">Catatan</label>
+      <textarea name="catatan" id="ek_cat" class="form-control form-control-sm" rows="3"
+        style="max-height:180px;overflow-y:auto;resize:vertical;white-space:pre-wrap;"></textarea>
+    </div>
   </div>
   <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan</button></div>
 </form></div></div>
@@ -1020,7 +1029,8 @@ else window.addEventListener('load', kmInitEditAndZoom);
 
 <!-- Revisi 19 Juni 2026 Part R — Modal Detail Gizi (popup detail riwayat makanan) -->
 <div class="modal fade" id="detailGiziModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <?php /* Revisi 22 Juni 2026 R7 — modal scrollable supaya catatan & makro panjang tidak terpotong. */ ?>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header py-2">
         <h5 class="modal-title"><i class="bi bi-clipboard-data text-success"></i> Detail Gizi & Catatan</h5>

@@ -192,7 +192,7 @@ if (empty($pageSkeleton)) {
     <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat</a>
     <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event</a>
     <?php /* Revisi 6 Juni 2026: menu Check-in via barcode dihapus. */ ?>
-    <a class="gt-chip" href="/dm.php" data-sfx="tap"><i class="bi bi-chat-dots-fill"></i>Pesan</a>
+    <?php /* Revisi 22 Juni 2026 R7 — chip Pesan (dm.php) dihapus dari menu. */ ?>
     <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami</a>
     <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-calculator-fill"></i>Kalkulator</a>
   <?php else: ?>
@@ -289,7 +289,7 @@ if (empty($pageSkeleton)) {
 
         <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
         <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
-        <a class="list-group-item list-group-item-action" href="/dm.php"><i class="bi bi-chat-dots-fill"></i> Pesan</a>
+        <?php /* Revisi 22 Juni 2026 R7 — menu drawer Pesan (dm.php) dihapus. */ ?>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
         <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
 
@@ -340,6 +340,8 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/sistem.php"><i class="bi bi-cpu text-info"></i> Cek Sistem</a>
+            <?php /* Revisi 22 Juni 2026 R7 — CRUD kata kunci filter pencarian video (kalistenik & survival) */ ?>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/keywords.php"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Video</a>
           </div>
 
         <?php endif; ?>
@@ -391,7 +393,7 @@ if (empty($pageSkeleton)) {
             </ul>
           </li>
           <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur</a></li>
-          <li class="nav-item"><a class="nav-link" href="/dm.php"><i class="bi bi-chat-dots text-info"></i> Pesan</a></li>
+          <?php /* Revisi 22 Juni 2026 R7 — nav-link Pesan (dm.php) dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
           <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami</a></li>
         <?php endif; ?>

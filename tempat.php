@@ -46,6 +46,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $tempats = db_all("SELECT t.*, COALESCE(j.nama,'') AS jenis_nama
                    FROM tempat t LEFT JOIN jenis_olahraga j ON j.id=t.jenis_id
                    WHERE t.tampil_booking = true ORDER BY t.nama");
+/* Revisi 22 Juni 2026 R7 — daftar tempat hiking/camping (lengkap dengan rute GPX)
+   ditampilkan di section khusus di bagian bawah, agar user juga melihat peta
+   rutenya yang sudah di-input admin di /admin/tempat.php (jenis = hiking/camping). */
+$trails = db_all("SELECT t.*, COALESCE(j.nama,'') AS jenis_nama
+                  FROM tempat t LEFT JOIN jenis_olahraga j ON j.id=t.jenis_id
+                  WHERE LOWER(COALESCE(j.nama,'')) IN ('hiking','camping')
+                  ORDER BY j.nama, t.nama");
 $selected = (int)($_GET['tempat'] ?? ($tempats[0]['id'] ?? 0));
 $month = $_GET['m'] ?? date('Y-m');
 $first = strtotime("$month-01"); $daysIn = (int) date('t', $first); $startDow = (int) date('w', $first);
@@ -177,6 +184,45 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
+
+<?php /* ============================================================
+   Revisi 22 Juni 2026 R7 — Section Tempat Hiking & Camping (peta rute)
+   Menampilkan tempat dengan jenis hiking/camping yang sudah di-input admin
+   beserta peta rute GPX-nya. Tempat ini tidak booking — fokus ke jelajah rute.
+   ============================================================ */ ?>
+<?php if ($trails): ?>
+<div class="card shadow-sm mb-3 mt-4 border-success">
+  <div class="card-header bg-success-subtle text-success-emphasis">
+    <i class="bi bi-tree-fill"></i> <strong>Tempat Hiking &amp; Camping</strong>
+    <small class="text-muted ms-2">Peta rute oleh admin (jenis: hiking / camping)</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-2">
+    <?php foreach($trails as $t):
+      $hasRoute = !empty($t['gpx_path']) || (!empty($t['lat']) && !empty($t['lng'])); ?>
+      <div class="col-md-6 col-lg-4">
+        <div class="border rounded p-2 h-100 d-flex flex-column">
+          <div><strong><i class="bi bi-geo-alt-fill text-success"></i> <?= htmlspecialchars($t['nama']) ?></strong>
+            <span class="badge bg-success-subtle text-success-emphasis ms-1 text-capitalize"><?= htmlspecialchars($t['jenis_nama']) ?></span>
+          </div>
+          <?php if(!empty($t['alamat'])): ?><div class="small text-muted"><i class="bi bi-signpost"></i> <?= htmlspecialchars($t['alamat']) ?></div><?php endif; ?>
+          <?php if(!empty($t['gpx_path'])): ?><div class="small text-success"><i class="bi bi-bezier2"></i> Rute GPX tersedia</div><?php endif; ?>
+          <div class="mt-auto pt-2 d-flex flex-wrap gap-1">
+            <?php if ($hasRoute): ?>
+              <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#tpUserMap<?= (int)$t['id'] ?>">
+                <i class="bi bi-map"></i> Lihat Rute
+              </button>
+            <?php endif; ?>
+            <a class="btn btn-sm btn-outline-info" href="/tempat_detail.php?id=<?= (int)$t['id'] ?>"><i class="bi bi-info-circle"></i> Detail</a>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php
 /* ============================================================
    Revisi 22 Juni 2026 R5 — Modal "Lihat Peta" untuk halaman booking user.
@@ -187,7 +233,13 @@ include __DIR__.'/includes/header.php';
 ?>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" onerror="this.onerror=null">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
-<?php foreach ($tempats as $t):
+<?php
+// Revisi 22 Juni 2026 R7 — gabungkan tempat booking + trails (hiking/camping) untuk modal peta.
+$__mapList = $tempats; $__seen = [];
+foreach ($tempats as $tt) $__seen[(int)$tt['id']] = true;
+foreach ($trails as $tt) if (empty($__seen[(int)$tt['id']])) { $__mapList[] = $tt; $__seen[(int)$tt['id']] = true; }
+?>
+<?php foreach ($__mapList as $t):
   $hasMapT = (!empty($t['lat']) && !empty($t['lng'])) || !empty($t['gpx_path']);
   if (!$hasMapT) continue;
 ?>

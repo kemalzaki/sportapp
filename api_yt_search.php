@@ -19,6 +19,31 @@ $q = trim((string)($_GET['q'] ?? $_POST['q'] ?? ''));
 if ($q === '') { echo json_encode(['ok'=>false,'err'=>'query kosong']); exit; }
 if (mb_strlen($q) > 120) $q = mb_substr($q, 0, 120);
 
+/* Revisi 22 Juni 2026 R7 — filter kategori (olahraga|survival).
+ * Server menambahkan kata kunci wajib dari tabel search_keywords supaya
+ * hasil hanya menampilkan video relevan dengan topik. Jika user mengetik
+ * kata kunci yang sudah cocok dengan salah satu kata kunci aktif,
+ * pencarian tetap dijalankan apa adanya. Selain itu kata kunci pertama
+ * dari kategori disisipkan ke query agar hasil tetap di topik. */
+$cat = $_GET['cat'] ?? $_POST['cat'] ?? '';
+if (in_array($cat, ['olahraga','survival'], true)) {
+    try {
+        @db_exec("CREATE TABLE IF NOT EXISTS search_keywords (
+            id BIGSERIAL PRIMARY KEY, kategori VARCHAR(20) NOT NULL, kata TEXT NOT NULL,
+            aktif BOOLEAN NOT NULL DEFAULT TRUE, urutan INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NOT NULL DEFAULT now())");
+        $kws = db_all("SELECT kata FROM search_keywords WHERE kategori=$1 AND aktif=TRUE ORDER BY urutan, id", [$cat]);
+        $words = array_map(fn($r)=>mb_strtolower(trim($r['kata'])), $kws);
+        $qLower = mb_strtolower($q);
+        $hasTopic = false;
+        foreach ($words as $w) if ($w!=='' && mb_strpos($qLower, $w)!==false) { $hasTopic = true; break; }
+        if (!$hasTopic && !empty($words)) {
+            // Sisipkan kata kunci utama (urutan pertama) supaya hasil tetap di topik.
+            $q = $words[0].' '.$q;
+        }
+    } catch (Throwable $e) { /* tidak fatal */ }
+}
+
 $url = 'https://www.youtube.com/results?search_query='.rawurlencode($q).'&hl=id&gl=ID';
 $ch = curl_init($url);
 curl_setopt_array($ch, [
