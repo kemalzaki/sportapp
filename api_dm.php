@@ -7,25 +7,44 @@ header('Content-Type: application/json');
 $u = current_user();
 $uid = (int)$u['id'];
 
+// Revisi 22 Juni 2026 R6 — semua jalur error harus mengembalikan JSON, bukan plaintext,
+// supaya client-side dm.php / dm_floating.php bisa membaca {ok:false,err:...} dengan benar.
+function dm_json_die(int $code, string $err): void {
+    http_response_code($code);
+    echo json_encode(['ok'=>false,'err'=>$err]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? '')) {
-        echo json_encode(['ok'=>false,'err'=>'csrf']); exit;
+        dm_json_die(400, 'csrf');
     }
-    rate_limit_or_die('dm:'.$uid, 60, 60);
+    // Rate-limit dibungkus manual agar tidak menghasilkan plaintext 429.
+    if (!rate_limit('dm:'.$uid, 60, 60)) {
+        dm_json_die(429, 'Terlalu banyak permintaan, coba lagi sebentar.');
+    }
     $to = (int)($_POST['to'] ?? 0);
     $pesan = trim($_POST['pesan'] ?? '');
-    if ($to <= 0 || $to === $uid || $pesan === '') { echo json_encode(['ok'=>false]); exit; }
+    if ($to <= 0 || $to === $uid)  dm_json_die(400, 'penerima tidak valid');
+    if ($pesan === '')             dm_json_die(400, 'pesan kosong');
     if (mb_strlen($pesan) > 2000) $pesan = mb_substr($pesan, 0, 2000);
-    if (!db_one("SELECT id FROM users WHERE id=$1", [$to])) { echo json_encode(['ok'=>false,'err'=>'no_user']); exit; }
-    db_exec("INSERT INTO dm_messages(sender_id,receiver_id,pesan) VALUES($1,$2,$3)", [$uid,$to,$pesan]);
-    // Push notification (lewat tabel notifications → di-poll & ditampilkan ServiceWorker spt WhatsApp)
-    $judul = '💬 Pesan baru dari ' . ($u['nama'] ?? 'member');
-    $isi   = mb_substr($pesan, 0, 120);
-    @pg_query_params(db(),
-      "INSERT INTO notifications(user_id, jenis, judul, isi, url) VALUES($1,'dm',$2,$3,$4)",
-      [$to, $judul, $isi, '/dm.php?u='.$uid]);
+    if (!db_one("SELECT id FROM users WHERE id=$1", [$to])) dm_json_die(404, 'no_user');
+    try {
+        db_exec("INSERT INTO dm_messages(sender_id,receiver_id,pesan) VALUES($1,$2,$3)", [$uid,$to,$pesan]);
+    } catch (Throwable $e) {
+        dm_json_die(500, 'gagal menyimpan pesan: '.$e->getMessage());
+    }
+    // Push notification (opsional — jika tabel notifications belum lengkap, jangan blokir kirim pesan).
+    try {
+        $judul = '💬 Pesan baru dari ' . ($u['nama'] ?? 'member');
+        $isi   = mb_substr($pesan, 0, 120);
+        @pg_query_params(db(),
+          "INSERT INTO notifications(user_id, jenis, judul, isi, url) VALUES($1,'dm',$2,$3,$4)",
+          [$to, $judul, $isi, '/dm.php?u='.$uid]);
+    } catch (Throwable $e) { /* abaikan, pesan tetap terkirim */ }
     echo json_encode(['ok'=>true]); exit;
 }
+
 
 // Mark semua pesan masuk ke saya sebagai "delivered" (ceklis 2 abu-abu)
 if (isset($_GET['delivered'])) {

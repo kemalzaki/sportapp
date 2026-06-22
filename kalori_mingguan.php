@@ -431,13 +431,16 @@ $totalTarget  = $target * 7;
 $weekDeficit  = $totalTarget - $totalNet;   // >0 = defisit (bagus utk diet); <0 = surplus
 $avgDay = round($totalWeek/7);
 
-// Revisi 19 Juni 2026 — Sisa kalori HARI INI (untuk panel khusus)
+// Revisi 22 Juni 2026 R6 — "Sisa Kalori Hari Ini" diukur dari MAKANAN saja,
+// bukan dari net (cons − burn). Sebelumnya angka bisa NAIK saat user menambah
+// "Pembakaran Lain", yang membingungkan. Sekarang sisa selalu TURUN tiap kali
+// user mencatat makanan, dan TIDAK terpengaruh pembakaran kalori.
 $todayKey      = date('Y-m-d');
 $todayCons     = (int)($map[$todayKey]     ?? 0);
 $todayBurn     = (int)($burnMap[$todayKey] ?? 0);
-$todayNet      = $todayCons - $todayBurn;
-$todayRemain   = $target - $todayNet;    // kkal yg masih bisa dimakan hari ini
-$todayPct      = $target>0 ? min(100, max(0, ($todayNet/$target)*100)) : 0;
+$todayNet      = $todayCons - $todayBurn;            // tetap dipakai utk panel rincian
+$todayRemain   = $target - $todayCons;               // sisa makan = target − konsumsi
+$todayPct      = $target>0 ? min(100, max(0, ($todayCons/$target)*100)) : 0;
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 $aiEnabled = (bool) (defined('GEMINI_API_KEY') ? GEMINI_API_KEY : (getenv('GEMINI_API_KEY') ?: ''));
@@ -534,12 +537,13 @@ include __DIR__.'/includes/header.php';
                    role="progressbar" style="width:<?= number_format($todayPct,1) ?>%"></div>
             </div>
             <div class="small text-muted mt-1">
-              Konsumsi <b><?= number_format($todayCons) ?></b>
-              − Terbakar <b><?= number_format($todayBurn) ?></b>
-              = Net <b><?= number_format($todayNet) ?></b>
+              Konsumsi makanan <b><?= number_format($todayCons) ?></b>
               / Target <b><?= number_format($target) ?></b> kkal
-              · Sisa = Target − Net = <b><?= number_format($todayRemain) ?></b>
+              · Sisa = Target − Konsumsi = <b><?= number_format($todayRemain) ?></b>
               (<?= number_format($todayPct,1) ?>%).
+              <br>Terbakar olahraga hari ini: <b><?= number_format($todayBurn) ?></b> kkal
+              · Net asupan: <b><?= number_format($todayNet) ?></b> kkal
+              (info, tidak mengurangi sisa makan hari ini).
             </div>
           </div>
         </div>
@@ -1013,6 +1017,17 @@ else window.addEventListener('load', kmInitEditAndZoom);
 [data-bs-theme=dark] #detailGiziModal .dg-catatan-box{background:#0b1220;border-color:#1f2937;}
 #detailGiziModal .dg-catatan-box .dg-catatan-text{white-space:pre-wrap;word-break:break-word;line-height:1.4;margin-top:.25rem;}
 #detailGiziModal .dg-ai-json{margin:0;padding:.5rem;background:#0f172a;color:#e2e8f0;border-radius:6px;font-size:.72rem;max-height:220px;overflow:auto;}
+/* Revisi 22 Juni 2026 R6 — kartu makro nutrien yang rapih dan compact. */
+#detailGiziModal .dg-macro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;}
+@media (min-width:520px){#detailGiziModal .dg-macro-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+#detailGiziModal .dg-macro-cell{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:.45rem .55rem;}
+[data-bs-theme=dark] #detailGiziModal .dg-macro-cell{background:#0b1220;border-color:#1f2937;}
+#detailGiziModal .dg-macro-label{font-size:.72rem;color:#475569;font-weight:600;line-height:1.1;margin-bottom:.15rem;}
+[data-bs-theme=dark] #detailGiziModal .dg-macro-label{color:#cbd5e1;}
+#detailGiziModal .dg-macro-val{font-size:.95rem;font-weight:700;color:#0f172a;}
+[data-bs-theme=dark] #detailGiziModal .dg-macro-val{color:#e2e8f0;}
+#detailGiziModal .dg-macro-val .dg-unit{font-size:.7rem;font-weight:500;color:#64748b;margin-left:2px;}
+
 </style>
 <script>
 function kmInitDetailGizi(){
@@ -1042,6 +1057,17 @@ function kmInitDetailGizi(){
       '<div class="small dg-catatan-text">'+esc(raw)+'</div>'+
     '</div>';
   }
+  // Revisi 22 Juni 2026 R6 — tampilkan SEMUA makronutrien (protein/karbo/lemak/serat/gula/sodium)
+  // walaupun nilainya kosong, supaya user tahu apa saja yang dianalisis AI. Nilai yang
+  // tidak tersedia diberi tanda "—". Tata letak diubah ke kartu ringkas berwarna agar lebih rapih.
+  var MACRO_FIELDS = [
+    {key:'protein_g',     label:'Protein',     unit:'g',  icon:'bi-egg-fried',     color:'#f97316'},
+    {key:'karbohidrat_g', label:'Karbohidrat', unit:'g',  icon:'bi-basket',        color:'#0ea5e9'},
+    {key:'lemak_g',       label:'Lemak',       unit:'g',  icon:'bi-droplet-half',  color:'#eab308'},
+    {key:'serat_g',       label:'Serat',       unit:'g',  icon:'bi-flower2',       color:'#16a34a'},
+    {key:'gula_g',        label:'Gula',        unit:'g',  icon:'bi-cup-straw',     color:'#db2777'},
+    {key:'sodium_mg',     label:'Sodium',      unit:'mg', icon:'bi-shaker',        color:'#64748b'}
+  ];
   function render(d){
     var html = '<div class="dg-head mb-2">';
     if (d.foto) html += '<img src="'+esc(d.foto)+'" alt="">';
@@ -1050,15 +1076,28 @@ function kmInitDetailGizi(){
       '<div class="small text-muted">'+esc(d.tanggal)+' · '+esc(d.waktu)+'</div>'+
       '<div class="mt-1"><span class="badge bg-danger">'+(d.kalori|0)+' kkal</span></div>'+
     '</div></div>';
-    if (d.makro && d.makro.length){
-      html += '<table class="table table-sm dg-makro"><tbody>';
-      d.makro.forEach(function(m){
-        html += '<tr><td class="text-muted">'+esc(m.label)+'</td><td class="text-end fw-semibold">'+esc(m.value)+' '+esc(m.unit)+'</td></tr>';
-      });
-      html += '</tbody></table>';
-    } else {
-      html += '<div class="small text-muted mb-2"><i class="bi bi-info-circle"></i> Tidak ada data makro (entri lama atau tanpa AI).</div>';
+
+    // Index makro dari payload (array of {label,value,unit}) menjadi map by label.
+    var byLabel = {};
+    (d.makro||[]).forEach(function(m){ byLabel[m.label] = m; });
+    var hasAny = (d.makro||[]).length > 0;
+
+    html += '<div class="small fw-semibold mb-1"><i class="bi bi-clipboard-pulse text-success"></i> Makro Nutrien</div>';
+    html += '<div class="dg-macro-grid mb-2">';
+    MACRO_FIELDS.forEach(function(f){
+      var m = byLabel[f.label];
+      var val = m ? (esc(m.value)+' <span class="dg-unit">'+esc(m.unit)+'</span>') : '<span class="text-muted">—</span>';
+      html += '<div class="dg-macro-cell" style="border-left:3px solid '+f.color+'">'+
+                '<div class="dg-macro-label"><i class="bi '+f.icon+'" style="color:'+f.color+'"></i> '+f.label+'</div>'+
+                '<div class="dg-macro-val">'+val+'</div>'+
+              '</div>';
+    });
+    html += '</div>';
+    if (!hasAny) {
+      html += '<div class="small text-muted mb-2"><i class="bi bi-info-circle"></i> Entri ini belum punya data makro '+
+              '(entri lama atau tanpa AI). Edit ulang dengan foto + AI untuk mendapatkan rincian gizi.</div>';
     }
+
     if (d.detail) html += '<div class="alert alert-success py-2 small mb-2 dg-detail"><i class="bi bi-stars"></i> '+esc(d.detail)+'</div>';
     html += renderCatatan(d.catatan);
     body.innerHTML = html;

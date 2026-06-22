@@ -177,10 +177,13 @@ if ($cat === 'konsisten') {
 }
 
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
-                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir,
-                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id AND a.status='telat') AS telat,
-                          (SELECT COUNT(*) FROM absensi a WHERE a.jadwal_id=j.id) AS total,
-                          (SELECT COUNT(*) FROM member_eksternal me WHERE me.jadwal_id=j.id) AS tamu
+                          -- Revisi 22 Juni 2026 R6 — DISTINCT user_id supaya 'hadir' & 'total'
+                          -- tidak menggelembung saat absensi punya baris ganda (data lama
+                          -- tanpa UNIQUE). Telat tetap dihitung sebagai user unik.
+                          (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir,
+                          (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id AND a.status='telat') AS telat,
+                          (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id) AS total,
+                          (SELECT COUNT(DISTINCT me.nama_tamu) FROM member_eksternal me WHERE me.jadwal_id=j.id) AS tamu
                    FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
                    ORDER BY j.tanggal DESC LIMIT 50");
 
