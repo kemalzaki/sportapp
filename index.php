@@ -1075,19 +1075,53 @@ document.addEventListener('DOMContentLoaded', () => {
           function setInfo(t){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent=t; }
           function ensureLeaflet(cb, onErr){
             if (typeof L !== 'undefined') return cb();
-            if (window.__leafletLoading){
-              var iv=setInterval(function(){ if(typeof L!=='undefined'){clearInterval(iv); cb();} }, 100);
-              setTimeout(function(){ clearInterval(iv); if(typeof L==='undefined' && onErr) onErr(); }, 12000);
-              return;
-            }
+            window.__leafletCallbacks = window.__leafletCallbacks || [];
+            window.__leafletErrbacks  = window.__leafletErrbacks || [];
+            window.__leafletCallbacks.push(cb);
+            if (onErr) window.__leafletErrbacks.push(onErr);
+            if (window.__leafletLoading) return;
             window.__leafletLoading = true;
-            var css=document.createElement('link'); css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
-            var js=document.createElement('script'); js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            js.onload=function(){ cb(); };
-            js.onerror=function(){ window.__leafletLoading=false; if(onErr) onErr(); };
-            document.head.appendChild(js);
-            // safety: bila CDN sangat lambat / diblok
-            setTimeout(function(){ if (typeof L === 'undefined' && onErr) onErr(); }, 12000);
+
+            var cdns = [
+              {
+                css: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css',
+                js:  'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
+              },
+              {
+                css: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+                js:  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+              }
+            ];
+            var idx = 0;
+            function finishOk(){
+              window.__leafletLoading = false;
+              var list = window.__leafletCallbacks || [];
+              window.__leafletCallbacks = [];
+              window.__leafletErrbacks = [];
+              list.forEach(function(fn){ try{ fn(); }catch(e){} });
+            }
+            function finishErr(){
+              window.__leafletLoading = false;
+              var list = window.__leafletErrbacks || [];
+              window.__leafletCallbacks = [];
+              window.__leafletErrbacks = [];
+              list.forEach(function(fn){ try{ fn(); }catch(e){} });
+            }
+            function tryLoad(){
+              if (typeof L !== 'undefined') return finishOk();
+              if (idx >= cdns.length) return finishErr();
+              var src = cdns[idx++];
+              if (!document.querySelector('link[href="'+src.css+'"]')) {
+                var css=document.createElement('link'); css.rel='stylesheet'; css.href=src.css; css.crossOrigin=''; document.head.appendChild(css);
+              }
+              var done = false;
+              var js=document.createElement('script'); js.src=src.js; js.crossOrigin=''; js.async=true;
+              var timer=setTimeout(function(){ if(done) return; done=true; tryLoad(); }, 8000);
+              js.onload=function(){ if(done) return; done=true; clearTimeout(timer); (typeof L !== 'undefined') ? finishOk() : tryLoad(); };
+              js.onerror=function(){ if(done) return; done=true; clearTimeout(timer); tryLoad(); };
+              document.head.appendChild(js);
+            }
+            tryLoad();
           }
           function fromGeo(g){
             var pts=[]; try{
@@ -1130,14 +1164,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 350);
               } catch(e){ setInfo('Gagal menginisialisasi peta: '+e.message); return; }
               if (gpx){
-                fetch(gpx, {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }).then(function(xml){
+                var controller = window.AbortController ? new AbortController() : null;
+                var gpxTimer = controller ? setTimeout(function(){ controller.abort(); }, 12000) : null;
+                fetch(gpx, {cache:'no-store', credentials:'same-origin', signal: controller ? controller.signal : undefined}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }).then(function(xml){
+                  if (gpxTimer) clearTimeout(gpxTimer);
                   var doc=new DOMParser().parseFromString(xml,'application/xml');
                   var nodes=doc.getElementsByTagName('trkpt');
                   var pts=[]; for (var i=0;i<nodes.length;i++) pts.push(L.latLng(parseFloat(nodes[i].getAttribute('lat')), parseFloat(nodes[i].getAttribute('lon'))));
                   if (!pts.length){ var rt=doc.getElementsByTagName('rtept'); for (var j=0;j<rt.length;j++) pts.push(L.latLng(parseFloat(rt[j].getAttribute('lat')), parseFloat(rt[j].getAttribute('lon')))); }
                   if (!pts.length){ var wp=doc.getElementsByTagName('wpt'); for (var k=0;k<wp.length;k++) pts.push(L.latLng(parseFloat(wp[k].getAttribute('lat')), parseFloat(wp[k].getAttribute('lon')))); }
                   draw(pts);
-                }).catch(function(e){ setInfo('Gagal memuat GPX: '+e.message); });
+                }).catch(function(e){ if (gpxTimer) clearTimeout(gpxTimer); setInfo('Gagal memuat GPX: '+(e.name==='AbortError'?'timeout / terlalu lama':e.message)); });
               } else if (geoS){
                 try { draw(fromGeo(JSON.parse(geoS))); } catch(e){ setInfo('Gagal parse GeoJSON.'); }
               } else {
@@ -1145,10 +1182,18 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }, function(){ setInfo('Gagal memuat pustaka peta (Leaflet). Cek koneksi internet.'); });
           }
-          // Revisi 22 Juni 2026 R7 — gunakan event "shown" (bukan "show") supaya
-          // kontainer peta sudah punya ukuran sebelum Leaflet diinisialisasi.
-          modalEl.addEventListener('show.bs.modal', function(ev){ pendingBtn = ev.relatedTarget || null; setInfo('Memuat peta…'); });
-          modalEl.addEventListener('shown.bs.modal', function(){ render(pendingBtn); });
+          // Revisi 22 Juni 2026 R8 — render juga dari event klik langsung sebagai fallback.
+          // Pada beberapa instalasi Bootstrap, relatedTarget di event modal kosong sehingga
+          // sebelumnya info berhenti di "Memuat peta…" dan render tidak pernah berjalan.
+          document.querySelectorAll('.hk-route-btn').forEach(function(btn){
+            btn.addEventListener('click', function(){
+              pendingBtn = btn;
+              setInfo('Memuat peta…');
+              setTimeout(function(){ if (pendingBtn === btn) render(btn); }, 450);
+            });
+          });
+          modalEl.addEventListener('show.bs.modal', function(ev){ pendingBtn = ev.relatedTarget || pendingBtn; setInfo('Memuat peta…'); });
+          modalEl.addEventListener('shown.bs.modal', function(ev){ render((ev && ev.relatedTarget) || pendingBtn); });
           modalEl.addEventListener('hidden.bs.modal', function(){
             if (mapInstance){ try{ mapInstance.remove(); }catch(e){} mapInstance=null; }
             pendingBtn = null;
