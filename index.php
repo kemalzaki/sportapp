@@ -1052,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         ?>
         <?php if ($__hasHikingRoute): ?>
-        <!-- Leaflet (untuk peta rute di popup) — Revisi 22 Juni 2026 R12: load eager, samakan dengan tempat_list.php -->
+        <!-- Leaflet (untuk peta rute di popup) — Revisi 22 Juni 2026 R13: render fallback + timeout GPX -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
@@ -1076,22 +1076,40 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!modalEl) return;
           var mapInstance = null;
           var pendingBtn  = null;
+          var renderTimer = null;
+          var leafletRetry = 0;
           function setInfo(t){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent=t; }
           function destroyMap(){
             if (mapInstance){ try{ mapInstance.remove(); }catch(e){} mapInstance = null; }
             var el = document.getElementById('hkRouteMap'); if (el) el.innerHTML = '';
           }
           function fromGeo(g){
-            var pts=[]; try{
-              var c=null;
+            var pts=[];
+            function addCoord(c){
+              if (!Array.isArray(c) || !c.length) return;
+              if (typeof c[0] === 'number' && typeof c[1] === 'number') { pts.push(L.latLng(c[1], c[0])); return; }
+              c.forEach(addCoord);
+            }
+            try{
               if (!g) return pts;
-              if (g.type==='FeatureCollection' && g.features && g.features[0] && g.features[0].geometry) c=g.features[0].geometry.coordinates;
-              else if (g.type==='Feature' && g.geometry) c=g.geometry.coordinates;
-              else if (g.coordinates) c=g.coordinates;
-              if (!c) return pts;
-              if (typeof c[0][0]==='number') c.forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
-              else if (Array.isArray(c[0][0])) c[0].forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
+              if (typeof g === 'string') g = JSON.parse(g);
+              if (g.type === 'FeatureCollection' && Array.isArray(g.features)) g.features.forEach(function(f){ if(f && f.geometry) addCoord(f.geometry.coordinates); });
+              else if (g.type === 'Feature' && g.geometry) addCoord(g.geometry.coordinates);
+              else if (g.coordinates) addCoord(g.coordinates);
             }catch(e){}
+            return pts;
+          }
+          function ptsFromGpx(xml){
+            var doc = new DOMParser().parseFromString(xml,'application/xml');
+            var pts = [];
+            ['trkpt','rtept','wpt'].forEach(function(tag){
+              var nodes = doc.getElementsByTagName(tag);
+              for (var i=0;i<nodes.length;i++) {
+                var lat = parseFloat(nodes[i].getAttribute('lat'));
+                var lon = parseFloat(nodes[i].getAttribute('lon'));
+                if (!isNaN(lat) && !isNaN(lon)) pts.push(L.latLng(lat, lon));
+              }
+            });
             return pts;
           }
           function draw(pts){
@@ -1103,46 +1121,68 @@ document.addEventListener('DOMContentLoaded', () => {
             var d=0; for (var i=1;i<pts.length;i++) d += mapInstance.distance(pts[i-1], pts[i]);
             setInfo(pts.length+' titik · '+(d/1000).toFixed(2)+' km');
           }
+          function scheduleRender(btn, delay){
+            pendingBtn = btn || pendingBtn;
+            if (renderTimer) clearTimeout(renderTimer);
+            renderTimer = setTimeout(function(){ render(pendingBtn); }, delay || 120);
+          }
           function render(btn){
             if (!btn) { setInfo('Tidak ada tombol yang dipilih.'); return; }
-            if (typeof L === 'undefined') { setInfo('Memuat pustaka peta…'); setTimeout(function(){ render(btn); }, 300); return; }
+            if (typeof L === 'undefined') {
+              leafletRetry++;
+              if (leafletRetry > 20) { setInfo('Gagal memuat pustaka peta (Leaflet). Cek koneksi internet.'); return; }
+              setInfo('Memuat pustaka peta…');
+              scheduleRender(btn, 300);
+              return;
+            }
+            leafletRetry = 0;
             var title = btn.getAttribute('data-hk-title') || 'Hiking';
             var gpx   = btn.getAttribute('data-hk-gpx') || '';
             var geoS  = btn.getAttribute('data-hk-geo') || '';
             document.getElementById('hkRouteTitle').textContent = title;
-            setInfo('Memuat peta…');
+            setInfo('Memuat rute…');
             try {
               destroyMap();
               var el = document.getElementById('hkRouteMap');
               mapInstance = L.map(el, { zoomControl:true }).setView([-2.5,118.0], 4);
               L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mapInstance);
-              setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 200);
-              setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 500);
+              setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 150);
+              setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); }, 450);
             } catch(e){ setInfo('Gagal menginisialisasi peta: '+e.message); return; }
-            if (gpx){
-              fetch(gpx, {cache:'no-store', credentials:'same-origin'})
+            if (geoS){
+              try { draw(fromGeo(geoS)); } catch(e){ setInfo('Gagal parse GeoJSON.'); }
+            } else if (gpx){
+              var controller = window.AbortController ? new AbortController() : null;
+              var gpxTimer = controller ? setTimeout(function(){ controller.abort(); }, 10000) : null;
+              fetch(gpx, {cache:'no-store', credentials:'same-origin', signal: controller ? controller.signal : undefined})
                 .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
                 .then(function(xml){
-                  var doc=new DOMParser().parseFromString(xml,'application/xml');
-                  var nodes=doc.getElementsByTagName('trkpt');
-                  var pts=[]; for (var i=0;i<nodes.length;i++) pts.push(L.latLng(parseFloat(nodes[i].getAttribute('lat')), parseFloat(nodes[i].getAttribute('lon'))));
-                  if (!pts.length){ var rt=doc.getElementsByTagName('rtept'); for (var j=0;j<rt.length;j++) pts.push(L.latLng(parseFloat(rt[j].getAttribute('lat')), parseFloat(rt[j].getAttribute('lon')))); }
-                  if (!pts.length){ var wp=doc.getElementsByTagName('wpt'); for (var k=0;k<wp.length;k++) pts.push(L.latLng(parseFloat(wp[k].getAttribute('lat')), parseFloat(wp[k].getAttribute('lon')))); }
-                  draw(pts);
-                }).catch(function(e){ setInfo('Gagal memuat GPX: '+e.message); });
-            } else if (geoS){
-              try { draw(fromGeo(JSON.parse(geoS))); } catch(e){ setInfo('Gagal parse GeoJSON.'); }
+                  if (gpxTimer) clearTimeout(gpxTimer);
+                  draw(ptsFromGpx(xml));
+                }).catch(function(e){
+                  if (gpxTimer) clearTimeout(gpxTimer);
+                  setInfo('Gagal memuat GPX: '+(e.name==='AbortError'?'timeout / terlalu lama':e.message));
+                });
             } else {
               setInfo('Tidak ada data rute.');
             }
           }
           document.querySelectorAll('.hk-route-btn').forEach(function(btn){
-            btn.addEventListener('click', function(){ pendingBtn = btn; });
+            btn.addEventListener('click', function(){
+              pendingBtn = btn;
+              setInfo('Memuat rute…');
+              // Fallback jika event Bootstrap "shown" tidak terpanggil di WebView/browser tertentu.
+              scheduleRender(btn, 450);
+            });
+          });
+          modalEl.addEventListener('show.bs.modal', function(ev){
+            pendingBtn = (ev && ev.relatedTarget) || pendingBtn;
+            setInfo('Memuat rute…');
           });
           modalEl.addEventListener('shown.bs.modal', function(ev){
             var btn = (ev && ev.relatedTarget) || pendingBtn;
             // Render setelah modal benar2 tampil agar ukuran peta benar
-            setTimeout(function(){ render(btn); }, 150);
+            scheduleRender(btn, 120);
           });
           modalEl.addEventListener('hidden.bs.modal', function(){
             destroyMap();
