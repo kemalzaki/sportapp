@@ -955,14 +955,17 @@ document.addEventListener('DOMContentLoaded', () => {
                  if (mb_strtolower(trim((string)$j['jenis'])) === 'hiking') {
                    $__gpx = (string)($j['tp_gpx_path'] ?? '');
                    $__geo = $jadwalRouteGeo[$jid] ?? null;
-                   if ($__gpx || $__geo) {
-                     echo '<button type="button" class="btn btn-sm btn-outline-danger ms-1 hk-route-btn" '
-                        . 'data-bs-toggle="modal" data-bs-target="#hkRouteModal" '
-                        . 'data-hk-id="'.$jid.'" '
-                        . 'data-hk-title="'.htmlspecialchars($j['tanggal'].' — '.$j['tempat'], ENT_QUOTES).'" '
-                        . 'data-hk-gpx="'.htmlspecialchars($__gpx, ENT_QUOTES).'" '
-                        . 'data-hk-geo="'.htmlspecialchars($__geo ?: '', ENT_QUOTES).'" '
-                        . 'title="Lihat rute perjalanan"><i class="bi bi-map"></i> Peta Rute</button>';
+                    if ($__gpx || $__geo) {
+                      $__routePayload = [
+                        'title' => (string)$j['tanggal'].' — '.(string)$j['tempat'],
+                        'gpx_path' => $__gpx,
+                        'geojson' => $__geo ?: '',
+                      ];
+                      $__routeJson = htmlspecialchars(json_encode($__routePayload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_HEX_TAG), ENT_QUOTES);
+                      echo '<button type="button" class="btn btn-sm btn-outline-danger ms-1" '
+                         . 'data-route="'.$__routeJson.'" '
+                         . 'onclick="showHkRoute(JSON.parse(this.dataset.route))" '
+                         . 'title="Lihat rute perjalanan"><i class="bi bi-map"></i> Peta Rute</button>';
                    }
                  }
                ?>
@@ -1052,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         ?>
         <?php if ($__hasHikingRoute): ?>
-        <!-- Leaflet (untuk peta rute di popup) — Revisi 22 Juni 2026 R13: render fallback + timeout GPX -->
+        <!-- Leaflet (untuk peta rute di popup) — Revisi 22 Juni 2026 R14: disamakan dengan tempat_list.php -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
@@ -1074,10 +1077,8 @@ document.addEventListener('DOMContentLoaded', () => {
         (function(){
           var modalEl = document.getElementById('hkRouteModal');
           if (!modalEl) return;
+          var hkModal = null;
           var mapInstance = null;
-          var pendingBtn  = null;
-          var renderTimer = null;
-          var leafletRetry = 0;
           function setInfo(t){ var i=document.getElementById('hkRouteInfo'); if(i) i.textContent=t; }
           function destroyMap(){
             if (mapInstance){ try{ mapInstance.remove(); }catch(e){} mapInstance = null; }
@@ -1121,24 +1122,11 @@ document.addEventListener('DOMContentLoaded', () => {
             var d=0; for (var i=1;i<pts.length;i++) d += mapInstance.distance(pts[i-1], pts[i]);
             setInfo(pts.length+' titik · '+(d/1000).toFixed(2)+' km');
           }
-          function scheduleRender(btn, delay){
-            pendingBtn = btn || pendingBtn;
-            if (renderTimer) clearTimeout(renderTimer);
-            renderTimer = setTimeout(function(){ render(pendingBtn); }, delay || 120);
-          }
-          function render(btn){
-            if (!btn) { setInfo('Tidak ada tombol yang dipilih.'); return; }
-            if (typeof L === 'undefined') {
-              leafletRetry++;
-              if (leafletRetry > 20) { setInfo('Gagal memuat pustaka peta (Leaflet). Cek koneksi internet.'); return; }
-              setInfo('Memuat pustaka peta…');
-              scheduleRender(btn, 300);
-              return;
-            }
-            leafletRetry = 0;
-            var title = btn.getAttribute('data-hk-title') || 'Hiking';
-            var gpx   = btn.getAttribute('data-hk-gpx') || '';
-            var geoS  = btn.getAttribute('data-hk-geo') || '';
+          function render(d){
+            if (typeof L === 'undefined') { setTimeout(function(){ render(d); }, 250); return; }
+            var title = d.title || 'Hiking';
+            var gpx   = d.gpx_path || '';
+            var geoS  = d.geojson || '';
             document.getElementById('hkRouteTitle').textContent = title;
             setInfo('Memuat rute…');
             try {
@@ -1167,27 +1155,17 @@ document.addEventListener('DOMContentLoaded', () => {
               setInfo('Tidak ada data rute.');
             }
           }
-          document.querySelectorAll('.hk-route-btn').forEach(function(btn){
-            btn.addEventListener('click', function(){
-              pendingBtn = btn;
-              setInfo('Memuat rute…');
-              // Fallback jika event Bootstrap "shown" tidak terpanggil di WebView/browser tertentu.
-              scheduleRender(btn, 450);
-            });
-          });
-          modalEl.addEventListener('show.bs.modal', function(ev){
-            pendingBtn = (ev && ev.relatedTarget) || pendingBtn;
+          window.showHkRoute = function(d){
+            if (!hkModal) {
+              hkModal = new bootstrap.Modal(modalEl);
+              modalEl.addEventListener('hidden.bs.modal', destroyMap);
+            }
+            document.getElementById('hkRouteTitle').textContent = (d && d.title) ? d.title : 'Hiking';
             setInfo('Memuat rute…');
-          });
-          modalEl.addEventListener('shown.bs.modal', function(ev){
-            var btn = (ev && ev.relatedTarget) || pendingBtn;
-            // Render setelah modal benar2 tampil agar ukuran peta benar
-            scheduleRender(btn, 120);
-          });
-          modalEl.addEventListener('hidden.bs.modal', function(){
-            destroyMap();
-            pendingBtn = null;
-          });
+            hkModal.show();
+            // Sama seperti tempat_list.php: render peta setelah modal tampil agar ukuran benar.
+            setTimeout(function(){ render(d || {}); }, 250);
+          };
         })();
         </script>
         <?php endif; ?>
