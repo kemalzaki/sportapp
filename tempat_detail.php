@@ -60,11 +60,7 @@ include __DIR__.'/includes/header.php';
     <?php if ($gpxUrl || $savedRouteGeoJson): ?>
       <div id="trailMap" style="height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--bs-border-color,#dee2e6)"></div>
       <div class="mt-2 d-flex flex-wrap gap-2" id="trailActions">
-        <?php if ($gpxUrl): ?>
-          <a class="btn btn-sm btn-success" href="<?= htmlspecialchars($gpxUrl) ?>" download>
-            <i class="bi bi-download"></i> Unduh Rute Perjalanan (GPX)
-          </a>
-        <?php endif; ?>
+        <?php /* Revisi 22 Juni 2026 — Tombol Unduh GPX dihapus dari halaman publik. Khusus admin tersedia di /admin/tempat.php */ ?>
         <a class="btn btn-sm btn-primary" id="btnGmapsRoute" target="_blank" rel="noopener" href="#">
           <i class="bi bi-google"></i> Lihat Jalur di Google Maps
         </a>

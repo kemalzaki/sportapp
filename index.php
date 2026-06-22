@@ -311,12 +311,24 @@ try {
 }
 
 $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama,
-                          tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama
+                          tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama,
+                          tp.gpx_path AS tp_gpx_path, tp.run_route_id AS tp_run_route_id
                           FROM jadwal j
                           LEFT JOIN users u ON u.id=j.koordinator_id
                           LEFT JOIN tim t ON t.id=j.tim_id
                           LEFT JOIN tempat tp ON tp.id=j.tempat_id
                           WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT 5");
+// Revisi 22 Juni 2026 — pra-resolve GeoJSON rute Hiking (dari run_routes) untuk ditampilkan di Jadwal Terdekat
+$jadwalRouteGeo = [];
+foreach ($jadwalTerdekat as $__j) {
+  if (mb_strtolower(trim((string)$__j['jenis'])) !== 'hiking') continue;
+  if (!empty($__j['tp_gpx_path'])) continue;
+  if (empty($__j['tp_run_route_id'])) continue;
+  try {
+    $__sr = db_one("SELECT geojson FROM run_routes WHERE id=$1", [(int)$__j['tp_run_route_id']]);
+    if ($__sr && !empty($__sr['geojson'])) $jadwalRouteGeo[(int)$__j['id']] = $__sr['geojson'];
+  } catch (Throwable $e) {}
+}
 // Perlengkapan per jadwal (berdasarkan jenis olahraga jadwal)
 $perlByJadwal = [];
 if ($jadwalTerdekat) {
@@ -967,6 +979,68 @@ document.addEventListener('DOMContentLoaded', () => {
               <?php if($cnt['absen']): ?><span class="badge bg-danger-subtle text-danger" title="Belum/Absen">A <?= $cnt['absen'] ?></span><?php endif; ?>
             </td>
           </tr>
+          <?php
+            // Revisi 22 Juni 2026 — Tampilkan map rute Hiking dari GPX/GeoJSON tempat (tanpa tombol download).
+            $isHiking = mb_strtolower(trim((string)$j['jenis'])) === 'hiking';
+            $hkGpx = $isHiking ? (string)($j['tp_gpx_path'] ?? '') : '';
+            $hkGeo = $isHiking ? ($jadwalRouteGeo[$jid] ?? null) : null;
+          ?>
+          <?php if ($isHiking && ($hkGpx || $hkGeo)): ?>
+          <tr>
+            <td colspan="8">
+              <div class="small text-muted mb-1"><i class="bi bi-tree text-success"></i> Rute Perjalanan (Hiking) — <?= htmlspecialchars($j['tempat']) ?></div>
+              <div id="hkMap<?= $jid ?>" style="height:280px;border-radius:10px;overflow:hidden;border:1px solid var(--bs-border-color,#dee2e6)"></div>
+              <div class="small text-muted mt-1" id="hkInfo<?= $jid ?>"></div>
+              <script>
+              (function(){
+                function init(){
+                  if (typeof L === 'undefined') { setTimeout(init, 200); return; }
+                  var GPX_URL = <?= json_encode($hkGpx) ?>;
+                  var GEOJSON = <?= $hkGeo ? $hkGeo : 'null' ?>;
+                  var el = document.getElementById('hkMap<?= $jid ?>'); if (!el || el.dataset.init) return; el.dataset.init='1';
+                  var map = L.map(el).setView([-6.9,107.6], 12);
+                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+                  function draw(pts){
+                    if (!pts || !pts.length) return;
+                    var line = L.polyline(pts, {color:'#dc2626', weight:5, opacity:.85}).addTo(map);
+                    L.marker(pts[0]).addTo(map).bindPopup('Start');
+                    L.marker(pts[pts.length-1]).addTo(map).bindPopup('Finish');
+                    map.fitBounds(line.getBounds(), {padding:[20,20]});
+                    var d=0; for (var i=1;i<pts.length;i++) d += map.distance(pts[i-1], pts[i]);
+                    var info = document.getElementById('hkInfo<?= $jid ?>');
+                    if (info) info.textContent = pts.length+' titik · '+(d/1000).toFixed(2)+' km';
+                  }
+                  function fromGeo(geo){
+                    var pts=[]; try{
+                      var g=(typeof geo==='string')?JSON.parse(geo):geo, c=null;
+                      if (g.type==='FeatureCollection' && g.features && g.features[0] && g.features[0].geometry) c=g.features[0].geometry.coordinates;
+                      else if (g.type==='Feature' && g.geometry) c=g.geometry.coordinates;
+                      else if (g.coordinates) c=g.coordinates;
+                      if (c && c[0] && typeof c[0][0]==='number') c.forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
+                      else if (c && c[0] && Array.isArray(c[0][0])) c[0].forEach(function(p){pts.push(L.latLng(p[1],p[0]));});
+                    }catch(e){}
+                    return pts;
+                  }
+                  if (GPX_URL){
+                    fetch(GPX_URL).then(function(r){return r.text();}).then(function(xml){
+                      var doc=new DOMParser().parseFromString(xml,'application/xml');
+                      var nodes=doc.getElementsByTagName('trkpt');
+                      var pts=[]; for (var i=0;i<nodes.length;i++) pts.push(L.latLng(parseFloat(nodes[i].getAttribute('lat')), parseFloat(nodes[i].getAttribute('lon'))));
+                      if (!pts.length){ var rt=doc.getElementsByTagName('rtept'); for (var j2=0;j2<rt.length;j2++) pts.push(L.latLng(parseFloat(rt[j2].getAttribute('lat')), parseFloat(rt[j2].getAttribute('lon')))); }
+                      draw(pts);
+                    }).catch(function(e){ var i=document.getElementById('hkInfo<?= $jid ?>'); if(i) i.textContent='Gagal memuat GPX: '+e.message; });
+                  } else if (GEOJSON){ draw(fromGeo(GEOJSON)); }
+                }
+                if (!window.__leafletLoading && typeof L === 'undefined'){
+                  window.__leafletLoading = true;
+                  var css=document.createElement('link'); css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+                  var js=document.createElement('script'); js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; js.onload=init; document.head.appendChild(js);
+                } else { init(); }
+              })();
+              </script>
+            </td>
+          </tr>
+          <?php endif; ?>
           <tr class="collapse" id="jdetail<?= $jid ?>">
             <td colspan="8" class="bg-light">
               <?php if(!$absList): ?>
