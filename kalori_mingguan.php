@@ -94,6 +94,15 @@ function ai_estimate_kalori($imagePath, $namaTeks=''){
     if (!$g['ok']) return ['err'=>'Gemini: '.$g['err']];
     $obj = gemini_extract_json($g['text']);
     if (is_array($obj) && isset($obj['kalori'])) {
+        // Revisi 22 Juni 2026 R5 — bersihkan 'rincian' agar tidak menampilkan raw JSON.
+        $rincianRaw = (string)($obj['rincian'] ?? '');
+        $rincianRaw = trim($rincianRaw);
+        if ($rincianRaw !== '' && ($rincianRaw[0] === '{' || $rincianRaw[0] === '[')) {
+            $rincianRaw = ''; // buang JSON yang nyasar
+        }
+        // Strip karakter kontrol & potong panjang
+        $rincianRaw = preg_replace('/\s+/', ' ', $rincianRaw);
+        if (mb_strlen($rincianRaw) > 220) $rincianRaw = mb_substr($rincianRaw, 0, 217).'…';
         return [
             'nama'    => $obj['nama'] ?? '',
             'kalori'  => (int)$obj['kalori'],
@@ -103,7 +112,7 @@ function ai_estimate_kalori($imagePath, $namaTeks=''){
             'serat_g'       => isset($obj['serat_g'])       ? (float)$obj['serat_g']       : null,
             'gula_g'        => isset($obj['gula_g'])        ? (float)$obj['gula_g']        : null,
             'sodium_mg'     => isset($obj['sodium_mg'])     ? (float)$obj['sodium_mg']     : null,
-            'rincian' => $obj['rincian'] ?? '',
+            'rincian' => $rincianRaw,
         ];
     }
     // Fallback regex bila JSON gagal
@@ -507,7 +516,10 @@ include __DIR__.'/includes/header.php';
         <div class="d-flex align-items-center gap-3">
           <div class="flex-fill">
             <div class="display-6 fw-bold <?= $todayRemain>=0 ? 'text-success' : 'text-danger' ?>">
-              <?= ($todayRemain>=0?'':'+') ?><?= number_format($todayRemain) ?>
+              <?php /* Revisi 22 Juni 2026 R5 — perbaiki tampilan tanda. Sisa = target - net.
+                       Nilai negatif berarti melebihi target (sudah ditampilkan number_format
+                       dengan tanda minus). */ ?>
+              <?= number_format($todayRemain) ?>
               <small class="fs-6 text-muted">kkal</small>
             </div>
             <div class="small text-muted">
@@ -526,6 +538,7 @@ include __DIR__.'/includes/header.php';
               − Terbakar <b><?= number_format($todayBurn) ?></b>
               = Net <b><?= number_format($todayNet) ?></b>
               / Target <b><?= number_format($target) ?></b> kkal
+              · Sisa = Target − Net = <b><?= number_format($todayRemain) ?></b>
               (<?= number_format($todayPct,1) ?>%).
             </div>
           </div>

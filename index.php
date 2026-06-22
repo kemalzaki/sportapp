@@ -145,11 +145,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
             $postNewOk = true;
         }
     } elseif ($a === 'like') {
-        // Revisi 20 Juni 2026 R4 — kirim notifikasi ke pemilik post saat ada like baru.
+        // Revisi 22 Juni 2026 R5 — defensif: cek dulu apakah user sudah pernah like
+        // (utk DB yang belum punya UNIQUE constraint di post_likes; ON CONFLICT akan error
+        // tanpa unique). Setelah migrations_r5.sql dijalankan, kedua jalur tetap aman.
         $pid = (int)$_POST['post_id'];
         try {
-            $ins = db_one("INSERT INTO post_likes(post_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING post_id", [$pid, (int)$u['id']]);
-            if ($ins) {
+            $exists = db_one("SELECT 1 FROM post_likes WHERE post_id=$1 AND user_id=$2 LIMIT 1",
+                             [$pid, (int)$u['id']]);
+            if (!$exists) {
+                db_exec("INSERT INTO post_likes(post_id,user_id) VALUES($1,$2)", [$pid, (int)$u['id']]);
                 $own = db_one("SELECT user_id FROM posts WHERE id=$1", [$pid]);
                 if ($own && (int)$own['user_id'] !== (int)$u['id']) {
                     notify((int)$own['user_id'], 'like',

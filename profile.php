@@ -212,7 +212,7 @@ $jenisOR = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 recompute_badges((int)$u['id']);
 $me = db_one("SELECT * FROM users WHERE id=$1", [(int)$u['id']]);
 $allBadges = db_all("SELECT * FROM badges ORDER BY xp DESC");
-$ownBadgeIds = array_column(db_all("SELECT badge_id FROM user_badges WHERE user_id=$1", [(int)$u['id']]), 'badge_id');
+$ownBadgeIds = array_column(db_all("SELECT DISTINCT badge_id FROM user_badges WHERE user_id=$1", [(int)$u['id']]), 'badge_id');
 $ownBadgeIds = array_map('intval', $ownBadgeIds);
 $notifs = db_all("SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 30", [(int)$u['id']]);
 

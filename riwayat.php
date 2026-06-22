@@ -188,17 +188,33 @@ $sesiDetail = [];
 $jids = array_map(fn($r)=>(int)$r['id'], $riwayat);
 if ($jids) {
     $inList = implode(',', $jids);
-    $absRows = db_all("SELECT a.jadwal_id, a.hadir, a.keterangan, u.nama, u.foto_url
-                       FROM absensi a JOIN users u ON u.id=a.user_id
-                       WHERE a.jadwal_id IN ($inList) ORDER BY a.hadir DESC, u.nama");
-    // Revisi 13 Juni 2026: tampilkan status "telat" terpisah dari "hadir" di Detail Sesi.
+    // Revisi 22 Juni 2026 R5 — DISTINCT ON (jadwal_id,user_id) supaya nama tidak
+    // double saat data absensi punya baris ganda untuk satu jadwal+user (data lama).
     try {
-      $absRows = db_all("SELECT a.jadwal_id, a.hadir, a.status, a.keterangan, u.nama, u.foto_url
+      $absRows = db_all("SELECT DISTINCT ON (a.jadwal_id, a.user_id)
+                                a.jadwal_id, a.hadir, a.status, a.keterangan, u.id AS uid, u.nama, u.foto_url
                          FROM absensi a JOIN users u ON u.id=a.user_id
-                         WHERE a.jadwal_id IN ($inList) ORDER BY a.hadir DESC, u.nama");
-    } catch (Throwable $e) { /* fallback ke query lama jika kolom status belum ada */ }
+                         WHERE a.jadwal_id IN ($inList)
+                         ORDER BY a.jadwal_id, a.user_id, a.id DESC");
+    } catch (Throwable $e) {
+      // Fallback jika kolom 'status' belum ada
+      $absRows = db_all("SELECT DISTINCT ON (a.jadwal_id, a.user_id)
+                                a.jadwal_id, a.hadir, a.keterangan, u.id AS uid, u.nama, u.foto_url
+                         FROM absensi a JOIN users u ON u.id=a.user_id
+                         WHERE a.jadwal_id IN ($inList)
+                         ORDER BY a.jadwal_id, a.user_id, a.id DESC");
+    }
+    // Sortir akhir di PHP supaya tetap urut hadir-dulu lalu nama
+    usort($absRows, function($a,$b){
+        if ($a['jadwal_id'] != $b['jadwal_id']) return $a['jadwal_id'] <=> $b['jadwal_id'];
+        $ha = (int)($a['hadir'] ?? 0); $hb = (int)($b['hadir'] ?? 0);
+        if ($ha !== $hb) return $hb <=> $ha;
+        return strcmp((string)$a['nama'], (string)$b['nama']);
+    });
     foreach ($absRows as $ar) $sesiDetail[(int)$ar['jadwal_id']]['anggota'][] = $ar;
-    $tamuRows = db_all("SELECT jadwal_id, nama_tamu AS nama FROM member_eksternal WHERE jadwal_id IN ($inList)");
+    $tamuRows = db_all("SELECT DISTINCT ON (jadwal_id, nama_tamu) jadwal_id, nama_tamu AS nama
+                        FROM member_eksternal WHERE jadwal_id IN ($inList)
+                        ORDER BY jadwal_id, nama_tamu, id DESC");
     foreach ($tamuRows as $tr) $sesiDetail[(int)$tr['jadwal_id']]['tamu'][] = $tr;
 }
 

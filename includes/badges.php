@@ -63,5 +63,10 @@ function recompute_badges(int $userId): void {
 }
 
 function user_badges(int $userId): array {
-    return db_all("SELECT b.*, ub.earned_at FROM user_badges ub JOIN badges b ON b.id=ub.badge_id WHERE ub.user_id=$1 ORDER BY ub.earned_at DESC", [$userId]);
+    // Revisi 22 Juni 2026 R5 — DISTINCT ON badge_id menghindari badge tampil double
+    // bila user_badges memiliki baris duplikat (data lama tanpa UNIQUE).
+    return db_all("SELECT DISTINCT ON (b.id) b.*, ub.earned_at
+                   FROM user_badges ub JOIN badges b ON b.id=ub.badge_id
+                   WHERE ub.user_id=$1
+                   ORDER BY b.id, ub.earned_at DESC", [$userId]);
 }

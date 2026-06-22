@@ -42,7 +42,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 // Hanya tempat yang ditandai "tampil di booking" (default: Badminton, Futsal, Biliar)
-$tempats = db_all("SELECT * FROM tempat WHERE tampil_booking = true ORDER BY nama");
+// Revisi 22 Juni 2026 R5 — sertakan kolom peta (lat,lng,gpx_path,parkir_info) untuk modal "Lihat Peta".
+$tempats = db_all("SELECT t.*, COALESCE(j.nama,'') AS jenis_nama
+                   FROM tempat t LEFT JOIN jenis_olahraga j ON j.id=t.jenis_id
+                   WHERE t.tampil_booking = true ORDER BY t.nama");
 $selected = (int)($_GET['tempat'] ?? ($tempats[0]['id'] ?? 0));
 $month = $_GET['m'] ?? date('Y-m');
 $first = strtotime("$month-01"); $daysIn = (int) date('t', $first); $startDow = (int) date('w', $first);
@@ -79,6 +82,22 @@ include __DIR__.'/includes/header.php';
           </select></div>
         <div class="col-md-3"><label class="small fw-semibold">Bulan</label>
           <input type="month" name="m" value="<?= htmlspecialchars($month) ?>" class="form-control" onchange="this.form.submit()"></div>
+        <?php /* Revisi 22 Juni 2026 R5 — tombol Lihat Peta untuk tempat terpilih */ ?>
+        <?php
+          $selT = null; foreach($tempats as $tt) { if ((int)$tt['id']===$selected) { $selT = $tt; break; } }
+          $hasMap = $selT && (!empty($selT['lat']) || !empty($selT['gpx_path']));
+        ?>
+        <div class="col-md-4 d-flex gap-2 flex-wrap">
+          <?php if ($hasMap): ?>
+            <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#tpUserMap<?= (int)$selT['id'] ?>">
+              <i class="bi bi-map"></i> Lihat Peta
+            </button>
+          <?php endif; ?>
+          <?php if ($selT && !empty($selT['kontak_wa'])): ?>
+            <a class="btn btn-outline-success btn-sm" target="_blank" rel="noopener"
+               href="https://wa.me/<?= preg_replace('/[^0-9]/','', $selT['kontak_wa']) ?>"><i class="bi bi-whatsapp"></i> WA</a>
+          <?php endif; ?>
+        </div>
       </form>
     </div></div>
 
@@ -158,4 +177,96 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
+<?php
+/* ============================================================
+   Revisi 22 Juni 2026 R5 — Modal "Lihat Peta" untuk halaman booking user.
+   Memuat peta Leaflet (OSM). Bila tempat punya .gpx_path, gambar polyline GPX;
+   selain itu pakai pin lat/lng. Tampil detail popup: nama, alamat, kontak WA,
+   harga, parkir, status booking.
+   ============================================================ */
+?>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" onerror="this.onerror=null">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+<?php foreach ($tempats as $t):
+  $hasMapT = (!empty($t['lat']) && !empty($t['lng'])) || !empty($t['gpx_path']);
+  if (!$hasMapT) continue;
+?>
+<div class="modal fade" id="tpUserMap<?= (int)$t['id'] ?>" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="bi bi-geo-alt-fill text-danger"></i> Peta — <?= htmlspecialchars($t['nama']) ?></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-0">
+      <div id="userMap<?= (int)$t['id'] ?>" style="height:460px;width:100%"></div>
+      <div class="p-3 small">
+        <div class="row g-2">
+          <div class="col-md-7">
+            <div><strong><i class="bi bi-pin-map text-danger"></i> <?= htmlspecialchars($t['nama']) ?></strong></div>
+            <?php if(!empty($t['alamat'])): ?><div class="text-muted"><i class="bi bi-signpost"></i> <?= htmlspecialchars($t['alamat']) ?></div><?php endif; ?>
+            <?php if(!empty($t['jenis_nama'])): ?><div><span class="badge bg-primary-subtle text-primary"><i class="bi bi-tag"></i> <?= htmlspecialchars($t['jenis_nama']) ?></span></div><?php endif; ?>
+            <?php if(!empty($t['parkir_info'])): ?><div class="mt-1"><i class="bi bi-p-square text-primary"></i> <?= nl2br(htmlspecialchars($t['parkir_info'])) ?></div><?php endif; ?>
+          </div>
+          <div class="col-md-5">
+            <?php if(!empty($t['harga_lapang'])): ?><div>Harga lapang: <strong>Rp <?= number_format($t['harga_lapang'],0,',','.') ?></strong></div><?php endif; ?>
+            <?php if(!empty($t['harga_per_jam'])): ?><div>Harga / jam: <strong>Rp <?= number_format($t['harga_per_jam'],0,',','.') ?></strong></div><?php endif; ?>
+            <?php if(!empty($t['harga_tiket'])): ?><div>Tiket: <strong>Rp <?= number_format($t['harga_tiket'],0,',','.') ?></strong></div><?php endif; ?>
+            <?php if(!empty($t['harga_parkir'])): ?><div>Parkir: <strong>Rp <?= number_format($t['harga_parkir'],0,',','.') ?></strong></div><?php endif; ?>
+            <div class="mt-2 d-flex flex-wrap gap-1">
+              <?php if(!empty($t['kontak_wa'])): ?>
+                <a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="https://wa.me/<?= preg_replace('/[^0-9]/','', $t['kontak_wa']) ?>"><i class="bi bi-whatsapp"></i> Hubungi</a>
+              <?php endif; ?>
+              <?php if(!empty($t['lat']) && !empty($t['lng'])): ?>
+                <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+                   href="https://www.google.com/maps/dir/?api=1&destination=<?= (float)$t['lat'] ?>,<?= (float)$t['lng'] ?>&travelmode=driving"><i class="bi bi-google"></i> Rute</a>
+                <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+                   href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=<?= (float)$t['lat'] ?>,<?= (float)$t['lng'] ?>"><i class="bi bi-camera"></i> Street View</a>
+              <?php endif; ?>
+              <a class="btn btn-sm btn-outline-info" href="/tempat_detail.php?id=<?= (int)$t['id'] ?>"><i class="bi bi-info-circle"></i> Detail</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+<script>
+(function(){
+  var TID = <?= (int)$t['id'] ?>;
+  var LAT = <?= !empty($t['lat']) ? (float)$t['lat'] : 'null' ?>;
+  var LNG = <?= !empty($t['lng']) ? (float)$t['lng'] : 'null' ?>;
+  var GPX = <?= json_encode(!empty($t['gpx_path']) ? $t['gpx_path'] : '') ?>;
+  var NAMA = <?= json_encode($t['nama']) ?>;
+  var initialized = false, lmap = null;
+  var modal = document.getElementById('tpUserMap'+TID);
+  if (!modal) return;
+  modal.addEventListener('shown.bs.modal', function(){
+    if (typeof L === 'undefined') { setTimeout(function(){ modal.dispatchEvent(new Event('shown.bs.modal')); }, 200); return; }
+    if (initialized) { setTimeout(function(){ lmap.invalidateSize(); }, 100); return; }
+    initialized = true;
+    var center = (LAT && LNG) ? [LAT,LNG] : [-6.9,107.6];
+    lmap = L.map('userMap'+TID).setView(center, (LAT&&LNG)?16:12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(lmap);
+    setTimeout(function(){ lmap.invalidateSize(); }, 200);
+    if (LAT && LNG) {
+      L.marker([LAT,LNG]).addTo(lmap).bindPopup('<b>'+NAMA+'</b>').openPopup();
+    }
+    if (GPX) {
+      fetch(GPX).then(function(r){return r.text();}).then(function(xml){
+        var doc = new DOMParser().parseFromString(xml,'application/xml');
+        var trkpts = doc.getElementsByTagName('trkpt'); var pts = [];
+        for (var i=0;i<trkpts.length;i++) pts.push(L.latLng(parseFloat(trkpts[i].getAttribute('lat')), parseFloat(trkpts[i].getAttribute('lon'))));
+        if (pts.length){
+          var line = L.polyline(pts,{color:'#dc2626',weight:5,opacity:.85}).addTo(lmap);
+          L.marker(pts[0]).addTo(lmap).bindPopup('Start');
+          L.marker(pts[pts.length-1]).addTo(lmap).bindPopup('Finish');
+          lmap.fitBounds(line.getBounds(),{padding:[20,20]});
+        }
+      }).catch(function(){});
+    }
+  });
+})();
+</script>
+<?php endforeach; ?>
 <?php include __DIR__.'/includes/footer.php'; ?>
+

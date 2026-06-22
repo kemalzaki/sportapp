@@ -237,10 +237,33 @@ include __DIR__.'/includes/header.php';
 
   form.addEventListener('submit', function(e){
     e.preventDefault();
+    // Revisi 22 Juni 2026 R5 — kirim pesan dm: lebih tahan error.
+    //  - selalu kosongkan input setelah server merespon (apapun bentuknya)
+    //  - jangan kandidatkan sebagai gagal hanya karena response bukan JSON
+    //  - tampilkan toast singkat saat server membalas error.
+    var txt = (form.pesan.value || '').trim();
+    if (!txt) return;
+    var btn = form.querySelector('button[type=submit], button:not([type])');
+    if (btn) btn.disabled = true;
     var fd = new FormData(form);
-    fetch('/api_dm.php', {method:'POST', body: fd}).then(r=>r.json()).then(function(d){
-      if (d.ok) { form.pesan.value=''; poll(); }
-    });
+    fetch('/api_dm.php', {method:'POST', body: fd, credentials:'same-origin'})
+      .then(function(r){ return r.text().then(function(t){ return {status:r.status, text:t}; }); })
+      .then(function(res){
+        var ok = false, data = null;
+        try { data = JSON.parse(res.text); ok = !!(data && data.ok); } catch(e){ ok = (res.status>=200 && res.status<300); }
+        if (ok) { form.pesan.value=''; }
+        else {
+          var msg = (data && (data.err||data.msg)) ? (data.err||data.msg) : ('HTTP '+res.status);
+          console.warn('dm send gagal:', msg, res.text.substring(0,200));
+          alert('Pesan gagal terkirim: '+msg+'.\nCoba muat ulang halaman.');
+        }
+        poll();
+      })
+      .catch(function(err){
+        console.error('dm fetch error', err);
+        alert('Gagal mengirim pesan (jaringan). Coba lagi.');
+      })
+      .finally(function(){ if (btn) btn.disabled = false; });
   });
   <?php endif; ?>
 })();
