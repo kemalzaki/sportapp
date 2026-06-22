@@ -1,6 +1,6 @@
 -- --------------------------------------------------------
--- Host:                         pg-c8c7f-adamsasmita534-4b4d.e.aivencloud.com
--- Server version:               PostgreSQL 17.10 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.1 20260123 (Red Hat 15.2.1-7), 64-bit
+-- Host:                         postgresql-hapfam.alwaysdata.net
+-- Server version:               PostgreSQL 17.10 on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
 -- Server OS:                    
 -- HeidiSQL Version:             12.1.0.6537
 -- --------------------------------------------------------
@@ -13,7 +13,26 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- Dumping data for table public.absensi: 201 rows
+-- Dumping structure for table public.absensi
+CREATE TABLE IF NOT EXISTS "absensi" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''absensi_id_seq''::regclass)',
+	"jadwal_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"hadir" SMALLINT NOT NULL DEFAULT '0',
+	"metode" VARCHAR(20) NULL DEFAULT 'manual',
+	"checkin_at" TIMESTAMP NULL DEFAULT NULL,
+	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
+	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
+	"telat_menit" INTEGER NULL DEFAULT '0',
+	"status" VARCHAR(20) NOT NULL DEFAULT 'hadir',
+	"keterangan" TEXT NULL DEFAULT NULL,
+	INDEX "idx_absensi_jadwal_user" ("jadwal_id", "user_id"),
+	UNIQUE INDEX "absensi_unique_ju" ("jadwal_id", "user_id"),
+	CONSTRAINT "absensi_hadir_check" CHECK ((hadir = ANY (ARRAY[0, 1]))),
+	CONSTRAINT "absensi_status_check" CHECK (((status)::text = ANY (ARRAY[('hadir'::character varying)::text, ('izin'::character varying)::text, ('sakit'::character varying)::text, ('telat'::character varying)::text, ('absen'::character varying)::text])))
+);
+
+-- Dumping data for table public.absensi: 202 rows
 /*!40000 ALTER TABLE "absensi" DISABLE KEYS */;
 INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin_at", "lat", "lng", "telat_menit", "status", "keterangan") VALUES
 	(183, 1, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
@@ -216,8 +235,17 @@ INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin
 	(840, 11, 11, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(841, 11, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(842, 11, 17, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Reuni Alumni + wisudaan di pondoknya di Subang'),
-	(843, 11, 5, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL);
+	(843, 11, 5, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1, 1, 16, 1, 'quick', '2026-06-22 12:16:19.071959', NULL, NULL, 0, 'hadir', '');
 /*!40000 ALTER TABLE "absensi" ENABLE KEYS */;
+
+-- Dumping structure for table public.app_settings
+CREATE TABLE IF NOT EXISTS "app_settings" (
+	"skey" VARCHAR(80) NOT NULL,
+	"sval" TEXT NOT NULL DEFAULT '',
+	"keterangan" TEXT NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.app_settings: -1 rows
 /*!40000 ALTER TABLE "app_settings" DISABLE KEYS */;
@@ -227,10 +255,28 @@ INSERT INTO "app_settings" ("skey", "sval", "keterangan", "updated_at") VALUES
 	('biaya_aplikasi_fixed', '1000', 'Biaya aplikasi fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
 	('biaya_aplikasi_pct', '0', 'Biaya aplikasi persen', '2026-06-02 07:20:16.747266'),
 	('invoice_email_from', 'no-reply@hapfam.local', 'Alamat email pengirim invoice', '2026-06-02 07:20:16.747266'),
+	('invoice_email_nama', 'HapFam SportApp', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266'),
+	('biaya_admin_fixed', '4000', 'Biaya admin Midtrans fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
+	('biaya_admin_pct', '0.007', 'Biaya admin Midtrans persen (0.007 = 0.7%)', '2026-06-02 07:20:16.747266'),
+	('biaya_aplikasi_fixed', '1000', 'Biaya aplikasi fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
+	('biaya_aplikasi_pct', '0', 'Biaya aplikasi persen', '2026-06-02 07:20:16.747266'),
+	('invoice_email_from', 'no-reply@hapfam.local', 'Alamat email pengirim invoice', '2026-06-02 07:20:16.747266'),
 	('invoice_email_nama', 'HapFam SportApp', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266');
 /*!40000 ALTER TABLE "app_settings" ENABLE KEYS */;
 
--- Dumping data for table public.badges: -1 rows
+-- Dumping structure for table public.badges
+CREATE TABLE IF NOT EXISTS "badges" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''badges_id_seq''::regclass)',
+	"kode" VARCHAR(50) NOT NULL,
+	"nama" VARCHAR(100) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"icon" VARCHAR(50) NULL DEFAULT 'bi-award',
+	"warna" VARCHAR(20) NULL DEFAULT 'primary',
+	"xp" INTEGER NULL DEFAULT '50',
+	UNIQUE INDEX "badges_unique_kode" ("kode")
+);
+
+-- Dumping data for table public.badges: 10 rows
 /*!40000 ALTER TABLE "badges" DISABLE KEYS */;
 INSERT INTO "badges" ("id", "kode", "nama", "deskripsi", "icon", "warna", "xp") VALUES
 	(1, 'JOGGING_10', 'Jogging 10x', 'Hadir jogging 10 kali', 'bi-person-running', 'success', 100),
@@ -245,23 +291,79 @@ INSERT INTO "badges" ("id", "kode", "nama", "deskripsi", "icon", "warna", "xp") 
 	(10, 'FORUM_STAR', 'Forum Star', '50 post di forum', 'bi-chat-heart-fill', 'danger', 70);
 /*!40000 ALTER TABLE "badges" ENABLE KEYS */;
 
+-- Dumping structure for table public.berita
+CREATE TABLE IF NOT EXISTS "berita" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''berita_id_seq''::regclass)',
+	"judul" VARCHAR(200) NOT NULL,
+	"isi" TEXT NULL DEFAULT NULL,
+	"gambar_url" VARCHAR(255) NULL DEFAULT NULL,
+	"gambar_file_id" VARCHAR(120) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.berita: -1 rows
 /*!40000 ALTER TABLE "berita" DISABLE KEYS */;
 INSERT INTO "berita" ("id", "judul", "isi", "gambar_url", "gambar_file_id", "created_at") VALUES
+	(1, 'Putri KW dengan Senang Hati Terima Tongkat Estafet dari Gregoria Mercy Raya', '<p><span style="color: rgb(0, 0, 0);">Jakarta - Putri Kusuma Wardani dengan senang hati menerima tongkat estafet dari Gregoria Mariska Tunjung sebagai tulang punggung tunggal putri PBSI.</span></p><p><span style="color: rgb(0, 0, 0);">Gregoria memutuskan mundur dari Pelatnas PBSI pekan lalu. Dia mengundurkan diri karena kondisi kesehatannya yang belum pulih sepenuhnya dari vertigo.</span></p><p><br></p><p><span style="color: rgb(0, 0, 0);">Mundurnya Gregoria membuat Putri KW jadi andalan utama PBSI di nomor tunggal putri. Pebulutangkis berusia 23 tahun itu pun optimis bisa melanjutkan langkah seniornya tersebut.</span></p>', 'https://ik.imagekit.io/ahsansur/sportapp/berita/berita-1779362347_WO6ceqhnq.jpeg', '6a0eea2d5c7cd75eb8cb5ec7', '2026-05-21 10:44:13.957308'),
 	(1, 'Putri KW dengan Senang Hati Terima Tongkat Estafet dari Gregoria Mercy Raya', '<p><span style="color: rgb(0, 0, 0);">Jakarta - Putri Kusuma Wardani dengan senang hati menerima tongkat estafet dari Gregoria Mariska Tunjung sebagai tulang punggung tunggal putri PBSI.</span></p><p><span style="color: rgb(0, 0, 0);">Gregoria memutuskan mundur dari Pelatnas PBSI pekan lalu. Dia mengundurkan diri karena kondisi kesehatannya yang belum pulih sepenuhnya dari vertigo.</span></p><p><br></p><p><span style="color: rgb(0, 0, 0);">Mundurnya Gregoria membuat Putri KW jadi andalan utama PBSI di nomor tunggal putri. Pebulutangkis berusia 23 tahun itu pun optimis bisa melanjutkan langkah seniornya tersebut.</span></p>', 'https://ik.imagekit.io/ahsansur/sportapp/berita/berita-1779362347_WO6ceqhnq.jpeg', '6a0eea2d5c7cd75eb8cb5ec7', '2026-05-21 10:44:13.957308');
 /*!40000 ALTER TABLE "berita" ENABLE KEYS */;
+
+-- Dumping structure for table public.booking
+CREATE TABLE IF NOT EXISTS "booking" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''booking_id_seq''::regclass)',
+	"tempat_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"jam_mulai" TIME NOT NULL,
+	"jam_selesai" TIME NOT NULL,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'pending',
+	"dp_status" VARCHAR(20) NULL DEFAULT 'unpaid',
+	"recurring" VARCHAR(20) NULL DEFAULT NULL,
+	"recurring_until" DATE NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.booking: -1 rows
 /*!40000 ALTER TABLE "booking" DISABLE KEYS */;
 INSERT INTO "booking" ("id", "tempat_id", "user_id", "tanggal", "jam_mulai", "jam_selesai", "status", "dp_status", "recurring", "recurring_until", "catatan", "created_at") VALUES
+	(1, 3, 2, '2026-05-23', '16:00:00', '18:00:00', 'canceled', 'unpaid', NULL, NULL, 'DP', '2026-05-22 00:45:14.355745'),
 	(1, 3, 2, '2026-05-23', '16:00:00', '18:00:00', 'canceled', 'unpaid', NULL, NULL, 'DP', '2026-05-22 00:45:14.355745');
 /*!40000 ALTER TABLE "booking" ENABLE KEYS */;
 
--- Dumping data for table public.catatan_hafalan: -1 rows
+-- Dumping structure for table public.catatan_hafalan
+CREATE TABLE IF NOT EXISTS "catatan_hafalan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''catatan_hafalan_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis" VARCHAR(40) NOT NULL DEFAULT 'Quran',
+	"judul" VARCHAR(200) NOT NULL,
+	"referensi" VARCHAR(200) NULL DEFAULT NULL,
+	"target_ayat" INTEGER NULL DEFAULT '0',
+	"sudah_ayat" INTEGER NULL DEFAULT '0',
+	"status" VARCHAR(20) NOT NULL DEFAULT 'progress',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"last_review" DATE NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "catatan_hafalan_user_idx" ("user_id")
+);
+
+-- Dumping data for table public.catatan_hafalan: 2 rows
 /*!40000 ALTER TABLE "catatan_hafalan" DISABLE KEYS */;
 INSERT INTO "catatan_hafalan" ("id", "user_id", "jenis", "judul", "referensi", "target_ayat", "sudah_ayat", "status", "catatan", "last_review", "created_at", "updated_at") VALUES
+	(1, 2, 'Quran', 'MI Pokok', '76:1-2', 1, 1, 'selesai', '', NULL, '2026-06-11 17:31:13.443017', '2026-06-11 17:32:01.99662'),
 	(1, 2, 'Quran', 'MI Pokok', '76:1-2', 1, 1, 'selesai', '', NULL, '2026-06-11 17:31:13.443017', '2026-06-11 17:32:01.99662');
 /*!40000 ALTER TABLE "catatan_hafalan" ENABLE KEYS */;
+
+-- Dumping structure for table public.challenge_log
+CREATE TABLE IF NOT EXISTS "challenge_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''challenge_log_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"challenge_key" VARCHAR(40) NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.challenge_log: -1 rows
 /*!40000 ALTER TABLE "challenge_log" DISABLE KEYS */;
@@ -278,8 +380,33 @@ INSERT INTO "challenge_log" ("id", "user_id", "challenge_key", "tanggal", "catat
 	(17, 2, 'ayat_harian', '2026-05-30', NULL, '2026-05-30 10:21:32.107295'),
 	(18, 3, 'ayat_harian', '2026-05-31', NULL, '2026-05-31 16:40:08.47246'),
 	(51, 16, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 15:08:27.24533'),
+	(52, 6, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 22:14:46.78882'),
+	(1, 2, 'dzikir_pagi', '2026-05-24', NULL, '2026-05-24 06:27:37.380155'),
+	(3, 2, 'subuh_walk', '2026-05-24', NULL, '2026-05-24 06:31:17.872226'),
+	(5, 2, 'ayat_harian', '2026-05-24', NULL, '2026-05-24 06:31:30.814959'),
+	(7, 4, 'puasa_tasua_asyura', '2026-05-24', NULL, '2026-05-24 13:59:49.864411'),
+	(11, 14, 'ayat_harian', '2026-05-24', NULL, '2026-05-24 15:09:15.284908'),
+	(12, 3, 'ayat_harian', '2026-05-26', NULL, '2026-05-26 11:31:32.277207'),
+	(14, 16, 'ayat_harian', '2026-05-29', NULL, '2026-05-29 10:01:14.497521'),
+	(15, 20, 'ayat_harian', '2026-05-29', NULL, '2026-05-29 13:03:20.644834'),
+	(16, 14, 'ayat_harian', '2026-05-29', NULL, '2026-05-29 17:24:49.678454'),
+	(17, 2, 'ayat_harian', '2026-05-30', NULL, '2026-05-30 10:21:32.107295'),
+	(18, 3, 'ayat_harian', '2026-05-31', NULL, '2026-05-31 16:40:08.47246'),
+	(51, 16, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 15:08:27.24533'),
 	(52, 6, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 22:14:46.78882');
 /*!40000 ALTER TABLE "challenge_log" ENABLE KEYS */;
+
+-- Dumping structure for table public.challenge_master
+CREATE TABLE IF NOT EXISTS "challenge_master" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''challenge_master_id_seq''::regclass)',
+	"kunci" VARCHAR(40) NOT NULL,
+	"judul" VARCHAR(180) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"icon" VARCHAR(40) NOT NULL DEFAULT 'bi-trophy',
+	"warna" VARCHAR(20) NOT NULL DEFAULT 'success',
+	"aktif" SMALLINT NOT NULL DEFAULT '1',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.challenge_master: -1 rows
 /*!40000 ALTER TABLE "challenge_master" DISABLE KEYS */;
@@ -295,8 +422,30 @@ INSERT INTO "challenge_master" ("id", "kunci", "judul", "deskripsi", "icon", "wa
 	(14, 'puasa_arafah', 'Puasa Arafah', 'Puasa 9 Dzulhijjah, menghapus dosa 2 tahun.', 'bi-sun', 'warning', 1, '2026-05-24 09:12:01.956198'),
 	(15, 'puasa_tasua_asyura', 'Puasa Tasu''a & Asyura', 'Puasa 9 & 10 Muharram.', 'bi-droplet-half', 'dark', 1, '2026-05-24 09:12:01.996228'),
 	(16, 'puasa_nisfu_syaban', 'Puasa Nisfu Sya''ban', 'Puasa di pertengahan bulan Sya''ban.', 'bi-moon-stars', 'secondary', 1, '2026-05-24 09:12:02.036358'),
+	(17, 'puasa_ramadhan', 'Puasa Ramadhan', 'Puasa wajib di bulan Ramadhan.', 'bi-moon', 'success', 1, '2026-05-24 09:12:02.076612'),
+	(1, 'ayat_harian', '1 Hari 1 Ayat', 'Baca minimal 1 ayat Al-Qur''an setiap hari.', 'bi-book', 'success', 1, '2026-05-24 08:39:45.801252'),
+	(2, 'subuh_walk', 'Subuh Walk Challenge', 'Jalan kaki ≥10 menit setelah sholat Subuh.', 'bi-sunrise', 'warning', 1, '2026-05-24 08:39:45.841177'),
+	(3, 'puasa_seninkamis', 'Puasa Senin-Kamis', 'Catat puasa sunnah Senin/Kamis hari ini.', 'bi-droplet-half', 'info', 1, '2026-05-24 08:39:45.887727'),
+	(4, 'dzikir_pagi', 'Dzikir Pagi', 'Selesaikan rangkaian dzikir pagi.', 'bi-brightness-high', 'primary', 1, '2026-05-24 08:39:45.927186'),
+	(5, 'dzikir_petang', 'Dzikir Petang', 'Selesaikan rangkaian dzikir petang.', 'bi-moon-stars', 'dark', 1, '2026-05-24 08:39:45.966648'),
+	(11, 'puasa_ayyamul_bidh', 'Puasa Ayyamul Bidh', 'Puasa 13, 14, 15 Hijriyah (hari putih).', 'bi-moon', 'info', 1, '2026-05-24 09:12:01.835257'),
+	(12, 'puasa_daud', 'Puasa Daud', 'Puasa selang-seling: sehari puasa, sehari berbuka.', 'bi-droplet', 'primary', 1, '2026-05-24 09:12:01.875835'),
+	(13, 'puasa_syawal', 'Puasa 6 Hari Syawal', 'Puasa 6 hari di bulan Syawal setelah Ramadhan.', 'bi-stars', 'success', 1, '2026-05-24 09:12:01.915993'),
+	(14, 'puasa_arafah', 'Puasa Arafah', 'Puasa 9 Dzulhijjah, menghapus dosa 2 tahun.', 'bi-sun', 'warning', 1, '2026-05-24 09:12:01.956198'),
+	(15, 'puasa_tasua_asyura', 'Puasa Tasu''a & Asyura', 'Puasa 9 & 10 Muharram.', 'bi-droplet-half', 'dark', 1, '2026-05-24 09:12:01.996228'),
+	(16, 'puasa_nisfu_syaban', 'Puasa Nisfu Sya''ban', 'Puasa di pertengahan bulan Sya''ban.', 'bi-moon-stars', 'secondary', 1, '2026-05-24 09:12:02.036358'),
 	(17, 'puasa_ramadhan', 'Puasa Ramadhan', 'Puasa wajib di bulan Ramadhan.', 'bi-moon', 'success', 1, '2026-05-24 09:12:02.076612');
 /*!40000 ALTER TABLE "challenge_master" ENABLE KEYS */;
+
+-- Dumping structure for table public.chat_forum
+CREATE TABLE IF NOT EXISTS "chat_forum" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''chat_forum_id_seq''::regclass)',
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"pesan" TEXT NOT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	"parent_id" INTEGER NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.chat_forum: -1 rows
 /*!40000 ALTER TABLE "chat_forum" DISABLE KEYS */;
@@ -313,10 +462,32 @@ INSERT INTO "chat_forum" ("id", "user_id", "pesan", "created_at", "parent_id", "
 	(15, 3, 'wa''alikumussalam broo', '2026-06-01 22:18:32.284391', 14, NULL),
 	(16, 2, 'Walaikumsalam', '2026-06-02 00:06:07.527515', 14, '2026-06-02 00:06:28.40659'),
 	(17, 3, 'info yang sudah di gor gess', '2026-06-02 16:10:53.192261', NULL, NULL),
-	(18, 2, 'Perlengkapan Olahraga dan Pengalaman Hiking Camping tidak lupa di isi ya guys', '2026-06-03 05:39:14.331787', NULL, NULL);
+	(18, 2, 'Perlengkapan Olahraga dan Pengalaman Hiking Camping tidak lupa di isi ya guys', '2026-06-03 05:39:14.331787', NULL, NULL),
+	(4, 3, 'wa''alikumussalam', '2026-05-21 15:47:46.367728', NULL, NULL),
+	(6, 2, 'Semangat malam. Untuk absen, dilakukan di area sekitar lapang, karena radius absen 150 meter dari lokasi. Terimakasih.', '2026-05-22 16:36:35.671593', NULL, '2026-05-23 05:52:06.486691'),
+	(8, 4, 'Semangat pagi. Siapp laksanakan', '2026-05-23 06:18:22.527654', 6, NULL),
+	(5, 2, 'siap kawans', '2026-05-22 00:37:27.733498', 4, '2026-05-23 06:42:22.877495'),
+	(9, 2, 'Pengumuman, sudah ada kalkulator sehat, bisa dicoba', '2026-05-23 07:05:27.882099', NULL, NULL),
+	(10, 4, 'Mantappp', '2026-05-23 16:24:57.427956', 9, NULL),
+	(12, 2, 'ada fitur Kalender Hijriyah & Puasa Sunnah , boleh dicek', '2026-05-24 08:48:22.594551', NULL, NULL),
+	(13, 2, 'Jadwal olahraga jogging pagi ini di rescheduke ke selaaa 2 juni 2026 sorean..', '2026-06-01 13:11:04.649424', NULL, NULL),
+	(14, 6, 'Assalamualaikum sadayana☺️', '2026-06-01 22:16:47.249183', NULL, NULL),
+	(15, 3, 'wa''alikumussalam broo', '2026-06-01 22:18:32.284391', 14, NULL),
+	(16, 2, 'Walaikumsalam', '2026-06-02 00:06:07.527515', 14, '2026-06-02 00:06:28.40659'),
+	(17, 3, 'info yang sudah di gor gess', '2026-06-02 16:10:53.192261', NULL, NULL),
+	(18, 2, 'Perlengkapan Olahraga dan Pengalaman Hiking Camping tidak lupa di isi ya guys', '2026-06-03 05:39:14.331787', NULL, NULL),
+	(1, 2, 'Sip', '2026-06-22 10:56:40.268243', 18, NULL);
 /*!40000 ALTER TABLE "chat_forum" ENABLE KEYS */;
 
--- Dumping data for table public.chat_reactions: -1 rows
+-- Dumping structure for table public.chat_reactions
+CREATE TABLE IF NOT EXISTS "chat_reactions" (
+	"chat_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"val" SMALLINT NOT NULL,
+	CONSTRAINT "chat_reactions_val_check" CHECK ((val = ANY (ARRAY['-1'::integer, 1])))
+);
+
+-- Dumping data for table public.chat_reactions: 14 rows
 /*!40000 ALTER TABLE "chat_reactions" DISABLE KEYS */;
 INSERT INTO "chat_reactions" ("chat_id", "user_id", "val") VALUES
 	(4, 2, 1),
@@ -331,10 +502,21 @@ INSERT INTO "chat_reactions" ("chat_id", "user_id", "val") VALUES
 	(17, 2, 1),
 	(15, 2, -1),
 	(18, 3, 1),
-	(18, 2, 1);
+	(18, 2, 1),
+	(1, 2, 1);
 /*!40000 ALTER TABLE "chat_reactions" ENABLE KEYS */;
 
--- Dumping data for table public.device_locations: 8 rows
+-- Dumping structure for table public.device_locations
+CREATE TABLE IF NOT EXISTS "device_locations" (
+	"user_id" INTEGER NOT NULL,
+	"lat" NUMERIC(10,6) NOT NULL,
+	"lng" NUMERIC(10,6) NOT NULL,
+	"accuracy_m" NUMERIC(8,2) NULL DEFAULT NULL,
+	"device_label" VARCHAR(120) NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
+-- Dumping data for table public.device_locations: -1 rows
 /*!40000 ALTER TABLE "device_locations" DISABLE KEYS */;
 INSERT INTO "device_locations" ("user_id", "lat", "lng", "accuracy_m", "device_label", "updated_at") VALUES
 	(6, -6.926498, 107.717051, 52.40, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-20 01:42:04.236173'),
@@ -346,6 +528,16 @@ INSERT INTO "device_locations" ("user_id", "lat", "lng", "accuracy_m", "device_l
 	(2, -6.925473, 107.729439, 187.00, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '2026-06-21 17:27:06.279353'),
 	(11, -6.939458, 107.707466, 13.45, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-18 06:48:42.901152');
 /*!40000 ALTER TABLE "device_locations" ENABLE KEYS */;
+
+-- Dumping structure for table public.device_location_history
+CREATE TABLE IF NOT EXISTS "device_location_history" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''device_location_history_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"lat" NUMERIC(10,6) NOT NULL,
+	"lng" NUMERIC(10,6) NOT NULL,
+	"accuracy_m" NUMERIC(8,2) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.device_location_history: 605 rows
 /*!40000 ALTER TABLE "device_location_history" DISABLE KEYS */;
@@ -957,7 +1149,22 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1663, 2, -6.925502, 107.729426, 183.00, '2026-06-21 17:11:56.905775');
 /*!40000 ALTER TABLE "device_location_history" ENABLE KEYS */;
 
--- Dumping data for table public.dm_messages: 25 rows
+-- Dumping structure for table public.dm_messages
+CREATE TABLE IF NOT EXISTS "dm_messages" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''dm_messages_id_seq''::regclass)',
+	"sender_id" INTEGER NOT NULL,
+	"receiver_id" INTEGER NOT NULL,
+	"pesan" TEXT NOT NULL,
+	"read_at" TIMESTAMP NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"delivered_at" TIMESTAMP NULL DEFAULT NULL,
+	INDEX "idx_dm_pair" ("sender_id", "receiver_id", "id"),
+	INDEX "dm_pair_idx" ("sender_id", "receiver_id", "id"),
+	INDEX "dm_receiver_idx" ("receiver_id", "read_at"),
+	INDEX "dm_delivered_idx" ("receiver_id", "delivered_at")
+);
+
+-- Dumping data for table public.dm_messages: 30 rows
 /*!40000 ALTER TABLE "dm_messages" DISABLE KEYS */;
 INSERT INTO "dm_messages" ("id", "sender_id", "receiver_id", "pesan", "read_at", "created_at", "delivered_at") VALUES
 	(5, 2, 15, 'Nif', NULL, '2026-05-24 09:43:56.986858', NULL),
@@ -986,24 +1193,90 @@ INSERT INTO "dm_messages" ("id", "sender_id", "receiver_id", "pesan", "read_at",
 	(8, 2, 4, 'Oh iya dan, berapa lagi bayaran th?', '2026-05-24 13:55:26.780213', '2026-05-24 13:30:01.408808', '2026-06-01 22:20:51.03983'),
 	(7, 2, 4, 'Lg dmn dan', '2026-05-24 13:55:26.780213', '2026-05-24 09:45:59.090019', '2026-06-01 22:20:51.03983'),
 	(53, 4, 2, 'Cara nambah absen buat ekstern gimana kang?', '2026-06-02 20:20:45.594856', '2026-06-02 13:28:25.212208', '2026-06-02 20:20:43.876446'),
-	(54, 2, 4, 'Ada di menu input absensi', '2026-06-11 15:57:56.546115', '2026-06-02 20:21:10.024151', '2026-06-11 15:57:56.546115');
+	(54, 2, 4, 'Ada di menu input absensi', '2026-06-11 15:57:56.546115', '2026-06-02 20:21:10.024151', '2026-06-11 15:57:56.546115'),
+	(1, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 10:56:58.188406', '2026-06-22 14:00:48.114097'),
+	(2, 2, 4, 'Iio', '2026-06-22 14:00:48.114097', '2026-06-22 10:57:22.699008', '2026-06-22 14:00:48.114097'),
+	(3, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 10:58:15.689615', '2026-06-22 14:00:48.114097'),
+	(4, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 12:32:39.590171', '2026-06-22 14:00:48.114097'),
+	(5, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 12:33:11.832905', '2026-06-22 14:00:48.114097'),
+	(6, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 13:16:07.326652', '2026-06-22 14:00:48.114097'),
+	(7, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 13:16:39.387367', '2026-06-22 14:00:48.114097'),
+	(8, 2, 4, 'Tes', '2026-06-22 14:06:39.087186', '2026-06-22 14:03:43.014291', '2026-06-22 14:06:39.087186'),
+	(9, 2, 4, 'Tes', '2026-06-22 14:06:39.087186', '2026-06-22 14:04:06.072592', '2026-06-22 14:06:39.087186'),
+	(10, 2, 4, 'Tes', NULL, '2026-06-22 14:23:12.439304', NULL),
+	(11, 2, 4, 'Tes', NULL, '2026-06-22 14:23:56.098468', NULL);
 /*!40000 ALTER TABLE "dm_messages" ENABLE KEYS */;
+
+-- Dumping structure for table public.doa_aamiin
+CREATE TABLE IF NOT EXISTS "doa_aamiin" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''doa_aamiin_id_seq''::regclass)',
+	"doa_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "doa_aamiin_unique_du" ("doa_id", "user_id")
+);
 
 -- Dumping data for table public.doa_aamiin: -1 rows
 /*!40000 ALTER TABLE "doa_aamiin" DISABLE KEYS */;
 /*!40000 ALTER TABLE "doa_aamiin" ENABLE KEYS */;
 
+-- Dumping structure for table public.doa_request
+CREATE TABLE IF NOT EXISTS "doa_request" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''doa_request_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"isi" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.doa_request: -1 rows
 /*!40000 ALTER TABLE "doa_request" DISABLE KEYS */;
 /*!40000 ALTER TABLE "doa_request" ENABLE KEYS */;
+
+-- Dumping structure for table public.doa_user
+CREATE TABLE IF NOT EXISTS "doa_user" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''doa_user_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"judul" VARCHAR(180) NOT NULL,
+	"arab" TEXT NOT NULL,
+	"terjemah" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.doa_user: -1 rows
 /*!40000 ALTER TABLE "doa_user" DISABLE KEYS */;
 /*!40000 ALTER TABLE "doa_user" ENABLE KEYS */;
 
+-- Dumping structure for table public.donasi_krb
+CREATE TABLE IF NOT EXISTS "donasi_krb" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''donasi_krb_id_seq''::regclass)',
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"nama" VARCHAR(120) NOT NULL,
+	"jumlah" BIGINT NOT NULL,
+	"metode" VARCHAR(30) NULL DEFAULT 'transfer',
+	"bank" VARCHAR(40) NULL DEFAULT NULL,
+	"no_ref" VARCHAR(60) NULL DEFAULT NULL,
+	"bukti_path" VARCHAR(500) NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"status" VARCHAR(20) NULL DEFAULT 'pending',
+	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.donasi_krb: -1 rows
 /*!40000 ALTER TABLE "donasi_krb" DISABLE KEYS */;
 /*!40000 ALTER TABLE "donasi_krb" ENABLE KEYS */;
+
+-- Dumping structure for table public.donasi_rekening
+CREATE TABLE IF NOT EXISTS "donasi_rekening" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''donasi_rekening_id_seq''::regclass)',
+	"bank" VARCHAR(60) NOT NULL,
+	"nomor" VARCHAR(60) NOT NULL,
+	"atas_nama" VARCHAR(120) NOT NULL,
+	"keterangan" VARCHAR(200) NULL DEFAULT NULL,
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"urutan" INTEGER NOT NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.donasi_rekening: -1 rows
 /*!40000 ALTER TABLE "donasi_rekening" DISABLE KEYS */;
@@ -1013,17 +1286,62 @@ INSERT INTO "donasi_rekening" ("id", "bank", "nomor", "atas_nama", "keterangan",
 	(3, 'DANA', '081234567890', 'Bendahara Kegiatan', NULL, 'true', 3, '2026-05-30 11:18:09.797229');
 /*!40000 ALTER TABLE "donasi_rekening" ENABLE KEYS */;
 
+-- Dumping structure for table public.event
+CREATE TABLE IF NOT EXISTS "event" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''event_id_seq''::regclass)',
+	"nama" VARCHAR(200) NOT NULL,
+	"jenis" VARCHAR(50) NOT NULL,
+	"tipe" VARCHAR(30) NOT NULL DEFAULT 'challenge',
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"tanggal_mulai" DATE NOT NULL,
+	"tanggal_selesai" DATE NULL DEFAULT NULL,
+	"hadiah" TEXT NULL DEFAULT NULL,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'open',
+	"banner_url" TEXT NULL DEFAULT NULL,
+	"created_by" INTEGER NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"jam_mulai" TIME NULL DEFAULT NULL,
+	"jam_selesai" TIME NULL DEFAULT NULL,
+	"lokasi" VARCHAR(255) NULL DEFAULT NULL,
+	"batas_daftar" DATE NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.event: -1 rows
 /*!40000 ALTER TABLE "event" DISABLE KEYS */;
 INSERT INTO "event" ("id", "nama", "jenis", "tipe", "deskripsi", "tanggal_mulai", "tanggal_selesai", "hadiah", "status", "banner_url", "created_by", "created_at", "jam_mulai", "jam_selesai", "lokasi", "batas_daftar") VALUES
 	(2, 'Nyate Bersama Idul Adha 1447 H', 'Nyate Bersama', 'sosial', 'Gaskeun... Daging sudah tersedia', '2026-06-06', '2026-06-06', 'Konsumsi Gratis', 'open', 'https://ik.imagekit.io/ahsansur/sportapp/event/event-2-1780472669_w_8uqs1F6.jpg', 2, '2026-05-29 14:58:53.412649', '19:00:00', '22:00:00', 'Flamboyan FC', '2026-06-06');
 /*!40000 ALTER TABLE "event" ENABLE KEYS */;
 
+-- Dumping structure for table public.event_match
+CREATE TABLE IF NOT EXISTS "event_match" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''event_match_id_seq''::regclass)',
+	"event_id" INTEGER NOT NULL,
+	"round" INTEGER NOT NULL DEFAULT '1',
+	"tim_a" INTEGER NULL DEFAULT NULL,
+	"tim_b" INTEGER NULL DEFAULT NULL,
+	"score_a" INTEGER NULL DEFAULT '0',
+	"score_b" INTEGER NULL DEFAULT '0',
+	"pemenang" INTEGER NULL DEFAULT NULL,
+	"jadwal_at" TIMESTAMP NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.event_match: -1 rows
 /*!40000 ALTER TABLE "event_match" DISABLE KEYS */;
 /*!40000 ALTER TABLE "event_match" ENABLE KEYS */;
 
--- Dumping data for table public.event_peserta: 19 rows
+-- Dumping structure for table public.event_peserta
+CREATE TABLE IF NOT EXISTS "event_peserta" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''event_peserta_id_seq''::regclass)',
+	"event_id" INTEGER NOT NULL,
+	"tim_id" INTEGER NULL DEFAULT NULL,
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"score" NUMERIC(10,2) NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"status" VARCHAR(12) NULL DEFAULT NULL,
+	"keterangan" TEXT NULL DEFAULT NULL
+);
+
+-- Dumping data for table public.event_peserta: -1 rows
 /*!40000 ALTER TABLE "event_peserta" DISABLE KEYS */;
 INSERT INTO "event_peserta" ("id", "event_id", "tim_id", "user_id", "score", "created_at", "status", "keterangan") VALUES
 	(54, 2, NULL, 11, 0.00, '2026-06-06 14:47:02.742934', 'hadir', NULL),
@@ -1049,68 +1367,182 @@ INSERT INTO "event_peserta" ("id", "event_id", "tim_id", "user_id", "score", "cr
 	(18, 2, NULL, 5, 0.00, '2026-05-29 14:58:54.047887', 'hadir', NULL);
 /*!40000 ALTER TABLE "event_peserta" ENABLE KEYS */;
 
+-- Dumping structure for table public.event_tamu
+CREATE TABLE IF NOT EXISTS "event_tamu" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''event_tamu_id_seq''::regclass)',
+	"event_id" INTEGER NOT NULL,
+	"nama_tamu" VARCHAR(120) NOT NULL,
+	"dibawa_oleh_id" INTEGER NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.event_tamu: -1 rows
 /*!40000 ALTER TABLE "event_tamu" DISABLE KEYS */;
 /*!40000 ALTER TABLE "event_tamu" ENABLE KEYS */;
+
+-- Dumping structure for table public.fcm_tokens
+CREATE TABLE IF NOT EXISTS "fcm_tokens" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''fcm_tokens_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"token" TEXT NOT NULL,
+	"device" VARCHAR(100) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "fcm_tokens_unique_ut" ("user_id", "token")
+);
 
 -- Dumping data for table public.fcm_tokens: -1 rows
 /*!40000 ALTER TABLE "fcm_tokens" DISABLE KEYS */;
 /*!40000 ALTER TABLE "fcm_tokens" ENABLE KEYS */;
 
+-- Dumping structure for table public.flyover_renders
+CREATE TABLE IF NOT EXISTS "flyover_renders" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''flyover_renders_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"run_session_id" BIGINT NULL DEFAULT NULL,
+	"judul" TEXT NOT NULL DEFAULT 'Flyover Route',
+	"durasi_detik" INTEGER NOT NULL DEFAULT '20',
+	"style_preset" TEXT NOT NULL DEFAULT 'satellite',
+	"file_url" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.flyover_renders: -1 rows
 /*!40000 ALTER TABLE "flyover_renders" DISABLE KEYS */;
 /*!40000 ALTER TABLE "flyover_renders" ENABLE KEYS */;
+
+-- Dumping structure for table public.gaya_hidup_log
+CREATE TABLE IF NOT EXISTS "gaya_hidup_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''gaya_hidup_log_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"langkah" INTEGER NULL DEFAULT NULL,
+	"tidur_menit" INTEGER NULL DEFAULT NULL,
+	"hidrasi_ml" INTEGER NULL DEFAULT NULL,
+	"stres_skor" INTEGER NULL DEFAULT NULL,
+	"body_battery" INTEGER NULL DEFAULT NULL,
+	"berat_kg" NUMERIC(5,2) NULL DEFAULT NULL,
+	"mood" VARCHAR(30) NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"pola_makan" VARCHAR(20) NULL DEFAULT NULL,
+	"porsi_makan" SMALLINT NULL DEFAULT NULL,
+	"minum_air_gelas" SMALLINT NULL DEFAULT NULL,
+	"pola_tidur" VARCHAR(20) NULL DEFAULT NULL,
+	"kualitas_tidur" SMALLINT NULL DEFAULT NULL,
+	"mood_skor" SMALLINT NULL DEFAULT NULL,
+	"kecemasan" SMALLINT NULL DEFAULT NULL,
+	"motivasi" SMALLINT NULL DEFAULT NULL,
+	"fokus" SMALLINT NULL DEFAULT NULL,
+	"catatan_psikologi" TEXT NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.gaya_hidup_log: -1 rows
 /*!40000 ALTER TABLE "gaya_hidup_log" DISABLE KEYS */;
 /*!40000 ALTER TABLE "gaya_hidup_log" ENABLE KEYS */;
 
+-- Dumping structure for table public.guest_messages
+CREATE TABLE IF NOT EXISTS "guest_messages" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''guest_messages_id_seq''::regclass)',
+	"owner_user_id" INTEGER NOT NULL,
+	"sender_user_id" INTEGER NOT NULL,
+	"parent_id" INTEGER NULL DEFAULT NULL,
+	"pesan" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.guest_messages: -1 rows
 /*!40000 ALTER TABLE "guest_messages" DISABLE KEYS */;
 INSERT INTO "guest_messages" ("id", "owner_user_id", "sender_user_id", "parent_id", "pesan", "created_at", "updated_at") VALUES
-	(1, 3, 2, NULL, 'Berqurban Yuks...👍', '2026-05-23 07:02:06.611451', NULL),
 	(2, 14, 2, NULL, '👋 Semangat Pagi', '2026-05-23 07:18:03.654891', NULL),
 	(3, 14, 2, NULL, '👋 Assalamualaikum', '2026-05-23 07:51:17.711997', NULL),
 	(5, 2, 4, NULL, 'Kang, kumaha kabarna, sehat?', '2026-05-23 08:05:05.864711', NULL),
 	(6, 17, 4, NULL, '👋 🤗', '2026-05-23 09:15:10.057807', NULL),
-	(7, 2, 2, 5, 'Alhamdulilah dan', '2026-05-23 21:17:33.682802', NULL),
 	(8, 4, 2, NULL, 'Sudah dikirim sisa dp modul 1 ya dan', '2026-05-24 13:44:59.631205', NULL),
 	(9, 4, 4, 8, 'Siapp sudah masuk, makasih kang', '2026-05-24 13:55:11.727449', NULL),
 	(10, 4, 2, 8, 'Okay', '2026-05-24 14:05:36.612789', NULL),
 	(11, 16, 2, NULL, '💪 Tetap Semangat', '2026-05-29 17:07:20.637099', NULL),
-	(12, 21, 4, NULL, '👋 Halloo', '2026-06-05 07:30:59.302977', NULL);
+	(12, 21, 4, NULL, '👋 Halloo', '2026-06-05 07:30:59.302977', NULL),
+	(7, 2, 2, 5, 'Alhamdulilah dans', '2026-05-23 21:17:33.682802', '2026-06-22 11:16:52.191334');
 /*!40000 ALTER TABLE "guest_messages" ENABLE KEYS */;
 
--- Dumping data for table public.health_qa_saved: -1 rows
+-- Dumping structure for table public.health_qa_saved
+CREATE TABLE IF NOT EXISTS "health_qa_saved" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''health_qa_saved_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"kategori" VARCHAR(20) NOT NULL DEFAULT 'health',
+	"pertanyaan" TEXT NOT NULL,
+	"jawaban" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "health_qa_user_idx" ("user_id", "kategori", "created_at")
+);
+
+-- Dumping data for table public.health_qa_saved: 1 rows
 /*!40000 ALTER TABLE "health_qa_saved" DISABLE KEYS */;
 INSERT INTO "health_qa_saved" ("id", "user_id", "kategori", "pertanyaan", "jawaban", "created_at") VALUES
 	(1, 2, 'doctor', 'Katanya bawang putih, bukan jahe merah untuk radang tenggorokan..?', 'Baik, mari kita bahas mengenai bawang putih dan jahe merah untuk radang tenggorokan. Keduanya memang dikenal memiliki khasiat obat dan sering digunakan dalam pengobatan tradisional, namun dengan cara kerja dan fokus yang sedikit berbeda.
 
 **Penyebab Umum & Gejala Radang Tenggorokan:**
+
 Radang tenggorokan umumnya disebabkan oleh infeksi virus (paling sering) atau bakteri. Gejalanya meliputi nyeri saat menelan, tenggorokan terasa kering atau gatal, suara serak, dan terkadang disertai demam ringan atau batuk.
 
 **Bawang Putih (Allium sativum) untuk Radang Tenggorokan:**
+
 Bawang putih dikenal kaya akan senyawa allicin, yang memiliki sifat antibakteri, antivirus, dan antijamur yang kuat, serta anti-inflamasi. Ini menjadikannya pilihan yang baik jika radang tenggorokan dicurigai karena infeksi.
+
 *   **Cara Pakai:** Anda bisa mengunyah satu siung bawang putih mentah kecil secara perlahan, atau mengiris tipis dan mencampurnya dengan madu lalu dikonsumsi. Rasa dan baunya memang kuat, namun khasiatnya optimal saat mentah.
+
 *   **Perhatian:** Konsumsi berlebihan dalam keadaan mentah bisa menyebabkan iritasi lambung pada beberapa orang.
 
 **Jahe Merah (Zingiber officinale var. rubrum) untuk Radang Tenggorokan:**
+
 Jahe merah mengandung gingerol dan shogaol yang memiliki efek anti-inflamasi, antioksidan, dan menghangatkan tubuh. Jahe merah sangat baik untuk meredakan nyeri dan rasa tidak nyaman di tenggorokan, serta membantu melancarkan pernapasan dan meningkatkan daya tahan tubuh.
+
 *   **Cara Pakai:** Umumnya diseduh sebagai minuman hangat (wedang jahe). Parut atau iris tipis jahe merah, seduh dengan air panas, bisa ditambahkan madu dan perasan lemon untuk efek menenangkan yang lebih baik.
+
 *   **Perhatian:** Aman dikonsumsi secara umum, namun konsumsi berlebihan bisa menyebabkan rasa panas di perut atau gangguan pencernaan ringan pada sebagian orang.
 
 **Langkah Awal di Rumah:**
+
 Selain herbal, pastikan Anda cukup istirahat, minum banyak cairan hangat (air putih, teh herbal), berkumur dengan air garam hangat beberapa kali sehari, dan hindari makanan/minuman yang terlalu dingin, pedas, atau asam.
 
 **Tanda Bahaya yang Wajib ke Dokter:**
+
 Segera konsultasikan ke dokter jika radang tenggorokan disertai demam tinggi (di atas 38.5°C), kesulitan bernapas atau menelan yang parah, nyeri hebat yang tidak membaik, pembengkakan kelenjar getah bening yang besar, atau gejala tidak membaik setelah beberapa hari.
 
 Konten edukatif, bukan pengganti konsultasi dokter.', '2026-06-18 09:22:07.903957');
 /*!40000 ALTER TABLE "health_qa_saved" ENABLE KEYS */;
 
+-- Dumping structure for table public.index_blok
+CREATE TABLE IF NOT EXISTS "index_blok" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''index_blok_id_seq''::regclass)',
+	"judul" VARCHAR(120) NOT NULL,
+	"konten" TEXT NOT NULL DEFAULT '',
+	"posisi" VARCHAR(20) NOT NULL DEFAULT 'top',
+	"urutan" INTEGER NOT NULL DEFAULT '0',
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.index_blok: -1 rows
 /*!40000 ALTER TABLE "index_blok" DISABLE KEYS */;
 /*!40000 ALTER TABLE "index_blok" ENABLE KEYS */;
+
+-- Dumping structure for table public.iptv_channels
+CREATE TABLE IF NOT EXISTS "iptv_channels" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''iptv_channels_id_seq''::regclass)',
+	"nama" VARCHAR(200) NOT NULL,
+	"url" TEXT NOT NULL,
+	"logo_url" TEXT NULL DEFAULT NULL,
+	"group_name" VARCHAR(120) NULL DEFAULT NULL,
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"sort_order" INTEGER NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "iptv_channels_unique_url" ("url")
+);
 
 -- Dumping data for table public.iptv_channels: 62 rows
 /*!40000 ALTER TABLE "iptv_channels" DISABLE KEYS */;
@@ -1179,6 +1611,16 @@ INSERT INTO "iptv_channels" ("id", "nama", "url", "logo_url", "group_name", "akt
 	(37, 'Trans TV', 'https://video.detik.com/transtv/smil:transtv.smil/playlist.m3u8', 'https://github.com/riotryulianto/iptv-playlists/blob/main/icons/transtv.png?raw=true', 'Indonesia', 'false', 0, '2026-06-11 23:08:32.350567', '2026-06-11 23:08:32.350567');
 /*!40000 ALTER TABLE "iptv_channels" ENABLE KEYS */;
 
+-- Dumping structure for table public.islami_artikel
+CREATE TABLE IF NOT EXISTS "islami_artikel" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''islami_artikel_id_seq''::regclass)',
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"judul" VARCHAR(180) NOT NULL,
+	"isi" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.islami_artikel: -1 rows
 /*!40000 ALTER TABLE "islami_artikel" DISABLE KEYS */;
 INSERT INTO "islami_artikel" ("id", "user_id", "judul", "isi", "created_at", "updated_at") VALUES
@@ -1189,9 +1631,32 @@ INSERT INTO "islami_artikel" ("id", "user_id", "judul", "isi", "created_at", "up
 	(5, NULL, 'Berjalan Kaki & Olahraga', 'Rasulullah menganjurkan memanah, berenang, dan menunggang kuda. Bergeraklah setiap hari.', '2026-05-23 23:43:21.449408', NULL);
 /*!40000 ALTER TABLE "islami_artikel" ENABLE KEYS */;
 
+-- Dumping structure for table public.islami_badges
+CREATE TABLE IF NOT EXISTS "islami_badges" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''islami_badges_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"badge_key" VARCHAR(40) NOT NULL,
+	"earned_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.islami_badges: -1 rows
 /*!40000 ALTER TABLE "islami_badges" DISABLE KEYS */;
 /*!40000 ALTER TABLE "islami_badges" ENABLE KEYS */;
+
+-- Dumping structure for table public.islami_kajian
+CREATE TABLE IF NOT EXISTS "islami_kajian" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''islami_kajian_id_seq''::regclass)',
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"judul" VARCHAR(180) NOT NULL,
+	"isi" TEXT NULL DEFAULT NULL,
+	"link_video" VARCHAR(255) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"penulis" VARCHAR(120) NULL DEFAULT NULL,
+	"tipe" VARCHAR(20) NULL DEFAULT 'buku',
+	"link_web" VARCHAR(500) NULL DEFAULT NULL,
+	"pdf_path" VARCHAR(500) NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.islami_kajian: -1 rows
 /*!40000 ALTER TABLE "islami_kajian" DISABLE KEYS */;
@@ -1199,19 +1664,33 @@ INSERT INTO "islami_kajian" ("id", "user_id", "judul", "isi", "link_video", "cre
 	(2, 2, 'Al Syura 42:52', 'Petunjuk dan al iman', '', '2026-06-08 23:33:23.465479', '', 'buku', '', NULL, NULL);
 /*!40000 ALTER TABLE "islami_kajian" ENABLE KEYS */;
 
--- Dumping data for table public.islami_qa_saved: -1 rows
+-- Dumping structure for table public.islami_qa_saved
+CREATE TABLE IF NOT EXISTS "islami_qa_saved" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''islami_qa_saved_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"pertanyaan" TEXT NOT NULL,
+	"jawaban" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "islami_qa_user_idx" ("user_id", "created_at")
+);
+
+-- Dumping data for table public.islami_qa_saved: 2 rows
 /*!40000 ALTER TABLE "islami_qa_saved" DISABLE KEYS */;
 INSERT INTO "islami_qa_saved" ("id", "user_id", "pertanyaan", "jawaban", "created_at") VALUES
 	(1, 2, 'Maksud ayat 7:179', 'Ayat 7:179 dari Surah Al-A''raf menjelaskan tentang sebagian besar golongan jin dan manusia yang akan menjadi penghuni neraka Jahanam. Ayat ini bukan menunjukkan bahwa Allah berbuat zalim, melainkan karena pilihan dan perbuatan mereka sendiri yang mengantarkan mereka pada takdir tersebut.
 
 Allah SWT menyebutkan tiga ciri utama yang menyebabkan mereka tergolong sebagai penghuni neraka:
+
 1.  **Memiliki hati, tetapi tidak dipergunakan untuk memahami:** Mereka dikaruniai akal dan hati nurani, namun tidak menggunakannya untuk merenungkan kebenaran, memahami ayat-ayat Allah, atau mengambil pelajaran dari tanda-tanda kebesaran-Nya.
+
 2.  **Memiliki mata, tetapi tidak dipergunakan untuk melihat:** Mereka memiliki penglihatan, tetapi tidak menggunakannya untuk memperhatikan bukti-bukti kekuasaan Allah di alam semesta atau melihat jalan kebenaran.
+
 3.  **Memiliki telinga, tetapi tidak dipergunakan untuk mendengar:** Mereka memiliki pendengaran, tetapi tidak menggunakannya untuk mendengarkan seruan kebenaran, ayat-ayat Al-Qur''an, atau nasihat para rasul.
 
 Oleh karena itu, Allah menyamakan mereka dengan binatang ternak, bahkan lebih sesat lagi. Binatang ternak hidup berdasarkan insting, sedangkan manusia dan jin diberi akal serta panca indra untuk membedakan yang hak dan batil, namun mereka memilih untuk tidak menggunakannya demi petunjuk. Mereka adalah orang-orang yang lalai (ghaafilun) dari tujuan penciptaan mereka dan dari peringatan Allah.
 
 (Surah Al-A''raf: 179)
+
 Wallahu a''lam.', '2026-06-17 14:53:09.977374'),
 	(2, 2, 'Maksud kuat fisik di islam seperti nabi daud?', 'Dalam Islam, maksud "kuat fisik" seperti Nabi Dawud ''alaihissalam tidak hanya merujuk pada kekuatan otot semata, melainkan juga mencakup kesehatan tubuh secara menyeluruh, daya tahan, dan kemampuan untuk melaksanakan tugas-tugas duniawi maupun agama. Nabi Dawud dikenal memiliki kekuatan fisik yang luar biasa, terbukti dari kemampuannya mengalahkan Jalut (Goliath) dalam pertempuran, seperti yang disebutkan dalam Al-Qur''an.
 
@@ -1224,9 +1703,33 @@ Oleh karena itu, kuat fisik dalam Islam berarti memiliki tubuh yang sehat dan bu
 Wallahu a''lam.', '2026-06-18 15:00:13.397519');
 /*!40000 ALTER TABLE "islami_qa_saved" ENABLE KEYS */;
 
+-- Dumping structure for table public.islami_quotes
+CREATE TABLE IF NOT EXISTS "islami_quotes" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''islami_quotes_id_seq''::regclass)',
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"isi" TEXT NOT NULL,
+	"sumber" VARCHAR(120) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.islami_quotes: -1 rows
 /*!40000 ALTER TABLE "islami_quotes" DISABLE KEYS */;
 /*!40000 ALTER TABLE "islami_quotes" ENABLE KEYS */;
+
+-- Dumping structure for table public.islami_streak
+CREATE TABLE IF NOT EXISTS "islami_streak" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''islami_streak_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"quran_done" SMALLINT NOT NULL DEFAULT '0',
+	"dzikir_pagi" SMALLINT NOT NULL DEFAULT '0',
+	"dzikir_petang" SMALLINT NOT NULL DEFAULT '0',
+	"doa_done" SMALLINT NOT NULL DEFAULT '0',
+	"sholat_count" SMALLINT NOT NULL DEFAULT '0',
+	"subuh_walk" SMALLINT NOT NULL DEFAULT '0',
+	"sedekah" SMALLINT NOT NULL DEFAULT '0',
+	"poin" INTEGER NOT NULL DEFAULT '0'
+);
 
 -- Dumping data for table public.islami_streak: -1 rows
 /*!40000 ALTER TABLE "islami_streak" DISABLE KEYS */;
@@ -1244,17 +1747,31 @@ INSERT INTO "islami_streak" ("id", "user_id", "tanggal", "quran_done", "dzikir_p
 	(52, 2, '2026-06-13', 1, 0, 0, 0, 0, 0, 0, 10);
 /*!40000 ALTER TABLE "islami_streak" ENABLE KEYS */;
 
+-- Dumping structure for table public.jadwal
+CREATE TABLE IF NOT EXISTS "jadwal" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''jadwal_id_seq''::regclass)',
+	"tanggal" DATE NOT NULL,
+	"bulan" VARCHAR(20) NOT NULL,
+	"minggu_ke" VARCHAR(4) NOT NULL,
+	"jenis" VARCHAR(60) NOT NULL,
+	"tempat" VARCHAR(180) NOT NULL,
+	"koordinator_id" INTEGER NULL DEFAULT NULL,
+	"konten_obrolan" TEXT NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	"tempat_id" INTEGER NULL DEFAULT NULL,
+	"durasi_menit" INTEGER NULL DEFAULT NULL,
+	"tim_id" INTEGER NULL DEFAULT NULL,
+	"event_id" INTEGER NULL DEFAULT NULL,
+	"jam_mulai" TIME NULL DEFAULT NULL,
+	"jam_selesai" TIME NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.jadwal: -1 rows
 /*!40000 ALTER TABLE "jadwal" DISABLE KEYS */;
 INSERT INTO "jadwal" ("id", "tanggal", "bulan", "minggu_ke", "jenis", "tempat", "koordinator_id", "konten_obrolan", "catatan", "created_at", "tempat_id", "durasi_menit", "tim_id", "event_id", "jam_mulai", "jam_selesai") VALUES
-	(1, '2026-04-16', 'April', 'W3', 'Jogging', 'SR-Panyileukan', 2, '<p>Struktur DK, Indk, Sjrh</p>', '<ol><li>Dedi ada bimbingan skripsi, jadi pulang </li><li>Dani sama Rifat ada Kuliah Online</li></ol>', '2026-05-19 07:50:23.02801', 4, 240, NULL, NULL, '06:10:00', '10:00:00'),
-	(2, '2026-04-22', 'April', 'W4', 'Badminton', 'GOR Mayasari', 3, '<p>Tidak Ada</p>', '<p>Tidak Ada</p>', '2026-05-19 07:51:01.708229', 2, 120, NULL, NULL, '16:00:00', '18:00:00'),
-	(3, '2026-05-03', 'May', 'W1', 'Jogging', 'Summarecon', 3, '<p>Sharing Hikmah Per Orang</p>', '<ol><li>Dedi Jalan dari Kosan ke Summarecon </li><li>Dedi Cedera kaki</li></ol>', '2026-05-19 07:51:58.579444', 5, 210, NULL, NULL, '07:30:00', '10:00:00'),
-	(4, '2026-05-09', 'May', 'W2', 'Futsal', 'GOR Adiguna', 3, '<p>Tidak Ada</p>', '<p>Dedi Jalan dari Kosan ke Adiguna</p>', '2026-05-19 07:52:37.974739', 1, 60, NULL, NULL, '16:00:00', '17:00:00'),
-	(5, '2026-05-17', 'May', 'W3', 'Badminton', 'GOR Purbaya', 4, '<p>Sharing Hikmah Per Orang</p>', '<ol><li>Rizal (Rihlah bersama adik Mentornya) </li><li>Fajar S (Part time)</li></ol>', '2026-05-19 07:53:14.399509', 3, 120, NULL, NULL, '08:00:00', '10:00:00'),
 	(9, '2026-06-05', 'June', 'W1', 'Jogging', 'Parkiran Taman Sumringah', 2, '<p>Siapakah ''Dia'' menurut kalian?</p>', '<p>Pada telat kunjungannya, namun tetap semangat kompak</p>', '2026-06-02 20:30:34.263032', 5, 150, NULL, NULL, '06:30:00', '09:00:00'),
 	(8, '2026-06-02', 'June', 'W1', 'Badminton', 'GOR Gaza', 2, '<p>Shalat bkn hanya aspek ritual, tp 24 jam</p>', '<p>Kompak.. Gaskeun, Makan bersama mie ayam guys</p>', '2026-06-01 13:57:16.375314', 14, 120, NULL, NULL, '16:00:00', '18:00:00'),
-	(6, '2026-05-23', 'May', 'W4', 'Badminton', 'GOR Gaza', 3, '<p><br></p>', '<p>Sepi.. dikitan kita main ini</p>', '2026-05-21 15:45:32.456543', 14, 120, NULL, NULL, '16:00:00', '18:00:00'),
 	(10, '2026-06-13', 'June', 'W2', 'Jogging', 'Flamboyan Jogging', 14, '<p>Ada Dia nya gk disetiap aktifitas kita</p>', '<p>Kesiangan, kemudian mulai jam 6, 2.4km, sisanya makan dan ngobrol konten</p>', '2026-06-10 21:42:46.741554', 29, 120, NULL, NULL, '06:00:00', '09:00:00'),
 	(11, '2026-06-20', 'June', 'W3', 'Badminton', 'GOR Mayasari', 14, '<p><br></p>', '<p><br></p>', '2026-06-15 13:19:58.280744', 13, 120, NULL, NULL, '08:00:00', '10:00:00'),
 	(12, '2026-06-16', 'June', 'W3', 'Badminton', 'GOR Gaza', 2, '<p>Yuk, berakrab akrab</p>', '<p><br></p>', '2026-06-16 12:29:48.694775', 14, 120, 8, NULL, '19:00:00', '21:00:00'),
@@ -1262,7 +1779,27 @@ INSERT INTO "jadwal" ("id", "tanggal", "bulan", "minggu_ke", "jenis", "tempat", 
 	(14, '2026-06-19', 'June', 'W3', 'Renang', 'Kolam Renang BSD', 2, '<p><br></p>', '<p><br></p>', '2026-06-19 13:41:21.425402', 30, 120, NULL, NULL, '14:30:00', '16:30:00');
 /*!40000 ALTER TABLE "jadwal" ENABLE KEYS */;
 
--- Dumping data for table public.jajanan: 7 rows
+-- Dumping structure for table public.jajanan
+CREATE TABLE IF NOT EXISTS "jajanan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''jajanan_id_seq''::regclass)',
+	"nama" VARCHAR(160) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"harga" INTEGER NOT NULL DEFAULT '0',
+	"stok" INTEGER NOT NULL DEFAULT '0',
+	"foto_url" TEXT NULL DEFAULT NULL,
+	"kategori" VARCHAR(60) NULL DEFAULT NULL,
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"foto_file_id" VARCHAR(120) NULL DEFAULT NULL,
+	"lat" NUMERIC(10,6) NULL DEFAULT NULL,
+	"lng" NUMERIC(10,6) NULL DEFAULT NULL,
+	"jam_buka" TIME NULL DEFAULT NULL,
+	"jam_tutup" TIME NULL DEFAULT NULL,
+	"toko_id" INTEGER NULL DEFAULT NULL,
+	"hari_buka" VARCHAR(20) NULL DEFAULT '0,1,2,3,4,5,6'
+);
+
+-- Dumping data for table public.jajanan: -1 rows
 /*!40000 ALTER TABLE "jajanan" DISABLE KEYS */;
 INSERT INTO "jajanan" ("id", "nama", "deskripsi", "harga", "stok", "foto_url", "kategori", "aktif", "created_at", "foto_file_id", "lat", "lng", "jam_buka", "jam_tutup", "toko_id", "hari_buka") VALUES
 	(4, 'Nasi Telor Dadar', NULL, 12000, 10, 'https://ik.imagekit.io/ahsansur/sportapp/jajanan/2026/05/Nasi_Dadar_Abin-1780186504-3a1835_9soVpQNTe.jpg', 'Makanan', 'true', '2026-05-30 17:54:08.943507', NULL, -6.934213, 107.716876, '07:00:00', '21:00:00', 5, '0,1,2,3,4,5,6'),
@@ -1274,14 +1811,60 @@ INSERT INTO "jajanan" ("id", "nama", "deskripsi", "harga", "stok", "foto_url", "
 	(9, 'Nasi Telor Dadar', NULL, 12000, 10, NULL, 'Makanan', 'true', '2026-06-02 12:47:28.88952', NULL, NULL, NULL, '07:00:00', '21:00:00', 7, '0,1,2,3,4,5,6');
 /*!40000 ALTER TABLE "jajanan" ENABLE KEYS */;
 
--- Dumping data for table public.jajanan_pesanan: 4 rows
+-- Dumping structure for table public.jajanan_pesanan
+CREATE TABLE IF NOT EXISTS "jajanan_pesanan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''jajanan_pesanan_id_seq''::regclass)',
+	"kode" VARCHAR(20) NOT NULL,
+	"nama_pemesan" VARCHAR(120) NOT NULL,
+	"no_wa" VARCHAR(25) NOT NULL,
+	"alamat" TEXT NOT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"subtotal" BIGINT NOT NULL DEFAULT '0',
+	"ongkir" BIGINT NOT NULL DEFAULT '0',
+	"total" BIGINT NOT NULL DEFAULT '0',
+	"metode" VARCHAR(20) NULL DEFAULT 'cod',
+	"status" VARCHAR(20) NOT NULL DEFAULT 'baru',
+	"kurir_user_id" INTEGER NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"pickup_lat" NUMERIC(10,6) NULL DEFAULT NULL,
+	"pickup_lng" NUMERIC(10,6) NULL DEFAULT NULL,
+	"payment_status" VARCHAR(20) NULL DEFAULT 'pending',
+	"midtrans_order_id" VARCHAR(40) NULL DEFAULT NULL,
+	"snap_token" VARCHAR(120) NULL DEFAULT NULL,
+	"snap_redirect" TEXT NULL DEFAULT NULL,
+	"stok_dipotong" BOOLEAN NOT NULL DEFAULT 'false',
+	"driver_lat" NUMERIC(10,6) NULL DEFAULT NULL,
+	"driver_lng" NUMERIC(10,6) NULL DEFAULT NULL,
+	"driver_loc_updated_at" TIMESTAMPTZ NULL DEFAULT NULL,
+	"rating" SMALLINT NULL DEFAULT NULL,
+	"rating_komentar" TEXT NULL DEFAULT NULL,
+	"rating_at" TIMESTAMPTZ NULL DEFAULT NULL,
+	"email_pemesan" VARCHAR(160) NULL DEFAULT NULL,
+	"biaya_aplikasi" BIGINT NOT NULL DEFAULT '0',
+	"biaya_admin" BIGINT NOT NULL DEFAULT '0',
+	"invoice_sent_at" TIMESTAMP NULL DEFAULT NULL,
+	CONSTRAINT "jjn_rating_range_chk" CHECK (((rating IS NULL) OR ((rating >= 1) AND (rating <= 5))))
+);
+
+-- Dumping data for table public.jajanan_pesanan: -1 rows
 /*!40000 ALTER TABLE "jajanan_pesanan" DISABLE KEYS */;
 INSERT INTO "jajanan_pesanan" ("id", "kode", "nama_pemesan", "no_wa", "alamat", "catatan", "subtotal", "ongkir", "total", "metode", "status", "kurir_user_id", "created_at", "updated_at", "pickup_lat", "pickup_lng", "payment_status", "midtrans_order_id", "snap_token", "snap_redirect", "stok_dipotong", "driver_lat", "driver_lng", "driver_loc_updated_at", "rating", "rating_komentar", "rating_at", "email_pemesan", "biaya_aplikasi", "biaya_admin", "invoice_sent_at") VALUES
 	(2, 'JJN-260530-3974', 'Andin', '081386369207', 'Tes', 'Gerbang Biru', 15000, 5000, 20000, 'cod', 'selesai', 2, '2026-05-30 17:45:28.285732', '2026-05-30 18:28:35.688819', -6.925610, 107.729378, 'pending', NULL, NULL, NULL, 'false', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL),
 	(38, 'JJN-260601-8E2D', 'Firdam', '6281386369207', 'Ngetes', 'Gerbang hijau', 30000, 5638, 43211, 'midtrans', 'pending_payment', NULL, '2026-06-01 13:13:28.980403', '2026-06-01 13:13:28.980403', -6.925368, 107.729468, 'pending', 'JJN-260601-8E2D', 'ba0c3cad-46b4-4194-ae20-bae0a288f6b8', 'https://app.sandbox.midtrans.com/snap/v4/redirection/ba0c3cad-46b4-4194-ae20-bae0a288f6b8', 'false', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL),
-	(1, 'JJN-260530-3300', 'Anggi', '081386369207', 'Biru', 'Gerbang biru', 40000, 5000, 45000, 'cod', 'diantar', 4, '2026-05-30 12:24:40.776433', '2026-06-01 14:35:33.005843', NULL, NULL, 'pending', NULL, NULL, NULL, 'false', -6.925610, 107.729378, '2026-06-01 14:15:36.01085+07', NULL, NULL, NULL, NULL, 0, 0, NULL),
+	(1, 'JJN-260530-3300', 'Anggi', '081386369207', 'Biru', 'Gerbang biru', 40000, 5000, 45000, 'cod', 'diantar', 4, '2026-05-30 12:24:40.776433', '2026-06-01 14:35:33.005843', NULL, NULL, 'pending', NULL, NULL, NULL, 'false', -6.925610, 107.729378, '2026-06-01 07:15:36.01085+00', NULL, NULL, NULL, NULL, 0, 0, NULL),
 	(40, 'JJN-260602-877D', 'Firdam', '6281386369207', 'Cibiru', 'Gerbang', 10000, 5637, 20854, 'midtrans', 'pending_payment', NULL, '2026-06-02 05:34:05.70711', '2026-06-02 05:34:05.70711', -6.925379, 107.729466, 'pending', 'JJN-260602-877D', '99e4c775-9f1b-4206-92f1-aea28de015d3', 'https://app.midtrans.com/snap/v4/redirection/99e4c775-9f1b-4206-92f1-aea28de015d3', 'false', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL);
 /*!40000 ALTER TABLE "jajanan_pesanan" ENABLE KEYS */;
+
+-- Dumping structure for table public.jajanan_pesanan_item
+CREATE TABLE IF NOT EXISTS "jajanan_pesanan_item" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''jajanan_pesanan_item_id_seq''::regclass)',
+	"pesanan_id" INTEGER NOT NULL,
+	"jajanan_id" INTEGER NULL DEFAULT NULL,
+	"nama" VARCHAR(160) NOT NULL,
+	"harga" INTEGER NOT NULL DEFAULT '0',
+	"qty" INTEGER NOT NULL DEFAULT '1'
+);
 
 -- Dumping data for table public.jajanan_pesanan_item: -1 rows
 /*!40000 ALTER TABLE "jajanan_pesanan_item" DISABLE KEYS */;
@@ -1291,6 +1874,14 @@ INSERT INTO "jajanan_pesanan_item" ("id", "pesanan_id", "jajanan_id", "nama", "h
 	(38, 38, 2, 'Mie Bakso Urat', 15000, 2),
 	(41, 40, NULL, 'Testes', 10000, 1);
 /*!40000 ALTER TABLE "jajanan_pesanan_item" ENABLE KEYS */;
+
+-- Dumping structure for table public.jenis_olahraga
+CREATE TABLE IF NOT EXISTS "jenis_olahraga" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''jenis_olahraga_id_seq''::regclass)',
+	"nama" VARCHAR(60) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.jenis_olahraga: -1 rows
 /*!40000 ALTER TABLE "jenis_olahraga" DISABLE KEYS */;
@@ -1307,19 +1898,77 @@ INSERT INTO "jenis_olahraga" ("id", "nama", "deskripsi", "created_at") VALUES
 	(13, 'Olahraga Pribadi', 'Rumahan', '2026-06-03 05:36:56.762834');
 /*!40000 ALTER TABLE "jenis_olahraga" ENABLE KEYS */;
 
+-- Dumping structure for table public.kalori_burn_lain
+CREATE TABLE IF NOT EXISTS "kalori_burn_lain" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''kalori_burn_lain_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL DEFAULT 'CURRENT_DATE',
+	"deskripsi" TEXT NOT NULL,
+	"durasi_menit" INTEGER NOT NULL DEFAULT '0',
+	"kalori" INTEGER NOT NULL DEFAULT '0',
+	"rincian" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "idx_kalori_lain_user_tgl" ("user_id", "tanggal")
+);
+
 -- Dumping data for table public.kalori_burn_lain: -1 rows
 /*!40000 ALTER TABLE "kalori_burn_lain" DISABLE KEYS */;
 /*!40000 ALTER TABLE "kalori_burn_lain" ENABLE KEYS */;
 
--- Dumping data for table public.kalori_defisit_setting: -1 rows
+-- Dumping structure for table public.kalori_defisit_setting
+CREATE TABLE IF NOT EXISTS "kalori_defisit_setting" (
+	"user_id" INTEGER NOT NULL,
+	"sumber" VARCHAR(20) NOT NULL DEFAULT 'auto',
+	"manual_harian" INTEGER NOT NULL DEFAULT '0',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id")
+);
+
+-- Dumping data for table public.kalori_defisit_setting: 1 rows
 /*!40000 ALTER TABLE "kalori_defisit_setting" DISABLE KEYS */;
 INSERT INTO "kalori_defisit_setting" ("user_id", "sumber", "manual_harian", "updated_at") VALUES
 	(2, 'jogging', 0, '2026-06-18 22:31:39.027698');
 /*!40000 ALTER TABLE "kalori_defisit_setting" ENABLE KEYS */;
 
+-- Dumping structure for table public.kalori_log
+CREATE TABLE IF NOT EXISTS "kalori_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''kalori_log_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis" VARCHAR(40) NOT NULL,
+	"intensitas" VARCHAR(20) NOT NULL,
+	"berat_kg" NUMERIC(5,1) NOT NULL,
+	"menit" INTEGER NOT NULL,
+	"met" NUMERIC(4,2) NOT NULL,
+	"kalori" NUMERIC(7,2) NOT NULL,
+	"dibuat_pada" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.kalori_log: -1 rows
 /*!40000 ALTER TABLE "kalori_log" DISABLE KEYS */;
 /*!40000 ALTER TABLE "kalori_log" ENABLE KEYS */;
+
+-- Dumping structure for table public.kalori_makanan_log
+CREATE TABLE IF NOT EXISTS "kalori_makanan_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''kalori_makanan_log_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL DEFAULT 'CURRENT_DATE',
+	"waktu" TIME NOT NULL DEFAULT 'CURRENT_TIME',
+	"nama_makanan" VARCHAR(200) NOT NULL,
+	"kalori" INTEGER NOT NULL DEFAULT '0',
+	"foto_url" TEXT NULL DEFAULT NULL,
+	"ai_estimasi" BOOLEAN NOT NULL DEFAULT 'false',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"foto_file_id" TEXT NULL DEFAULT NULL,
+	"karbohidrat_g" NUMERIC(7,2) NULL DEFAULT NULL,
+	"protein_g" NUMERIC(7,2) NULL DEFAULT NULL,
+	"lemak_g" NUMERIC(7,2) NULL DEFAULT NULL,
+	"serat_g" NUMERIC(7,2) NULL DEFAULT NULL,
+	"gula_g" NUMERIC(7,2) NULL DEFAULT NULL,
+	"sodium_mg" NUMERIC(8,2) NULL DEFAULT NULL,
+	"ai_detail" TEXT NULL DEFAULT NULL,
+	INDEX "idx_kalori_mkn_user_tgl" ("user_id", "tanggal")
+);
 
 -- Dumping data for table public.kalori_makanan_log: 6 rows
 /*!40000 ALTER TABLE "kalori_makanan_log" DISABLE KEYS */;
@@ -1332,29 +1981,77 @@ INSERT INTO "kalori_makanan_log" ("id", "user_id", "tanggal", "waktu", "nama_mak
 	(23, 2, '2026-06-18', '22:32:00', 'Nasi Goreng', 850, 'https://ik.imagekit.io/ahsansur/sportapp/kalori/June_2026/kalori-2-2026-06-18-Nasi_Goreng-1781796981_bVOKgYYjE.jpg', 'true', 'AI: Nasi goreng dengan campuran nasi, sayuran (wortel, daun bawang), dan kemungkinan telur atau potongan daging kecil, digoreng dengan minyak.', '2026-06-18 22:36:23.263828', '6a3410765c7cd75eb82b332d', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 /*!40000 ALTER TABLE "kalori_makanan_log" ENABLE KEYS */;
 
--- Dumping data for table public.kalori_target: -1 rows
+-- Dumping structure for table public.kalori_target
+CREATE TABLE IF NOT EXISTS "kalori_target" (
+	"user_id" INTEGER NOT NULL,
+	"target_harian" INTEGER NOT NULL DEFAULT '2000',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id")
+);
+
+-- Dumping data for table public.kalori_target: 1 rows
 /*!40000 ALTER TABLE "kalori_target" DISABLE KEYS */;
 INSERT INTO "kalori_target" ("user_id", "target_harian", "updated_at") VALUES
 	(2, 1500, '2026-06-11 23:40:42.808845');
 /*!40000 ALTER TABLE "kalori_target" ENABLE KEYS */;
 
+-- Dumping structure for table public.kebijakan_privasi
+CREATE TABLE IF NOT EXISTS "kebijakan_privasi" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''kebijakan_privasi_id_seq''::regclass)',
+	"versi" VARCHAR(20) NOT NULL DEFAULT '1.0',
+	"judul" VARCHAR(160) NOT NULL DEFAULT 'Kebijakan Privasi',
+	"konten" TEXT NOT NULL DEFAULT '',
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.kebijakan_privasi: -1 rows
 /*!40000 ALTER TABLE "kebijakan_privasi" DISABLE KEYS */;
 INSERT INTO "kebijakan_privasi" ("id", "versi", "judul", "konten", "aktif", "created_at", "updated_at") VALUES
 	(1, '1.0', 'Kebijakan Privasi (UU PDP No. 27 Tahun 2022)', '<h3>Pendahuluan</h3><p>HapFam SportApp menghormati privasi Anda dan mematuhi UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p>
+
 <h3>1. Data yang Kami Kumpulkan</h3><ul><li>Data identitas: nama, email, jenis kelamin, nomor WhatsApp</li><li>Data lokasi (saat memesan jajanan/booking lapangan)</li><li>Data aktivitas olahraga, foto profil, postingan</li></ul>
+
 <h3>2. Dasar Pemrosesan</h3><p>Persetujuan Anda saat mendaftar, pelaksanaan kontrak (pemesanan), dan kepentingan sah.</p>
+
 <h3>3. Hak Subjek Data</h3><ul><li>Hak mendapatkan informasi</li><li>Hak akses, koreksi, dan penghapusan</li><li>Hak menarik persetujuan</li><li>Hak menolak pemrosesan otomatis</li></ul>
+
 <h3>4. Keamanan</h3><p>Kami menerapkan enkripsi password (bcrypt), HTTPS, dan kontrol akses berbasis peran.</p>
+
 <h3>5. Pengiriman ke Pihak Ketiga</h3><p>Hanya untuk pemrosesan pembayaran (Midtrans) dan penyimpanan media (ImageKit) sesuai standar industri.</p>
+
 <h3>6. Kontak DPO</h3><p>Hubungi: admin@hapfam.local</p>', 'true', '2026-06-02 07:20:18.842615', '2026-06-02 07:20:18.842615');
 /*!40000 ALTER TABLE "kebijakan_privasi" ENABLE KEYS */;
+
+-- Dumping structure for table public.live_tracking_contacts
+CREATE TABLE IF NOT EXISTS "live_tracking_contacts" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''live_tracking_contacts_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"nama" TEXT NOT NULL,
+	"nomor_wa" TEXT NULL DEFAULT NULL,
+	"email" TEXT NULL DEFAULT NULL,
+	"relasi" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.live_tracking_contacts: -1 rows
 /*!40000 ALTER TABLE "live_tracking_contacts" DISABLE KEYS */;
 INSERT INTO "live_tracking_contacts" ("id", "user_id", "nama", "nomor_wa", "email", "relasi", "created_at") VALUES
 	(1, 2, 'FIRDAMDAM SASMITA', '081386369207', '', '', '2026-06-15 13:12:32.529833');
 /*!40000 ALTER TABLE "live_tracking_contacts" ENABLE KEYS */;
+
+-- Dumping structure for table public.live_tracking_points
+CREATE TABLE IF NOT EXISTS "live_tracking_points" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''live_tracking_points_id_seq''::regclass)',
+	"session_id" BIGINT NOT NULL,
+	"lat" DOUBLE PRECISION NOT NULL,
+	"lng" DOUBLE PRECISION NOT NULL,
+	"accuracy_m" DOUBLE PRECISION NULL DEFAULT NULL,
+	"speed_mps" DOUBLE PRECISION NULL DEFAULT NULL,
+	"heading_deg" DOUBLE PRECISION NULL DEFAULT NULL,
+	"ts" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.live_tracking_points: -1 rows
 /*!40000 ALTER TABLE "live_tracking_points" DISABLE KEYS */;
@@ -1388,6 +2085,23 @@ INSERT INTO "live_tracking_points" ("id", "session_id", "lat", "lng", "accuracy_
 	(27, 6, -6.9254349, 107.7295497, 2.0569999217987, 0.087235875427723, NULL, '2026-06-16 06:38:40.488907');
 /*!40000 ALTER TABLE "live_tracking_points" ENABLE KEYS */;
 
+-- Dumping structure for table public.live_tracking_sessions
+CREATE TABLE IF NOT EXISTS "live_tracking_sessions" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''live_tracking_sessions_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"token" VARCHAR(48) NOT NULL,
+	"judul" TEXT NOT NULL DEFAULT 'Live Tracking',
+	"pesan" TEXT NULL DEFAULT NULL,
+	"olahraga" TEXT NOT NULL DEFAULT 'lari',
+	"started_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"ended_at" TIMESTAMP NULL DEFAULT NULL,
+	"expires_at" TIMESTAMP NOT NULL DEFAULT '(now() + ''12:00:00''::interval)',
+	"is_active" BOOLEAN NOT NULL DEFAULT 'true',
+	"last_lat" DOUBLE PRECISION NULL DEFAULT NULL,
+	"last_lng" DOUBLE PRECISION NULL DEFAULT NULL,
+	"last_seen_at" TIMESTAMP NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.live_tracking_sessions: -1 rows
 /*!40000 ALTER TABLE "live_tracking_sessions" DISABLE KEYS */;
 INSERT INTO "live_tracking_sessions" ("id", "user_id", "token", "judul", "pesan", "olahraga", "started_at", "ended_at", "expires_at", "is_active", "last_lat", "last_lng", "last_seen_at") VALUES
@@ -1399,7 +2113,16 @@ INSERT INTO "live_tracking_sessions" ("id", "user_id", "token", "judul", "pesan"
 	(6, 2, 'RLH-hCLjnsGbAT0HPLXIsUkp', 'Lari sore', NULL, 'lari', '2026-06-16 06:38:00.538541', '2026-06-16 06:39:23.027658', '2026-06-16 12:38:00.538541', 'false', -6.9254349, 107.7295497, '2026-06-16 06:38:40.542159');
 /*!40000 ALTER TABLE "live_tracking_sessions" ENABLE KEYS */;
 
--- Dumping data for table public.login_attempts: 368 rows
+-- Dumping structure for table public.login_attempts
+CREATE TABLE IF NOT EXISTS "login_attempts" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''login_attempts_id_seq''::regclass)',
+	"email" VARCHAR(150) NULL DEFAULT NULL,
+	"ip" VARCHAR(64) NULL DEFAULT NULL,
+	"success" SMALLINT NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
+-- Dumping data for table public.login_attempts: 469 rows
 /*!40000 ALTER TABLE "login_attempts" DISABLE KEYS */;
 INSERT INTO "login_attempts" ("id", "email", "ip", "success", "created_at") VALUES
 	(1, 'firdam@sport.local', '::1', 1, '2026-05-22 00:12:26.427246'),
@@ -1864,8 +2587,28 @@ INSERT INTO "login_attempts" ("id", "email", "ip", "success", "created_at") VALU
 	(524, 'firdam@sport.local', '100.64.0.3', 1, '2026-06-21 16:59:11.29797'),
 	(525, 'rifat@sport.local', '100.64.0.5', 0, '2026-06-21 17:07:35.854286'),
 	(526, 'rifat@sport.local', '100.64.0.11', 0, '2026-06-21 17:08:25.561438'),
-	(527, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-21 17:30:38.194335');
+	(527, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-21 17:30:38.194335'),
+	(1, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 09:03:20.013646'),
+	(2, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 09:12:50.145052'),
+	(3, 'firdam@sport.local', '2404:c0:2a10::2f6c:b489', 0, '2026-06-22 09:27:29.710755'),
+	(4, 'firdam@sport.local', '2404:c0:2a10::2f6c:b489', 0, '2026-06-22 09:27:43.026218'),
+	(5, 'firdam@sport.local', '2404:c0:2a10::2f6c:b489', 1, '2026-06-22 09:28:36.479936'),
+	(6, 'dani@sport.local', '103.55.33.183', 1, '2026-06-22 09:31:38.264741'),
+	(7, 'adithsetiawan62@gmail.com', '114.10.146.131', 1, '2026-06-22 12:16:00.433912'),
+	(8, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 12:24:19.920932'),
+	(9, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 13:15:01.340589'),
+	(10, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 14:03:27.662599'),
+	(11, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 14:23:43.549619');
 /*!40000 ALTER TABLE "login_attempts" ENABLE KEYS */;
+
+-- Dumping structure for table public.login_logs
+CREATE TABLE IF NOT EXISTS "login_logs" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''login_logs_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"ip" VARCHAR(64) NULL DEFAULT NULL,
+	"user_agent" VARCHAR(255) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.login_logs: -1 rows
 /*!40000 ALTER TABLE "login_logs" DISABLE KEYS */;
@@ -1886,6 +2629,14 @@ INSERT INTO "login_logs" ("id", "user_id", "ip", "user_agent", "created_at") VAL
 	(14, 3, '::1', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '2026-06-13 16:09:28.166187');
 /*!40000 ALTER TABLE "login_logs" ENABLE KEYS */;
 
+-- Dumping structure for table public.member_eksternal
+CREATE TABLE IF NOT EXISTS "member_eksternal" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''member_eksternal_id_seq''::regclass)',
+	"jadwal_id" INTEGER NOT NULL,
+	"nama_tamu" VARCHAR(120) NOT NULL,
+	"dibawa_oleh_id" INTEGER NULL DEFAULT NULL
+);
+
 -- Dumping data for table public.member_eksternal: -1 rows
 /*!40000 ALTER TABLE "member_eksternal" DISABLE KEYS */;
 INSERT INTO "member_eksternal" ("id", "jadwal_id", "nama_tamu", "dibawa_oleh_id") VALUES
@@ -1899,11 +2650,38 @@ INSERT INTO "member_eksternal" ("id", "jadwal_id", "nama_tamu", "dibawa_oleh_id"
 	(36, 11, 'Haikal', 7);
 /*!40000 ALTER TABLE "member_eksternal" ENABLE KEYS */;
 
+-- Dumping structure for table public.nav_menu
+CREATE TABLE IF NOT EXISTS "nav_menu" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''nav_menu_id_seq''::regclass)',
+	"label" VARCHAR(80) NOT NULL,
+	"url" VARCHAR(255) NOT NULL DEFAULT '#',
+	"icon" VARCHAR(60) NULL DEFAULT NULL,
+	"parent_id" INTEGER NULL DEFAULT NULL,
+	"urutan" INTEGER NOT NULL DEFAULT '0',
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"target" VARCHAR(10) NULL DEFAULT '_self',
+	"posisi" VARCHAR(20) NOT NULL DEFAULT 'drawer',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.nav_menu: -1 rows
 /*!40000 ALTER TABLE "nav_menu" DISABLE KEYS */;
 /*!40000 ALTER TABLE "nav_menu" ENABLE KEYS */;
 
--- Dumping data for table public.notifications: 416 rows
+-- Dumping structure for table public.notifications
+CREATE TABLE IF NOT EXISTS "notifications" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''notifications_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis" VARCHAR(30) NOT NULL,
+	"judul" VARCHAR(200) NOT NULL,
+	"isi" TEXT NULL DEFAULT NULL,
+	"url" VARCHAR(255) NULL DEFAULT NULL,
+	"dibaca" SMALLINT NOT NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"dibuat_pada" TIMESTAMP NULL DEFAULT 'now()'
+);
+
+-- Dumping data for table public.notifications: 436 rows
 /*!40000 ALTER TABLE "notifications" DISABLE KEYS */;
 INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "dibaca", "created_at", "dibuat_pada") VALUES
 	(438, 2, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.343616', '2026-06-19 18:07:16.343616'),
@@ -1957,8 +2735,6 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(87, 3, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:50.717128', '2026-06-05 11:08:50.717128'),
 	(99, 16, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:51.718888', '2026-06-05 11:08:51.718888'),
 	(97, 14, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:51.554643', '2026-06-05 11:08:51.554643'),
-	(423, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.314995', '2026-06-19 13:42:23.314995'),
-	(84, 4, 'dm', '💬 Pesan baru dari Firdam', 'Ada di menu input absensi', '/dm.php?u=2', 1, '2026-06-02 20:21:10.06544', '2026-06-02 20:21:10.06544'),
 	(489, 2, 'comment', '💬 Fawaid mengomentari post Anda', 'Mantap', '/index.php#feed', 1, '2026-06-20 12:50:33.691277', '2026-06-20 12:50:33.691277'),
 	(89, 5, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:50.888649', '2026-06-05 11:08:50.888649'),
 	(90, 6, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:50.973956', '2026-06-05 11:08:50.973956'),
@@ -1977,6 +2753,7 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(104, 13, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:49.25329', '2026-06-05 20:20:49.25329'),
 	(106, 8, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:49.412545', '2026-06-05 20:20:49.412545'),
 	(107, 6, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:49.492124', '2026-06-05 20:20:49.492124'),
+	(419, 21, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-17 23:19:00.15316', '2026-06-17 23:19:00.15316'),
 	(108, 7, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:49.571807', '2026-06-05 20:20:49.571807'),
 	(109, 20, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:49.650943', '2026-06-05 20:20:49.650943'),
 	(490, 2, 'like', '❤️ Fawaid menyukai post Anda', '', '/index.php#feed', 1, '2026-06-20 12:50:56.001661', '2026-06-20 12:50:56.001661'),
@@ -2178,7 +2955,6 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(339, 8, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.742362', '2026-06-16 15:37:18.742362'),
 	(329, 16, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:16.584453', '2026-06-16 15:35:16.584453'),
 	(327, 14, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:16.372003', '2026-06-16 15:35:16.372003'),
-	(335, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.395104', '2026-06-16 15:37:18.395104'),
 	(340, 9, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.821555', '2026-06-16 15:37:18.821555'),
 	(341, 10, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.900816', '2026-06-16 15:37:18.900816'),
 	(342, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.979605', '2026-06-16 15:37:18.979605'),
@@ -2266,7 +3042,6 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(414, 14, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.741017', '2026-06-17 23:18:59.741017'),
 	(417, 17, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.983226', '2026-06-17 23:18:59.983226'),
 	(418, 20, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:19:00.072164', '2026-06-17 23:19:00.072164'),
-	(419, 21, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-17 23:19:00.15316', '2026-06-17 23:19:00.15316'),
 	(403, 2, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:58.850833', '2026-06-17 23:18:58.850833'),
 	(447, 11, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.108938', '2026-06-19 18:07:17.108938'),
 	(420, 2, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 1, '2026-06-19 09:06:05.346038', '2026-06-19 09:06:05.346038'),
@@ -2285,7 +3060,6 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(458, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.211643', '2026-06-19 22:36:01.211643'),
 	(459, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.294385', '2026-06-19 22:36:01.294385'),
 	(460, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.377296', '2026-06-19 22:36:01.377296'),
-	(457, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:01.128576', '2026-06-19 22:36:01.128576'),
 	(463, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.629333', '2026-06-19 22:36:01.629333'),
 	(464, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.713112', '2026-06-19 22:36:01.713112'),
 	(465, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.795835', '2026-06-19 22:36:01.795835'),
@@ -2296,36 +3070,7 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(470, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:02.21721', '2026-06-19 22:36:02.21721'),
 	(471, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-19 22:36:02.300228', '2026-06-19 22:36:02.300228'),
 	(455, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:00.960549', '2026-06-19 22:36:00.960549'),
-	(440, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.516987', '2026-06-19 18:07:16.516987'),
-	(405, 4, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.012965', '2026-06-17 23:18:59.012965'),
-	(386, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:51.962476', '2026-06-17 04:36:51.962476'),
-	(369, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.209618', '2026-06-16 15:38:12.209618'),
-	(352, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:40.727443', '2026-06-16 15:37:40.727443'),
-	(318, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:15.408405', '2026-06-16 15:35:15.408405'),
-	(301, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:45.457355', '2026-06-16 15:33:45.457355'),
-	(284, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:32.054712', '2026-06-16 15:31:32.054712'),
-	(267, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:14.486714', '2026-06-16 15:31:14.486714'),
-	(250, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:37.591934', '2026-06-16 15:30:37.591934'),
-	(233, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:20.508394', '2026-06-16 15:30:20.508394'),
-	(211, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:15.343624', '2026-06-13 12:57:15.343624'),
-	(189, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:15.769615', '2026-06-13 07:56:15.769615'),
-	(167, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 06:04:03.832426', '2026-06-13 06:04:03.832426'),
-	(145, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:59.910441', '2026-06-13 05:40:59.910441'),
-	(123, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:36.886955', '2026-06-13 05:40:36.886955'),
-	(105, 4, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.33298', '2026-06-05 20:20:49.33298'),
-	(88, 4, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:50.802138', '2026-06-05 11:08:50.802138'),
-	(53, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:43.915597', '2026-06-01 21:23:57.044901'),
-	(52, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:38.298878', '2026-06-01 21:23:57.044901'),
-	(51, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-01 00:12:20.653809', '2026-06-01 21:23:57.044901'),
-	(50, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-01 00:12:11.93225', '2026-06-01 21:23:57.044901'),
-	(31, 4, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.166954', '2026-06-01 21:23:57.044901'),
-	(26, 4, 'titip_pesan', '💌 Titip pesan baru dari Firdam', 'Okay', '/user.php?id=4#titip-pesan', 1, '2026-05-24 14:05:36.654331', '2026-06-01 21:23:57.044901'),
-	(24, 4, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 1, '2026-05-24 13:54:15.697312', '2026-06-01 21:23:57.044901'),
-	(23, 4, 'titip_pesan', '💌 Titip pesan baru dari Firdam', 'Sudah dikirim sisa dp modul 1 ya dan', '/user.php?id=4#titip-pesan', 1, '2026-05-24 13:44:59.686455', '2026-06-01 21:23:57.044901'),
-	(20, 4, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-05-22 10:34:05.881776', '2026-06-01 21:23:57.044901'),
-	(2, 4, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:56.72524', '2026-06-01 21:23:57.044901'),
 	(473, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.233564', '2026-06-20 10:01:29.233564'),
-	(474, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.313459', '2026-06-20 10:01:29.313459'),
 	(475, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.392629', '2026-06-20 10:01:29.392629'),
 	(476, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.471919', '2026-06-20 10:01:29.471919'),
 	(477, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.551602', '2026-06-20 10:01:29.551602'),
@@ -2340,8 +3085,73 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(486, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.277641', '2026-06-20 10:01:30.277641'),
 	(487, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.357866', '2026-06-20 10:01:30.357866'),
 	(488, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-20 10:01:30.441176', '2026-06-20 10:01:30.441176'),
-	(472, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.153176', '2026-06-20 10:01:29.153176');
+	(105, 4, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.33298', '2026-06-05 20:20:49.33298'),
+	(53, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:43.915597', '2026-06-01 21:23:57.044901'),
+	(52, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:38.298878', '2026-06-01 21:23:57.044901'),
+	(472, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.153176', '2026-06-20 10:01:29.153176'),
+	(1, 2, 'badge', '🏅 Badge baru: Badminton Warrior', 'Hadir 10x badminton', '/profile.php', 1, '2026-06-22 09:04:11.159891', '2026-06-22 09:04:11.159891'),
+	(423, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.314995', '2026-06-19 13:42:23.314995'),
+	(84, 4, 'dm', '💬 Pesan baru dari Firdam', 'Ada di menu input absensi', '/dm.php?u=2', 1, '2026-06-02 20:21:10.06544', '2026-06-02 20:21:10.06544'),
+	(335, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.395104', '2026-06-16 15:37:18.395104'),
+	(457, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:01.128576', '2026-06-19 22:36:01.128576'),
+	(440, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.516987', '2026-06-19 18:07:16.516987'),
+	(405, 4, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.012965', '2026-06-17 23:18:59.012965'),
+	(386, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:51.962476', '2026-06-17 04:36:51.962476'),
+	(369, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.209618', '2026-06-16 15:38:12.209618'),
+	(352, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:40.727443', '2026-06-16 15:37:40.727443'),
+	(318, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:15.408405', '2026-06-16 15:35:15.408405'),
+	(301, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:45.457355', '2026-06-16 15:33:45.457355'),
+	(284, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:32.054712', '2026-06-16 15:31:32.054712'),
+	(474, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.313459', '2026-06-20 10:01:29.313459'),
+	(2, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-1', 1, '2026-06-22 10:18:23.63973', '2026-06-22 10:18:23.63973'),
+	(3, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-30', 1, '2026-06-22 10:18:24.511181', '2026-06-22 10:18:24.511181'),
+	(4, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-29', 1, '2026-06-22 10:18:25.107545', '2026-06-22 10:18:25.107545'),
+	(5, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 10:56:58.189358', '2026-06-22 10:56:58.189358'),
+	(6, 4, 'dm', '💬 Pesan baru dari Firdam', 'Iio', '/dm.php?u=2', 1, '2026-06-22 10:57:22.699635', '2026-06-22 10:57:22.699635'),
+	(7, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 10:58:15.690317', '2026-06-22 10:58:15.690317'),
+	(8, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 12:32:39.591188', '2026-06-22 12:32:39.591188'),
+	(9, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 12:33:11.833721', '2026-06-22 12:33:11.833721'),
+	(10, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 13:16:07.327493', '2026-06-22 13:16:07.327493'),
+	(267, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:14.486714', '2026-06-16 15:31:14.486714'),
+	(250, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:37.591934', '2026-06-16 15:30:37.591934'),
+	(233, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:20.508394', '2026-06-16 15:30:20.508394'),
+	(211, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:15.343624', '2026-06-13 12:57:15.343624'),
+	(189, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:15.769615', '2026-06-13 07:56:15.769615'),
+	(167, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 06:04:03.832426', '2026-06-13 06:04:03.832426'),
+	(145, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:59.910441', '2026-06-13 05:40:59.910441'),
+	(123, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:36.886955', '2026-06-13 05:40:36.886955'),
+	(88, 4, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:50.802138', '2026-06-05 11:08:50.802138'),
+	(51, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-01 00:12:20.653809', '2026-06-01 21:23:57.044901'),
+	(50, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-01 00:12:11.93225', '2026-06-01 21:23:57.044901'),
+	(31, 4, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.166954', '2026-06-01 21:23:57.044901'),
+	(26, 4, 'titip_pesan', '💌 Titip pesan baru dari Firdam', 'Okay', '/user.php?id=4#titip-pesan', 1, '2026-05-24 14:05:36.654331', '2026-06-01 21:23:57.044901'),
+	(24, 4, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 1, '2026-05-24 13:54:15.697312', '2026-06-01 21:23:57.044901'),
+	(23, 4, 'titip_pesan', '💌 Titip pesan baru dari Firdam', 'Sudah dikirim sisa dp modul 1 ya dan', '/user.php?id=4#titip-pesan', 1, '2026-05-24 13:44:59.686455', '2026-06-01 21:23:57.044901'),
+	(20, 4, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-05-22 10:34:05.881776', '2026-06-01 21:23:57.044901'),
+	(2, 4, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:56.72524', '2026-06-01 21:23:57.044901'),
+	(11, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 13:16:39.388416', '2026-06-22 13:16:39.388416'),
+	(12, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:03:43.015526', '2026-06-22 14:03:43.015526'),
+	(13, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:04:06.073415', '2026-06-22 14:04:06.073415'),
+	(14, 2, 'comment', '💬 Dani mengomentari post Anda', '😂😂', '/index.php#feed', 1, '2026-06-22 14:07:29.621556', '2026-06-22 14:07:29.621556'),
+	(15, 2, 'comment', '💬 Dani mengomentari post Anda', 'Entitas tidak dikenal', '/index.php#feed', 1, '2026-06-22 14:07:59.055972', '2026-06-22 14:07:59.055972'),
+	(16, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:23:12.440235', '2026-06-22 14:23:12.440235'),
+	(17, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:23:56.099666', '2026-06-22 14:23:56.099666');
 /*!40000 ALTER TABLE "notifications" ENABLE KEYS */;
+
+-- Dumping structure for table public.pengeluaran_kegiatan
+CREATE TABLE IF NOT EXISTS "pengeluaran_kegiatan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''pengeluaran_kegiatan_id_seq''::regclass)',
+	"jadwal_id" INTEGER NULL DEFAULT NULL,
+	"tanggal" DATE NOT NULL DEFAULT 'CURRENT_DATE',
+	"kategori" VARCHAR(60) NULL DEFAULT NULL,
+	"judul" VARCHAR(200) NOT NULL,
+	"jumlah" BIGINT NOT NULL DEFAULT '0',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"bukti_url" TEXT NULL DEFAULT NULL,
+	"created_by" INTEGER NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"dana_dari" VARCHAR(150) NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.pengeluaran_kegiatan: -1 rows
 /*!40000 ALTER TABLE "pengeluaran_kegiatan" DISABLE KEYS */;
@@ -2361,7 +3171,22 @@ INSERT INTO "pengeluaran_kegiatan" ("id", "jadwal_id", "tanggal", "kategori", "j
 	(14, 11, '2026-06-20', 'Sewa Lapangan', 'Sewa Lapang 2 Jam', 70000, NULL, NULL, 2, '2026-06-20 11:28:41.698985', 'Aziz');
 /*!40000 ALTER TABLE "pengeluaran_kegiatan" ENABLE KEYS */;
 
--- Dumping data for table public.posts: 13 rows
+-- Dumping structure for table public.posts
+CREATE TABLE IF NOT EXISTS "posts" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''posts_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"caption" TEXT NULL DEFAULT NULL,
+	"foto_url" TEXT NULL DEFAULT NULL,
+	"jenis" VARCHAR(30) NULL DEFAULT 'post',
+	"expired_at" TIMESTAMP NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"repost_of" INTEGER NULL DEFAULT NULL,
+	"media_type" VARCHAR(10) NOT NULL DEFAULT 'image',
+	"images_json" TEXT NULL DEFAULT NULL,
+	INDEX "posts_repost_idx" ("repost_of")
+);
+
+-- Dumping data for table public.posts: 21 rows
 /*!40000 ALTER TABLE "posts" DISABLE KEYS */;
 INSERT INTO "posts" ("id", "user_id", "caption", "foto_url", "jenis", "expired_at", "created_at", "repost_of", "media_type", "images_json") VALUES
 	(5, 2, 'tes', '/uploads/post_d2dce7a2a089a7d9.jpg', 'story', '2026-05-23 03:53:03.596651', '2026-05-22 03:53:03.596651', NULL, 'image', NULL),
@@ -2384,14 +3209,34 @@ INSERT INTO "posts" ("id", "user_id", "caption", "foto_url", "jenis", "expired_a
 	(39, 2, 'Bocil juga renang.. kamu kapan?', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1781588317-b2dcc7ad_FBFBWozSj.jpg', 'post', NULL, '2026-06-16 12:38:39.06817', NULL, 'image', NULL),
 	(40, 16, 'Menyambut Tahun baru Islam dengan HM 14.48km', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/ADITH_SETIAWAN-story-1781598950-fe41217b_YtyiS_4lW.jpg', 'story', '2026-06-17 15:35:52.132178', '2026-06-16 15:35:52.132178', NULL, 'image', NULL),
 	(41, 7, 'jujur tadi asa kurangg waktu mainnyaa soalnya pada jago2 semua ditambah skill saya udh menurun 😭🙏 hrs rajin2 latihan lg euy 😁', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Faiz-post-1781623696-720893fd_YuPag8ykE.jpg', 'post', NULL, '2026-06-16 22:28:17.841221', NULL, 'image', NULL),
-	(42, 2, 'Pertama kali coba..', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1781738370-eb12b535_0PjiEw4Jx.jpg', 'post', NULL, '2026-06-18 06:19:31.985291', NULL, 'image', NULL);
+	(42, 2, 'Pertama kali coba..', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1781738370-eb12b535_0PjiEw4Jx.jpg', 'post', NULL, '2026-06-18 06:19:31.985291', NULL, 'image', NULL),
+	(3, 2, 'Siapa nih??', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782106177-0-3a6e50_e-ycywKmq.jpg', 'post', NULL, '2026-06-22 12:29:41.857599', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782106177-0-3a6e50_e-ycywKmq.jpg","https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782106179-1-bebe72_tRiFaKUl5.jpg"]'),
+	(4, 2, 'Bengong', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-story-1782106236-0-b40309_to6qL4jdC.jpg', 'story', '2026-06-23 12:30:39.164507', '2026-06-22 12:30:39.164507', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-story-1782106236-0-b40309_to6qL4jdC.jpg"]');
 /*!40000 ALTER TABLE "posts" ENABLE KEYS */;
 
--- Dumping data for table public.post_bookmarks: -1 rows
+-- Dumping structure for table public.post_bookmarks
+CREATE TABLE IF NOT EXISTS "post_bookmarks" (
+	"user_id" INTEGER NOT NULL,
+	"post_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "post_bookmarks_unique_up" ("user_id", "post_id")
+);
+
+-- Dumping data for table public.post_bookmarks: 1 rows
 /*!40000 ALTER TABLE "post_bookmarks" DISABLE KEYS */;
 INSERT INTO "post_bookmarks" ("user_id", "post_id", "created_at") VALUES
 	(4, 33, '2026-06-02 11:30:17.935851');
 /*!40000 ALTER TABLE "post_bookmarks" ENABLE KEYS */;
+
+-- Dumping structure for table public.post_comments
+CREATE TABLE IF NOT EXISTS "post_comments" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''post_comments_id_seq''::regclass)',
+	"post_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"isi" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.post_comments: -1 rows
 /*!40000 ALTER TABLE "post_comments" DISABLE KEYS */;
@@ -2404,14 +3249,33 @@ INSERT INTO "post_comments" ("id", "post_id", "user_id", "isi", "created_at", "u
 	(14, 41, 2, 'Iya euy saya juga asa kurang, insya allah 3 jam  next kita', '2026-06-17 18:28:56.157528', '2026-06-19 12:16:49.343009'),
 	(16, 42, 7, 'mauu jugaa dongg', '2026-06-19 18:28:41.371683', NULL),
 	(17, 41, 7, 'siapp Bangg', '2026-06-19 18:29:06.448505', NULL),
-	(18, 42, 21, 'Mantap', '2026-06-20 12:50:33.605876', NULL);
+	(18, 42, 21, 'Mantap', '2026-06-20 12:50:33.605876', NULL),
+	(1, 42, 2, 'Uhuys', '2026-06-22 10:55:20.545247', '2026-06-22 10:55:36.609378'),
+	(2, 4, 2, 'Hmmm', '2026-06-22 12:31:17.177175', NULL),
+	(3, 4, 4, '😂😂', '2026-06-22 14:07:29.62042', NULL),
+	(4, 3, 4, 'Entitas tidak dikenal', '2026-06-22 14:07:59.054859', NULL);
 /*!40000 ALTER TABLE "post_comments" ENABLE KEYS */;
+
+-- Dumping structure for table public.post_hashtags
+CREATE TABLE IF NOT EXISTS "post_hashtags" (
+	"post_id" INTEGER NOT NULL,
+	"tag" VARCHAR(64) NOT NULL,
+	INDEX "post_hashtags_tag_idx" ("tag")
+);
 
 -- Dumping data for table public.post_hashtags: -1 rows
 /*!40000 ALTER TABLE "post_hashtags" DISABLE KEYS */;
 /*!40000 ALTER TABLE "post_hashtags" ENABLE KEYS */;
 
--- Dumping data for table public.post_likes: -1 rows
+-- Dumping structure for table public.post_likes
+CREATE TABLE IF NOT EXISTS "post_likes" (
+	"post_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "post_likes_unique_pu" ("post_id", "user_id")
+);
+
+-- Dumping data for table public.post_likes: 14 rows
 /*!40000 ALTER TABLE "post_likes" DISABLE KEYS */;
 INSERT INTO "post_likes" ("post_id", "user_id", "created_at") VALUES
 	(23, 2, '2026-05-24 17:51:28.688676'),
@@ -2427,18 +3291,48 @@ INSERT INTO "post_likes" ("post_id", "user_id", "created_at") VALUES
 	(42, 2, '2026-06-18 06:20:02.496229'),
 	(42, 11, '2026-06-18 06:47:03.959835'),
 	(42, 16, '2026-06-19 21:59:03.954528'),
-	(42, 21, '2026-06-20 12:50:55.920739');
+	(42, 21, '2026-06-20 12:50:55.920739'),
+	(3, 2, '2026-06-22 12:32:18.227589');
 /*!40000 ALTER TABLE "post_likes" ENABLE KEYS */;
+
+-- Dumping structure for table public.post_mentions
+CREATE TABLE IF NOT EXISTS "post_mentions" (
+	"post_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL
+);
 
 -- Dumping data for table public.post_mentions: -1 rows
 /*!40000 ALTER TABLE "post_mentions" DISABLE KEYS */;
 /*!40000 ALTER TABLE "post_mentions" ENABLE KEYS */;
 
+-- Dumping structure for table public.post_reports
+CREATE TABLE IF NOT EXISTS "post_reports" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''post_reports_id_seq''::regclass)',
+	"post_id" INTEGER NOT NULL,
+	"reporter_id" INTEGER NOT NULL,
+	"alasan" VARCHAR(60) NOT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'open',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"resolved_at" TIMESTAMP NULL DEFAULT NULL,
+	INDEX "post_reports_post_idx" ("post_id"),
+	INDEX "post_reports_status_idx" ("status")
+);
+
 -- Dumping data for table public.post_reports: -1 rows
 /*!40000 ALTER TABLE "post_reports" DISABLE KEYS */;
 /*!40000 ALTER TABLE "post_reports" ENABLE KEYS */;
 
--- Dumping data for table public.post_views: -1 rows
+-- Dumping structure for table public.post_views
+CREATE TABLE IF NOT EXISTS "post_views" (
+	"post_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"viewed_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "post_views_unique_pu" ("post_id", "user_id"),
+	INDEX "post_views_post_idx" ("post_id", "viewed_at")
+);
+
+-- Dumping data for table public.post_views: 12 rows
 /*!40000 ALTER TABLE "post_views" DISABLE KEYS */;
 INSERT INTO "post_views" ("post_id", "user_id", "viewed_at") VALUES
 	(25, 3, '2026-05-24 16:44:50.2914'),
@@ -2452,8 +3346,17 @@ INSERT INTO "post_views" ("post_id", "user_id", "viewed_at") VALUES
 	(29, 14, '2026-05-26 11:40:33.125094'),
 	(29, 2, '2026-05-26 15:41:05.828374'),
 	(35, 2, '2026-06-04 11:03:30.23482'),
-	(35, 16, '2026-06-05 05:36:36.635217');
+	(35, 16, '2026-06-05 05:36:36.635217'),
+	(4, 2, '2026-06-22 12:30:43.134742'),
+	(4, 4, '2026-06-22 14:06:59.540823');
 /*!40000 ALTER TABLE "post_views" ENABLE KEYS */;
+
+-- Dumping structure for table public.push_seen
+CREATE TABLE IF NOT EXISTS "push_seen" (
+	"user_id" INTEGER NOT NULL,
+	"last_notif_id" INTEGER NOT NULL DEFAULT '0',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.push_seen: -1 rows
 /*!40000 ALTER TABLE "push_seen" DISABLE KEYS */;
@@ -2470,11 +3373,34 @@ INSERT INTO "push_seen" ("user_id", "last_notif_id", "updated_at") VALUES
 	(4, 474, '2026-06-20 16:33:13.978235');
 /*!40000 ALTER TABLE "push_seen" ENABLE KEYS */;
 
+-- Dumping structure for table public.qr_tokens
+CREATE TABLE IF NOT EXISTS "qr_tokens" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''qr_tokens_id_seq''::regclass)',
+	"jadwal_id" INTEGER NOT NULL,
+	"token" TEXT NOT NULL,
+	"valid_from" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"valid_until" TIMESTAMP NOT NULL DEFAULT '(now() + ''03:00:00''::interval)',
+	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
+	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
+	"radius_meter" INTEGER NULL DEFAULT '150',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.qr_tokens: -1 rows
 /*!40000 ALTER TABLE "qr_tokens" DISABLE KEYS */;
 INSERT INTO "qr_tokens" ("id", "jadwal_id", "token", "valid_from", "valid_until", "lat", "lng", "radius_meter", "created_at") VALUES
 	(5, 6, 'cd37adec1cf2590065502b658ecf499d', '2026-05-23 05:49:08.58788', '2026-05-24 05:49:08.58788', -6.930473, 107.731552, 150, '2026-05-23 05:49:08.58788');
 /*!40000 ALTER TABLE "qr_tokens" ENABLE KEYS */;
+
+-- Dumping structure for table public.quran_bookmarks
+CREATE TABLE IF NOT EXISTS "quran_bookmarks" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''quran_bookmarks_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"surah" INTEGER NOT NULL,
+	"ayat" INTEGER NOT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.quran_bookmarks: -1 rows
 /*!40000 ALTER TABLE "quran_bookmarks" DISABLE KEYS */;
@@ -2484,23 +3410,64 @@ INSERT INTO "quran_bookmarks" ("id", "user_id", "surah", "ayat", "catatan", "cre
 	(10, 2, 24, 55, '', '2026-06-13 08:29:00.282281');
 /*!40000 ALTER TABLE "quran_bookmarks" ENABLE KEYS */;
 
+-- Dumping structure for table public.quran_last_read
+CREATE TABLE IF NOT EXISTS "quran_last_read" (
+	"user_id" INTEGER NOT NULL,
+	"surah" INTEGER NOT NULL,
+	"ayat" INTEGER NOT NULL,
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.quran_last_read: -1 rows
 /*!40000 ALTER TABLE "quran_last_read" DISABLE KEYS */;
 INSERT INTO "quran_last_read" ("user_id", "surah", "ayat", "updated_at") VALUES
 	(2, 7, 179, '2026-06-13 08:08:51.572806');
 /*!40000 ALTER TABLE "quran_last_read" ENABLE KEYS */;
 
--- Dumping data for table public.rate_limit: 1 rows
+-- Dumping structure for table public.rate_limit
+CREATE TABLE IF NOT EXISTS "rate_limit" (
+	"bucket" VARCHAR(120) NOT NULL,
+	"ts" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
+-- Dumping data for table public.rate_limit: 5 rows
 /*!40000 ALTER TABLE "rate_limit" DISABLE KEYS */;
 INSERT INTO "rate_limit" ("bucket", "ts") VALUES
-	('login:114.122.83.62', '2026-06-21 17:30:37.659359');
+	('dm:2', '2026-06-22 14:23:12.438251'),
+	('login:114.122.83.62', '2026-06-22 14:23:43.502884'),
+	('dm:2', '2026-06-22 14:23:56.097457');
 /*!40000 ALTER TABLE "rate_limit" ENABLE KEYS */;
+
+-- Dumping structure for table public.referal_codes
+CREATE TABLE IF NOT EXISTS "referal_codes" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''referal_codes_id_seq''::regclass)',
+	"kode" VARCHAR(32) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"aktif" SMALLINT NOT NULL DEFAULT '1',
+	"max_pakai" INTEGER NULL DEFAULT NULL,
+	"jumlah_terpakai" INTEGER NOT NULL DEFAULT '0',
+	"dibuat_oleh" INTEGER NULL DEFAULT NULL,
+	"expired_at" DATE NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.referal_codes: -1 rows
 /*!40000 ALTER TABLE "referal_codes" DISABLE KEYS */;
 INSERT INTO "referal_codes" ("id", "kode", "deskripsi", "aktif", "max_pakai", "jumlah_terpakai", "dibuat_oleh", "expired_at", "created_at") VALUES
 	(1, 'HAPFAM2211', '', 1, 5, 0, 2, '2026-05-24', '2026-05-23 23:46:16.842891');
 /*!40000 ALTER TABLE "referal_codes" ENABLE KEYS */;
+
+-- Dumping structure for table public.run_points
+CREATE TABLE IF NOT EXISTS "run_points" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''run_points_id_seq''::regclass)',
+	"session_id" BIGINT NOT NULL,
+	"lat" DOUBLE PRECISION NOT NULL,
+	"lng" DOUBLE PRECISION NOT NULL,
+	"ts" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"speed_mps" DOUBLE PRECISION NULL DEFAULT NULL,
+	"accuracy_m" DOUBLE PRECISION NULL DEFAULT NULL,
+	INDEX "run_points_sess_idx" ("session_id", "ts")
+);
 
 -- Dumping data for table public.run_points: 148 rows
 /*!40000 ALTER TABLE "run_points" DISABLE KEYS */;
@@ -2655,7 +3622,21 @@ INSERT INTO "run_points" ("id", "session_id", "lat", "lng", "ts", "speed_mps", "
 	(1765, 20, -6.9278433, 107.7290633, '2026-06-16 08:34:45.011593', 5.9898223876953, 1.7999999523163);
 /*!40000 ALTER TABLE "run_points" ENABLE KEYS */;
 
--- Dumping data for table public.run_routes: -1 rows
+-- Dumping structure for table public.run_routes
+CREATE TABLE IF NOT EXISTS "run_routes" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''run_routes_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"nama" TEXT NOT NULL DEFAULT 'Rute',
+	"jarak_m" DOUBLE PRECISION NOT NULL DEFAULT '0',
+	"elevasi_pref" TEXT NOT NULL DEFAULT 'apa-saja',
+	"surface_pref" TEXT NOT NULL DEFAULT 'apa-saja',
+	"geojson" JSONB NOT NULL,
+	"is_public" BOOLEAN NOT NULL DEFAULT 'false',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "run_routes_user_idx" ("user_id", "created_at")
+);
+
+-- Dumping data for table public.run_routes: 3 rows
 /*!40000 ALTER TABLE "run_routes" DISABLE KEYS */;
 INSERT INTO "run_routes" ("id", "user_id", "nama", "jarak_m", "elevasi_pref", "surface_pref", "geojson", "is_public", "created_at") VALUES
 	(6, 2, 'Jogging Home', 5206.6, 'apa-saja', 'apa-saja', '{"type": "Feature", "coords": [[-6.92537, 107.729319], [-6.925498, 107.729545], [-6.925647, 107.729775], [-6.925856, 107.730045], [-6.926144, 107.729799], [-6.926242, 107.729726], [-6.926347, 107.729655], [-6.926411, 107.729602], [-6.926551, 107.729527], [-6.926636, 107.729486], [-6.926728, 107.729445], [-6.927215, 107.7293], [-6.927083, 107.72891], [-6.926832, 107.728378], [-6.926761, 107.72813], [-6.926659, 107.727875], [-6.926597, 107.727743], [-6.926497, 107.727573], [-6.926426, 107.727455], [-6.926387, 107.727384], [-6.926338, 107.727423], [-6.926236, 107.72752], [-6.926161, 107.727583], [-6.926082, 107.727651], [-6.925959, 107.727753], [-6.925909, 107.727807], [-6.92586, 107.727851], [-6.925776, 107.727959], [-6.925747, 107.728011], [-6.925731, 107.72807], [-6.925705, 107.728136], [-6.925657, 107.728195], [-6.9256, 107.728231], [-6.925216, 107.727499], [-6.925199, 107.727466], [-6.925131, 107.727458], [-6.925032, 107.727435], [-6.924939, 107.727419], [-6.924837, 107.727504], [-6.924714, 107.727578], [-6.924602, 107.727658], [-6.924433, 107.72774], [-6.92421, 107.727815], [-6.924087, 107.727859], [-6.923766, 107.727974], [-6.92369, 107.728009], [-6.923332, 107.728128], [-6.923153, 107.728189], [-6.923128, 107.728044], [-6.923111, 107.727988], [-6.923087, 107.727954], [-6.923051, 107.727929], [-6.922874, 107.727912], [-6.922771, 107.727939], [-6.922732, 107.727955], [-6.922661, 107.727985], [-6.922622, 107.727991], [-6.922601, 107.727987], [-6.92258, 107.727971], [-6.922452, 107.727736], [-6.922465, 107.72776], [-6.92258, 107.727971], [-6.922601, 107.727987], [-6.922622, 107.727991], [-6.922661, 107.727985], [-6.922732, 107.727955], [-6.922771, 107.727939], [-6.922874, 107.727912], [-6.923051, 107.727929], [-6.923087, 107.727954], [-6.923111, 107.727988], [-6.923128, 107.728044], [-6.923153, 107.728189], [-6.922387, 107.728464], [-6.92226, 107.728497], [-6.922161, 107.728533], [-6.922084, 107.728575], [-6.922022, 107.728614], [-6.92179, 107.728776], [-6.921735, 107.728828], [-6.921574, 107.728998], [-6.921462, 107.729161], [-6.921136, 107.729531], [-6.92106, 107.729641], [-6.921028, 107.729694], [-6.921001, 107.729734], [-6.920826, 107.729488], [-6.920557, 107.729094], [-6.920467, 107.72899], [-6.920557, 107.729094], [-6.920687, 107.729285], [-6.920826, 107.729488], [-6.921001, 107.729734], [-6.920974, 107.729778], [-6.920658, 107.729938], [-6.920293, 107.730184], [-6.920057, 107.730313], [-6.919982, 107.730357], [-6.919835, 107.730437], [-6.919565, 107.730628], [-6.919392, 107.730763], [-6.919345, 107.730802], [-6.919274, 107.730867], [-6.9191, 107.731104], [-6.918943, 107.731386], [-6.918883, 107.731526], [-6.919037, 107.731706], [-6.919162, 107.731888], [-6.919279, 107.732074], [-6.9193, 107.732111], [-6.919326, 107.732123], [-6.919357, 107.732117], [-6.91938, 107.732105], [-6.919985, 107.731714], [-6.920029, 107.731686], [-6.92018, 107.731602], [-6.920223, 107.731577], [-6.92027, 107.731551], [-6.920459, 107.731432], [-6.920468, 107.73143], [-6.920476, 107.731432], [-6.920493, 107.73145], [-6.920497, 107.731452], [-6.920501, 107.731451], [-6.920569, 107.731394], [-6.920639, 107.731346], [-6.920686, 107.731308], [-6.920773, 107.731208], [-6.920886, 107.731065], [-6.920899, 107.731055], [-6.920923, 107.731044], [-6.920947, 107.731041], [-6.920964, 107.731049], [-6.92098, 107.731069], [-6.920964, 107.731049], [-6.920947, 107.731041], [-6.920923, 107.731044], [-6.920899, 107.731055], [-6.920886, 107.731065], [-6.920886, 107.731065], [-6.920773, 107.731208], [-6.920686, 107.731308], [-6.920639, 107.731346], [-6.920569, 107.731394], [-6.920501, 107.731451], [-6.920497, 107.731452], [-6.920493, 107.73145], [-6.920476, 107.731432], [-6.920468, 107.73143], [-6.920459, 107.731432], [-6.92027, 107.731551], [-6.920223, 107.731577], [-6.92018, 107.731602], [-6.920029, 107.731686], [-6.919985, 107.731714], [-6.91938, 107.732105], [-6.919357, 107.732117], [-6.919326, 107.732123], [-6.9193, 107.732111], [-6.919279, 107.732074], [-6.919162, 107.731888], [-6.919037, 107.731706], [-6.918883, 107.731526], [-6.918794, 107.731704], [-6.918703, 107.731839], [-6.91864, 107.731938], [-6.918538, 107.732177], [-6.918482, 107.732285], [-6.918434, 107.732394], [-6.918387, 107.732509], [-6.918341, 107.73263], [-6.91829, 107.73275], [-6.918271, 107.732793], [-6.918202, 107.732943], [-6.918068, 107.733378], [-6.91786, 107.733796], [-6.917625, 107.734184], [-6.917472, 107.734392], [-6.917206, 107.734684], [-6.916943, 107.734956], [-6.916881, 107.735036], [-6.916199, 107.735967], [-6.916334, 107.736211], [-6.9164, 107.736348], [-6.916543, 107.736721], [-6.916916, 107.736603], [-6.917093, 107.736551], [-6.917546, 107.736415], [-6.917538, 107.736376], [-6.918112, 107.736192], [-6.918691, 107.736019], [-6.918755, 107.735845], [-6.918848, 107.735784], [-6.918979, 107.73571], [-6.919113, 107.735637], [-6.919211, 107.735583], [-6.919281, 107.735533], [-6.919356, 107.735478], [-6.919505, 107.735346], [-6.919611, 107.735261], [-6.919793, 107.735109], [-6.919827, 107.735076], [-6.919854, 107.735059], [-6.919905, 107.734616], [-6.919914, 107.734589], [-6.919934, 107.734553], [-6.919969, 107.734514], [-6.920345, 107.734247], [-6.92036, 107.734238], [-6.920527, 107.734121], [-6.920653, 107.73405], [-6.921112, 107.733764], [-6.92138, 107.733613], [-6.921612, 107.73346], [-6.921961, 107.733265], [-6.922041, 107.73322], [-6.922136, 107.733157], [-6.922214, 107.733086], [-6.922318, 107.732969], [-6.922127, 107.7325], [-6.922074, 107.732372], [-6.921944, 107.732061], [-6.921935, 107.73204], [-6.921944, 107.732018], [-6.922067, 107.73193], [-6.921944, 107.732018], [-6.921935, 107.73204], [-6.921944, 107.732061], [-6.922127, 107.7325], [-6.922318, 107.732969], [-6.922756, 107.732509], [-6.922827, 107.732434], [-6.922891, 107.732371], [-6.922945, 107.732331], [-6.923362, 107.732109], [-6.923558, 107.732471], [-6.923589, 107.732504], [-6.923625, 107.732507], [-6.92366, 107.732491], [-6.923886, 107.73236], [-6.923971, 107.732311], [-6.92366, 107.732491], [-6.923625, 107.732507], [-6.923589, 107.732504], [-6.923558, 107.732471], [-6.923362, 107.732109], [-6.923405, 107.732083], [-6.923633, 107.731946], [-6.923877, 107.7318], [-6.923985, 107.731732], [-6.924221, 107.731606], [-6.924566, 107.731406], [-6.924622, 107.731373], [-6.924716, 107.731299], [-6.92501, 107.731114], [-6.925205, 107.731009], [-6.925217, 107.731003], [-6.925394, 107.730908], [-6.925455, 107.730878], [-6.925516, 107.730836], [-6.925548, 107.730814], [-6.925661, 107.730705], [-6.925737, 107.730631], [-6.925886, 107.730515], [-6.925846, 107.730436], [-6.925787, 107.730295], [-6.925766, 107.730208], [-6.92578, 107.730148], [-6.92581, 107.730106], [-6.925856, 107.730045], [-6.925647, 107.729775], [-6.925498, 107.729545], [-6.92537, 107.729319], [-6.92537, 107.729319]]}', 'false', '2026-06-18 09:34:37.99928'),
@@ -2663,7 +3644,21 @@ INSERT INTO "run_routes" ("id", "user_id", "nama", "jarak_m", "elevasi_pref", "s
 	(5, 2, 'Cikutra', 5401.3, 'apa-saja', 'apa-saja', '{"type": "Feature", "coords": [[-6.895728, 107.640355], [-6.895459, 107.640412], [-6.895145, 107.640483], [-6.894643, 107.640615], [-6.894196, 107.640735], [-6.894183, 107.640739], [-6.894076, 107.640772], [-6.894039, 107.640661], [-6.894027, 107.64062], [-6.894012, 107.640574], [-6.893984, 107.640477], [-6.893957, 107.640386], [-6.893939, 107.640326], [-6.893918, 107.640249], [-6.893889, 107.640139], [-6.89386, 107.640031], [-6.893809, 107.639827], [-6.893788, 107.639746], [-6.893664, 107.6389], [-6.893663, 107.638605], [-6.893658, 107.638354], [-6.893662, 107.638193], [-6.893672, 107.637926], [-6.893655, 107.637436], [-6.893627, 107.63696], [-6.893619, 107.636805], [-6.89362, 107.636635], [-6.893613, 107.636578], [-6.893605, 107.636522], [-6.893582, 107.636435], [-6.893545, 107.636295], [-6.893508, 107.636211], [-6.893463, 107.63612], [-6.89337, 107.63602], [-6.893319, 107.635983], [-6.893216, 107.635927], [-6.893096, 107.635852], [-6.893031, 107.635792], [-6.892947, 107.635692], [-6.892892, 107.635627], [-6.892833, 107.635546], [-6.892747, 107.63544], [-6.892664, 107.635326], [-6.89253, 107.635071], [-6.892515, 107.635005], [-6.892481, 107.634796], [-6.892444, 107.63457], [-6.89244, 107.634534], [-6.892427, 107.634448], [-6.892402, 107.634279], [-6.892362, 107.633949], [-6.892285, 107.633253], [-6.892234, 107.632605], [-6.892223, 107.632267], [-6.89222, 107.631876], [-6.892247, 107.631164], [-6.892237, 107.631006], [-6.892213, 107.630902], [-6.892192, 107.630837], [-6.892164, 107.63075], [-6.892156, 107.630748], [-6.891839, 107.630664], [-6.891568, 107.630578], [-6.89126, 107.630456], [-6.891111, 107.6304], [-6.891015, 107.630373], [-6.890838, 107.630329], [-6.890653, 107.630298], [-6.890359, 107.630272], [-6.890291, 107.630259], [-6.890081, 107.630291], [-6.889961, 107.630294], [-6.889864, 107.630285], [-6.889788, 107.630263], [-6.889545, 107.630164], [-6.889463, 107.63014], [-6.889228, 107.630086], [-6.889022, 107.630061], [-6.888841, 107.630048], [-6.888796, 107.630046], [-6.888484, 107.630061], [-6.888319, 107.630022], [-6.888245, 107.63], [-6.888219, 107.629992], [-6.888121, 107.629973], [-6.888017, 107.629973], [-6.887904, 107.629982], [-6.887721, 107.630021], [-6.88767, 107.630032], [-6.887528, 107.630065], [-6.887359, 107.630092], [-6.887197, 107.630112], [-6.887035, 107.630146], [-6.886803, 107.630196], [-6.886719, 107.630209], [-6.886637, 107.630222], [-6.886554, 107.630238], [-6.886344, 107.630278], [-6.886125, 107.630315], [-6.885964, 107.630345], [-6.885912, 107.630354], [-6.885357, 107.630478], [-6.885335, 107.630495], [-6.885319, 107.630513], [-6.885304, 107.630551], [-6.885301, 107.630578], [-6.885304, 107.630605], [-6.885497, 107.631045], [-6.885511, 107.631089], [-6.885563, 107.631206], [-6.885672, 107.631357], [-6.88539, 107.631468], [-6.88496, 107.631578], [-6.884933, 107.631585], [-6.884911, 107.631601], [-6.884887, 107.631626], [-6.884869, 107.631648], [-6.884842, 107.631692], [-6.884704, 107.631911], [-6.884632, 107.632011], [-6.884469, 107.63221], [-6.884343, 107.632342], [-6.884153, 107.632547], [-6.883978, 107.632708], [-6.883884, 107.632795], [-6.883853, 107.632816], [-6.883818, 107.632831], [-6.883755, 107.632858], [-6.883673, 107.632872], [-6.883575, 107.632885], [-6.883463, 107.632899], [-6.883427, 107.632898], [-6.883305, 107.632893], [-6.883201, 107.632886], [-6.883115, 107.63288], [-6.88304, 107.632879], [-6.883045, 107.633006], [-6.883035, 107.633041], [-6.88327, 107.633324], [-6.883337, 107.633388], [-6.883425, 107.633484], [-6.883494, 107.63356], [-6.883539, 107.633607], [-6.883589, 107.633671], [-6.883539, 107.633607], [-6.883494, 107.63356], [-6.883476, 107.63354], [-6.883425, 107.633484], [-6.883337, 107.633388], [-6.88327, 107.633324], [-6.883035, 107.633041], [-6.883045, 107.633006], [-6.88304, 107.632879], [-6.883115, 107.63288], [-6.883201, 107.632886], [-6.883305, 107.632893], [-6.883427, 107.632898], [-6.883463, 107.632899], [-6.883575, 107.632885], [-6.883673, 107.632872], [-6.883755, 107.632858], [-6.883818, 107.632831], [-6.883853, 107.632816], [-6.883884, 107.632795], [-6.883978, 107.632708], [-6.884153, 107.632547], [-6.884343, 107.632342], [-6.884469, 107.63221], [-6.884632, 107.632011], [-6.884704, 107.631911], [-6.884842, 107.631692], [-6.884869, 107.631648], [-6.884887, 107.631626], [-6.884911, 107.631601], [-6.884933, 107.631585], [-6.88496, 107.631578], [-6.88539, 107.631468], [-6.885672, 107.631357], [-6.885563, 107.631206], [-6.885511, 107.631089], [-6.885497, 107.631045], [-6.885304, 107.630605], [-6.885301, 107.630578], [-6.885304, 107.630551], [-6.885319, 107.630513], [-6.885335, 107.630495], [-6.885357, 107.630478], [-6.885912, 107.630354], [-6.885964, 107.630345], [-6.886125, 107.630315], [-6.886344, 107.630278], [-6.886554, 107.630238], [-6.886637, 107.630222], [-6.886719, 107.630209], [-6.886803, 107.630196], [-6.887035, 107.630146], [-6.887197, 107.630112], [-6.887359, 107.630092], [-6.887528, 107.630065], [-6.88767, 107.630032], [-6.887721, 107.630021], [-6.887904, 107.629982], [-6.888017, 107.629973], [-6.888121, 107.629973], [-6.888219, 107.629992], [-6.888245, 107.63], [-6.888319, 107.630022], [-6.888484, 107.630061], [-6.888796, 107.630046], [-6.888841, 107.630048], [-6.889022, 107.630061], [-6.889228, 107.630086], [-6.889463, 107.63014], [-6.889545, 107.630164], [-6.889788, 107.630263], [-6.889864, 107.630285], [-6.889961, 107.630294], [-6.890081, 107.630291], [-6.890291, 107.630259], [-6.890359, 107.630272], [-6.890653, 107.630298], [-6.890838, 107.630329], [-6.891015, 107.630373], [-6.891111, 107.6304], [-6.89126, 107.630456], [-6.891568, 107.630578], [-6.891839, 107.630664], [-6.892156, 107.630748], [-6.892164, 107.63075], [-6.892192, 107.630837], [-6.892213, 107.630902], [-6.892237, 107.631006], [-6.892247, 107.631164], [-6.89222, 107.631876], [-6.892223, 107.632267], [-6.892234, 107.632605], [-6.892285, 107.633253], [-6.892362, 107.633949], [-6.892402, 107.634279], [-6.892427, 107.634448], [-6.89244, 107.634534], [-6.892444, 107.63457], [-6.892481, 107.634796], [-6.892515, 107.635005], [-6.89253, 107.635071], [-6.892664, 107.635326], [-6.892747, 107.63544], [-6.892833, 107.635546], [-6.892892, 107.635627], [-6.892947, 107.635692], [-6.893031, 107.635792], [-6.893096, 107.635852], [-6.893216, 107.635927], [-6.893319, 107.635983], [-6.89337, 107.63602], [-6.893463, 107.63612], [-6.893508, 107.636211], [-6.893545, 107.636295], [-6.893582, 107.636435], [-6.893605, 107.636522], [-6.893613, 107.636578], [-6.89362, 107.636635], [-6.893619, 107.636805], [-6.893627, 107.63696], [-6.893655, 107.637436], [-6.893672, 107.637926], [-6.893662, 107.638193], [-6.893658, 107.638354], [-6.893663, 107.638605], [-6.893664, 107.6389], [-6.893788, 107.639746], [-6.893809, 107.639827], [-6.89386, 107.640031], [-6.893889, 107.640139], [-6.893918, 107.640249], [-6.893939, 107.640326], [-6.893957, 107.640386], [-6.893984, 107.640477], [-6.894012, 107.640574], [-6.894027, 107.64062], [-6.894039, 107.640661], [-6.894076, 107.640772], [-6.894183, 107.640739], [-6.894196, 107.640735], [-6.894643, 107.640615], [-6.895145, 107.640483], [-6.895459, 107.640412], [-6.895728, 107.640355]]}', 'false', '2026-06-17 12:55:15.909021');
 /*!40000 ALTER TABLE "run_routes" ENABLE KEYS */;
 
--- Dumping data for table public.run_sessions: 4 rows
+-- Dumping structure for table public.run_sessions
+CREATE TABLE IF NOT EXISTS "run_sessions" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''run_sessions_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"mulai_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"selesai_at" TIMESTAMP NULL DEFAULT NULL,
+	"jarak_m" DOUBLE PRECISION NOT NULL DEFAULT '0',
+	"durasi_dtk" INTEGER NOT NULL DEFAULT '0',
+	"kalori" INTEGER NOT NULL DEFAULT '0',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'aktif',
+	INDEX "run_sessions_user_idx" ("user_id", "mulai_at")
+);
+
+-- Dumping data for table public.run_sessions: 3 rows
 /*!40000 ALTER TABLE "run_sessions" DISABLE KEYS */;
 INSERT INTO "run_sessions" ("id", "user_id", "mulai_at", "selesai_at", "jarak_m", "durasi_dtk", "kalori", "catatan", "status") VALUES
 	(18, 3, '2026-06-11 06:05:28.031646', '2026-06-11 06:43:37.208928', 0, 2287, 0, NULL, 'selesai'),
@@ -2671,7 +3666,16 @@ INSERT INTO "run_sessions" ("id", "user_id", "mulai_at", "selesai_at", "jarak_m"
 	(19, 3, '2026-06-12 06:29:15.242368', '2026-06-12 07:06:44.382308', 182.81882175394, 2245, 12, NULL, 'selesai');
 /*!40000 ALTER TABLE "run_sessions" ENABLE KEYS */;
 
--- Dumping data for table public.sapa_log: -1 rows
+-- Dumping structure for table public.sapa_log
+CREATE TABLE IF NOT EXISTS "sapa_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''sapa_log_id_seq''::regclass)',
+	"sender_user_id" INTEGER NOT NULL,
+	"target_user_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "sapa_log_unique_st" ("sender_user_id", "target_user_id")
+);
+
+-- Dumping data for table public.sapa_log: 3 rows
 /*!40000 ALTER TABLE "sapa_log" DISABLE KEYS */;
 INSERT INTO "sapa_log" ("id", "sender_user_id", "target_user_id", "created_at") VALUES
 	(1, 2, 14, '2026-05-23 07:54:08.724011'),
@@ -2679,15 +3683,49 @@ INSERT INTO "sapa_log" ("id", "sender_user_id", "target_user_id", "created_at") 
 	(3, 4, 21, '2026-06-05 07:30:59.34643');
 /*!40000 ALTER TABLE "sapa_log" ENABLE KEYS */;
 
+-- Dumping structure for table public.sedekah_log
+CREATE TABLE IF NOT EXISTS "sedekah_log" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''sedekah_log_id_seq''::regclass)',
+	"program_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"jumlah" BIGINT NOT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.sedekah_log: -1 rows
 /*!40000 ALTER TABLE "sedekah_log" DISABLE KEYS */;
 /*!40000 ALTER TABLE "sedekah_log" ENABLE KEYS */;
+
+-- Dumping structure for table public.sedekah_program
+CREATE TABLE IF NOT EXISTS "sedekah_program" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''sedekah_program_id_seq''::regclass)',
+	"judul" VARCHAR(180) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"jenis" VARCHAR(20) NOT NULL DEFAULT 'sedekah',
+	"target_amount" BIGINT NOT NULL DEFAULT '0',
+	"terkumpul" BIGINT NOT NULL DEFAULT '0',
+	"deadline" DATE NULL DEFAULT NULL,
+	"active" SMALLINT NOT NULL DEFAULT '1',
+	"dibuat_oleh" INTEGER NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.sedekah_program: -1 rows
 /*!40000 ALTER TABLE "sedekah_program" DISABLE KEYS */;
 /*!40000 ALTER TABLE "sedekah_program" ENABLE KEYS */;
 
--- Dumping data for table public.site_visitors: 187 rows
+-- Dumping structure for table public.site_visitors
+CREATE TABLE IF NOT EXISTS "site_visitors" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''site_visitors_id_seq''::regclass)',
+	"ip" VARCHAR(64) NULL DEFAULT NULL,
+	"user_agent" TEXT NULL DEFAULT NULL,
+	"path" VARCHAR(255) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "idx_site_visitors_created_at" ("created_at")
+);
+
+-- Dumping data for table public.site_visitors: 213 rows
 /*!40000 ALTER TABLE "site_visitors" DISABLE KEYS */;
 INSERT INTO "site_visitors" ("id", "ip", "user_agent", "path", "created_at") VALUES
 	(1, '::1', 'Go-http-client/1.1', '/', '2026-05-30 09:51:58.763107'),
@@ -2899,10 +3937,32 @@ INSERT INTO "site_visitors" ("id", "ip", "user_agent", "path", "created_at") VAL
 	(271, '100.64.0.2', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:11:00.578063'),
 	(272, '100.64.0.5', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:12:39.316753'),
 	(273, '100.64.0.12', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:25:43.426581'),
-	(274, '114.122.83.62', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:30:50.089003');
+	(274, '114.122.83.62', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:30:50.089003'),
+	(1, '114.122.83.62', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-22 09:03:47.01089'),
+	(2, '2404:c0:2a10::2f6c:b489', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 09:28:37.07121'),
+	(3, '103.55.33.183', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 09:31:38.782142'),
+	(4, '114.122.75.203', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/', '2026-06-22 09:57:10.484775'),
+	(5, '103.55.33.181', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-22 10:03:34.506189'),
+	(6, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 10:12:11.675137'),
+	(7, '114.10.146.131', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 12:16:00.884733'),
+	(8, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 12:24:20.35707'),
+	(9, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 13:24:41.316917'),
+	(10, '114.122.75.203', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-22 14:00:33.104359'),
+	(11, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 14:26:20.868962');
 /*!40000 ALTER TABLE "site_visitors" ENABLE KEYS */;
 
--- Dumping data for table public.sport_qa_saved: -1 rows
+-- Dumping structure for table public.sport_qa_saved
+CREATE TABLE IF NOT EXISTS "sport_qa_saved" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''sport_qa_saved_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"jenis" VARCHAR(50) NOT NULL DEFAULT '',
+	"pertanyaan" TEXT NOT NULL,
+	"jawaban" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "sport_qa_user_idx" ("user_id", "created_at")
+);
+
+-- Dumping data for table public.sport_qa_saved: 1 rows
 /*!40000 ALTER TABLE "sport_qa_saved" DISABLE KEYS */;
 INSERT INTO "sport_qa_saved" ("id", "user_id", "jenis", "pertanyaan", "jawaban", "created_at") VALUES
 	(1, 2, 'Tenis Meja (PingPong)', 'Kenapa saya ketika main pingpong suka mantul ke atas bolanya?', 'Halo! Sebagai AI Problem Solver Olahraga Anda, saya memahami frustrasi ketika bola pingpong sering memantul terlalu tinggi atau ke atas. Ini adalah masalah umum yang sering dihadapi pemain, dan biasanya disebabkan oleh beberapa faktor teknis.
@@ -2910,21 +3970,33 @@ INSERT INTO "sport_qa_saved" ("id", "user_id", "jenis", "pertanyaan", "jawaban",
 Berikut adalah identifikasi masalah dan solusinya:
 
 1.  **Identifikasi Masalah Utama:**
+
     *   **Sudut Bet Terlalu Terbuka:** Saat kontak dengan bola, bet Anda mungkin terlalu "terbuka" (menghadap ke atas), sehingga memberikan dorongan ke atas pada bola.
+
     *   **Arah Ayunan Terlalu Vertikal:** Ayunan Anda mungkin terlalu banyak bergerak ke atas daripada kombinasi maju-ke-atas. Ini membuat bola melambung tinggi alih-alih melaju ke depan di atas net.
+
     *   **Titik Kontak Bola:** Anda mungkin memukul bagian terlalu bawah bola, yang secara alami akan mengangkatnya.
+
     *   **Kurangnya Topspin:** Topspin adalah putaran bola yang membantu "menekan" bola ke bawah setelah melewati net. Jika kurang topspin, bola cenderung melambung.
 
 2.  **Solusi Teknik & Latihan Bertahap:**
+
     *   **Koreksi Sudut Bet:** Saat memukul, coba "tutup" sedikit bet Anda (menghadap sedikit ke depan atau sedikit ke bawah), terutama untuk pukulan *forehand* atau *backhand drive*. Bayangkan Anda ingin mendorong bola ke depan, bukan mengangkatnya.
+
     *   **Latih Ayunan Maju-Ke-Atas:** Fokus pada ayunan yang "menyapu" bola dari belakang-bawah ke depan-atas. Ini akan membantu menciptakan topspin dan mengarahkan bola ke depan dengan lintasan yang lebih rendah.
+
     *   **Pukul Bagian Tengah-Atas Bola:** Usahakan kontak dengan bola di bagian tengah atau sedikit di atas tengah, bukan terlalu di bawah. Ini akan memberikan kontrol lebih baik pada arah dan putaran bola.
+
     *   **Latihan Bertahap:**
+
         *   **Latihan Tanpa Bola (Shadow Swing):** Latih gerakan ayunan yang benar di depan cermin, fokus pada sudut bet dan jalur ayunan.
+
         *   **Latihan dengan Pantulan:** Pantulkan bola di bet Anda, lalu coba dorong sedikit ke depan dengan sudut bet yang lebih tertutup.
+
         *   **Latihan dengan Partner/Robot:** Mulai dengan pukulan pelan, fokus pada teknik yang benar, lalu tingkatkan kecepatan dan kekuatan secara bertahap.
 
 3.  **Kapan Harus Konsultasi Dokter:**
+
     Jika masalah ini disertai dengan nyeri sendi, otot, atau ketidaknyamanan yang persisten saat atau setelah bermain, terutama di bahu, siku, atau pergelangan tangan, segera konsultasikan dengan dokter atau fisioterapis. Ini penting untuk memastikan tidak ada cedera yang mendasari atau postur yang salah yang dapat memperburuk kondisi.
 
 Dengan fokus pada koreksi sudut bet, arah ayunan, dan titik kontak, Anda akan melihat peningkatan signifikan pada kontrol bola Anda.
@@ -2932,15 +4004,60 @@ Dengan fokus pada koreksi sudut bet, arah ayunan, dan titik kontak, Anda akan me
 Selamat berolahraga dengan aman!', '2026-06-19 11:07:20.885018');
 /*!40000 ALTER TABLE "sport_qa_saved" ENABLE KEYS */;
 
+-- Dumping structure for table public.strava_activities
+CREATE TABLE IF NOT EXISTS "strava_activities" (
+	"id" BIGINT NOT NULL,
+	"user_id" INTEGER NULL DEFAULT NULL,
+	"name" TEXT NULL DEFAULT NULL,
+	"type" VARCHAR(40) NULL DEFAULT NULL,
+	"distance" NUMERIC(10,2) NULL DEFAULT NULL,
+	"moving_time" INTEGER NULL DEFAULT NULL,
+	"start_date" TIMESTAMP NULL DEFAULT NULL,
+	"raw" JSONB NULL DEFAULT NULL,
+	"imported_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.strava_activities: -1 rows
 /*!40000 ALTER TABLE "strava_activities" DISABLE KEYS */;
 /*!40000 ALTER TABLE "strava_activities" ENABLE KEYS */;
+
+-- Dumping structure for table public.survival_qa_saved
+CREATE TABLE IF NOT EXISTS "survival_qa_saved" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''survival_qa_saved_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"pertanyaan" TEXT NOT NULL,
+	"jawaban" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.survival_qa_saved: -1 rows
 /*!40000 ALTER TABLE "survival_qa_saved" DISABLE KEYS */;
 /*!40000 ALTER TABLE "survival_qa_saved" ENABLE KEYS */;
 
--- Dumping data for table public.tempat: 27 rows
+-- Dumping structure for table public.tempat
+CREATE TABLE IF NOT EXISTS "tempat" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''tempat_id_seq''::regclass)',
+	"nama" VARCHAR(180) NOT NULL,
+	"alamat" TEXT NULL DEFAULT NULL,
+	"harga_lapang" NUMERIC(12,2) NULL DEFAULT '0',
+	"harga_per_jam" NUMERIC(12,2) NULL DEFAULT '0',
+	"status_booking" VARCHAR(30) NULL DEFAULT 'tersedia',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
+	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
+	"pic_user_id" INTEGER NULL DEFAULT NULL,
+	"kontak_wa" VARCHAR(30) NULL DEFAULT NULL,
+	"jenis_id" INTEGER NULL DEFAULT NULL,
+	"harga_tiket" NUMERIC(12,2) NULL DEFAULT '0',
+	"harga_parkir" NUMERIC(12,2) NULL DEFAULT '0',
+	"tampil_booking" BOOLEAN NOT NULL DEFAULT 'false',
+	"gpx_path" TEXT NULL DEFAULT NULL,
+	"parkir_info" TEXT NULL DEFAULT NULL,
+	"run_route_id" BIGINT NULL DEFAULT NULL
+);
+
+-- Dumping data for table public.tempat: -1 rows
 /*!40000 ALTER TABLE "tempat" DISABLE KEYS */;
 INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "status_booking", "catatan", "created_at", "lat", "lng", "pic_user_id", "kontak_wa", "jenis_id", "harga_tiket", "harga_parkir", "tampil_booking", "gpx_path", "parkir_info", "run_route_id") VALUES
 	(28, 'Flamboyan Pingpong', 'Jalan Flamboyan Utara No.6, Panyileukan, Bandung', 0.00, 0.00, 'tersedia', '', '2026-06-10 21:40:59.070103', -6.9383769, 107.715939, 2, NULL, 12, 0.00, 0.00, 'false', NULL, NULL, NULL),
@@ -2950,7 +4067,6 @@ INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "
 	(30, 'Kolam Renang BSD', 'Jln. Cipamokolan, Soetta', 0.00, 0.00, 'tersedia', '', '2026-06-19 13:40:02.438632', 6.9394837, 107.6796168, 2, NULL, 5, 30000.00, 0.00, 'false', NULL, NULL, NULL),
 	(25, 'Kina - Sanggara/Lembah Tengkorak/Pangparang', 'Bukit Kina, Cibodas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:26:01.59066', -6.8370644, 107.7277736, 2, NULL, 8, 0.00, 5000.00, 'false', NULL, NULL, NULL),
 	(9, 'Kolam Renang Panorama', 'Ujung Berung', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:36.928503', -6.898462, 107.7103046, 2, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(26, 'BHD - Warung Yos - Batu Lonceng', 'Dago Atas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:27:23.261738', NULL, NULL, 2, NULL, 8, 0.00, 5000.00, 'false', '/uploads/gpx/gpx_20260620_123804_fc25f9.gpx', 'BHD', NULL),
 	(10, 'Kolam Renang UPI', 'UPI Setiabudi', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:05:55.865701', -6.8594515, 107.5855598, 4, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
 	(12, 'Kolam Renang Yadika', 'Tanjungsari', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:56.515685', -6.8974891, 107.8055482, 3, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
 	(7, 'Singgasana Sport', 'Cibaduyut', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:56:55.240167', -6.9612456, 107.5942425, 2, NULL, 12, 0.00, 0.00, 'false', NULL, NULL, NULL),
@@ -2971,8 +4087,20 @@ INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "
 	(3, 'GOR Purbaya', 'Jln. Ciguruwik', 25000.00, 25000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 3, NULL, 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
 	(15, 'GOR Sindangreret', 'Sindangreret, Cibiru', 40000.00, 40000.00, 'tersedia', '', '2026-05-22 16:09:31.917895', NULL, NULL, 2, '089628188960', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
 	(14, 'GOR Gaza', 'Cinunuk, Cibiru', 20000.00, 20000.00, 'tersedia', '', '2026-05-22 16:08:56.792858', -6.930473, 107.7315517, 3, '082215309779', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(20, 'GOR Gaza', 'Ciguruwik, Cibiru', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:16.040455', -6.930473, 107.731552, 2, '082215309779', 11, 0.00, 0.00, 'true', NULL, NULL, NULL);
+	(20, 'GOR Gaza', 'Ciguruwik, Cibiru', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:16.040455', -6.930473, 107.731552, 2, '082215309779', 11, 0.00, 0.00, 'true', NULL, NULL, NULL),
+	(26, 'BHD - Warung Yos - Batu Lonceng', 'Dago Atas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:27:23.261738', NULL, NULL, 2, NULL, 8, 0.00, 5000.00, 'false', '/uploads/gpx/gpx_20260622_093941_1bc715.gpx', 'BHD', NULL);
 /*!40000 ALTER TABLE "tempat" ENABLE KEYS */;
+
+-- Dumping structure for table public.tim
+CREATE TABLE IF NOT EXISTS "tim" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''tim_id_seq''::regclass)',
+	"nama" VARCHAR(120) NOT NULL,
+	"jenis" VARCHAR(60) NOT NULL,
+	"koordinator_id" INTEGER NULL DEFAULT NULL,
+	"kuota" INTEGER NOT NULL DEFAULT '2',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.tim: -1 rows
 /*!40000 ALTER TABLE "tim" DISABLE KEYS */;
@@ -2980,15 +4108,51 @@ INSERT INTO "tim" ("id", "nama", "jenis", "koordinator_id", "kuota", "catatan", 
 	(8, 'Balford', 'Badminton', 2, 4, NULL, '2026-06-17 08:25:37.730568');
 /*!40000 ALTER TABLE "tim" ENABLE KEYS */;
 
+-- Dumping structure for table public.tim_external
+CREATE TABLE IF NOT EXISTS "tim_external" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''tim_external_id_seq''::regclass)',
+	"tim_id" INTEGER NOT NULL,
+	"nama" VARCHAR(120) NOT NULL,
+	"nomor_wa" VARCHAR(30) NULL DEFAULT NULL,
+	"catatan" VARCHAR(200) NULL DEFAULT NULL,
+	"invited_by" INTEGER NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "idx_tim_external_tim" ("tim_id")
+);
+
 -- Dumping data for table public.tim_external: -1 rows
 /*!40000 ALTER TABLE "tim_external" DISABLE KEYS */;
 /*!40000 ALTER TABLE "tim_external" ENABLE KEYS */;
+
+-- Dumping structure for table public.tim_member
+CREATE TABLE IF NOT EXISTS "tim_member" (
+	"tim_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"peran" VARCHAR(20) NOT NULL DEFAULT 'pemain',
+	UNIQUE INDEX "tim_member_unique_tu" ("tim_id", "user_id")
+);
 
 -- Dumping data for table public.tim_member: -1 rows
 /*!40000 ALTER TABLE "tim_member" DISABLE KEYS */;
 /*!40000 ALTER TABLE "tim_member" ENABLE KEYS */;
 
--- Dumping data for table public.toko: 6 rows
+-- Dumping structure for table public.toko
+CREATE TABLE IF NOT EXISTS "toko" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''toko_id_seq''::regclass)',
+	"nama" VARCHAR(160) NOT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"alamat" TEXT NULL DEFAULT NULL,
+	"no_wa" VARCHAR(25) NULL DEFAULT NULL,
+	"lat" NUMERIC(10,6) NULL DEFAULT NULL,
+	"lng" NUMERIC(10,6) NULL DEFAULT NULL,
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"hari_buka" VARCHAR(20) NULL DEFAULT '0,1,2,3,4,5,6',
+	"jam_buka" TIME NULL DEFAULT NULL,
+	"jam_tutup" TIME NULL DEFAULT NULL
+);
+
+-- Dumping data for table public.toko: -1 rows
 /*!40000 ALTER TABLE "toko" DISABLE KEYS */;
 INSERT INTO "toko" ("id", "nama", "deskripsi", "alamat", "no_wa", "lat", "lng", "aktif", "created_at", "hari_buka", "jam_buka", "jam_tutup") VALUES
 	(1, 'Ayam Penyet Esti', 'Murah...', 'Kampus UIN SGD 1', NULL, NULL, NULL, 'true', '2026-06-01 10:47:53.154299', '0,1,2,3,4,5,6', NULL, NULL),
@@ -2999,6 +4163,25 @@ INSERT INTO "toko" ("id", "nama", "deskripsi", "alamat", "no_wa", "lat", "lng", 
 	(6, 'Bakso Neng Hajjah', 'Muantap..', 'Kampus UIN SGD 1', NULL, NULL, NULL, 'true', '2026-06-01 13:08:52.835693', '0,1,2,3,4,5,6', NULL, NULL),
 	(7, 'WiCiPi', 'Temoat Makan murah dan Berkualitas', 'Panyileukan', NULL, NULL, NULL, 'true', '2026-06-02 12:45:31.535585', '0,1,2,3,4,5,6', '08:00:00', '17:00:00');
 /*!40000 ALTER TABLE "toko" ENABLE KEYS */;
+
+-- Dumping structure for table public.upload_harian
+CREATE TABLE IF NOT EXISTS "upload_harian" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''upload_harian_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"jenis" VARCHAR(60) NOT NULL,
+	"durasi_menit" INTEGER NULL DEFAULT NULL,
+	"jarak_km" NUMERIC(6,2) NULL DEFAULT NULL,
+	"kalori" INTEGER NULL DEFAULT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"file_path" VARCHAR(255) NULL DEFAULT NULL,
+	"gdrive_url" VARCHAR(255) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	"pace" VARCHAR(20) NULL DEFAULT NULL,
+	"pace_detik" INTEGER NULL DEFAULT NULL,
+	"heart_rate" INTEGER NULL DEFAULT NULL,
+	"rpe" SMALLINT NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.upload_harian: -1 rows
 /*!40000 ALTER TABLE "upload_harian" DISABLE KEYS */;
@@ -3027,19 +4210,41 @@ Nah jika kita seorang muslim, sudah semestinya tujuan hidup kita itu berlandaska
 	(23, 3, '2026-06-12', 'Jogging', 30, 5.00, 0, 'rute tritan poin', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Rifat-2026-06-12-Jogging_k67Rb8kUB.jpg', '6a2b4e5d5c7cd75eb81e2394', '2026-06-12 07:10:06.234402', '6''30"/km', NULL, NULL, NULL),
 	(24, 2, '2026-06-13', 'Jogging', 17, 2.54, 206, 'Asa te karaos', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-13-Jogging_ZlJs3FaF5.jpg', '6a2c9faa5c7cd75eb85ea342', '2026-06-13 07:09:14.779208', '7''00"/km', NULL, NULL, NULL),
 	(29, 4, '2026-06-19', 'Jogging', 40, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_MgPtPZn0K.png', '6a34de7d5c7cd75eb8c2d570', '2026-06-19 13:15:25.934335', '7''30"/km', NULL, NULL, NULL),
-	(30, 4, '2026-06-19', 'Jogging', 20, 3.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_c3bWyOgWS.png', '6a34e8ae5c7cd75eb8fc77d1', '2026-06-19 13:58:55.210927', '7''30"/km', NULL, NULL, NULL);
+	(30, 4, '2026-06-19', 'Jogging', 20, 3.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_c3bWyOgWS.png', '6a34e8ae5c7cd75eb8fc77d1', '2026-06-19 13:58:55.210927', '7''30"/km', NULL, NULL, NULL),
+	(1, 4, '2026-06-22', 'Jogging', 39, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-22-Jogging_2WXkUbgUU.png', '6a389f905c7cd75eb814cd4e', '2026-06-22 09:36:02.102856', '8''00"/km', NULL, NULL, NULL),
+	(2, 2, '2026-06-22', 'Jogging', 13, 2.40, 192, 'Sareng mang dani', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-22-Jogging_8scPYs21B.jpg', '6a38a1a25c7cd75eb81fcf79', '2026-06-22 09:44:52.08862', '5''39"/km', NULL, NULL, NULL),
+	(3, 2, '2026-06-22', 'Jogging', 21, 2.80, 253, 'Sareng mang dani', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-22-Jogging_xQ2vX4NUR.jpg', '6a38a1fe5c7cd75eb8218acb', '2026-06-22 09:46:24.391081', '7''30"/km', NULL, NULL, NULL);
 /*!40000 ALTER TABLE "upload_harian" ENABLE KEYS */;
 
--- Dumping data for table public.upload_harian_comments: -1 rows
+-- Dumping structure for table public.upload_harian_comments
+CREATE TABLE IF NOT EXISTS "upload_harian_comments" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''upload_harian_comments_id_seq''::regclass)',
+	"upload_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"isi" TEXT NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "uhc_upload_idx" ("upload_id")
+);
+
+-- Dumping data for table public.upload_harian_comments: 4 rows
 /*!40000 ALTER TABLE "upload_harian_comments" DISABLE KEYS */;
 INSERT INTO "upload_harian_comments" ("id", "upload_id", "user_id", "isi", "created_at") VALUES
 	(1, 22, 2, 'Muantap', '2026-06-11 18:05:21.780775'),
 	(2, 24, 2, 'oke', '2026-06-13 21:01:59.054374'),
 	(3, 25, 2, 'Huh', '2026-06-15 18:13:30.047455'),
-	(4, 26, 2, '👍✨', '2026-06-17 04:50:59.988574');
+	(4, 26, 2, '👍✨', '2026-06-17 04:50:59.988574'),
+	(1, 3, 2, 'Tes ah', '2026-06-22 11:03:53.784987');
 /*!40000 ALTER TABLE "upload_harian_comments" ENABLE KEYS */;
 
--- Dumping data for table public.upload_harian_likes: -1 rows
+-- Dumping structure for table public.upload_harian_likes
+CREATE TABLE IF NOT EXISTS "upload_harian_likes" (
+	"upload_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("upload_id", "user_id")
+);
+
+-- Dumping data for table public.upload_harian_likes: 13 rows
 /*!40000 ALTER TABLE "upload_harian_likes" DISABLE KEYS */;
 INSERT INTO "upload_harian_likes" ("upload_id", "user_id", "created_at") VALUES
 	(22, 2, '2026-06-11 18:04:52.486608'),
@@ -3049,21 +4254,63 @@ INSERT INTO "upload_harian_likes" ("upload_id", "user_id", "created_at") VALUES
 	(23, 2, '2026-06-13 07:11:14.285927'),
 	(24, 2, '2026-06-13 21:06:54.460959'),
 	(26, 2, '2026-06-17 04:50:09.021211'),
-	(27, 2, '2026-06-18 17:41:31.577677');
+	(27, 2, '2026-06-18 17:41:31.577677'),
+	(2, 2, '2026-06-22 10:18:21.814825'),
+	(1, 2, '2026-06-22 10:18:23.638528'),
+	(30, 2, '2026-06-22 10:18:24.510146'),
+	(29, 2, '2026-06-22 10:18:25.106797'),
+	(3, 2, '2026-06-22 11:03:42.405514');
 /*!40000 ALTER TABLE "upload_harian_likes" ENABLE KEYS */;
+
+-- Dumping structure for table public.users
+CREATE TABLE IF NOT EXISTS "users" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''users_id_seq''::regclass)',
+	"nama" VARCHAR(120) NOT NULL,
+	"email" VARCHAR(180) NOT NULL,
+	"password_hash" VARCHAR(255) NOT NULL,
+	"role" UNKNOWN NOT NULL DEFAULT 'member',
+	"google_id" VARCHAR(120) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	"foto_url" VARCHAR(255) NULL DEFAULT NULL,
+	"foto_file_id" VARCHAR(120) NULL DEFAULT NULL,
+	"last_seen" TIMESTAMP NULL DEFAULT NULL,
+	"jenis_kelamin" VARCHAR(10) NULL DEFAULT NULL,
+	"xp" INTEGER NOT NULL DEFAULT '0',
+	"level" INTEGER NOT NULL DEFAULT '1',
+	"streak_minggu" INTEGER NOT NULL DEFAULT '0',
+	"bio" TEXT NULL DEFAULT NULL,
+	"dark_mode" SMALLINT NOT NULL DEFAULT '0',
+	"wa" VARCHAR(30) NULL DEFAULT NULL,
+	"pic_admin_id" INTEGER NULL DEFAULT NULL,
+	"nomor_wa" VARCHAR(25) NULL DEFAULT NULL,
+	"berat_kg" NUMERIC(5,2) NULL DEFAULT NULL,
+	"tinggi_cm" NUMERIC(5,2) NULL DEFAULT NULL,
+	"tanggal_lahir" DATE NULL DEFAULT NULL,
+	"riwayat_penyakit" TEXT NULL DEFAULT NULL,
+	"kode_referal" VARCHAR(32) NULL DEFAULT NULL,
+	"referred_by_code" VARCHAR(32) NULL DEFAULT NULL,
+	"username" VARCHAR(40) NULL DEFAULT NULL,
+	"tema_warna" VARCHAR(20) NULL DEFAULT 'sky',
+	"privasi_disetujui_at" TIMESTAMP NULL DEFAULT NULL,
+	"privasi_versi_disetujui" VARCHAR(20) NULL DEFAULT NULL,
+	"pic_user_id" INTEGER NULL DEFAULT NULL,
+	"koordinator_id" INTEGER NULL DEFAULT NULL,
+	"aktif" SMALLINT NOT NULL DEFAULT '1',
+	"nonaktif_catatan" TEXT NULL DEFAULT NULL,
+	"strava_account" VARCHAR(120) NULL DEFAULT NULL,
+	"nickname" VARCHAR(80) NULL DEFAULT NULL
+);
 
 -- Dumping data for table public.users: 17 rows
 /*!40000 ALTER TABLE "users" DISABLE KEYS */;
 INSERT INTO "users" ("id", "nama", "email", "password_hash", "role", "google_id", "created_at", "foto_url", "foto_file_id", "last_seen", "jenis_kelamin", "xp", "level", "streak_minggu", "bio", "dark_mode", "wa", "pic_admin_id", "nomor_wa", "berat_kg", "tinggi_cm", "tanggal_lahir", "riwayat_penyakit", "kode_referal", "referred_by_code", "username", "tema_warna", "privasi_disetujui_at", "privasi_versi_disetujui", "pic_user_id", "koordinator_id", "aktif", "nonaktif_catatan", "strava_account", "nickname") VALUES
 	(14, 'Farhan Akmali', 'farhan@sport.local', '$2y$10$FJBGlMFxj85cDACsi1G/BuyLCGZQQO1vq6j.RpXLGudAFayjKm76W', 'admin', NULL, '2026-05-19 07:56:28.908609', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Farhan_Akmali-avatar-1779482008_KIqU_LMhc.jpg', NULL, '2026-06-19 12:27:01.750083', 'L', 150, 1, 3, NULL, 0, '087854972839', 2, '087854972839', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(11, 'Rian', 'rian@sport.local', '$2y$10$1i9pPdfgTNmnk.znbNW/O.RqmElHfaA0l/cnj3Lc98BUZto6kIVhS', 'member', NULL, '2026-05-19 07:55:42.436033', NULL, NULL, '2026-06-19 06:25:28.803065', 'L', 0, 1, 0, NULL, 0, '085691767966', NULL, '085691767966', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(16, 'ADITH SETIAWAN', 'adithsetiawan62@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$NzkuSWtnU0J1UjFTcGV4Ug$3kOfbqXaVv19r43a8KDxVPg33BbgV/AkqZ7Gt6oY9u8', 'member', NULL, '2026-05-22 09:25:05.526258', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/ADITH_SETIAWAN-avatar-1780045646_vUCRcMgf9.jpg', NULL, '2026-06-20 08:08:02.210356', 'L', 0, 1, 3, 'Enjoy the Proses', 0, '082118785024', NULL, '082118785024', 66.00, 160.00, '2006-03-12', 'Sehat sentosa', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(7, 'Faiz', 'faiz@sport.local', '$2y$10$IU70GA7RajjzT1JaITB/0Oo3D7xTWI1OfuNs.U61Zh0q7GCGPs.o2', 'member', NULL, '2026-05-19 07:54:49.054143', NULL, NULL, '2026-06-20 15:00:22.762388', 'L', 0, 1, 1, NULL, 0, '085814120846', NULL, '085814120846', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(21, 'Fawaid', 'fawaid@sport.local', '$2y$10$WRVlvftweEcCk1Qv4W4r0.swunLUfBb3NdRc0Y.kwlx7i6MkNUH7q', 'member', NULL, '2026-06-03 22:39:30.317356', NULL, NULL, '2026-06-20 12:51:32.61479', 'L', 0, 1, 0, NULL, 0, '085177010166', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(13, 'Aziz', 'aziz@sport.local', '$2y$10$hscxGGWZSkrUVdUi9GPuleeSCgD6HfEktM/SU4TzVT85LVuRsfcwO', 'member', NULL, '2026-05-19 07:56:12.862165', NULL, NULL, '2026-06-08 14:21:47.13626', 'L', 0, 1, 0, NULL, 0, '081223450704', 2, '081223450704', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(8, 'Dedi', 'dedi@sport.local', '$2y$10$nuKddv8x8SvUhueELQwWv.F/F8YzaEOLA52T438WdLXMeLhZlee8q', 'member', NULL, '2026-05-19 07:55:00.498075', NULL, NULL, '2026-05-23 17:11:43.514279', 'L', 150, 1, 0, NULL, 0, '082184381823', NULL, '082184381823', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 0, 'Dinonaktifkan oleh admin', NULL, NULL),
 	(15, 'Hanif', 'hanif@sport.local', '$2y$10$GnFSPJJ7.9X2BsmQ2ScrTOza76tmuZt1y8RFiX9QptHnZEFr4u8WK', 'member', NULL, '2026-05-19 07:56:40.664031', NULL, NULL, '2026-05-30 09:59:44.711128', 'L', 0, 1, 0, NULL, 0, '082117100115', 2, '082117100115', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(2, 'Firdam', 'firdam@sport.local', '$2y$10$J219qLjtcMqVaSla3vEmsuaOMwxaL7XVJ4Xpnc7VQl8TJKBNMDv0m', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Firdam-avatar-1781923850_aubgxKMWB.jpg', '6a0ee0135c7cd75eb87edbaf', '2026-06-21 17:32:03.818002', 'L', 300, 2, 3, 'Mau yang mana?', 0, '081386369207', 2, '081386369207', 83.00, 170.00, '1996-03-11', 'Usus Buntu', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, 'https://strava.app.link/5CnMSeGK63b', 'hambaAllah2211'),
 	(17, 'RIZAL SAAD', 'rizalsaad1405@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$dWZVNkNuMDFRbUxEbTdUbQ$FymiSUHfBJnWIII+P5DJeMVHC7cH5YbosxTQNxhFqUw', 'member', NULL, '2026-05-22 09:25:26.79199', NULL, NULL, '2026-05-22 09:26:42.829588', 'L', 0, 1, 0, NULL, 0, '082218532348', 4, '082218532348', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(20, 'Fajar Suseno', 'fajar@sport.local', '$2y$10$PCnvpCyKEdEapN87UMqQHOh7edoaNTepREZPpBljj5sHgdp68uUbi', 'member', NULL, '2026-05-29 12:57:35.205148', NULL, NULL, '2026-05-29 16:08:52.600659', 'L', 0, 1, 0, NULL, 0, '087822615464', NULL, '087822615464', 67.00, 168.00, '2005-06-19', 'Tidak ada.', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(10, 'Reyhan', 'reyhan@sport.local', '$2y$10$84RpoOaWh9iDdj4eVoNgnuy3ycDWsYTpJnhKoCW3rd74cPepinhni', 'member', NULL, '2026-05-19 07:55:29.376846', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '082320781890', NULL, '082320781890', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
@@ -3071,10 +4318,21 @@ INSERT INTO "users" ("id", "nama", "email", "password_hash", "role", "google_id"
 	(5, 'Usama', 'usama@sport.local', '$2y$10$.t7NxThSxmHvK3Bst9NmguSIlu9zz2QjlaTxOnB6PvcSv71OsdWm2', 'member', NULL, '2026-05-19 07:54:22.015654', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '089525429272', NULL, '089525429272', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(6, 'Dendra', 'dendra@sport.local', '$2y$10$6Xt5Sj9rKVSr9fqdXcF14.y/DP5240ULEtf/lie738rt1H5frLo/y', 'member', NULL, '2026-05-19 07:54:35.123756', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dendra-avatar-1780327141_1LN6n1f2i.jpg', NULL, '2026-06-20 01:42:46.000088', 'L', 0, 1, 0, NULL, 0, '082316481216', NULL, '082316481216', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
 	(3, 'Rifat', 'rifat@sport.local', '$2y$10$2nAaw2Qjru8mkOrZMA5Bcu2nX7ulxiqPObQk1Ekp0VxBPTjowBrNW', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Rifat-avatar-1779378411_1K68zsR1h.jpg', '6a0f28ed5c7cd75eb84a1dad', '2026-06-20 11:42:03.347139', 'L', 300, 2, 2, '', 0, '081369248630', NULL, '081369248630', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(4, 'Dani', 'dani@sport.local', '$2y$10$VgQ6RZkSly9XqDDlNH0B8e/VTM.GB.3nDyxY6O4nyA2HtTOD8MOi2', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dani-avatar-1779446202_D6MgJZEDkC.jpg', NULL, '2026-06-21 15:38:13.629738', 'L', 300, 2, 3, NULL, 0, '0895337148803', NULL, '0895337148803', 58.00, 163.00, '2004-10-09', 'Darah Tinggi', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL);
+	(4, 'Dani', 'dani@sport.local', '$2y$10$VgQ6RZkSly9XqDDlNH0B8e/VTM.GB.3nDyxY6O4nyA2HtTOD8MOi2', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dani-avatar-1779446202_D6MgJZEDkC.jpg', NULL, '2026-06-22 14:14:46.538963', 'L', 300, 2, 0, NULL, 0, '0895337148803', NULL, '0895337148803', 58.00, 163.00, '2004-10-09', 'Darah Tinggi', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
+	(16, 'ADITH SETIAWAN', 'adithsetiawan62@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$NzkuSWtnU0J1UjFTcGV4Ug$3kOfbqXaVv19r43a8KDxVPg33BbgV/AkqZ7Gt6oY9u8', 'member', NULL, '2026-05-22 09:25:05.526258', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/ADITH_SETIAWAN-avatar-1780045646_vUCRcMgf9.jpg', NULL, '2026-06-22 12:17:17.613647', 'L', 0, 1, 3, 'Enjoy the Proses', 0, '082118785024', NULL, '082118785024', 66.00, 160.00, '2006-03-12', 'Sehat sentosa', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
+	(2, 'Firdam', 'firdam@sport.local', '$2y$10$J219qLjtcMqVaSla3vEmsuaOMwxaL7XVJ4Xpnc7VQl8TJKBNMDv0m', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Firdam-avatar-1782102252_7GFeGcDqc.jpg', '6a0ee0135c7cd75eb87edbaf', '2026-06-22 14:26:50.801355', 'L', 420, 3, 0, 'Mau yang manas ?', 0, '081386369207', 2, '081386369207', 83.00, 170.00, '1996-03-11', 'Usus Buntus', NULL, NULL, NULL, 'slate', NULL, NULL, NULL, NULL, 1, NULL, 'https://strava.app.link/5CnMSeGK63b', 'hambaAllah2211');
 /*!40000 ALTER TABLE "users" ENABLE KEYS */;
 
--- Dumping data for table public.user_badges: -1 rows
+-- Dumping structure for table public.user_badges
+CREATE TABLE IF NOT EXISTS "user_badges" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''user_badges_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"badge_id" INTEGER NOT NULL,
+	"earned_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "user_badges_unique_ub" ("user_id", "badge_id")
+);
+
+-- Dumping data for table public.user_badges: 9 rows
 /*!40000 ALTER TABLE "user_badges" DISABLE KEYS */;
 INSERT INTO "user_badges" ("id", "user_id", "badge_id", "earned_at") VALUES
 	(1, 2, 7, '2026-05-22 00:37:28.111196'),
@@ -3084,12 +4342,31 @@ INSERT INTO "user_badges" ("id", "user_id", "badge_id", "earned_at") VALUES
 	(5, 3, 7, '2026-05-23 09:18:05.084045'),
 	(6, 2, 2, '2026-05-23 16:27:31.433549'),
 	(7, 4, 2, '2026-05-24 13:54:15.537989'),
-	(8, 3, 2, '2026-05-24 15:37:52.431443');
+	(8, 3, 2, '2026-05-24 15:37:52.431443'),
+	(1, 2, 5, '2026-06-22 09:04:11.158291');
 /*!40000 ALTER TABLE "user_badges" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_follows
+CREATE TABLE IF NOT EXISTS "user_follows" (
+	"follower_id" INTEGER NOT NULL,
+	"following_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	CONSTRAINT "user_follows_check" CHECK ((follower_id <> following_id))
+);
 
 -- Dumping data for table public.user_follows: -1 rows
 /*!40000 ALTER TABLE "user_follows" DISABLE KEYS */;
 /*!40000 ALTER TABLE "user_follows" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_islami_pref
+CREATE TABLE IF NOT EXISTS "user_islami_pref" (
+	"user_id" INTEGER NOT NULL,
+	"hide_sapa" SMALLINT NOT NULL DEFAULT '0',
+	"mode_tenang" SMALLINT NOT NULL DEFAULT '1',
+	"kota" VARCHAR(60) NOT NULL DEFAULT 'Jakarta',
+	"negara" VARCHAR(40) NOT NULL DEFAULT 'Indonesia',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.user_islami_pref: -1 rows
 /*!40000 ALTER TABLE "user_islami_pref" DISABLE KEYS */;
@@ -3108,29 +4385,70 @@ INSERT INTO "user_islami_pref" ("user_id", "hide_sapa", "mode_tenang", "kota", "
 	(2, 1, 1, 'Bandung', 'Indonesia', '2026-06-16 05:14:07.310935');
 /*!40000 ALTER TABLE "user_islami_pref" ENABLE KEYS */;
 
+-- Dumping structure for table public.user_kondisi
+CREATE TABLE IF NOT EXISTS "user_kondisi" (
+	"user_id" INTEGER NOT NULL,
+	"status" VARCHAR(10) NOT NULL DEFAULT 'sehat',
+	"keterangan" TEXT NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.user_kondisi: -1 rows
 /*!40000 ALTER TABLE "user_kondisi" DISABLE KEYS */;
 INSERT INTO "user_kondisi" ("user_id", "status", "keterangan", "updated_at") VALUES
 	(2, 'sehat', 'Ga enak badan', '2026-05-23 07:55:15.791319');
 /*!40000 ALTER TABLE "user_kondisi" ENABLE KEYS */;
 
--- Dumping data for table public.user_olahraga_favorit: -1 rows
+-- Dumping structure for table public.user_olahraga_favorit
+CREATE TABLE IF NOT EXISTS "user_olahraga_favorit" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''user_olahraga_favorit_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"nama" VARCHAR(80) NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "user_olfav_unique_un" ("user_id", "nama")
+);
+
+-- Dumping data for table public.user_olahraga_favorit: 2 rows
 /*!40000 ALTER TABLE "user_olahraga_favorit" DISABLE KEYS */;
 INSERT INTO "user_olahraga_favorit" ("id", "user_id", "nama", "created_at") VALUES
 	(1, 2, 'Badminton, Renang, Futsal, Hiking', '2026-05-22 04:54:22.608755'),
 	(2, 4, 'Badminton', '2026-05-22 10:37:33.838919');
 /*!40000 ALTER TABLE "user_olahraga_favorit" ENABLE KEYS */;
 
+-- Dumping structure for table public.user_pengalaman
+CREATE TABLE IF NOT EXISTS "user_pengalaman" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''user_pengalaman_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis" VARCHAR(20) NOT NULL,
+	"judul" VARCHAR(160) NOT NULL,
+	"lokasi" VARCHAR(200) NULL DEFAULT NULL,
+	"tanggal" DATE NULL DEFAULT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"foto_url" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
+
 -- Dumping data for table public.user_pengalaman: -1 rows
 /*!40000 ALTER TABLE "user_pengalaman" DISABLE KEYS */;
 INSERT INTO "user_pengalaman" ("id", "user_id", "jenis", "judul", "lokasi", "tanggal", "deskripsi", "foto_url", "created_at") VALUES
-	(1, 2, 'hiking', 'Muncak Bareng Barudak', 'Gunung Putri', '2026-05-17', 'Adem Ayem', NULL, '2026-05-23 07:20:18.626138');
+	(1, 2, 'hiking', 'Muncak Bareng Barudaks', 'Gunung Putri', '2026-05-17', 'Adem Ayem', NULL, '2026-05-23 07:20:18.626138');
 /*!40000 ALTER TABLE "user_pengalaman" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_perlengkapan
+CREATE TABLE IF NOT EXISTS "user_perlengkapan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''user_perlengkapan_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"jenis_olahraga_id" INTEGER NULL DEFAULT NULL,
+	"jenis_nama" VARCHAR(80) NULL DEFAULT NULL,
+	"nama" VARCHAR(120) NOT NULL,
+	"jumlah" INTEGER NOT NULL DEFAULT '1',
+	"catatan" VARCHAR(200) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.user_perlengkapan: -1 rows
 /*!40000 ALTER TABLE "user_perlengkapan" DISABLE KEYS */;
 INSERT INTO "user_perlengkapan" ("id", "user_id", "jenis_olahraga_id", "jenis_nama", "nama", "jumlah", "catatan", "created_at") VALUES
-	(1, 2, 1, 'Jogging', 'Sepatu', 1, 'Merk Asics', '2026-05-23 07:22:07.385253'),
 	(3, 2, 12, 'Ping Pong', 'Bola', 2, 'Warna Kuninig', '2026-05-23 07:22:48.543813'),
 	(5, 2, 2, 'Badminton', 'Sepatu', 1, 'Biasa dipakai futsal', '2026-05-23 07:23:55.738743'),
 	(6, 4, 2, 'Badminton', 'Raket', 2, NULL, '2026-05-24 14:01:06.155221'),
@@ -3149,8 +4467,19 @@ INSERT INTO "user_perlengkapan" ("id", "user_id", "jenis_olahraga_id", "jenis_na
 	(19, 3, 13, 'Olahraga Pribadi', 'calisthenics bar', 1, NULL, '2026-06-03 06:03:39.157228'),
 	(20, 2, 2, 'Badminton', 'Raket Pribadi', 1, 'Merk Berwyn', '2026-06-16 12:33:29.472081'),
 	(21, 2, 2, 'Badminton', 'Kok Bulutangkis', 12, 'Merk Berwyn', '2026-06-16 12:35:06.388571'),
-	(22, 7, 2, 'Badminton', 'Raket', 1, NULL, '2026-06-16 15:19:59.474863');
+	(22, 7, 2, 'Badminton', 'Raket', 1, NULL, '2026-06-16 15:19:59.474863'),
+	(1, 2, 1, 'Jogging', 'Sepatu', 1, 'Merk Asic', '2026-05-23 07:22:07.385253');
 /*!40000 ALTER TABLE "user_perlengkapan" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_strava
+CREATE TABLE IF NOT EXISTS "user_strava" (
+	"user_id" INTEGER NOT NULL,
+	"athlete_id" BIGINT NULL DEFAULT NULL,
+	"access_token" TEXT NOT NULL,
+	"refresh_token" TEXT NOT NULL,
+	"expires_at" TIMESTAMP NOT NULL,
+	"connected_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+);
 
 -- Dumping data for table public.user_strava: -1 rows
 /*!40000 ALTER TABLE "user_strava" DISABLE KEYS */;

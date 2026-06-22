@@ -128,6 +128,11 @@ function ai_estimate_kalori($imagePath, $namaTeks=''){
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
+    // Revisi 22 Juni 2026 R9 — Bungkus seluruh CRUD dalam try/catch sehingga
+    // error (ON CONFLICT dari trigger/migrasi, kolom hilang, kuota AI, dll)
+    // tidak ditampilkan sebagai halaman HTML dari set_exception_handler,
+    // melainkan masuk ke flash_err dan user tetap diarahkan kembali.
+    try {
     if ($a==='target') {
         $t = max(500, (int)$_POST['target_harian']);
         // Revisi R8 — pakai check-then-update/insert agar tidak bergantung pada
@@ -326,6 +331,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
     } elseif ($a==='lain_delete') {
         db_exec("DELETE FROM kalori_burn_lain WHERE id=$1 AND user_id=$2", [(int)$_POST['id'],$uid]);
+    }
+    } catch (Throwable $e) {
+        unset($_SESSION['error_popup']);
+        $msg = $e->getMessage();
+        if (stripos($msg, 'ON CONFLICT') !== false) {
+            $msg .= ' — jalankan migrations_r9.sql untuk menambah UNIQUE/PRIMARY KEY yang hilang.';
+        }
+        $_SESSION['flash_err'] = 'Operasi gagal: ' . $msg;
     }
     header('Location: kalori_mingguan.php'); exit;
 }

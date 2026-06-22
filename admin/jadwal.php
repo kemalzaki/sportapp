@@ -9,41 +9,59 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? 'create';
 
-    if ($a === 'delete') {
-        db_exec("DELETE FROM jadwal WHERE id=$1", [(int)$_POST['id']]);
-    } elseif ($a === 'edit') {
-        $id    = (int)$_POST['id'];
-        $tgl   = $_POST['tanggal'];
-        $bulan = date('F', strtotime($tgl));
-        $w     = 'W' . (int)ceil(date('j', strtotime($tgl))/7);
-        $tempatId = (int)($_POST['tempat_id'] ?? 0) ?: null;
-        $tempatNama = $_POST['tempat'] ?? '';
-        if ($tempatId) { $row = db_one("SELECT nama FROM tempat WHERE id=$1", [$tempatId]); if ($row) $tempatNama = $row['nama']; }
-        $jm = $_POST['jam_mulai'] ?: null;
-        $js = $_POST['jam_selesai'] ?: null;
-        db_exec("UPDATE jadwal SET tanggal=$1, bulan=$2, minggu_ke=$3, jenis=$4, tempat=$5,
-                                   tempat_id=$6, durasi_menit=$7, koordinator_id=$8,
-                                   konten_obrolan=$9, catatan=$10, jam_mulai=$11, jam_selesai=$12
-                 WHERE id=$13",
-                [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama,
-                 $tempatId, ((int)($_POST['durasi_menit'] ?? 0) ?: null),
-                 (int)($_POST['koordinator_id'] ?? 0) ?: null,
-                 $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $id]);
-    } else {
-        $tgl   = $_POST['tanggal'];
-        $bulan = date('F', strtotime($tgl));
-        $w     = 'W' . (int)ceil(date('j', strtotime($tgl))/7);
-        $tempatId = (int)($_POST['tempat_id'] ?? 0) ?: null;
-        $tempatNama = '';
-        if ($tempatId) { $row = db_one("SELECT nama FROM tempat WHERE id=$1", [$tempatId]); if ($row) $tempatNama = $row['nama']; }
-        $jm = $_POST['jam_mulai'] ?: null;
-        $js = $_POST['jam_selesai'] ?: null;
-        db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-                [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama, $tempatId,
-                 ((int)($_POST['durasi_menit'] ?? 0) ?: null),
-                 (int)($_POST['koordinator_id'] ?? 0) ?: current_user()['id'],
-                 $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js]);
+    // Revisi 22 Juni 2026 R9 — Bungkus seluruh CRUD jadwal dalam try/catch agar
+    // error apapun (ON CONFLICT dari trigger/migrasi, kolom hilang, dll) tidak
+    // melempar halaman HTML dari set_exception_handler. Pesan tampil di flash.
+    try {
+        if ($a === 'delete') {
+            db_exec("DELETE FROM jadwal WHERE id=$1", [(int)$_POST['id']]);
+            $_SESSION['flash_ok'] = 'Jadwal dihapus.';
+        } elseif ($a === 'edit') {
+            $id    = (int)$_POST['id'];
+            $tgl   = $_POST['tanggal'];
+            $bulan = date('F', strtotime($tgl));
+            $w     = 'W' . (int)ceil(date('j', strtotime($tgl))/7);
+            $tempatId = (int)($_POST['tempat_id'] ?? 0) ?: null;
+            $tempatNama = $_POST['tempat'] ?? '';
+            if ($tempatId) { $row = db_one("SELECT nama FROM tempat WHERE id=$1", [$tempatId]); if ($row) $tempatNama = $row['nama']; }
+            $jm = $_POST['jam_mulai'] ?: null;
+            $js = $_POST['jam_selesai'] ?: null;
+            db_exec("UPDATE jadwal SET tanggal=$1, bulan=$2, minggu_ke=$3, jenis=$4, tempat=$5,
+                                       tempat_id=$6, durasi_menit=$7, koordinator_id=$8,
+                                       konten_obrolan=$9, catatan=$10, jam_mulai=$11, jam_selesai=$12
+                     WHERE id=$13",
+                    [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama,
+                     $tempatId, ((int)($_POST['durasi_menit'] ?? 0) ?: null),
+                     (int)($_POST['koordinator_id'] ?? 0) ?: null,
+                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $id]);
+            $_SESSION['flash_ok'] = 'Jadwal diperbarui.';
+        } else {
+            $tgl   = $_POST['tanggal'];
+            $bulan = date('F', strtotime($tgl));
+            $w     = 'W' . (int)ceil(date('j', strtotime($tgl))/7);
+            $tempatId = (int)($_POST['tempat_id'] ?? 0) ?: null;
+            $tempatNama = '';
+            if ($tempatId) { $row = db_one("SELECT nama FROM tempat WHERE id=$1", [$tempatId]); if ($row) $tempatNama = $row['nama']; }
+            $jm = $_POST['jam_mulai'] ?: null;
+            $js = $_POST['jam_selesai'] ?: null;
+            db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+                    [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama, $tempatId,
+                     ((int)($_POST['durasi_menit'] ?? 0) ?: null),
+                     (int)($_POST['koordinator_id'] ?? 0) ?: current_user()['id'],
+                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js]);
+            $_SESSION['flash_ok'] = 'Jadwal ditambahkan.';
+        }
+    } catch (Throwable $e) {
+        // Jangan biarkan set_exception_handler menampilkan halaman HTML.
+        // Hilangkan juga $_SESSION['error_popup'] supaya modal tidak muncul ganda.
+        unset($_SESSION['error_popup']);
+        $msg = $e->getMessage();
+        // Pesan ramah untuk error ON CONFLICT (DB belum di-migrasi).
+        if (stripos($msg, 'ON CONFLICT') !== false) {
+            $msg .= ' — jalankan migrations_r9.sql untuk menambah UNIQUE/PRIMARY KEY yang hilang.';
+        }
+        $_SESSION['flash_err'] = 'Gagal menyimpan jadwal: ' . $msg;
     }
     header('Location: jadwal.php'); exit;
 }
