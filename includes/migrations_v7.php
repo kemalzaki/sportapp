@@ -59,13 +59,23 @@ function apply_kondisi_to_absensi(int $userId, string $status, string $ket = '')
   try {
     if ($status === 'sakit') {
       $note = '[AUTO-SAKIT] '.trim($ket);
-      // Untuk setiap jadwal mulai hari ini ke depan, upsert absensi -> sakit
+      // Untuk setiap jadwal mulai hari ini ke depan, upsert absensi -> sakit.
+      // Revisi R8 — pakai pola check-then-update/insert agar tidak bergantung
+      // pada UNIQUE(jadwal_id,user_id). Ini menghapus error "no unique or
+      // exclusion constraint" yang terlihat dari admin/jadwal.php & profile.php.
       $rows = db_all("SELECT id FROM jadwal WHERE tanggal >= CURRENT_DATE");
       foreach ($rows as $r) {
-        db_exec("INSERT INTO absensi(jadwal_id,user_id,hadir,status,keterangan)
-                 VALUES($1,$2,0,'sakit',$3)
-                 ON CONFLICT (jadwal_id,user_id) DO UPDATE SET status='sakit', hadir=0, keterangan=EXCLUDED.keterangan
-                 WHERE absensi.status<>'hadir'", [(int)$r['id'], $userId, $note]);
+        $jid = (int)$r['id'];
+        $existing = db_one("SELECT id, status FROM absensi WHERE jadwal_id=$1 AND user_id=$2", [$jid, $userId]);
+        if ($existing) {
+          // Jangan timpa absen 'hadir' user yg memang sudah konfirmasi datang.
+          if (($existing['status'] ?? '') === 'hadir') continue;
+          db_exec("UPDATE absensi SET status='sakit', hadir=0, keterangan=$1 WHERE id=$2",
+            [$note, (int)$existing['id']]);
+        } else {
+          db_exec("INSERT INTO absensi(jadwal_id,user_id,hadir,status,keterangan) VALUES($1,$2,0,'sakit',$3)",
+            [$jid, $userId, $note]);
+        }
       }
     } else { // sehat -> bersihkan auto-sakit di masa depan
       db_exec("DELETE FROM absensi a USING jadwal j

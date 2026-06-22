@@ -103,20 +103,39 @@ $peer  = (int)($_GET['peer']  ?? 0);
 $since = (int)($_GET['since'] ?? 0);
 if ($peer <= 0) { echo json_encode(['messages'=>[]]); exit; }
 
-// Tandai pesan masuk dari peer ini: delivered + read
-db_exec("UPDATE dm_messages SET delivered_at=COALESCE(delivered_at, now()), read_at=now()
-         WHERE receiver_id=$1 AND sender_id=$2 AND read_at IS NULL",
-    [$uid, $peer]);
+// Tandai pesan masuk dari peer ini: delivered + read.
+// Revisi R8 — bungkus dalam try/catch agar bila kolom delivered_at/read_at
+// belum ada (DB lama), polling tetap mengembalikan messages — sehingga pesan
+// baru muncul di chat dan user tidak mengira "tidak terkirim".
+try {
+    db_exec("UPDATE dm_messages SET delivered_at=COALESCE(delivered_at, now()), read_at=now()
+             WHERE receiver_id=$1 AND sender_id=$2 AND read_at IS NULL",
+        [$uid, $peer]);
+} catch (Throwable $e) { /* jangan jatuhkan polling */ }
 
-$rows = db_all("SELECT id, sender_id, receiver_id, pesan, created_at, delivered_at, read_at
-                FROM dm_messages
-                WHERE id > $1
-                  AND ((sender_id=$2 AND receiver_id=$3) OR (sender_id=$3 AND receiver_id=$2))
-                ORDER BY id ASC LIMIT 200", [$since, $uid, $peer]);
+try {
+    $rows = db_all("SELECT id, sender_id, receiver_id, pesan, created_at, delivered_at, read_at
+                    FROM dm_messages
+                    WHERE id > $1
+                      AND ((sender_id=$2 AND receiver_id=$3) OR (sender_id=$3 AND receiver_id=$2))
+                    ORDER BY id ASC LIMIT 200", [$since, $uid, $peer]);
+} catch (Throwable $e) {
+    // Kolom delivered_at/read_at hilang → fallback minimal supaya pesan tetap muncul.
+    $rows = db_all("SELECT id, sender_id, receiver_id, pesan, created_at
+                    FROM dm_messages
+                    WHERE id > $1
+                      AND ((sender_id=$2 AND receiver_id=$3) OR (sender_id=$3 AND receiver_id=$2))
+                    ORDER BY id ASC LIMIT 200", [$since, $uid, $peer]);
+    foreach ($rows as &$r) { $r['delivered_at']=null; $r['read_at']=null; }
+    unset($r);
+}
 
 // Update status pesan SAYA yang dikirim ke peer (untuk update ceklis di UI sender)
-$statuses = db_all("SELECT id, delivered_at, read_at FROM dm_messages
-                    WHERE sender_id=$1 AND receiver_id=$2
-                    ORDER BY id DESC LIMIT 80", [$uid, $peer]);
+$statuses = [];
+try {
+    $statuses = db_all("SELECT id, delivered_at, read_at FROM dm_messages
+                        WHERE sender_id=$1 AND receiver_id=$2
+                        ORDER BY id DESC LIMIT 80", [$uid, $peer]);
+} catch (Throwable $e) { $statuses = []; }
 
 echo json_encode(['messages'=>$rows, 'statuses'=>$statuses]);

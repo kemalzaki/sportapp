@@ -216,8 +216,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 if (!$exists) {
                     db_exec("INSERT INTO guest_messages(owner_user_id,sender_user_id,pesan) VALUES($1,$2,$3)",
                       [$target, (int)$u['id'], '👋 '.$pesan]);
-                    db_exec("INSERT INTO sapa_log(sender_user_id,target_user_id) VALUES($1,$2)
-                             ON CONFLICT DO NOTHING", [(int)$u['id'], $target]);
+                    // Revisi R8 — hindari ON CONFLICT (tidak semua DB sudah punya UNIQUE
+                    // pada sapa_log). Pakai pola check-then-insert agar selalu aman.
+                    $already = db_val("SELECT 1 FROM sapa_log WHERE sender_user_id=$1 AND target_user_id=$2",
+                        [(int)$u['id'], $target]);
+                    if (!$already) {
+                        db_exec("INSERT INTO sapa_log(sender_user_id,target_user_id) VALUES($1,$2)",
+                            [(int)$u['id'], $target]);
+                    }
                 }
             } catch (Throwable $e) {}
         }
@@ -535,9 +541,13 @@ try {
 $myAbsenByJadwal = [];
 if ($u && !empty($_jids)) {
     try {
-        $rs = db_all("SELECT jadwal_id, status, hadir FROM absensi WHERE user_id=$1 AND jadwal_id = ANY($2::int[])",
+        // Revisi R8 (#6) — abaikan entri auto ([AUTO-SAKIT]) supaya user tidak
+        // melihat dirinya "sudah absen" padahal belum menekan tombol.
+        $rs = db_all("SELECT jadwal_id, status, hadir, COALESCE(keterangan,'') AS keterangan
+                        FROM absensi WHERE user_id=$1 AND jadwal_id = ANY($2::int[])",
             [(int)$u['id'], '{'.implode(',',$_jids).'}']);
         foreach ($rs as $r) {
+            if (strncmp((string)$r['keterangan'], '[AUTO-', 6) === 0) continue;
             $st = $r['status'] ?: ((int)$r['hadir']===1?'hadir':'absen');
             $myAbsenByJadwal[(int)$r['jadwal_id']] = $st;
         }
@@ -894,7 +904,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <?php foreach($jadwalTerdekat as $j):
           $jid=(int)$j['id']; $absList = $absByJadwal[$jid] ?? [];
           $cnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
-          foreach($absList as $a){ $s=$a['status']?:'absen'; if(isset($cnt[$s])) $cnt[$s]++; }
+          // Revisi R8 (#6) — abaikan baris absensi otomatis ([AUTO-SAKIT] dari
+          // apply_kondisi_to_absensi), supaya badge "Absen" Jadwal Terdekat
+          // hanya menghitung user yg benar-benar mengisi absen sendiri.
+          foreach($absList as $a){
+            if (strncmp((string)($a['keterangan'] ?? ''), '[AUTO-', 6) === 0) continue;
+            $s=$a['status']?:'absen'; if(isset($cnt[$s])) $cnt[$s]++;
+          }
         ?>
           <tr>
             <td data-label=""><button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#jdetail<?= $jid ?>" title="Lihat absen"><i class="bi bi-chevron-down"></i></button></td>

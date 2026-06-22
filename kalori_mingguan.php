@@ -130,19 +130,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $a = $_POST['_action'] ?? '';
     if ($a==='target') {
         $t = max(500, (int)$_POST['target_harian']);
-        db_exec("INSERT INTO kalori_target(user_id,target_harian) VALUES($1,$2)
-                 ON CONFLICT (user_id) DO UPDATE SET target_harian=EXCLUDED.target_harian", [$uid,$t]);
-        $_SESSION['flash_ok'] = "Target diperbarui: $t kkal/hari.";
+        // Revisi R8 — pakai check-then-update/insert agar tidak bergantung pada
+        // PRIMARY KEY (user_id) di tabel kalori_target. Pernah ada DB lama yang
+        // belum punya PK sehingga ON CONFLICT melempar error.
+        try {
+            $exists = db_val("SELECT 1 FROM kalori_target WHERE user_id=$1", [$uid]);
+            if ($exists) {
+                db_exec("UPDATE kalori_target SET target_harian=$2 WHERE user_id=$1", [$uid, $t]);
+            } else {
+                db_exec("INSERT INTO kalori_target(user_id,target_harian) VALUES($1,$2)", [$uid, $t]);
+            }
+            $_SESSION['flash_ok'] = "Target diperbarui: $t kkal/hari.";
+        } catch (Throwable $e) {
+            $_SESSION['flash_err'] = "Gagal menyimpan target: ".$e->getMessage();
+        }
     } elseif ($a==='defisit_setting') {
         // Revisi 18 Juni 2026 (Lanjutan) — Simpan pilihan sumber defisit kalori.
         $src = $_POST['sumber'] ?? 'auto';
         if (!in_array($src, ['auto','jogging','manual','gabungan'], true)) $src = 'auto';
         $mh  = max(0, (int)($_POST['manual_harian'] ?? 0));
-        db_exec("INSERT INTO kalori_defisit_setting(user_id,sumber,manual_harian,updated_at)
-                 VALUES($1,$2,$3, now())
-                 ON CONFLICT (user_id) DO UPDATE SET sumber=EXCLUDED.sumber,
-                    manual_harian=EXCLUDED.manual_harian, updated_at=now()", [$uid,$src,$mh]);
-        $_SESSION['flash_ok'] = "Pengaturan defisit kalori disimpan (sumber: $src, manual: $mh kkal/hari).";
+        // Revisi R8 — check-then-update/insert (alasan sama seperti di atas).
+        try {
+            $exists = db_val("SELECT 1 FROM kalori_defisit_setting WHERE user_id=$1", [$uid]);
+            if ($exists) {
+                db_exec("UPDATE kalori_defisit_setting SET sumber=$2, manual_harian=$3, updated_at=now() WHERE user_id=$1",
+                    [$uid, $src, $mh]);
+            } else {
+                db_exec("INSERT INTO kalori_defisit_setting(user_id,sumber,manual_harian,updated_at) VALUES($1,$2,$3, now())",
+                    [$uid, $src, $mh]);
+            }
+            $_SESSION['flash_ok'] = "Pengaturan defisit kalori disimpan (sumber: $src, manual: $mh kkal/hari).";
+        } catch (Throwable $e) {
+            $_SESSION['flash_err'] = "Gagal menyimpan pengaturan defisit: ".$e->getMessage();
+        }
     } elseif ($a==='add') {
         $tgl = $_POST['tanggal'] ?: date('Y-m-d');
         $jam = $_POST['waktu'] ?: date('H:i');
@@ -431,16 +451,16 @@ $totalTarget  = $target * 7;
 $weekDeficit  = $totalTarget - $totalNet;   // >0 = defisit (bagus utk diet); <0 = surplus
 $avgDay = round($totalWeek/7);
 
-// Revisi 22 Juni 2026 R6 — "Sisa Kalori Hari Ini" diukur dari MAKANAN saja,
-// bukan dari net (cons − burn). Sebelumnya angka bisa NAIK saat user menambah
-// "Pembakaran Lain", yang membingungkan. Sekarang sisa selalu TURUN tiap kali
-// user mencatat makanan, dan TIDAK terpengaruh pembakaran kalori.
+// Revisi R8 (#3) — "Sisa Kalori Hari Ini" sekarang BERTAMBAH ketika user
+// mencatat olahraga / pembakaran kalori. Rumus: sisa = target − konsumsi + terbakar.
+// Sebelumnya (R6) sisa hanya dipengaruhi makanan, sehingga olahraga tidak
+// memberi "ruang makan tambahan" — tidak intuitif untuk user diet defisit.
 $todayKey      = date('Y-m-d');
 $todayCons     = (int)($map[$todayKey]     ?? 0);
 $todayBurn     = (int)($burnMap[$todayKey] ?? 0);
-$todayNet      = $todayCons - $todayBurn;            // tetap dipakai utk panel rincian
-$todayRemain   = $target - $todayCons;               // sisa makan = target − konsumsi
-$todayPct      = $target>0 ? min(100, max(0, ($todayCons/$target)*100)) : 0;
+$todayNet      = $todayCons - $todayBurn;            // konsumsi bersih (info)
+$todayRemain   = $target - $todayCons + $todayBurn;  // sisa = target − konsumsi + terbakar
+$todayPct      = $target>0 ? min(100, max(0, ($todayNet/$target)*100)) : 0;
 $ok = $_SESSION['flash_ok'] ?? null; unset($_SESSION['flash_ok']);
 $err= $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 $aiEnabled = (bool) (defined('GEMINI_API_KEY') ? GEMINI_API_KEY : (getenv('GEMINI_API_KEY') ?: ''));
@@ -539,11 +559,10 @@ include __DIR__.'/includes/header.php';
             <div class="small text-muted mt-1">
               Konsumsi makanan <b><?= number_format($todayCons) ?></b>
               / Target <b><?= number_format($target) ?></b> kkal
-              · Sisa = Target − Konsumsi = <b><?= number_format($todayRemain) ?></b>
-              (<?= number_format($todayPct,1) ?>%).
-              <br>Terbakar olahraga hari ini: <b><?= number_format($todayBurn) ?></b> kkal
-              · Net asupan: <b><?= number_format($todayNet) ?></b> kkal
-              (info, tidak mengurangi sisa makan hari ini).
+              · Terbakar olahraga <b><?= number_format($todayBurn) ?></b> kkal
+              · <b>Sisa = Target − Konsumsi + Terbakar = <?= number_format($todayRemain) ?></b>
+              (<?= number_format($todayPct,1) ?>% terpakai).
+              <br>Olahraga menambah "ruang makan" sebanyak kalori yang dibakar.
             </div>
           </div>
         </div>
