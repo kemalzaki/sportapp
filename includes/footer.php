@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto()
 <?php include __DIR__ . '/bottom_nav.php'; ?>
 <?php /* Revisi 22 Juni 2026 R7 — dm_floating dihapus dari menu (chat melayang dimatikan). */ ?>
 <footer class="app-footer text-center text-muted py-3 small">
-  <div class="container">&copy; 2026 HapFam SportApp · v4 - By <a href="https://www.yuk-mari.com" target="_blank" rel="noopener" class="text-decoration-none">Yuk-Mari CyberLab</a></div>
+  <div class="container">&copy; 2026 KawanKeringat · v4 - By <a href="https://www.yuk-mari.com" target="_blank" rel="noopener" class="text-decoration-none">Yuk-Mari CyberLab</a></div>
 </footer>
 
 <?php if (!empty($_SESSION['error_popup'])): $__ep = $_SESSION['error_popup']; unset($_SESSION['error_popup']); ?>
@@ -354,9 +354,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var opt = { body: n.isi || '', icon:'/assets/icon-192.png', badge:'/assets/icon-192.png',
                 tag: 'hapfam-'+n.id, data:{ url: n.url || '/' }, vibrate:[120,60,120] };
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-      navigator.serviceWorker.ready.then(function(reg){ reg.showNotification(n.judul || 'HapFam', opt); }).catch(function(){});
+      navigator.serviceWorker.ready.then(function(reg){ reg.showNotification(n.judul || 'KawanKeringat', opt); }).catch(function(){});
     } else {
-      try { new Notification(n.judul || 'HapFam', opt); } catch(e){}
+      try { new Notification(n.judul || 'KawanKeringat', opt); } catch(e){}
     }
   }
   async function tick(){

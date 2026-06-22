@@ -15,10 +15,10 @@ function kirim_invoice_email(array $order, array $items, ?string $hostBase = nul
     if (empty($order['email_pemesan'])) return false;
 
     $from      = app_setting('invoice_email_from', 'no-reply@hapfam.local');
-    $fromNama  = app_setting('invoice_email_nama', 'HapFam SportApp');
+    $fromNama  = app_setting('invoice_email_nama', 'KawanKeringat');
     $to        = trim($order['email_pemesan']);
     $kode      = $order['kode'] ?? '';
-    $subject   = 'Invoice Pesanan #'.$kode.' — HapFam SportApp';
+    $subject   = 'Invoice Pesanan #'.$kode.' — KawanKeringat';
 
     $linkInvoice = ($hostBase ?: '') . '/jajanan.php?invoice='.urlencode($kode);
 
@@ -29,7 +29,7 @@ function kirim_invoice_email(array $order, array $items, ?string $hostBase = nul
   <tr><td align="center">
     <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);">
       <tr><td style="background:linear-gradient(135deg,#0ea5e9,#6366f1);padding:20px 24px;color:#fff;">
-        <div style="font-size:20px;font-weight:700;">HapFam SportApp</div>
+        <div style="font-size:20px;font-weight:700;">KawanKeringat</div>
         <div style="font-size:13px;opacity:.85;">Invoice Pemesanan Jajanan</div>
       </td></tr>
       <tr><td style="padding:20px 24px;">
@@ -83,7 +83,7 @@ function kirim_invoice_email(array $order, array $items, ?string $hostBase = nul
         <p style="font-size:12px;color:#64748b;">Email ini dikirim otomatis. Jika tidak merasa memesan, abaikan saja.</p>
       </td></tr>
       <tr><td style="background:#f8fafc;padding:14px 24px;text-align:center;font-size:12px;color:#64748b;">
-        &copy; <?= date('Y') ?> HapFam SportApp · By Yuk-Mari CyberLab
+        &copy; <?= date('Y') ?> KawanKeringat · By Yuk-Mari CyberLab
       </td></tr>
     </table>
   </td></tr>
@@ -97,7 +97,7 @@ function kirim_invoice_email(array $order, array $items, ?string $hostBase = nul
         'Content-Type: text/html; charset=UTF-8',
         'From: '.$fromNama.' <'.$from.'>',
         'Reply-To: '.$from,
-        'X-Mailer: HapFam-SportApp/1.0',
+        'X-Mailer: KawanKeringat-SportApp/1.0',
     ];
 
     $ok = @mail($to, $subject, $html, implode("\r\n", $headers));

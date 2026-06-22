@@ -21,7 +21,7 @@ if (!function_exists('ip_http_get')) {
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_TIMEOUT        => $timeout,
                 CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; HapFamSportApp/1.0)',
+                CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; KawanKeringat/1.0)',
                 CURLOPT_SSL_VERIFYPEER => true,
             ]);
             $body = curl_exec($ch);
@@ -30,7 +30,7 @@ if (!function_exists('ip_http_get')) {
         }
         $ctx = stream_context_create(['http' => [
             'timeout' => $timeout,
-            'header'  => "User-Agent: Mozilla/5.0 (compatible; HapFamSportApp/1.0)\r\n",
+            'header'  => "User-Agent: Mozilla/5.0 (compatible; KawanKeringat/1.0)\r\n",
         ]]);
         $body = @file_get_contents($url, false, $ctx);
         return $body === false ? null : $body;

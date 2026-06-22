@@ -40,14 +40,14 @@ if (!function_exists('htmx_layout_start')) {
      * Mulai layout. Bila request HTMX: hanya kirim <title> OOB + buka container.
      * Bila normal: include header.php.
      */
-    function htmx_layout_start(string $title = 'HapFam SportApp'): void {
+    function htmx_layout_start(string $title = 'KawanKeringat'): void {
         global $pageTitle;
         $pageTitle = $title;
 
         if (is_htmx()) {
             // Update title via Out-of-Band swap
             header('HX-Push-Url: ' . ($_SERVER['REQUEST_URI'] ?? '/'));
-            echo '<title hx-swap-oob="true">' . htmlspecialchars($title . ' · HapFam SportApp') . '</title>';
+            echo '<title hx-swap-oob="true">' . htmlspecialchars($title . ' · KawanKeringat') . '</title>';
             // Container fragment — ditangkap oleh #app di shell
             echo '<div id="app-content" data-page="' . htmlspecialchars($title) . '">';
             return;

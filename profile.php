@@ -879,12 +879,12 @@ try {
 $waSelf = preg_replace('/\D+/','', (string)($me['nomor_wa'] ?? ''));
 if ($waSelf && str_starts_with($waSelf,'0')) $waSelf = '62'.substr($waSelf,1);
 if ($waSelf && !$cntPeng) {
-  $msg = rawurlencode("Halo ".$me['nama'].", lengkapi pengalaman hiking/camping kamu di profil HapFam SportApp ya! Buka: https://".($_SERVER['HTTP_HOST']??'hapfam.app')."/profile.php");
+  $msg = rawurlencode("Halo ".$me['nama'].", lengkapi pengalaman hiking/camping kamu di profil KawanKeringat ya! Buka: https://".($_SERVER['HTTP_HOST']??'hapfam.app')."/profile.php");
   echo '<div class="container my-3"><div class="alert alert-warning d-flex justify-content-between align-items-center"><div><i class="bi bi-mountain"></i> Belum ada pengalaman hiking/camping. Yuk lengkapi!</div>'
      . '<a class="btn btn-sm btn-success" target="_blank" href="https://wa.me/'.$waSelf.'?text='.$msg.'"><i class="bi bi-whatsapp"></i> Ingatkan via WA</a></div></div>';
 }
 if ($waSelf && !$cntPerl) {
-  $msg = rawurlencode("Halo ".$me['nama'].", lengkapi data perlengkapan olahraga kamu di profil HapFam SportApp ya! Buka: https://".($_SERVER['HTTP_HOST']??'hapfam.app')."/profile.php");
+  $msg = rawurlencode("Halo ".$me['nama'].", lengkapi data perlengkapan olahraga kamu di profil KawanKeringat ya! Buka: https://".($_SERVER['HTTP_HOST']??'hapfam.app')."/profile.php");
   echo '<div class="container my-3"><div class="alert alert-info d-flex justify-content-between align-items-center"><div><i class="bi bi-bag-check"></i> Belum ada data perlengkapan olahraga. Yuk lengkapi!</div>'
      . '<a class="btn btn-sm btn-success" target="_blank" href="https://wa.me/'.$waSelf.'?text='.$msg.'"><i class="bi bi-whatsapp"></i> Ingatkan via WA</a></div></div>';
 }

@@ -1,4 +1,4 @@
-# Capacitor Android Wrapper — Happy Family SportApp
+# Capacitor Android Wrapper — KawanKeringat
 
 Folder ini mem-bundle aplikasi Android (APK / AAB) yang membungkus website
 PHP Anda di `https://sportapp-rumd.onrender.com`.

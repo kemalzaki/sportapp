@@ -122,8 +122,8 @@ self.addEventListener('notificationclick', e => {
 });
 self.addEventListener('push', e => {
   let data = {};
-  try { data = e.data ? e.data.json() : {}; } catch(_) { data = { title:'HapFam', body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(data.title || 'HapFam', {
+  try { data = e.data ? e.data.json() : {}; } catch(_) { data = { title:'KawanKeringat', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(data.title || 'KawanKeringat', {
     body: data.body || '', icon:'/assets/icon-192.png', badge:'/assets/icon-192.png',
     data: { url: data.url || '/' }
   }));

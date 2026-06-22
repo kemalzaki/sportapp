@@ -1,5 +1,5 @@
 /* =========================================================================
- * HapFam SportApp — Mobile Shell JS v1
+ * KawanKeringat — Mobile Shell JS v1
  * ADDITIVE. Hanya menambahkan native-feel behaviors:
  *  - Capacitor platform detection (set body[data-platform])
  *  - StatusBar & Keyboard plugin hook (jika tersedia)

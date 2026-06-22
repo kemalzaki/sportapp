@@ -19,7 +19,7 @@ if (!empty($_GET['done'])) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0ea5e9">
-<title>Selamat Datang · HapFam SportApp</title>
+<title>Selamat Datang · KawanKeringat</title>
 <link rel="icon" href="/assets/icon-192.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -67,14 +67,14 @@ p{font-size:1rem;color:#64748b;max-width:34ch;line-height:1.55;}
       <p>Catat lari, check-in tempat, dan ikuti event olahraga komunitas dengan mudah.</p>
     </section>
     <section class="slide">
-      <div class="illu b"><i class="bi bi-bag-heart-fill"></i></div>
-      <h2>Jajanan favorit</h2>
-      <p>Pesan jajanan dari toko anggota komunitas, dukung tetangga sambil ngemil.</p>
+      <div class="illu b"><i class="bi bi-people-fill"></i></div>
+      <h2>Untuk Mahasiswa &amp; Pecinta Olahraga</h2>
+      <p>Gabung komunitas, ikut challenge kampus, dan temukan partner olahraga di sekitarmu.</p>
     </section>
     <section class="slide">
-      <div class="illu c"><i class="bi bi-stars"></i></div>
+      <div class="illu c"><i class="bi bi-trophy-fill"></i></div>
       <h2>Tumbuh bareng</h2>
-      <p>Konten Islami, kalender, jadwal sholat, & ngobrol bareng member di satu app.</p>
+      <p>Pantau progres latihan, raih badge, dan naik leaderboard bareng teman seperjuangan.</p>
     </section>
   </div>
   <div class="foot">

@@ -1,4 +1,4 @@
-/* HapFam SportApp — Sound Effects (Revisi 4 Jun 2026)
+/* KawanKeringat — Sound Effects (Revisi 4 Jun 2026)
  * Efek suara ringan berbasis WebAudio. Tidak butuh file mp3.
  *
  * Update 4 Jun 2026:

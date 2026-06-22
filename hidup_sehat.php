@@ -10,7 +10,7 @@ include __DIR__.'/includes/header.php';
     <h1 class="h4 mb-0"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</h1>
     <a href="/index.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Beranda</a>
   </div>
-  <p class="text-muted small">Panduan ringkas kebiasaan dan pola makan sehat ala HapFam. Mulai dari hal kecil yang konsisten.</p>
+  <p class="text-muted small">Panduan ringkas kebiasaan dan pola makan sehat ala KawanKeringat. Mulai dari hal kecil yang konsisten.</p>
 
   <div class="row g-3">
     <div class="col-md-6">

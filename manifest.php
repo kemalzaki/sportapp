@@ -1,9 +1,9 @@
 <?php
 header('Content-Type: application/manifest+json; charset=utf-8');
 echo json_encode([
-    "name" => "HapFam SportApp",
+    "name" => "KawanKeringat",
     "short_name" => "SportApp",
-    "description" => "Komunitas olahraga HapFam — check-in, leaderboard, dan event dalam satu app.",
+    "description" => "Komunitas olahraga KawanKeringat — check-in, leaderboard, dan event dalam satu app.",
     "start_url" => "/index.php?source=pwa",
     "display" => "standalone",
     "orientation" => "portrait",

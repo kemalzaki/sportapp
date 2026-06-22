@@ -1,5 +1,5 @@
 /* ==========================================================================
- * HapFam Global Preloader
+ * KawanKeringat Global Preloader
  * - Splash on first load (auto fade-out)
  * - Overlay on real navigation (link click, form submit, programmatic)
  * - Button loading state + double-click guard
@@ -113,7 +113,7 @@
     if (s) return s;
     s = el('div', { id:'hfSplash', 'aria-hidden':'true' },
       '<div class="hf-splash-logo"><i class="bi bi-lightning-charge-fill"></i></div>' +
-      '<div class="hf-splash-title">HapFam SportApp</div>' +
+      '<div class="hf-splash-title">KawanKeringat</div>' +
       '<div class="hf-splash-dots"><span></span><span></span><span></span></div>');
     // Sisipkan paling depan agar tidak menghalangi event listener konten
     if (document.body.firstChild) document.body.insertBefore(s, document.body.firstChild);

@@ -70,7 +70,7 @@ $csrf = csrf_token();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0ea5e9">
-<title>Masuk · HapFam SportApp</title>
+<title>Masuk · KawanKeringat</title>
 <link rel="icon" href="/assets/icon-192.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -173,7 +173,7 @@ body{
   <header class="lg-hero">
     <div class="lg-logo"><i class="bi bi-lightning-charge-fill"></i></div>
     <h1 class="lg-title">Ayo Olahraga<br>Bareng 🏃‍♂️⚽</h1>
-    <p class="lg-sub">Masuk untuk lanjut lari, futsal, badminton, kalistenik, & jajan bareng komunitas HapFam.</p>
+    <p class="lg-sub">Masuk untuk lanjut lari, futsal, badminton, kalistenik, & jajan bareng komunitas KawanKeringat.</p>
     <div style="display:flex;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
       <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-trophy-fill"></i> Event 2026</span>
       <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-stopwatch-fill"></i> Run Tracker</span>
@@ -250,7 +250,7 @@ body{
     </button>
 
     <div class="lg-footer-note mt-3">
-      &copy; 2026 HapFam SportApp · By Yuk-Mari CyberLab
+      &copy; 2026 KawanKeringat · By Yuk-Mari CyberLab
     </div>
   </section>
 </div>
@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!_installBtn) return;
   _installBtn.addEventListener('click', async () => {
     if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; }
-    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon HapFam akan muncul di home screen HP kamu.'); }
+    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon KawanKeringat akan muncul di home screen HP kamu.'); }
   });
 });
 </script>

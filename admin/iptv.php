@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='import') {
         $src = trim($_POST['playlist_url'] ?? $DEFAULT_PLAYLIST);
         $replace = !empty($_POST['replace_all']);
-        $ctx = stream_context_create(['http'=>['timeout'=>15,'user_agent'=>'HapFamSportApp/1.0']]);
+        $ctx = stream_context_create(['http'=>['timeout'=>15,'user_agent'=>'KawanKeringat/1.0']]);
         $raw = @file_get_contents($src,false,$ctx);
         if (!$raw) {
             $_SESSION['flash_err']='Gagal mengunduh playlist: '.htmlspecialchars($src);

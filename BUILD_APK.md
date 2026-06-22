@@ -64,5 +64,5 @@ npx cap open android
 ## Package & URL
 
 - **Package ID:** `com.happyfamily.hapfamsportapp`
-- **App name:** `Happy Family SportApp`
+- **App name:** `KawanKeringat`
 - **Server URL:** `https://sportapp-rumd.onrender.com`

@@ -157,14 +157,14 @@ include __DIR__.'/includes/header.php';
           <input class="form-check-input" type="checkbox" id="optHud" checked>
           <label class="form-check-label small" for="optHud">Tampilkan popup statistik (HUD) saat playback</label>
         </div>
-        <!-- Revisi 19 Juni 2026 — Toggle Logo & Copyright HapFam pada video rekaman -->
+        <!-- Revisi 19 Juni 2026 — Toggle Logo & Copyright KawanKeringat pada video rekaman -->
         <div class="form-check form-switch mb-1">
           <input class="form-check-input" type="checkbox" id="optBrandLogo" checked>
-          <label class="form-check-label small" for="optBrandLogo"><i class="bi bi-image text-info"></i> Tampilkan Logo HapFam (pojok kanan-bawah)</label>
+          <label class="form-check-label small" for="optBrandLogo"><i class="bi bi-image text-info"></i> Tampilkan Logo KawanKeringat (pojok kanan-bawah)</label>
         </div>
         <div class="form-check form-switch mb-2">
           <input class="form-check-input" type="checkbox" id="optBrandCopyright" checked>
-          <label class="form-check-label small" for="optBrandCopyright"><i class="bi bi-c-circle text-info"></i> Tampilkan Copyright "© HapFam 2026 • Sport"</label>
+          <label class="form-check-label small" for="optBrandCopyright"><i class="bi bi-c-circle text-info"></i> Tampilkan Copyright "© KawanKeringat 2026 • Sport"</label>
         </div>
         <div class="form-check form-switch mb-2">
           <input class="form-check-input" type="checkbox" id="optMusic">
@@ -1264,12 +1264,12 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
     }
   }
 
-  /* Revisi 18 Juni 2026 (E,F) — Watermark Copyright "HapFam 2026" + foto profil */
-  drawHapFamBrand(ctx, w, h, sx, sy);
+  /* Revisi 18 Juni 2026 (E,F) — Watermark Copyright "KawanKeringat 2026" + foto profil */
+  drawKawanKeringatBrand(ctx, w, h, sx, sy);
 }
 
 /* ============================================================
-   Revisi 18 Juni 2026 — Brand HapFam (logo + copyright) untuk video
+   Revisi 18 Juni 2026 — Brand KawanKeringat (logo + copyright) untuk video
    ============================================================ */
 var HAPFAM_LOGO = new Image();
 HAPFAM_LOGO.crossOrigin = 'anonymous';
@@ -1277,7 +1277,7 @@ HAPFAM_LOGO.src = '/assets/img/hapfam-logo.png';
 var HAPFAM_LOGO_READY = false;
 HAPFAM_LOGO.onload = function(){ HAPFAM_LOGO_READY = true; };
 
-function drawHapFamBrand(ctx, w, h, sx, sy){
+function drawKawanKeringatBrand(ctx, w, h, sx, sy){
   // Revisi 19 Juni 2026 — Toggle logo & copyright dari UI
   var elLogo = document.getElementById('optBrandLogo');
   var elCopy = document.getElementById('optBrandCopyright');
@@ -1319,7 +1319,7 @@ function drawHapFamBrand(ctx, w, h, sx, sy){
   if (showCopy) {
   // Copyright bar di bawah-tengah
   ctx.save();
-  var txt = '© HapFam 2026 • Sport';
+  var txt = '© KawanKeringat 2026 • Sport';
   var fs = Math.max(12, 14*sx);
   ctx.font = '700 '+fs+'px system-ui, sans-serif';
   var tw = ctx.measureText(txt).width + 24*sx, th = fs + 10*sy;

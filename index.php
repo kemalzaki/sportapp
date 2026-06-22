@@ -574,10 +574,11 @@ include __DIR__.'/includes/header.php'; ?>
   <div class="d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1" style="min-width:240px;">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas HapFam</span>
+        <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas KawanKeringat</span>
       </div>
-      <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Dashboard Olahraga Komunitas</h1>
-      <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat.</p>
+      <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Halo, <?= htmlspecialchars($u['nama'] ?? 'Sobat') ?>! 👋</h1>
+      <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">Selamat datang Mahasiswa &amp; Pecinta Olahraga.</p>
+      <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat — yuk kumpulkan keringat hari ini.</p>
       <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
     </div>
     <img src="assets/img/card-olahraga.jpg" alt="Komunitas jogging" loading="lazy" width="180" height="120" class="rounded-3 d-none d-sm-block" style="width:180px;height:120px;object-fit:cover;box-shadow:0 6px 16px rgba(0,0,0,.25);">
@@ -592,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!_installBtn) return;
   _installBtn.addEventListener('click', async () => {
     if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; }
-    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon HapFam akan muncul di home screen HP kamu.'); }
+    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon KawanKeringat akan muncul di home screen HP kamu.'); }
   });
 });
 </script>
@@ -1516,9 +1517,9 @@ function showStory(d){
       (data.items || []).forEach(n => {
         const opt = { body: n.isi || '', icon: '/assets/icon-192.png', badge: '/assets/icon-192.png', tag: 'hapfam-'+n.id, data: { url: n.url || '/' } };
         if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.ready.then(reg => reg.showNotification(n.judul || 'HapFam', opt));
+          navigator.serviceWorker.ready.then(reg => reg.showNotification(n.judul || 'KawanKeringat', opt));
         } else {
-          try { new Notification(n.judul || 'HapFam', opt); } catch(e){}
+          try { new Notification(n.judul || 'KawanKeringat', opt); } catch(e){}
         }
       });
     } catch(e){}

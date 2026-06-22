@@ -255,13 +255,13 @@ INSERT INTO "app_settings" ("skey", "sval", "keterangan", "updated_at") VALUES
 	('biaya_aplikasi_fixed', '1000', 'Biaya aplikasi fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
 	('biaya_aplikasi_pct', '0', 'Biaya aplikasi persen', '2026-06-02 07:20:16.747266'),
 	('invoice_email_from', 'no-reply@hapfam.local', 'Alamat email pengirim invoice', '2026-06-02 07:20:16.747266'),
-	('invoice_email_nama', 'HapFam SportApp', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266'),
+	('invoice_email_nama', 'KawanKeringat', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266'),
 	('biaya_admin_fixed', '4000', 'Biaya admin Midtrans fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
 	('biaya_admin_pct', '0.007', 'Biaya admin Midtrans persen (0.007 = 0.7%)', '2026-06-02 07:20:16.747266'),
 	('biaya_aplikasi_fixed', '1000', 'Biaya aplikasi fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
 	('biaya_aplikasi_pct', '0', 'Biaya aplikasi persen', '2026-06-02 07:20:16.747266'),
 	('invoice_email_from', 'no-reply@hapfam.local', 'Alamat email pengirim invoice', '2026-06-02 07:20:16.747266'),
-	('invoice_email_nama', 'HapFam SportApp', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266');
+	('invoice_email_nama', 'KawanKeringat', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266');
 /*!40000 ALTER TABLE "app_settings" ENABLE KEYS */;
 
 -- Dumping structure for table public.badges
@@ -2009,7 +2009,7 @@ CREATE TABLE IF NOT EXISTS "kebijakan_privasi" (
 -- Dumping data for table public.kebijakan_privasi: -1 rows
 /*!40000 ALTER TABLE "kebijakan_privasi" DISABLE KEYS */;
 INSERT INTO "kebijakan_privasi" ("id", "versi", "judul", "konten", "aktif", "created_at", "updated_at") VALUES
-	(1, '1.0', 'Kebijakan Privasi (UU PDP No. 27 Tahun 2022)', '<h3>Pendahuluan</h3><p>HapFam SportApp menghormati privasi Anda dan mematuhi UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p>
+	(1, '1.0', 'Kebijakan Privasi (UU PDP No. 27 Tahun 2022)', '<h3>Pendahuluan</h3><p>KawanKeringat menghormati privasi Anda dan mematuhi UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p>
 
 <h3>1. Data yang Kami Kumpulkan</h3><ul><li>Data identitas: nama, email, jenis kelamin, nomor WhatsApp</li><li>Data lokasi (saat memesan jajanan/booking lapangan)</li><li>Data aktivitas olahraga, foto profil, postingan</li></ul>
 

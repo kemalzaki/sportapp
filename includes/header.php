@@ -61,7 +61,7 @@ if (empty($pageSkeleton)) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
-<title><?= htmlspecialchars(($pageTitle ?? 'HapFam SportApp') . ' · HapFam SportApp') ?></title>
+<title><?= htmlspecialchars(($pageTitle ?? 'KawanKeringat') . ' · KawanKeringat') ?></title>
 <link rel="manifest" href="/manifest.php">
 <link rel="apple-touch-icon" href="/assets/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
@@ -123,7 +123,7 @@ if (empty($pageSkeleton)) {
   nav.navbar.sticky-top{ position: fixed !important; top:0; left:0; right:0; z-index:1050;
     box-shadow: 0 2px 8px rgba(0,0,0,.15); }
 }
-/* Revisi 6 Jun 2026 — Logo HapFam SportApp berwarna (tidak biru semua) */
+/* Revisi 6 Jun 2026 — Logo KawanKeringat berwarna (tidak biru semua) */
 .brand-logo-colored{font-family:'Plus Jakarta Sans',system-ui,sans-serif;letter-spacing:.2px;}
 .brand-logo-colored .bi-lightning-charge-fill{filter:drop-shadow(0 0 6px rgba(250,204,21,.55));}
 .brand-logo-colored .bl-1{color:#ef4444;}   /* Hap   - merah */
@@ -150,7 +150,7 @@ if (empty($pageSkeleton)) {
     </button>
     <form class="gt-search" role="search" action="/search.php" method="get" data-sfx-off>
       <i class="bi bi-search"></i>
-      <input type="search" name="q" placeholder="<?= $u ? 'Cari aktivitas, tempat, member…' : 'Cari di HapFam SportApp…' ?>" autocomplete="off">
+      <input type="search" name="q" placeholder="<?= $u ? 'Cari aktivitas, tempat, member…' : 'Cari di KawanKeringat…' ?>" autocomplete="off">
     </form>
     <?php if ($u): ?>
       <!-- LONCENG: klik => buka popup notifikasi (BUKAN redirect) -->

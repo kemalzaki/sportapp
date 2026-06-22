@@ -306,7 +306,7 @@ include __DIR__.'/includes/header.php';
                 if ($waRaw !== '') {
                     if (str_starts_with($waRaw,'0')) $waRaw = '62'.substr($waRaw,1);
                     elseif (!str_starts_with($waRaw,'62')) $waRaw = '62'.$waRaw;
-                    $msg = rawurlencode('Halo '.($b['nama']??'').", yuk olahraga lagi! Kamu belum upload aktivitas minggu ini di HapFam SportApp.");
+                    $msg = rawurlencode('Halo '.($b['nama']??'').", yuk olahraga lagi! Kamu belum upload aktivitas minggu ini di KawanKeringat.");
                     echo '<a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="https://wa.me/'.htmlspecialchars($waRaw).'?text='.$msg.'"><i class="bi bi-whatsapp"></i> Ingatkan</a>';
                 } else {
                     echo '<a class="btn btn-sm btn-outline-secondary" href="/dm.php?to='.(int)$b['id'].'" title="Nomor WA belum diisi, kirim via DM"><i class="bi bi-chat-dots"></i> Ingatkan</a>';

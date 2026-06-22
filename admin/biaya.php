@@ -71,7 +71,7 @@ include __DIR__.'/../includes/header.php';
       </div>
       <div class="col-md-6">
         <label class="form-label small">Nama Pengirim</label>
-        <input type="text" name="invoice_email_nama" class="form-control" value="<?= htmlspecialchars(app_setting('invoice_email_nama','HapFam SportApp')) ?>">
+        <input type="text" name="invoice_email_nama" class="form-control" value="<?= htmlspecialchars(app_setting('invoice_email_nama','KawanKeringat')) ?>">
       </div>
     </div>
   </div>

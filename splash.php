@@ -9,7 +9,7 @@ send_security_headers();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#4338ca">
-<title>HapFam SportApp</title>
+<title>KawanKeringat</title>
 <link rel="icon" href="/assets/icon-192.png">
 <link rel="preload" as="image" href="/assets/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
@@ -51,10 +51,12 @@ p.tag{font-size:1rem;opacity:.92;max-width:30ch;animation:fade .8s .3s both;}
   <div class="glow g1"></div><div class="glow g2"></div>
   <div class="logo-wrap">
     <div class="ring r3"></div><div class="ring r2"></div><div class="ring"></div>
-    <img class="logo" src="/assets/icon-512.png" alt="HapFam SportApp">
+    <img class="logo" src="/assets/icon-512.png" alt="KawanKeringat">
   </div>
-  <h1>HapFam SportApp</h1>
-  <p class="tag">Olahraga • Komunitas • Jajanan • Islami</p>
+  <h1>KawanKeringat</h1>
+  <p class="tag">Olahraga • Lari • Komunitas • Petualangan</p>
+  <p class="tag" style="margin-top:.8rem;font-weight:600;opacity:.95">Halo, Mahasiswa &amp; Pecinta Olahraga 👋</p>
+  <p class="tag" style="margin-top:.2rem;font-size:.92rem;opacity:.85">Selamat datang — yuk gerak bareng, kumpulkan keringat, jaga semangat.</p>
   <div class="bar"><i></i></div>
   <div class="brand-foot">By Yuk-Mari CyberLab</div>
 <script>
