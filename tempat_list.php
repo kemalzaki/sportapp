@@ -5,7 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Daftar Tempat';
-$pageSkeleton = 'grid'; // Skeleton sesuai data: grid tempat
+$pageSkeleton = 'grid';
 $u = current_user();
 $isAdmin = $u && $u['role']==='admin';
 
@@ -19,12 +19,8 @@ $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_ur
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id $wsql ORDER BY t.nama ASC", $params);
 $jenisList = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
-/* Revisi 22 Juni 2026 R10 — Section khusus Tempat Hiking & Camping.
-   Dipindahkan dari tempat.php agar berada bersama Daftar Tempat. */
-$trails = db_all("SELECT t.*, COALESCE(j.nama,'') AS jenis_nama
-                  FROM tempat t LEFT JOIN jenis_olahraga j ON j.id=t.jenis_id
-                  WHERE LOWER(COALESCE(j.nama,'')) IN ('hiking','camping')
-                  ORDER BY j.nama, t.nama");
+/* Revisi 22 Juni 2026 R11 — Tempat Hiking/Camping TIDAK lagi dipisah jadi section sendiri.
+   Sekarang menyatu dengan Daftar Tempat. Peta rute (lat/lng & GPX) dipindah ke popup Detail. */
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Daftar Tempat Olahraga</h2>
@@ -44,8 +40,9 @@ include __DIR__.'/includes/header.php';
 <div class="row g-3">
 <?php foreach($rows as $r):
   $maps = ($r['lat'] && $r['lng']) ? ('https://www.google.com/maps/search/?api=1&query='.$r['lat'].','.$r['lng']) : ('https://www.google.com/maps/search/?api=1&query='.urlencode($r['nama'].' '.($r['alamat']??'')));
-  // Data untuk popup member
   $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
+  $jenisLower = mb_strtolower(trim((string)($r['jenis_nama'] ?? '')));
+  $isTrail = in_array($jenisLower, ['hiking','camping'], true);
   $popup = [
     'nama' => $r['nama'],
     'alamat' => $r['alamat'] ?? '',
@@ -58,14 +55,18 @@ include __DIR__.'/includes/header.php';
     'catatan' => $r['catatan'] ?? '',
     'pic_nama' => $r['pic_nama'] ?? '',
     'pic_foto' => $r['pic_foto'] ?? '',
-    // Nomor telepon TIDAK dikirim ke member; hanya admin
     'kontak_wa' => $isAdmin ? ($r['kontak_wa'] ?? '') : '',
     'pic_wa_admin' => $isAdmin ? ($r['pic_wa'] ?? '') : '',
-    'wa_link' => $picWa ? ('https://wa.me/'.$picWa) : '', // tombol WA tetap, tanpa expose nomor
+    'wa_link' => $picWa ? ('https://wa.me/'.$picWa) : '',
     'lat' => $r['lat'],
     'lng' => $r['lng'],
     'maps' => $maps,
     'is_admin' => $isAdmin,
+    // R11: data peta rute untuk hiking/camping (atau tempat apapun yang punya GPX/koordinat)
+    'is_trail' => $isTrail,
+    'gpx_path' => $r['gpx_path'] ?? '',
+    'id' => (int)$r['id'],
+    'detail_url' => '/tempat_detail.php?id='.(int)$r['id'],
   ];
 ?>
   <div class="col-md-6 col-lg-4">
@@ -76,7 +77,16 @@ include __DIR__.'/includes/header.php';
           <?php $st=$r['status_booking']; $cls=$st==='tersedia'?'success':($st==='booked'?'warning':'secondary'); ?>
           <span class="badge bg-<?= $cls ?>"><?= htmlspecialchars($st) ?></span>
         </div>
-        <?php if($r['jenis_nama']): ?><div class="mb-2"><span class="pill"><i class="bi bi-tags"></i> <?= htmlspecialchars($r['jenis_nama']) ?></span></div><?php endif; ?>
+        <?php if($r['jenis_nama']): ?>
+          <div class="mb-2">
+            <span class="pill <?= $isTrail?'text-success':'' ?>">
+              <i class="bi <?= $isTrail?'bi-tree-fill':'bi-tags' ?>"></i> <?= htmlspecialchars($r['jenis_nama']) ?>
+            </span>
+            <?php if(!empty($r['gpx_path'])): ?>
+              <span class="badge bg-success-subtle text-success-emphasis ms-1"><i class="bi bi-bezier2"></i> Rute GPX</span>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
         <p class="small text-muted mb-2"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($r['alamat'] ?? '—') ?></p>
         <?php if($r['pic_nama']): ?><div class="small mb-2">PIC: <?= user_name_with_avatar($r['pic_foto']??null,$r['pic_nama'],false,22) ?></div><?php endif; ?>
         <div class="d-flex gap-2">
@@ -91,7 +101,11 @@ include __DIR__.'/includes/header.php';
 <?php endforeach; if(!$rows): ?><div class="col-12"><div class="alert alert-info">Tidak ada tempat.</div></div><?php endif; ?>
 </div>
 
-<!-- Popup detail Tempat (untuk member) -->
+<!-- Leaflet (untuk peta rute di popup) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<!-- Popup detail Tempat -->
 <div class="modal fade" id="tempatModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable">
   <div class="modal-content">
     <div class="modal-header">
@@ -101,6 +115,16 @@ include __DIR__.'/includes/header.php';
     <div class="modal-body">
       <div class="mb-2 small text-muted" id="tmAlamat"></div>
       <div class="mb-2" id="tmJenis"></div>
+
+      <!-- R11: Peta rute (hiking/camping atau tempat dengan koordinat/GPX) -->
+      <div id="tmMapWrap" class="mb-3 d-none">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <strong class="small"><i class="bi bi-map text-success"></i> Peta Rute</strong>
+          <span id="tmGpxBadge" class="badge bg-success-subtle text-success-emphasis d-none"><i class="bi bi-bezier2"></i> GPX</span>
+        </div>
+        <div id="tmMap" style="height:320px;width:100%;border-radius:8px;overflow:hidden;border:1px solid #dee2e6"></div>
+      </div>
+
       <div class="row g-3">
         <div class="col-12">
           <table class="table table-sm mb-2">
@@ -117,6 +141,7 @@ include __DIR__.'/includes/header.php';
               <i class="bi bi-geo-alt-fill"></i> Lihat di Google Maps
             </a>
             <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
+            <a id="tmDetail" class="btn btn-sm btn-outline-info d-none"><i class="bi bi-info-circle"></i> Halaman Detail</a>
           </div>
           <div id="tmKoord" class="small text-muted mt-1"></div>
         </div>
@@ -126,9 +151,44 @@ include __DIR__.'/includes/header.php';
 </div></div>
 
 <script>
-let _tmM = null;
+let _tmM = null, _tmLeaflet = null;
+function _tmDestroyMap(){
+  if (_tmLeaflet) { try { _tmLeaflet.remove(); } catch(e){} _tmLeaflet = null; }
+  const el = document.getElementById('tmMap'); if (el) el.innerHTML = '';
+}
+function _tmRenderMap(d){
+  const wrap = document.getElementById('tmMapWrap');
+  const hasCoord = d.lat && d.lng;
+  const hasGpx = !!d.gpx_path;
+  if (!hasCoord && !hasGpx) { wrap.classList.add('d-none'); return; }
+  wrap.classList.remove('d-none');
+  document.getElementById('tmGpxBadge').classList.toggle('d-none', !hasGpx);
+  if (typeof L === 'undefined') { setTimeout(()=>_tmRenderMap(d), 250); return; }
+  _tmDestroyMap();
+  const center = hasCoord ? [Number(d.lat), Number(d.lng)] : [-6.9,107.6];
+  _tmLeaflet = L.map('tmMap').setView(center, hasCoord?15:12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(_tmLeaflet);
+  setTimeout(()=>{ if(_tmLeaflet) _tmLeaflet.invalidateSize(); }, 200);
+  if (hasCoord) L.marker(center).addTo(_tmLeaflet).bindPopup('<b>'+(d.nama||'')+'</b>').openPopup();
+  if (hasGpx) {
+    fetch(d.gpx_path).then(r=>r.text()).then(xml=>{
+      const doc = new DOMParser().parseFromString(xml,'application/xml');
+      const trkpts = doc.getElementsByTagName('trkpt'); const pts = [];
+      for (let i=0;i<trkpts.length;i++) pts.push(L.latLng(parseFloat(trkpts[i].getAttribute('lat')), parseFloat(trkpts[i].getAttribute('lon'))));
+      if (pts.length && _tmLeaflet){
+        const line = L.polyline(pts,{color:'#198754',weight:5,opacity:.85}).addTo(_tmLeaflet);
+        L.marker(pts[0]).addTo(_tmLeaflet).bindPopup('Start');
+        L.marker(pts[pts.length-1]).addTo(_tmLeaflet).bindPopup('Finish');
+        _tmLeaflet.fitBounds(line.getBounds(),{padding:[20,20]});
+      }
+    }).catch(()=>{});
+  }
+}
 function showTempatDetail(d){
-  if(!_tmM) _tmM = new bootstrap.Modal(document.getElementById('tempatModal'));
+  if(!_tmM) {
+    _tmM = new bootstrap.Modal(document.getElementById('tempatModal'));
+    document.getElementById('tempatModal').addEventListener('hidden.bs.modal', _tmDestroyMap);
+  }
   const fmt = v => 'Rp '+ Number(v||0).toLocaleString('id-ID');
   document.getElementById('tmNama').textContent = d.nama || '';
   document.getElementById('tmAlamat').innerHTML = '<i class="bi bi-geo-alt"></i> ' + (d.alamat || '—');
@@ -147,117 +207,16 @@ function showTempatDetail(d){
   document.getElementById('tmCatatan').textContent = d.catatan || '';
   const wa = document.getElementById('tmWa');
   if (d.wa_link) { wa.href = d.wa_link; wa.classList.remove('d-none'); } else { wa.classList.add('d-none'); }
-  // Tombol Google Maps berdasarkan koordinat lat/lng
   const mapsBtn = document.getElementById('tmMaps');
   if (d.maps) { mapsBtn.href = d.maps; mapsBtn.classList.remove('d-none'); } else { mapsBtn.classList.add('d-none'); }
+  const det = document.getElementById('tmDetail');
+  if (d.detail_url) { det.href = d.detail_url; det.classList.remove('d-none'); } else { det.classList.add('d-none'); }
   const kd = document.getElementById('tmKoord');
   if (d.lat && d.lng) { kd.innerHTML = '<i class="bi bi-pin-map"></i> Koordinat: '+Number(d.lat).toFixed(6)+', '+Number(d.lng).toFixed(6); }
   else { kd.innerHTML = ''; }
   _tmM.show();
+  // Render peta setelah modal tampil agar ukurannya benar
+  setTimeout(()=>_tmRenderMap(d), 250);
 }
 </script>
-<?php /* ============================================================
-   Revisi 22 Juni 2026 R10 — Section Tempat Hiking & Camping
-   Dipindahkan dari tempat.php. Menampilkan tempat dengan jenis
-   hiking/camping (di-input admin di /admin/tempat.php) beserta peta
-   rute GPX-nya.
-   ============================================================ */ ?>
-<?php if ($trails): ?>
-<div class="card shadow-sm mb-3 mt-4 border-success">
-  <div class="card-header bg-success-subtle text-success-emphasis">
-    <i class="bi bi-tree-fill"></i> <strong>Tempat Hiking &amp; Camping</strong>
-    <small class="text-muted ms-2">Peta rute oleh admin (jenis: hiking / camping)</small>
-  </div>
-  <div class="card-body">
-    <div class="row g-2">
-    <?php foreach($trails as $t):
-      $hasRoute = !empty($t['gpx_path']) || (!empty($t['lat']) && !empty($t['lng'])); ?>
-      <div class="col-md-6 col-lg-4">
-        <div class="border rounded p-2 h-100 d-flex flex-column">
-          <div><strong><i class="bi bi-geo-alt-fill text-success"></i> <?= htmlspecialchars($t['nama']) ?></strong>
-            <span class="badge bg-success-subtle text-success-emphasis ms-1 text-capitalize"><?= htmlspecialchars($t['jenis_nama']) ?></span>
-          </div>
-          <?php if(!empty($t['alamat'])): ?><div class="small text-muted"><i class="bi bi-signpost"></i> <?= htmlspecialchars($t['alamat']) ?></div><?php endif; ?>
-          <?php if(!empty($t['gpx_path'])): ?><div class="small text-success"><i class="bi bi-bezier2"></i> Rute GPX tersedia</div><?php endif; ?>
-          <div class="mt-auto pt-2 d-flex flex-wrap gap-1">
-            <?php if ($hasRoute): ?>
-              <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#tlUserMap<?= (int)$t['id'] ?>">
-                <i class="bi bi-map"></i> Lihat Rute
-              </button>
-            <?php endif; ?>
-            <a class="btn btn-sm btn-outline-info" href="/tempat_detail.php?id=<?= (int)$t['id'] ?>"><i class="bi bi-info-circle"></i> Detail</a>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; ?>
-    </div>
-  </div>
-</div>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
-<?php foreach($trails as $t):
-  $hasMapT = (!empty($t['lat']) && !empty($t['lng'])) || !empty($t['gpx_path']);
-  if (!$hasMapT) continue; ?>
-<div class="modal fade" id="tlUserMap<?= (int)$t['id'] ?>" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
-    <div class="modal-header">
-      <h5 class="modal-title"><i class="bi bi-geo-alt-fill text-danger"></i> Peta — <?= htmlspecialchars($t['nama']) ?></h5>
-      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-    </div>
-    <div class="modal-body p-0">
-      <div id="tlMap<?= (int)$t['id'] ?>" style="height:460px;width:100%"></div>
-      <div class="p-3 small">
-        <div><strong><i class="bi bi-pin-map text-danger"></i> <?= htmlspecialchars($t['nama']) ?></strong></div>
-        <?php if(!empty($t['alamat'])): ?><div class="text-muted"><i class="bi bi-signpost"></i> <?= htmlspecialchars($t['alamat']) ?></div><?php endif; ?>
-        <?php if(!empty($t['jenis_nama'])): ?><div><span class="badge bg-success-subtle text-success-emphasis text-capitalize"><i class="bi bi-tag"></i> <?= htmlspecialchars($t['jenis_nama']) ?></span></div><?php endif; ?>
-        <div class="mt-2 d-flex flex-wrap gap-1">
-          <?php if(!empty($t['lat']) && !empty($t['lng'])): ?>
-            <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
-               href="https://www.google.com/maps/dir/?api=1&destination=<?= (float)$t['lat'] ?>,<?= (float)$t['lng'] ?>&travelmode=driving"><i class="bi bi-google"></i> Rute</a>
-          <?php endif; ?>
-          <a class="btn btn-sm btn-outline-info" href="/tempat_detail.php?id=<?= (int)$t['id'] ?>"><i class="bi bi-info-circle"></i> Detail</a>
-        </div>
-      </div>
-    </div>
-  </div></div>
-</div>
-<script>
-(function(){
-  var TID = <?= (int)$t['id'] ?>;
-  var LAT = <?= !empty($t['lat']) ? (float)$t['lat'] : 'null' ?>;
-  var LNG = <?= !empty($t['lng']) ? (float)$t['lng'] : 'null' ?>;
-  var GPX = <?= json_encode(!empty($t['gpx_path']) ? $t['gpx_path'] : '') ?>;
-  var NAMA = <?= json_encode($t['nama']) ?>;
-  var initialized = false, lmap = null;
-  var modal = document.getElementById('tlUserMap'+TID);
-  if (!modal) return;
-  modal.addEventListener('shown.bs.modal', function(){
-    if (typeof L === 'undefined') { setTimeout(function(){ modal.dispatchEvent(new Event('shown.bs.modal')); }, 200); return; }
-    if (initialized) { setTimeout(function(){ lmap.invalidateSize(); }, 100); return; }
-    initialized = true;
-    var center = (LAT && LNG) ? [LAT,LNG] : [-6.9,107.6];
-    lmap = L.map('tlMap'+TID).setView(center, (LAT&&LNG)?16:12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(lmap);
-    setTimeout(function(){ lmap.invalidateSize(); }, 200);
-    if (LAT && LNG) L.marker([LAT,LNG]).addTo(lmap).bindPopup('<b>'+NAMA+'</b>').openPopup();
-    if (GPX) {
-      fetch(GPX).then(function(r){return r.text();}).then(function(xml){
-        var doc = new DOMParser().parseFromString(xml,'application/xml');
-        var trkpts = doc.getElementsByTagName('trkpt'); var pts = [];
-        for (var i=0;i<trkpts.length;i++) pts.push(L.latLng(parseFloat(trkpts[i].getAttribute('lat')), parseFloat(trkpts[i].getAttribute('lon'))));
-        if (pts.length){
-          var line = L.polyline(pts,{color:'#198754',weight:5,opacity:.85}).addTo(lmap);
-          L.marker(pts[0]).addTo(lmap).bindPopup('Start');
-          L.marker(pts[pts.length-1]).addTo(lmap).bindPopup('Finish');
-          lmap.fitBounds(line.getBounds(),{padding:[20,20]});
-        }
-      }).catch(function(){});
-    }
-  });
-})();
-</script>
-<?php endforeach; ?>
-<?php endif; ?>
 <?php include __DIR__.'/includes/footer.php'; ?>
-
