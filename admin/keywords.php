@@ -70,11 +70,20 @@ foreach ($rows as $r) $byKat[$r['kategori']][] = $r;
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Pencarian Video</h2>
-<p class="text-muted small">
+<p class="text-muted small mb-2">
   Kata kunci di sini akan <strong>ditambahkan otomatis</strong> ke query pencarian YouTube pada halaman
   <code>kalistenik.php</code> (kategori <em>olahraga</em>) dan <code>survival.php</code> (kategori <em>survival</em>),
   agar hasil hanya menampilkan video yang relevan dengan topik tersebut.
 </p>
+
+<!-- Revisi 22 Juni 2026 R12 — Keterangan arti angka 0 / 1 pada tabel -->
+<div class="alert alert-info small py-2 mb-3">
+  <i class="bi bi-info-circle"></i> <strong>Keterangan angka pada tabel:</strong>
+  <ul class="mb-0 ps-3">
+    <li><strong>Aktif (tombol ON / off)</strong> &mdash; setara nilai database <code>1 = aktif / ON</code> (kata kunci dipakai untuk pencarian) dan <code>0 = nonaktif / off</code> (kata kunci diabaikan, tidak dihapus, bisa diaktifkan lagi kapan saja).</li>
+    <li><strong>Urut</strong> &mdash; nomor urutan kemunculan kata kunci. Angka <code>0</code> = urutan default (paling awal sesuai ID). Angka lebih kecil ditampilkan lebih dulu, angka lebih besar di belakang. Misal: <code>0, 1, 2, 3 …</code></li>
+  </ul>
+</div>
 
 <?php if(!empty($_SESSION['flash_ok'])): ?>
   <div class="alert alert-success small"><?= htmlspecialchars($_SESSION['flash_ok']) ?></div>

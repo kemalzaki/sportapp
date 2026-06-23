@@ -62,9 +62,13 @@ include __DIR__.'/includes/header.php';
 </a>
 
 
-<div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
-  <div class="card-body py-3">
-    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Tracking Jalur / Rute Realtime</h6>
+<!-- Revisi 22 Juni 2026 R12 — Panel info dibungkus <details> (spoiler) agar tidak memanjang -->
+<details class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
+  <summary class="card-body py-2" style="cursor:pointer;list-style:revert">
+    <strong><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Tracking Jalur / Rute Realtime</strong>
+    <span class="text-muted small">(klik untuk buka/tutup)</span>
+  </summary>
+  <div class="card-body py-3 pt-0">
     <ol class="small mb-2 ps-3">
       <li>Tekan <b class="text-success">Mulai</b> &mdash; izinkan akses GPS saat diminta. Browser otomatis
         merekam lintasan, jarak, durasi, dan pace Anda secara real-time di peta.</li>
@@ -83,7 +87,7 @@ include __DIR__.'/includes/header.php';
       kecepatan &gt;36&nbsp;km/jam <i>diabaikan</i> agar rute tidak kacau.
     </div>
   </div>
-</div>
+</details>
 
 <div class="row g-3">
   <div class="col-md-7">
@@ -636,9 +640,13 @@ document.addEventListener('click', function(ev){
 <hr class="my-4">
 <h4 class="mb-3" id="eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
 
-<div class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
-  <div class="card-body py-3">
-    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-primary"></i> Cara Penggunaan Eksplorasi Rute &amp; Peta Canggih</h6>
+<!-- Revisi 22 Juni 2026 R12 — Panel info dibungkus <details> (spoiler) -->
+<details class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
+  <summary class="card-body py-2" style="cursor:pointer;list-style:revert">
+    <strong><i class="bi bi-info-circle text-primary"></i> Cara Penggunaan Eksplorasi Rute &amp; Peta Canggih</strong>
+    <span class="text-muted small">(klik untuk buka/tutup)</span>
+  </summary>
+  <div class="card-body py-3 pt-0">
     <ul class="small mb-2 ps-3">
       <li><b>Route Builder &middot; Auto Generate</b>: isi titik mulai (atau klik <i class="bi bi-geo-alt"></i> untuk lokasi sekarang),
         target jarak, preferensi elevasi/jalan/tipe rute, lalu tekan <b>Generate Rute</b>.
@@ -659,7 +667,7 @@ document.addEventListener('click', function(ev){
       heuristik, bukan jaminan.
     </div>
   </div>
-</div>
+</details>
 
 <ul class="nav nav-tabs" id="advTab" role="tablist">
   <li class="nav-item" role="presentation">

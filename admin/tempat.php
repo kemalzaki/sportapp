@@ -50,6 +50,16 @@ function save_gpx_upload($field='gpx_file'){
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? 'create';
+    // Revisi 22 Juni 2026 R12 — wrap operasi DB dalam try/catch + flash error supaya
+    // CRUD tidak gagal diam-diam (mis. nama kosong, status enum salah, dll).
+    try {
+    $allowedStatus = ['tersedia','booked','renovasi','tutup'];
+    if (isset($_POST['status_booking']) && !in_array($_POST['status_booking'], $allowedStatus, true)) {
+        $_POST['status_booking'] = 'tersedia';
+    }
+    if (in_array($a, ['create','edit'], true) && trim((string)($_POST['nama'] ?? '')) === '') {
+        throw new RuntimeException('Nama tempat wajib diisi.');
+    }
     if ($a==='delete') {
         // Hapus juga file GPX yg terkait bila ada
         $old = db_one("SELECT gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
@@ -131,6 +141,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              $jenisId, $lat, $lng, $tampil,
              $gpxFinal, $parkir, $runRouteId]);
     }
+    $_SESSION['flash_ok'] = $a==='delete' ? 'Tempat dihapus.' : ($a==='edit' ? 'Tempat diperbarui.' : ($a==='toggle_booking' ? 'Status booking diperbarui.' : 'Tempat ditambahkan.'));
+    } catch (Throwable $e) {
+        $_SESSION['flash_err'] = 'Gagal menyimpan: ' . $e->getMessage();
+    }
     header('Location: tempat.php'); exit;
 }
 
@@ -192,6 +206,13 @@ include __DIR__.'/../includes/header.php'; ?>
 
 <h2 class="mb-3"><i class="bi bi-geo-alt text-primary"></i> Manajemen Tempat</h2>
 <p class="text-muted">Daftar lapangan / GOR beserta detail biaya, PIC admin, kontak WA, dan jenis olahraga.</p>
+
+<?php if(!empty($_SESSION['flash_ok'])): ?>
+  <div class="alert alert-success py-2 small"><i class="bi bi-check-circle"></i> <?= htmlspecialchars($_SESSION['flash_ok']) ?></div>
+  <?php unset($_SESSION['flash_ok']); endif; ?>
+<?php if(!empty($_SESSION['flash_err'])): ?>
+  <div class="alert alert-danger py-2 small"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($_SESSION['flash_err']) ?></div>
+  <?php unset($_SESSION['flash_err']); endif; ?>
 
 <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Tempat</div>
 <div class="card-body">

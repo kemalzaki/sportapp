@@ -1581,4 +1581,54 @@ function showStory(d){
 })();
 </script>
 
+<script>
+/* Revisi 22 Juni 2026 R12 — AJAX pagination Social Feed.
+   Intercept tombol Sebelumnya/Berikutnya pada #sec-social-feed dan muat
+   konten via fetch tanpa reload halaman. */
+(function(){
+  var section = document.getElementById('sec-social-feed');
+  if (!section) return;
+  function bind(){
+    var nav = section.querySelector('nav[aria-label="Navigasi feed"]');
+    if (!nav) return;
+    nav.querySelectorAll('a[href]').forEach(function(a){
+      if (a.dataset._ajaxBound) return;
+      a.dataset._ajaxBound = '1';
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        var url = a.getAttribute('href');
+        if (!url) return;
+        var body = section.querySelector('[data-live="feed"]');
+        if (!body) { location.href = url; return; }
+        body.style.opacity = '0.5';
+        fetch(url, {headers:{'X-Requested-With':'fetch'}, credentials:'same-origin'})
+          .then(function(r){ return r.text(); })
+          .then(function(html){
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var nb = doc.querySelector('#sec-social-feed [data-live="feed"]');
+            if (nb) {
+              body.innerHTML = nb.innerHTML;
+              try { history.replaceState(null,'', url.replace(/#.*$/,'') + '#feed'); } catch(e){}
+              // re-init carousels & inline scripts inside new content
+              body.querySelectorAll('script').forEach(function(s){
+                var ns = document.createElement('script');
+                if (s.src) ns.src = s.src; else ns.textContent = s.textContent;
+                s.parentNode.replaceChild(ns, s);
+              });
+              bind(); // re-bind new pagination
+              section.scrollIntoView({behavior:'smooth', block:'start'});
+            } else {
+              location.href = url;
+            }
+          })
+          .catch(function(){ location.href = url; })
+          .finally(function(){ body.style.opacity = '1'; });
+      });
+    });
+  }
+  bind();
+  // observe future replacements
+  new MutationObserver(bind).observe(section, {childList:true, subtree:true});
+})();
+</script>
 <?php render_index_blok('bottom'); include __DIR__.'/includes/footer.php'; ?>

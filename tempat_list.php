@@ -9,35 +9,38 @@ $pageSkeleton = 'grid';
 $u = current_user();
 $isAdmin = $u && $u['role']==='admin';
 
-$q = trim($_GET['q'] ?? '');
-$fJenis = (int)($_GET['jenis'] ?? 0);
+/* ====== Revisi 22 Juni 2026 R12 ======
+ * - Pagination 9 kartu per halaman (3x3 grid) supaya tidak memanjang ke bawah.
+ * - Filter pakai AJAX (fetch ?ajax=list=1) — tidak reload halaman.
+ * ===================================== */
+$q       = trim($_GET['q'] ?? '');
+$fJenis  = (int)($_GET['jenis'] ?? 0);
+$page    = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 9;
+$ajax    = !empty($_GET['ajax_list']);
+
 $where = []; $params = []; $i=1;
 if ($q !== '') { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $params[]="%$q%"; $i++; }
-if ($fJenis) { $where[] = "t.jenis_id = \$$i"; $params[]=$fJenis; $i++; }
+if ($fJenis)   { $where[] = "t.jenis_id = \$$i"; $params[]=$fJenis; $i++; }
 $wsql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
+
+$total     = (int) db_val("SELECT COUNT(*) FROM tempat t $wsql", $params);
+$totalPage = max(1, (int)ceil($total / $perPage));
+if ($page > $totalPage) $page = $totalPage;
+$offset    = ($page-1) * $perPage;
+
 $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto, u.nomor_wa AS pic_wa
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
-                LEFT JOIN users u ON u.id=t.pic_user_id $wsql ORDER BY t.nama ASC", $params);
+                LEFT JOIN users u ON u.id=t.pic_user_id $wsql
+                ORDER BY t.nama ASC
+                LIMIT $perPage OFFSET $offset", $params);
+
 $jenisList = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
-/* Revisi 22 Juni 2026 R11 — Tempat Hiking/Camping TIDAK lagi dipisah jadi section sendiri.
-   Sekarang menyatu dengan Daftar Tempat. Peta rute (lat/lng & GPX) dipindah ke popup Detail. */
-include __DIR__.'/includes/header.php';
+
+/* ----- Helper render kartu + pagination (dipakai oleh full page & ajax) ----- */
+function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
 ?>
-<h2 class="mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Daftar Tempat Olahraga</h2>
-<p class="text-muted small">Tempat-tempat olahraga yang dikelola admin komunitas. Klik untuk melihat detail & arah lokasi.</p>
-
-<div class="card shadow-sm mb-3"><div class="card-body">
-  <form class="row g-2" method="get">
-    <div class="col-md-6"><input class="form-control form-control-sm" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="🔍 Cari nama / alamat..."></div>
-    <div class="col-md-4"><select class="form-select form-select-sm" name="jenis">
-      <option value="0">Semua Jenis</option>
-      <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
-    </select></div>
-    <div class="col-md-2 d-grid"><button class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filter</button></div>
-  </form>
-</div></div>
-
-<div class="row g-3">
+<div class="row g-3" id="tempatGrid">
 <?php foreach($rows as $r):
   $maps = ($r['lat'] && $r['lng']) ? ('https://www.google.com/maps/search/?api=1&query='.$r['lat'].','.$r['lng']) : ('https://www.google.com/maps/search/?api=1&query='.urlencode($r['nama'].' '.($r['alamat']??'')));
   $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
@@ -62,7 +65,6 @@ include __DIR__.'/includes/header.php';
     'lng' => $r['lng'],
     'maps' => $maps,
     'is_admin' => $isAdmin,
-    // R11: data peta rute untuk hiking/camping (atau tempat apapun yang punya GPX/koordinat)
     'is_trail' => $isTrail,
     'gpx_path' => $r['gpx_path'] ?? '',
     'id' => (int)$r['id'],
@@ -98,7 +100,51 @@ include __DIR__.'/includes/header.php';
       </div>
     </div>
   </div>
-<?php endforeach; if(!$rows): ?><div class="col-12"><div class="alert alert-info">Tidak ada tempat.</div></div><?php endif; ?>
+<?php endforeach; if(!$rows): ?><div class="col-12"><div class="alert alert-info mb-0">Tidak ada tempat sesuai filter.</div></div><?php endif; ?>
+</div>
+
+<?php if ($totalPage > 1): ?>
+<nav class="mt-3" id="tempatPager"><ul class="pagination pagination-sm justify-content-center mb-1">
+  <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="#" data-page="<?= max(1,$page-1) ?>">«</a></li>
+  <?php
+    $from = max(1, $page-3); $to = min($totalPage, $from+6); $from = max(1, $to-6);
+    for ($p=$from; $p<=$to; $p++):
+  ?>
+    <li class="page-item <?= $p===$page?'active':'' ?>"><a class="page-link" href="#" data-page="<?= $p ?>"><?= $p ?></a></li>
+  <?php endfor; ?>
+  <li class="page-item <?= $page>=$totalPage?'disabled':'' ?>"><a class="page-link" href="#" data-page="<?= min($totalPage,$page+1) ?>">»</a></li>
+</ul>
+<div class="text-center small text-muted">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $total ?> tempat</div>
+</nav>
+<?php endif; ?>
+<?php
+}
+
+if ($ajax) {
+    // Render fragment saja
+    tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total);
+    exit;
+}
+
+include __DIR__.'/includes/header.php';
+?>
+<h2 class="mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Daftar Tempat Olahraga</h2>
+<p class="text-muted small">Tempat-tempat olahraga yang dikelola admin komunitas. Klik untuk melihat detail & arah lokasi.</p>
+
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <!-- Revisi 22 Juni 2026 R12 — filter via AJAX (tidak reload halaman) -->
+  <form class="row g-2" id="tempatFilterForm" onsubmit="return false">
+    <div class="col-md-6"><input class="form-control form-control-sm" name="q" id="fQ" value="<?= htmlspecialchars($q) ?>" placeholder="🔍 Cari nama / alamat..."></div>
+    <div class="col-md-4"><select class="form-select form-select-sm" name="jenis" id="fJenis">
+      <option value="0">Semua Jenis</option>
+      <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
+    </select></div>
+    <div class="col-md-2 d-grid"><button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button></div>
+  </form>
+</div></div>
+
+<div id="tempatListWrap">
+<?php tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total); ?>
 </div>
 
 <!-- Leaflet (untuk peta rute di popup) -->
@@ -116,7 +162,6 @@ include __DIR__.'/includes/header.php';
       <div class="mb-2 small text-muted" id="tmAlamat"></div>
       <div class="mb-2" id="tmJenis"></div>
 
-      <!-- R11: Peta rute (hiking/camping atau tempat dengan koordinat/GPX) -->
       <div id="tmMapWrap" class="mb-3 d-none">
         <div class="d-flex justify-content-between align-items-center mb-1">
           <strong class="small"><i class="bi bi-map text-success"></i> Peta Rute</strong>
@@ -137,9 +182,7 @@ include __DIR__.'/includes/header.php';
           </table>
           <div id="tmCatatan" class="small text-muted" style="white-space:pre-wrap"></div>
           <div class="mt-2 d-flex flex-wrap gap-2">
-            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-primary d-none">
-              <i class="bi bi-geo-alt-fill"></i> Lihat di Google Maps
-            </a>
+            <a id="tmMaps" target="_blank" rel="noopener" class="btn btn-sm btn-primary d-none"><i class="bi bi-geo-alt-fill"></i> Lihat di Google Maps</a>
             <a id="tmWa" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-whatsapp"></i> Hubungi PIC</a>
             <a id="tmDetail" class="btn btn-sm btn-outline-info d-none"><i class="bi bi-info-circle"></i> Halaman Detail</a>
           </div>
@@ -151,15 +194,12 @@ include __DIR__.'/includes/header.php';
 </div></div>
 
 <script>
+/* ===== Detail popup (sama seperti versi sebelumnya) ===== */
 let _tmM = null, _tmLeaflet = null;
-function _tmDestroyMap(){
-  if (_tmLeaflet) { try { _tmLeaflet.remove(); } catch(e){} _tmLeaflet = null; }
-  const el = document.getElementById('tmMap'); if (el) el.innerHTML = '';
-}
+function _tmDestroyMap(){ if (_tmLeaflet){ try{_tmLeaflet.remove();}catch(e){} _tmLeaflet=null; } var el=document.getElementById('tmMap'); if(el) el.innerHTML=''; }
 function _tmRenderMap(d){
   const wrap = document.getElementById('tmMapWrap');
-  const hasCoord = d.lat && d.lng;
-  const hasGpx = !!d.gpx_path;
+  const hasCoord = d.lat && d.lng, hasGpx = !!d.gpx_path;
   if (!hasCoord && !hasGpx) { wrap.classList.add('d-none'); return; }
   wrap.classList.remove('d-none');
   document.getElementById('tmGpxBadge').classList.toggle('d-none', !hasGpx);
@@ -185,10 +225,7 @@ function _tmRenderMap(d){
   }
 }
 function showTempatDetail(d){
-  if(!_tmM) {
-    _tmM = new bootstrap.Modal(document.getElementById('tempatModal'));
-    document.getElementById('tempatModal').addEventListener('hidden.bs.modal', _tmDestroyMap);
-  }
+  if(!_tmM) { _tmM = new bootstrap.Modal(document.getElementById('tempatModal')); document.getElementById('tempatModal').addEventListener('hidden.bs.modal', _tmDestroyMap); }
   const fmt = v => 'Rp '+ Number(v||0).toLocaleString('id-ID');
   document.getElementById('tmNama').textContent = d.nama || '';
   document.getElementById('tmAlamat').innerHTML = '<i class="bi bi-geo-alt"></i> ' + (d.alamat || '—');
@@ -198,12 +235,8 @@ function showTempatDetail(d){
   document.getElementById('tmHJ').textContent = fmt(d.harga_jam);
   document.getElementById('tmHT').textContent = fmt(d.harga_tiket);
   document.getElementById('tmHP').textContent = fmt(d.harga_parkir);
-  if (d.pic_nama) {
-    document.getElementById('tmRowPIC').classList.remove('d-none');
-    document.getElementById('tmPIC').textContent = d.pic_nama;
-  } else {
-    document.getElementById('tmRowPIC').classList.add('d-none');
-  }
+  if (d.pic_nama) { document.getElementById('tmRowPIC').classList.remove('d-none'); document.getElementById('tmPIC').textContent = d.pic_nama; }
+  else            { document.getElementById('tmRowPIC').classList.add('d-none'); }
   document.getElementById('tmCatatan').textContent = d.catatan || '';
   const wa = document.getElementById('tmWa');
   if (d.wa_link) { wa.href = d.wa_link; wa.classList.remove('d-none'); } else { wa.classList.add('d-none'); }
@@ -215,8 +248,59 @@ function showTempatDetail(d){
   if (d.lat && d.lng) { kd.innerHTML = '<i class="bi bi-pin-map"></i> Koordinat: '+Number(d.lat).toFixed(6)+', '+Number(d.lng).toFixed(6); }
   else { kd.innerHTML = ''; }
   _tmM.show();
-  // Render peta setelah modal tampil agar ukurannya benar
   setTimeout(()=>_tmRenderMap(d), 250);
 }
+
+/* ===== Revisi R12: AJAX filter + pagination ===== */
+(function(){
+  var form = document.getElementById('tempatFilterForm');
+  var wrap = document.getElementById('tempatListWrap');
+  if (!form || !wrap) return;
+  var loading = false;
+
+  function loadList(page){
+    if (loading) return;
+    loading = true;
+    var q = document.getElementById('fQ').value.trim();
+    var j = document.getElementById('fJenis').value;
+    var p = page || 1;
+    var url = '/tempat_list.php?ajax_list=1&q='+encodeURIComponent(q)+'&jenis='+encodeURIComponent(j)+'&page='+p;
+    wrap.style.opacity = '0.5';
+    fetch(url, {headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        wrap.innerHTML = html;
+        wrap.style.opacity = '1';
+        // Update URL agar bisa di-bookmark / share
+        try {
+          var qs = new URLSearchParams();
+          if (q) qs.set('q', q);
+          if (j && j!=='0') qs.set('jenis', j);
+          if (p>1) qs.set('page', p);
+          history.replaceState(null, '', '/tempat_list.php'+(qs.toString()?('?'+qs.toString()):''));
+        } catch(e){}
+      })
+      .catch(function(){ wrap.style.opacity='1'; })
+      .finally(function(){ loading = false; });
+  }
+  form.addEventListener('submit', function(e){ e.preventDefault(); loadList(1); });
+  ['fQ','fJenis'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT') el.addEventListener('change', function(){ loadList(1); });
+    else el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadList(1); }});
+  });
+  // Delegate pagination clicks
+  wrap.addEventListener('click', function(e){
+    var a = e.target.closest('a[data-page]');
+    if (!a) return;
+    e.preventDefault();
+    var li = a.parentElement;
+    if (li && li.classList.contains('disabled')) return;
+    var p = parseInt(a.dataset.page||'1',10);
+    loadList(p);
+    window.scrollTo({top: wrap.offsetTop - 60, behavior:'smooth'});
+  });
+})();
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

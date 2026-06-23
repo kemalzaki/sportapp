@@ -92,6 +92,82 @@ $rows = db_all("SELECT p.*, j.tanggal AS j_tgl, j.jenis AS j_jenis, j.tempat AS 
 $totalAgg = (int) db_val("SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran_kegiatan p $where", $params);
 
 $jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal ORDER BY tanggal DESC LIMIT 200");
+
+/* Revisi 22 Juni 2026 R12 — AJAX fragment: kembalikan hanya bagian tabel + pagination. */
+if (!empty($_GET['ajax_table'])) {
+    ob_start();
+    ?>
+    <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Tgl</th><th>Jadwal</th><th>Kategori</th><th>Judul</th><th class="text-end">Jumlah</th><th>Dana Dari</th><th>Catatan</th><th>Bukti (ImageKit)</th><th>Pencatat</th><th class="text-end" style="min-width:130px">Aksi</th></tr></thead>
+      <tbody>
+      <?php foreach($rows as $r): ?>
+        <tr>
+          <td class="small"><?= htmlspecialchars($r['tanggal']) ?></td>
+          <td class="small">
+            <?php if($r['jadwal_id']): ?>
+              <?= date('d M',strtotime($r['j_tgl'])) ?> · <?= htmlspecialchars($r['j_jenis']) ?>
+              <div class="text-muted"><?= htmlspecialchars($r['j_tempat']) ?></div>
+            <?php else: ?><span class="text-muted">—</span><?php endif; ?>
+          </td>
+          <td><span class="badge bg-secondary-subtle text-secondary"><?= htmlspecialchars($r['kategori'] ?? '-') ?></span></td>
+          <td><?= htmlspecialchars($r['judul']) ?></td>
+          <td class="text-end text-danger">Rp <?= number_format((int)$r['jumlah'],0,',','.') ?></td>
+          <td class="small"><?= !empty($r['dana_dari']) ? '<span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-cash-coin"></i> '.htmlspecialchars($r['dana_dari']).'</span>' : '<span class="text-muted">—</span>' ?></td>
+          <td class="small text-muted"><?= htmlspecialchars($r['catatan'] ?? '') ?></td>
+          <td>
+            <?php if(!empty($r['bukti_url'])):
+              $isImg = (bool)preg_match('/\.(jpe?g|png|webp|gif)(\?|$)/i', $r['bukti_url']); ?>
+              <a href="<?= htmlspecialchars($r['bukti_url']) ?>" target="_blank" rel="noopener">
+                <?php if($isImg): ?>
+                  <img src="<?= htmlspecialchars($r['bukti_url']) ?>" alt="bukti" style="height:36px;width:auto;border-radius:4px;object-fit:cover">
+                <?php else: ?>
+                  <i class="bi bi-file-earmark-image"></i> Lihat
+                <?php endif; ?>
+              </a>
+            <?php else: ?>-<?php endif; ?>
+          </td>
+          <td class="small"><?= htmlspecialchars($r['pencatat'] ?? '-') ?></td>
+          <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-primary btn-edit-peng"
+                    data-id="<?= (int)$r['id'] ?>" data-jadwal_id="<?= (int)($r['jadwal_id'] ?? 0) ?>"
+                    data-tanggal="<?= htmlspecialchars($r['tanggal']) ?>"
+                    data-kategori="<?= htmlspecialchars($r['kategori'] ?? '') ?>"
+                    data-judul="<?= htmlspecialchars($r['judul']) ?>"
+                    data-jumlah="<?= (int)$r['jumlah'] ?>"
+                    data-catatan="<?= htmlspecialchars($r['catatan'] ?? '') ?>"
+                    data-dana_dari="<?= htmlspecialchars($r['dana_dari'] ?? '') ?>"
+                    data-bukti_url="<?= htmlspecialchars($r['bukti_url'] ?? '') ?>">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form method="post" class="d-inline peng-form-ajax" onsubmit="return confirm('Hapus pengeluaran ini?')">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="delete">
+              <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; if(!$rows): ?><tr><td colspan="10" class="text-center text-muted small">Belum ada pengeluaran.</td></tr><?php endif; ?>
+      </tbody>
+      <?php if($rows): ?>
+      <tfoot><tr class="table-light"><th colspan="4" class="text-end">Total (semua halaman)</th><th class="text-end text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></th><th colspan="5"></th></tr></tfoot>
+      <?php endif; ?>
+    </table></div></div>
+    <?php if ($totalPage > 1): ?>
+    <nav class="mt-3"><ul class="pagination pagination-sm justify-content-center mb-1">
+      <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="#" data-page="<?= max(1,$page-1) ?>">«</a></li>
+      <?php for($p=1;$p<=$totalPage;$p++): ?>
+        <li class="page-item <?= $p===$page?'active':'' ?>"><a class="page-link" href="#" data-page="<?= $p ?>"><?= $p ?></a></li>
+      <?php endfor; ?>
+      <li class="page-item <?= $page>=$totalPage?'disabled':'' ?>"><a class="page-link" href="#" data-page="<?= min($totalPage,$page+1) ?>">»</a></li>
+    </ul></nav>
+    <div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $totalRows ?> entri · 5 per halaman</div>
+    <?php endif; ?>
+    <?php
+    echo ob_get_clean();
+    exit;
+}
+
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</h2>
@@ -146,6 +222,8 @@ include __DIR__.'/../includes/header.php';
   </form>
 </div></div>
 
+<!-- Revisi 22 Juni 2026 R12 — Bungkus tabel + pagination dalam wrapper untuk AJAX -->
+<div id="pengTableWrap">
 <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
   <thead><tr><th>Tgl</th><th>Jadwal</th><th>Kategori</th><th>Judul</th><th class="text-end">Jumlah</th><th>Dana Dari</th><th>Catatan</th><th>Bukti (ImageKit)</th><th>Pencatat</th><th class="text-end" style="min-width:130px">Aksi</th></tr></thead>
   <tbody>
@@ -189,7 +267,7 @@ include __DIR__.'/../includes/header.php';
                 data-bukti_url="<?= htmlspecialchars($r['bukti_url'] ?? '') ?>">
           <i class="bi bi-pencil"></i>
         </button>
-        <form method="post" class="d-inline" onsubmit="return confirm('Hapus pengeluaran ini?')">
+        <form method="post" class="d-inline peng-form-ajax" onsubmit="return confirm('Hapus pengeluaran ini?')">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
           <input type="hidden" name="_action" value="delete">
           <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
@@ -220,6 +298,7 @@ include __DIR__.'/../includes/header.php';
 </ul></nav>
 <div class="text-center small text-muted mb-2">Halaman <?= $page ?> dari <?= $totalPage ?> · <?= $totalRows ?> entri · 5 per halaman</div>
 <?php endif; ?>
+</div><!-- /#pengTableWrap -->
 
 <!-- ===== Modal Edit Pengeluaran ===== -->
 <div class="modal fade" id="editPengModal" tabindex="-1" aria-hidden="true">
@@ -288,6 +367,125 @@ include __DIR__.'/../includes/header.php';
       if (modal) modal.show();
     });
   });
+})();
+</script>
+
+<script>
+/* Revisi 22 Juni 2026 R12 — AJAX untuk filter, pagination, add, edit, delete
+   sehingga tidak terjadi reload halaman. */
+(function(){
+  var wrap = document.getElementById('pengTableWrap');
+  if (!wrap) return;
+  var selFilter = document.querySelector('select[name="jadwal_id"]');
+  var addForm   = document.querySelector('form input[name="_action"][value="add"]');
+  addForm = addForm ? addForm.closest('form') : null;
+  var editForm  = document.querySelector('#editPengModal form');
+  var editModalEl = document.getElementById('editPengModal');
+  var editModal = editModalEl ? bootstrap.Modal.getOrCreateInstance(editModalEl) : null;
+
+  function getFilterJadwal(){
+    var s = document.querySelector('form[method="get"] select[name="jadwal_id"]');
+    return s ? s.value : '0';
+  }
+
+  function loadTable(page){
+    var jid = getFilterJadwal();
+    var qs = new URLSearchParams();
+    qs.set('ajax_table','1');
+    if (jid && jid !== '0') qs.set('jadwal_id', jid);
+    if (page) qs.set('page', page);
+    wrap.style.opacity = '0.5';
+    fetch('/admin/pengeluaran.php?' + qs.toString(), {credentials:'same-origin', headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        wrap.innerHTML = html;
+        wrap.style.opacity = '1';
+        bindRowActions();
+        try {
+          var u = new URL(location.href);
+          if (jid && jid !== '0') u.searchParams.set('jadwal_id', jid); else u.searchParams.delete('jadwal_id');
+          if (page) u.searchParams.set('page', page); else u.searchParams.delete('page');
+          history.replaceState(null,'', u.toString());
+        } catch(e){}
+      })
+      .catch(function(){ wrap.style.opacity='1'; });
+  }
+
+  // Intercept filter dropdown
+  if (selFilter) {
+    selFilter.removeAttribute('onchange');
+    selFilter.addEventListener('change', function(){ loadTable(1); });
+    var topForm = selFilter.closest('form');
+    if (topForm) topForm.addEventListener('submit', function(e){ e.preventDefault(); loadTable(1); });
+  }
+
+  // Intercept pagination + delete inside wrap (delegated)
+  function bindRowActions(){
+    // Edit buttons inside fragment
+    wrap.querySelectorAll('.btn-edit-peng').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.getElementById('ep_id').value         = this.dataset.id || '';
+        document.getElementById('ep_jadwal_id').value  = this.dataset.jadwal_id || '0';
+        document.getElementById('ep_tanggal').value    = this.dataset.tanggal || '';
+        document.getElementById('ep_kategori').value   = this.dataset.kategori || '';
+        document.getElementById('ep_judul').value      = this.dataset.judul || '';
+        document.getElementById('ep_jumlah').value     = this.dataset.jumlah || '0';
+        document.getElementById('ep_catatan').value    = this.dataset.catatan || '';
+        document.getElementById('ep_dana_dari').value  = this.dataset.dana_dari || '';
+        document.getElementById('ep_bukti_url').value  = this.dataset.bukti_url || '';
+        if (editModal) editModal.show();
+      });
+    });
+  }
+  wrap.addEventListener('click', function(e){
+    var a = e.target.closest('a[data-page]');
+    if (a) {
+      e.preventDefault();
+      var li = a.parentElement;
+      if (li && li.classList.contains('disabled')) return;
+      loadTable(parseInt(a.dataset.page||'1',10));
+    }
+  });
+  wrap.addEventListener('submit', function(e){
+    var f = e.target.closest('form.peng-form-ajax');
+    if (!f) return;
+    e.preventDefault();
+    var fd = new FormData(f);
+    fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin'})
+      .then(function(){ loadTable(1); });
+  });
+  bindRowActions();
+
+  // Intercept ADD form
+  if (addForm) {
+    addForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      var fd = new FormData(addForm);
+      var btn = addForm.querySelector('button[type=submit],button:not([type])');
+      if (btn) { btn.disabled = true; var oldH = btn.innerHTML; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
+      fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(){
+          addForm.reset();
+          loadTable(1);
+        })
+        .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = oldH; } });
+    });
+  }
+  // Intercept EDIT modal form
+  if (editForm) {
+    editForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      var fd = new FormData(editForm);
+      var btn = editForm.querySelector('button[type=submit]');
+      if (btn) btn.disabled = true;
+      fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(){
+          if (editModal) editModal.hide();
+          loadTable();
+        })
+        .finally(function(){ if (btn) btn.disabled = false; });
+    });
+  }
 })();
 </script>
 

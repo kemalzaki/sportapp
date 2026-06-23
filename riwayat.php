@@ -262,24 +262,51 @@ $myDays = $u ? db_all("
     AND tanggal >= CURRENT_DATE - INTERVAL '90 days'
   GROUP BY tanggal ORDER BY tanggal", [(int)$u['id']]) : [];
 
+/* Revisi 22 Juni 2026 R12 — AJAX endpoint: return hanya fragmen leaderboard
+   sehingga filter Kategori & Periode tidak perlu reload halaman penuh. */
+if (!empty($_GET['ajax_lb'])) {
+    header('Content-Type: text/html; charset=utf-8'); ?>
+    <div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
+    <ol class="list-group list-group-flush list-group-numbered">
+      <?php foreach($lb as $i=>$row): ?>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <a href="/user.php?id=<?= (int)$row['id'] ?>" class="text-decoration-none">
+            <?= user_name_with_avatar($row['foto_url'] ?? null, $row['nama'], false, 28) ?>
+          </a>
+          <span class="badge bg-primary rounded-pill">
+            <?php
+              if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
+              elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
+              elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
+              else echo (int)$row['skor'];
+            ?>
+          </span>
+        </li>
+      <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
+    </ol>
+    <?php exit;
+}
+
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-clock-history text-primary"></i> Riwayat & Leaderboard</h2>
 
 <div class="card shadow-sm mb-3"><div class="card-body">
-  <form class="row g-2 align-items-end">
+  <!-- Revisi 22 Juni 2026 R12 — Filter kategori & periode pakai AJAX (tidak reload halaman) -->
+  <form class="row g-2 align-items-end" id="lbFilterForm" onsubmit="return false">
     <div class="col-md-3"><label class="small fw-semibold">Kategori</label>
-      <select name="cat" class="form-select" onchange="this.form.submit()">
+      <select name="cat" id="lbCat" class="form-select">
         <?php foreach(['konsisten'=>'Paling Konsisten','jarak'=>'Jarak Terbanyak','pace'=>'Pace Terbaik','kalori'=>'Kalori Terbanyak','all'=>'All Rounder'] as $k=>$v): ?>
           <option value="<?= $k ?>" <?= $cat===$k?'selected':'' ?>><?= $v ?></option>
         <?php endforeach; ?>
       </select></div>
     <div class="col-md-3"><label class="small fw-semibold">Periode</label>
-      <select name="period" class="form-select" onchange="this.form.submit()">
+      <select name="period" id="lbPeriod" class="form-select">
         <option value="weekly"  <?= $period==='weekly'?'selected':'' ?>>Mingguan</option>
         <option value="monthly" <?= $period==='monthly'?'selected':'' ?>>Bulanan</option>
         <option value="all"     <?= $period==='all'?'selected':'' ?>>All-time</option>
       </select></div>
+    <div class="col-md-2"><span id="lbAjaxStat" class="small text-muted"></span></div>
   </form>
 </div></div>
 
@@ -355,7 +382,7 @@ include __DIR__.'/includes/header.php';
 
 <div class="row g-3">
   <div class="col-lg-5">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
+    <div class="card shadow-sm" id="lbCard"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
     <ol class="list-group list-group-flush list-group-numbered">
       <?php foreach($lb as $i=>$row): ?>
         <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -809,5 +836,25 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
   bindPager(ctl, p);
 });
 
+</script>
+<script>
+/* Revisi 22 Juni 2026 R12 — AJAX filter Leaderboard (kategori & periode). */
+(function(){
+  var f = document.getElementById('lbFilterForm');
+  var card = document.getElementById('lbCard');
+  if (!f || !card) return;
+  var stat = document.getElementById('lbAjaxStat');
+  function reload(){
+    var cat = document.getElementById('lbCat').value;
+    var per = document.getElementById('lbPeriod').value;
+    stat.textContent = 'Memuat...';
+    fetch('/riwayat.php?ajax_lb=1&cat='+encodeURIComponent(cat)+'&period='+encodeURIComponent(per), {headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.text(); })
+      .then(function(html){ card.innerHTML = html; stat.textContent=''; try{ var qs=new URL(location.href); qs.searchParams.set('cat',cat); qs.searchParams.set('period',per); history.replaceState(null,'',qs.toString()); }catch(e){} })
+      .catch(function(){ stat.textContent='Gagal memuat.'; });
+  }
+  document.getElementById('lbCat').addEventListener('change', reload);
+  document.getElementById('lbPeriod').addEventListener('change', reload);
+})();
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

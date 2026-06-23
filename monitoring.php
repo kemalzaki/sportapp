@@ -231,8 +231,12 @@ include __DIR__.'/includes/header.php';
 </div>
 
 <!-- Penjelasan metrik -->
-<div class="card shadow-sm mb-3 border-info">
-  <div class="card-header bg-info-subtle text-info-emphasis"><i class="bi bi-book"></i> Penjelasan Metrik</div>
+<!-- Revisi 22 Juni 2026 R12 — Penjelasan Metrik dibungkus <details> (spoiler)
+     supaya halaman tidak memanjang ke bawah. Klik untuk membuka penjelasan. -->
+<details class="card shadow-sm mb-3 border-info">
+  <summary class="card-header bg-info-subtle text-info-emphasis" style="cursor:pointer;list-style:revert">
+    <i class="bi bi-book"></i> Penjelasan Metrik <span class="text-muted small">(klik untuk buka/tutup)</span>
+  </summary>
   <div class="card-body small">
     <div class="row g-3">
       <div class="col-md-6"><strong>🫁 VO₂ Estimasi</strong><br>
@@ -251,7 +255,7 @@ include __DIR__.'/includes/header.php';
         Hover tiap kotak untuk melihat tanggal & jumlah.</div>
     </div>
   </div>
-</div>
+</details>
 
 <!-- Tren Pace + Kalori per Minggu -->
 <div class="row g-3">

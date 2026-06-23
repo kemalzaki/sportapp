@@ -142,6 +142,34 @@ $pageSkeleton = 'feed';
     <?php endif; ?>
   </div>
 </div>
+
+<!-- Revisi 22 Juni 2026 R12 — Pada tampilan MOBILE (<768px), countdown Hari Raya &
+     Peristiwa dipindah ke atas (di bawah Tanya Jawab Islami). Di desktop tetap
+     muncul di kolom kanan seperti semula. -->
+<?php
+  // Definisikan event countdown lebih awal supaya bisa dipakai di blok mobile & desktop.
+  $cdEvents = [
+    ['Ramadhan',       hijri_event_to_gregorian(9, 1),  'cdRamadhan',   'success'],
+    ['Idul Fitri',     hijri_event_to_gregorian(10,1),  'cdIedFitri',   'warning'],
+    ['Idul Adha',      hijri_event_to_gregorian(12,10), 'cdIedAdha',    'danger'],
+    ['Tahun Baru Hijriyah', hijri_event_to_gregorian(1, 1),  'cdMuharram','info'],
+    ['Asyura (10 Muharram)',hijri_event_to_gregorian(1,10),  'cdAsyura', 'secondary'],
+    ['Maulid Nabi (12 Rabiul Awal)', hijri_event_to_gregorian(3,12), 'cdMaulid', 'primary'],
+    ['Isra Mi\'raj (27 Rajab)',     hijri_event_to_gregorian(7,27), 'cdIsra',   'info'],
+    ['Nisfu Sya\'ban (15 Sya\'ban)',hijri_event_to_gregorian(8,15), 'cdNisfu',  'dark'],
+    ['Arafah (9 Dzulhijjah)',       hijri_event_to_gregorian(12,9), 'cdArafah', 'warning'],
+  ];
+?>
+<div class="card shadow-sm mb-3 d-md-none">
+  <div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya &amp; Peristiwa</div>
+  <div class="card-body">
+    <?php foreach ($cdEvents as $e): ?>
+      <div class="mb-1 small"><strong class="text-<?= $e[3] ?>"><?= $e[0] ?></strong>
+        <span class="text-muted">(<?= $e[1]->format('d M Y') ?>)</span>:
+        <span id="<?= $e[2] ?>_m">…</span></div>
+    <?php endforeach; ?>
+  </div>
+</div>
 <script>
 (function(){
   var form = document.getElementById('tanyaForm');
@@ -292,19 +320,10 @@ $pageSkeleton = 'feed';
     </div></div>
   </div>
   <div class="col-md-5">
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya & Peristiwa</div><div class="card-body">
+    <!-- Revisi 22 Juni 2026 R12 — Di mobile disembunyikan (sudah ada di atas). Di desktop tetap muncul. -->
+    <div class="card shadow-sm d-none d-md-block"><div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya & Peristiwa</div><div class="card-body">
       <?php
-        $cdEvents = [
-          ['Ramadhan',       hijri_event_to_gregorian(9, 1),  'cdRamadhan',   'success'],
-          ['Idul Fitri',     hijri_event_to_gregorian(10,1),  'cdIedFitri',   'warning'],
-          ['Idul Adha',      hijri_event_to_gregorian(12,10), 'cdIedAdha',    'danger'],
-          ['Tahun Baru Hijriyah', hijri_event_to_gregorian(1, 1),  'cdMuharram','info'],
-          ['Asyura (10 Muharram)',hijri_event_to_gregorian(1,10),  'cdAsyura', 'secondary'],
-          ['Maulid Nabi (12 Rabiul Awal)', hijri_event_to_gregorian(3,12), 'cdMaulid', 'primary'],
-          ['Isra Mi\'raj (27 Rajab)',     hijri_event_to_gregorian(7,27), 'cdIsra',   'info'],
-          ['Nisfu Sya\'ban (15 Sya\'ban)',hijri_event_to_gregorian(8,15), 'cdNisfu',  'dark'],
-          ['Arafah (9 Dzulhijjah)',       hijri_event_to_gregorian(12,9), 'cdArafah', 'warning'],
-        ];
+        // $cdEvents sudah dideklarasikan di blok mobile sebelumnya.
         foreach ($cdEvents as $e): ?>
           <div class="mb-1 small"><strong class="text-<?= $e[3] ?>"><?= $e[0] ?></strong>
             <span class="text-muted">(<?= $e[1]->format('d M Y') ?>)</span>:
@@ -360,7 +379,8 @@ $pageSkeleton = 'feed';
 document.addEventListener('DOMContentLoaded', function(){
   if (!window.islamiCountdown) return;
   <?php foreach ($cdEvents as $e): ?>
-    window.islamiCountdown('<?= $e[2] ?>', '<?= $e[1]->format('Y-m-d') ?>T00:00:00');
+    window.islamiCountdown('<?= $e[2] ?>',      '<?= $e[1]->format('Y-m-d') ?>T00:00:00');
+    window.islamiCountdown('<?= $e[2] ?>_m',    '<?= $e[1]->format('Y-m-d') ?>T00:00:00'); // Revisi R12 — copy mobile
   <?php endforeach; ?>
 });
 </script>

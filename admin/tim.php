@@ -67,14 +67,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['flash_ok'] = "Anggota internal ditambahkan.";
         }
         elseif ($a === 'add_external') {
-            $tid = (int)$_POST['tim_id'];
-            $nm  = trim((string)($_POST['nama_ext'] ?? ''));
-            $wa  = preg_replace('/\D+/','', (string)($_POST['wa_ext'] ?? ''));
-            $cat = trim((string)($_POST['cat_ext'] ?? ''));
-            if (!$tid || $nm==='') throw new Exception('Nama eksternal wajib diisi.');
-            db_exec("INSERT INTO tim_external(tim_id,nama,nomor_wa,catatan,invited_by) VALUES($1,$2,$3,$4,$5)",
-                [$tid,$nm,$wa?:null,$cat?:null,$uid]);
-            $_SESSION['flash_ok'] = "Pemain eksternal '$nm' diundang.";
+            // Revisi 22 Juni 2026 R12 — Pemain eksternal TIDAK lagi input manual.
+            // Sumber data: nama_tamu pada tabel `member_eksternal` (diisi dari admin/absensi.php).
+            $tid    = (int)$_POST['tim_id'];
+            $nameIn = trim((string)($_POST['nama_ext_pick'] ?? ''));
+            $cat    = trim((string)($_POST['cat_ext'] ?? ''));
+            if (!$tid || $nameIn === '') {
+                throw new Exception('Pilih nama tamu dari daftar absensi terlebih dahulu.');
+            }
+            // Validasi: nama harus benar-benar ada di member_eksternal
+            $exists = db_one(
+                "SELECT 1 FROM member_eksternal WHERE LOWER(TRIM(nama_tamu)) = LOWER(TRIM($1)) LIMIT 1",
+                [$nameIn]
+            );
+            if (!$exists) {
+                throw new Exception('Nama "'.$nameIn.'" tidak ditemukan di data absensi. Tambahkan dulu sebagai tamu di admin/absensi.php.');
+            }
+            // Cegah duplikasi untuk tim yang sama (opsional)
+            $dup = db_one(
+                "SELECT 1 FROM tim_external WHERE tim_id=$1 AND LOWER(TRIM(nama))=LOWER(TRIM($2)) LIMIT 1",
+                [$tid, $nameIn]
+            );
+            if ($dup) {
+                throw new Exception('Pemain eksternal "'.$nameIn.'" sudah ada di tim ini.');
+            }
+            db_exec(
+                "INSERT INTO tim_external(tim_id,nama,nomor_wa,catatan,invited_by) VALUES($1,$2,$3,$4,$5)",
+                [$tid, $nameIn, null, $cat ?: null, $uid]
+            );
+            $_SESSION['flash_ok'] = "Pemain eksternal '$nameIn' diundang (dari data absensi).";
         }
         elseif ($a === 'del_member') {
             db_exec("DELETE FROM tim_member WHERE tim_id=$1 AND user_id=$2", [(int)$_POST['tim_id'],(int)$_POST['user_id']]);
@@ -104,6 +125,25 @@ $tjadwal = $selTim ? db_one("SELECT * FROM jadwal WHERE tim_id=$1 ORDER BY tangg
 $members = $selTim ? db_all("SELECT tm.*, u.nama, u.foto_url, u.nomor_wa FROM tim_member tm JOIN users u ON u.id=tm.user_id WHERE tm.tim_id=$1 ORDER BY u.nama", [$selTim]) : [];
 $externals = $selTim ? db_all("SELECT * FROM tim_external WHERE tim_id=$1 ORDER BY id DESC", [$selTim]) : [];
 $allUsers = db_all("SELECT id, nama FROM users WHERE role IN ('member','admin') ORDER BY nama");
+
+/* Revisi 22 Juni 2026 R12 — Daftar pemain eksternal diambil dari `member_eksternal`
+   (tamu yang sudah terdaftar via admin/absensi.php). Tampilkan nama unik beserta
+   info siapa yang membawa & jadwal terakhirnya. */
+$externalTamuList = [];
+try {
+    $externalTamuList = db_all("
+        SELECT DISTINCT ON (LOWER(TRIM(me.nama_tamu)))
+               me.nama_tamu AS nama,
+               u.nama AS dibawa_oleh,
+               j.tanggal AS jadwal_tgl,
+               j.jenis   AS jadwal_jenis
+        FROM member_eksternal me
+        LEFT JOIN users u  ON u.id = me.dibawa_oleh_id
+        LEFT JOIN jadwal j ON j.id = me.jadwal_id
+        WHERE me.nama_tamu IS NOT NULL AND TRIM(me.nama_tamu) <> ''
+        ORDER BY LOWER(TRIM(me.nama_tamu)), me.id DESC
+    ");
+} catch (Throwable $e) { $externalTamuList = []; }
 
 include __DIR__.'/../includes/header.php';
 ?>
@@ -204,15 +244,36 @@ include __DIR__.'/../includes/header.php';
           </ul>
 
           <h6 class="mt-3"><i class="bi bi-person-plus text-info"></i> Pemain Eksternal (<?= count($externals) ?>)</h6>
-          <p class="small text-muted">Tambahkan teman dari luar komunitas — cukup nama &amp; nomor WA, sistem akan membuat tombol kirim WA untuk koordinator.</p>
+          <!-- Revisi 22 Juni 2026 R12 — Pemain eksternal kini WAJIB dipilih dari data tamu
+               yang sudah diinput admin di halaman admin/absensi.php (tabel member_eksternal).
+               Tidak ada lagi input manual nama / WA untuk mencegah double-entry & typo. -->
+          <p class="small text-muted">
+            Pilih nama tamu yang sebelumnya sudah diinput di
+            <a href="/admin/absensi.php"><i class="bi bi-check2-square"></i> Input Absensi</a>.
+            Bila nama yang dicari belum ada, tambahkan dulu sebagai tamu pada jadwal terkait.
+          </p>
           <form method="post" class="row g-2 mb-2" data-loading-btn>
             <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
             <input type="hidden" name="_action" value="add_external">
             <input type="hidden" name="tim_id" value="<?= (int)$tim['id'] ?>">
-            <div class="col-md-4"><input name="nama_ext" class="form-control form-control-sm" placeholder="Nama" maxlength="120" required></div>
-            <div class="col-md-4"><input name="wa_ext" class="form-control form-control-sm" placeholder="WhatsApp (cth 0812…)" maxlength="20"></div>
-            <div class="col-md-3"><input name="cat_ext" class="form-control form-control-sm" placeholder="Catatan / posisi"></div>
-            <div class="col-md-1 d-grid"><button class="btn btn-sm btn-info text-white"><i class="bi bi-plus"></i></button></div>
+            <div class="col-md-7">
+              <select name="nama_ext_pick" class="form-select form-select-sm" required>
+                <option value="">— pilih nama tamu dari absensi —</option>
+                <?php foreach($externalTamuList as $ex): ?>
+                  <option value="<?= htmlspecialchars($ex['nama']) ?>">
+                    <?= htmlspecialchars($ex['nama']) ?>
+                    <?= !empty($ex['dibawa_oleh']) ? ' · dibawa '.htmlspecialchars($ex['dibawa_oleh']) : '' ?>
+                    <?= !empty($ex['jadwal_tgl']) ? ' · '.htmlspecialchars($ex['jadwal_tgl']) : '' ?>
+                    <?= !empty($ex['jadwal_jenis']) ? ' ('.htmlspecialchars($ex['jadwal_jenis']).')' : '' ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+              <?php if(!$externalTamuList): ?>
+                <div class="form-text text-warning small">Belum ada tamu di data absensi. Tambahkan dulu lewat halaman Input Absensi.</div>
+              <?php endif; ?>
+            </div>
+            <div class="col-md-4"><input name="cat_ext" class="form-control form-control-sm" placeholder="Catatan / posisi (opsional)"></div>
+            <div class="col-md-1 d-grid"><button class="btn btn-sm btn-info text-white" <?= $externalTamuList ? '' : 'disabled' ?>><i class="bi bi-plus"></i></button></div>
           </form>
           <ul class="list-group list-group-flush small">
             <?php foreach($externals as $ex):

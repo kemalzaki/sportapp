@@ -95,8 +95,12 @@ include __DIR__.'/../includes/header.php'; ?>
   <input type="hidden" name="jadwal_id" value="<?= $jadwal['id'] ?>">
   <div class="row g-3">
     <div class="col-lg-8">
-      <div class="card shadow-sm"><div class="card-header"><i class="bi bi-people me-1 text-primary"></i> Member Internal — pilih status RSVP</div>
-      <ul class="list-group list-group-flush">
+      <div class="card shadow-sm"><div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-people me-1 text-primary"></i> Member Internal — pilih status RSVP</span>
+        <!-- Revisi 22 Juni 2026 R12 — Filter pencarian + pagination supaya tidak memanjang ke bawah -->
+        <input id="absFilter" type="search" class="form-control form-control-sm" style="max-width:220px" placeholder="🔎 Cari nama member...">
+      </div>
+      <ul class="list-group list-group-flush" id="absMemberList" data-per-page="10">
         <?php
           $opts = [
             'hadir' => ['Hadir','success','bi-check-circle'],
@@ -126,7 +130,12 @@ include __DIR__.'/../includes/header.php'; ?>
           </div>
         </li>
         <?php endforeach; ?>
-      </ul></div>
+      </ul>
+      <div id="absPagerWrap" class="card-footer d-flex justify-content-between align-items-center small text-muted py-2" style="display:none">
+        <span id="absPagerInfo"></span>
+        <nav><ul class="pagination pagination-sm mb-0" id="absPager"></ul></nav>
+      </div>
+      </div>
     </div>
     <div class="col-lg-4">
       <div class="card shadow-sm"><div class="card-header"><i class="bi bi-person-plus me-1 text-primary"></i> Tamu Eksternal</div>
@@ -147,6 +156,64 @@ include __DIR__.'/../includes/header.php'; ?>
   </div>
   <button class="btn btn-primary mt-3"><i class="bi bi-save"></i> Simpan Absensi</button>
 </form>
+
+<!-- Revisi 22 Juni 2026 R12 — Pagination + filter client-side untuk daftar member -->
+<script>
+(function(){
+  var list = document.getElementById('absMemberList');
+  if (!list) return;
+  var perPage = parseInt(list.dataset.perPage || '10', 10);
+  var filter = document.getElementById('absFilter');
+  var pagerWrap = document.getElementById('absPagerWrap');
+  var pager = document.getElementById('absPager');
+  var info = document.getElementById('absPagerInfo');
+  var page = 1;
+
+  function visibleItems(){
+    var q = (filter.value || '').trim().toLowerCase();
+    return Array.from(list.children).filter(function(li){
+      var name = (li.textContent || '').toLowerCase();
+      var match = !q || name.indexOf(q) !== -1;
+      li.dataset._match = match ? '1' : '0';
+      return match;
+    });
+  }
+  function render(){
+    Array.from(list.children).forEach(function(li){ li.style.display='none'; });
+    var items = visibleItems();
+    var total = items.length;
+    var totalPages = Math.max(1, Math.ceil(total / perPage));
+    if (page > totalPages) page = totalPages;
+    var start = (page-1)*perPage;
+    items.slice(start, start+perPage).forEach(function(li){ li.style.display=''; });
+    // pager
+    pager.innerHTML = '';
+    if (totalPages > 1) {
+      pagerWrap.style.display = '';
+      function btn(label, p, disabled, active){
+        var li = document.createElement('li');
+        li.className = 'page-item' + (disabled?' disabled':'') + (active?' active':'');
+        var a = document.createElement('a');
+        a.className = 'page-link'; a.href='#'; a.textContent = label;
+        a.addEventListener('click', function(e){ e.preventDefault(); if(!disabled){ page = p; render(); }});
+        li.appendChild(a); pager.appendChild(li);
+      }
+      btn('«', Math.max(1,page-1), page===1, false);
+      var maxBtns = 7;
+      var from = Math.max(1, page-3), to = Math.min(totalPages, from+maxBtns-1);
+      from = Math.max(1, to-maxBtns+1);
+      for (var p=from; p<=to; p++) btn(String(p), p, false, p===page);
+      btn('»', Math.min(totalPages,page+1), page===totalPages, false);
+      info.textContent = 'Halaman '+page+' / '+totalPages+' · '+total+' member';
+    } else {
+      pagerWrap.style.display = total ? 'none' : 'none';
+      if (total) { pagerWrap.style.display=''; info.textContent = total+' member'; pager.innerHTML=''; }
+    }
+  }
+  filter.addEventListener('input', function(){ page = 1; render(); });
+  render();
+})();
+</script>
 <?php endif; ?>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>
