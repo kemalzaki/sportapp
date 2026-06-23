@@ -11,6 +11,7 @@ $pageTitle='Manajemen Tempat';
  * Idempotent (ALTER ... IF NOT EXISTS) — aman dijalankan berulang.
  * ============================================================ */
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS gpx_path TEXT");
+@db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS gpx_file_id TEXT");
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS parkir_info TEXT");
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS run_route_id BIGINT");
 
@@ -20,9 +21,9 @@ function is_trail_jenis($namaJenis){
     return in_array($n, ['hiking','camping'], true);
 }
 
-/* Helper: simpan upload GPX, mengembalikan path relatif atau null.
- * Revisi 22 Juni 2026 R7 — lebih permisif (deteksi GPX longgar, fallback bila ekstensi salah),
- * dan pastikan folder uploads/gpx ada. Sebelumnya beberapa upload diam-diam ditolak. */
+/* Helper: upload GPX ke ImageKit (mengikuti mekanisme foto di upload.php).
+ * Revisi 23 Juni 2026 — GPX disimpan di ImageKit, bukan filesystem lokal.
+ * Mengembalikan ['url'=>..., 'fileId'=>...] atau null jika gagal/kosong. */
 function save_gpx_upload($field='gpx_file'){
     if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? 4) !== 0) return null;
     $tmp  = $_FILES[$field]['tmp_name'];
@@ -34,17 +35,37 @@ function save_gpx_upload($field='gpx_file'){
     $looksGpx = $head && (stripos($head, '<gpx') !== false || stripos($head, '<trk') !== false || stripos($head, '<wpt') !== false);
     if ($ext !== 'gpx' && !$looksGpx) return null;
     if ($ext === 'gpx' && !$looksGpx && $head && stripos($head, '<?xml') === false) return null;
-    $dir = __DIR__.'/../uploads/gpx';
-    if (!is_dir($dir)) @mkdir($dir, 0775, true);
-    if (!is_dir($dir) || !is_writable($dir)) return null;
+
+    $data = @file_get_contents($tmp);
+    if ($data === false) return null;
+
+    require_once __DIR__.'/../config/imagekit.php';
+    global $imageKit;
+    if (!isset($imageKit)) return null;
+
     $name = 'gpx_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.gpx';
-    $dest = $dir.'/'.$name;
-    if (!@move_uploaded_file($tmp, $dest)) {
-        // fallback (jarang): coba copy bila move_uploaded_file gagal pada sebagian environment
-        if (!@copy($tmp, $dest)) return null;
-    }
-    @chmod($dest, 0644);
-    return '/uploads/gpx/'.$name;
+    try {
+        $uploadFile = $imageKit->uploadFile([
+            'file'     => base64_encode($data),
+            'fileName' => $name,
+            'folder'   => '/sportapp/gpx/'.date('F_Y'),
+        ]);
+    } catch (Throwable $e) { return null; }
+    if (!$uploadFile || !empty($uploadFile->error)) return null;
+    return [
+        'url'    => $uploadFile->result->url,
+        'fileId' => $uploadFile->result->fileId,
+    ];
+}
+
+/* Helper hapus file GPX di ImageKit (aman bila fileId kosong / sudah hilang). */
+function delete_gpx_remote($fileId){
+    if (empty($fileId)) return;
+    try {
+        require_once __DIR__.'/../config/imagekit.php';
+        global $imageKit;
+        if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
+    } catch (Throwable $e) { /* abaikan */ }
 }
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -61,11 +82,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         throw new RuntimeException('Nama tempat wajib diisi.');
     }
     if ($a==='delete') {
-        // Hapus juga file GPX yg terkait bila ada
-        $old = db_one("SELECT gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
-        if ($old && !empty($old['gpx_path'])) {
-            $p = __DIR__.'/..'.$old['gpx_path'];
-            if (is_file($p)) @unlink($p);
+        // Hapus juga file GPX di ImageKit bila ada
+        $old = db_one("SELECT gpx_file_id FROM tempat WHERE id=$1", [(int)$_POST['id']]);
+        if ($old && !empty($old['gpx_file_id'])) {
+            delete_gpx_remote($old['gpx_file_id']);
         }
         db_exec("DELETE FROM tempat WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='edit') {
@@ -82,18 +102,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
 
         // GPX: kalau ada upload baru, ganti; kalau ada flag hapus_gpx, hapus.
-        // Revisi 22 Juni 2026 R7 — GPX dipertahankan untuk SEMUA jenis tempat
-        // (tidak lagi dihapus paksa saat jenis bukan hiking/camping) supaya tidak hilang.
-        $newGpx   = save_gpx_upload('gpx_file');
+        // Revisi 23 Juni 2026 — file GPX disimpan di ImageKit (mengikuti mekanisme foto).
+        $newGpx   = save_gpx_upload('gpx_file'); // ['url','fileId'] | null
         $hapusGpx = !empty($_POST['hapus_gpx']);
-        $existing = db_one("SELECT gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
-        $gpxFinal = $existing['gpx_path'] ?? null;
+        $existing = db_one("SELECT gpx_path, gpx_file_id FROM tempat WHERE id=$1", [(int)$_POST['id']]);
+        $gpxFinal     = $existing['gpx_path']    ?? null;
+        $gpxFileIdFin = $existing['gpx_file_id'] ?? null;
         if ($newGpx) {
-            if ($gpxFinal) { $p = __DIR__.'/..'.$gpxFinal; if (is_file($p)) @unlink($p); }
-            $gpxFinal = $newGpx;
-        } elseif ($hapusGpx && $gpxFinal) {
-            $p = __DIR__.'/..'.$gpxFinal; if (is_file($p)) @unlink($p);
-            $gpxFinal = null;
+            if ($gpxFileIdFin) delete_gpx_remote($gpxFileIdFin);
+            $gpxFinal     = $newGpx['url'];
+            $gpxFileIdFin = $newGpx['fileId'];
+        } elseif ($hapusGpx && ($gpxFinal || $gpxFileIdFin)) {
+            if ($gpxFileIdFin) delete_gpx_remote($gpxFileIdFin);
+            $gpxFinal = null; $gpxFileIdFin = null;
         }
 
         $parkir = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
@@ -102,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("UPDATE tempat SET nama=$1, alamat=$2, harga_lapang=$3, harga_per_jam=$4,
                    harga_tiket=$5, harga_parkir=$6, status_booking=$7, catatan=$8,
                    pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13, tampil_booking=$14,
-                   gpx_path=$15, parkir_info=$16, run_route_id=$17
-                 WHERE id=$18",
+                   gpx_path=$15, parkir_info=$16, run_route_id=$17, gpx_file_id=$18
+                 WHERE id=$19",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -111,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              $jenisId, $lat, $lng, $tampil,
-             $gpxFinal, $parkir, $runRouteId,
+             $gpxFinal, $parkir, $runRouteId, $gpxFileIdFin,
              (int)$_POST['id']]);
     } elseif ($a==='toggle_booking') {
         db_exec("UPDATE tempat SET tampil_booking = NOT tampil_booking WHERE id=$1", [(int)$_POST['id']]);
@@ -125,13 +146,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $lng = ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null;
         }
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
-        // Revisi 22 Juni 2026 R7 — GPX boleh disimpan untuk jenis apa pun.
-        $gpxFinal  = save_gpx_upload('gpx_file');
+        // Revisi 23 Juni 2026 — GPX disimpan ke ImageKit (mengikuti mekanisme foto).
+        $gpxUp     = save_gpx_upload('gpx_file');
+        $gpxFinal  = $gpxUp['url']    ?? null;
+        $gpxFileId = $gpxUp['fileId'] ?? null;
         $parkir    = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
         $runRouteId= ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
 
-        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking,gpx_path,parkir_info,run_route_id)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)",
+        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking,gpx_path,parkir_info,run_route_id,gpx_file_id)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -139,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              $jenisId, $lat, $lng, $tampil,
-             $gpxFinal, $parkir, $runRouteId]);
+             $gpxFinal, $parkir, $runRouteId, $gpxFileId]);
     }
     $_SESSION['flash_ok'] = $a==='delete' ? 'Tempat dihapus.' : ($a==='edit' ? 'Tempat diperbarui.' : ($a==='toggle_booking' ? 'Status booking diperbarui.' : 'Tempat ditambahkan.'));
     } catch (Throwable $e) {
