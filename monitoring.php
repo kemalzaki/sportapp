@@ -186,12 +186,12 @@ include __DIR__.'/includes/header.php';
 <!-- Revisi 17 Juni 2026 — anchor target untuk pindah AI Coach ke atas di mobile -->
 <div id="aiCoachAnchor"></div>
 
-<!-- Revisi 6 Juni 2026: Rekomendasi Kesehatan otomatis -->
-<div class="card shadow-sm mb-3 border-success">
-  <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-clipboard2-pulse"></i> <strong>Rekomendasi Kesehatan</strong> (otomatis dari statistik Anda)</span>
+<!-- Revisi 23 Juni 2026 — Rekomendasi Kesehatan dibungkus <details> agar bisa diciutkan -->
+<details class="card shadow-sm mb-3 border-success spoiler-card">
+  <summary class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
+    <span><i class="bi bi-clipboard2-pulse"></i> <strong>Rekomendasi Kesehatan</strong> (otomatis dari statistik Anda) <span class="text-muted small">(klik untuk buka/tutup)</span></span>
     <small class="text-muted d-none d-md-inline">Pace · Kalori · Kehadiran · Performa Jogging · VO₂</small>
-  </div>
+  </summary>
   <div class="card-body">
     <div class="row g-2">
       <?php foreach($rekomendasi as $r): ?>
@@ -208,7 +208,7 @@ include __DIR__.'/includes/header.php';
     </div>
     <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Rekomendasi ini bersifat umum, bukan pengganti konsultasi tenaga medis.</div>
   </div>
-</div>
+</details>
 
 <!-- KPI cards -->
 <div class="row g-3 mb-3">
@@ -257,32 +257,40 @@ include __DIR__.'/includes/header.php';
   </div>
 </details>
 
-<!-- Tren Pace + Kalori per Minggu -->
+<!-- Revisi 23 Juni 2026 — Pace Trend & Kalori per Minggu dibungkus <details> -->
 <div class="row g-3">
-  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header">Pace Trend (detik/km, lower = better)</div>
-    <div class="card-body"><canvas id="paceChart" height="160"></canvas></div></div></div>
-  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header">Kalori per Minggu</div>
-    <div class="card-body"><canvas id="calChart" height="160"></canvas></div></div></div>
+  <div class="col-lg-6"><details class="card shadow-sm spoiler-card">
+    <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-speedometer text-primary"></i> Pace Trend (detik/km, lower = better) <span class="text-muted small">(klik buka/tutup)</span></summary>
+    <div class="card-body"><canvas id="paceChart" height="160"></canvas></div>
+  </details></div>
+  <div class="col-lg-6"><details class="card shadow-sm spoiler-card">
+    <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-fire text-danger"></i> Kalori per Minggu <span class="text-muted small">(klik buka/tutup)</span></summary>
+    <div class="card-body"><canvas id="calChart" height="160"></canvas></div>
+  </details></div>
 </div>
 
-<!-- Tren Kehadiran Mingguan + Tren Performa Jogging Harian -->
+<!-- Revisi 23 Juni 2026 — Tren Kehadiran & Tren Performa Jogging dibungkus <details> -->
 <div class="row g-3 mt-1">
-  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-people text-primary"></i> Tren Total Kehadiran Mingguan</div>
+  <div class="col-lg-6"><details class="card shadow-sm spoiler-card">
+    <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-people text-primary"></i> Tren Total Kehadiran Mingguan <span class="text-muted small">(klik buka/tutup)</span></summary>
     <div class="card-body"><canvas id="wkChart" height="160"></canvas>
-      <small class="text-muted d-block mt-2">Total kehadiran semua anggota per minggu (12 minggu terakhir).</small></div></div></div>
-  <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header"><i class="bi bi-activity text-success"></i> Tren Performa Jogging Harian (saya)</div>
+      <small class="text-muted d-block mt-2">Total kehadiran semua anggota per minggu (12 minggu terakhir).</small></div>
+  </details></div>
+  <div class="col-lg-6"><details class="card shadow-sm spoiler-card">
+    <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-activity text-success"></i> Tren Performa Jogging Harian (saya) <span class="text-muted small">(klik buka/tutup)</span></summary>
     <div class="card-body"><canvas id="jogChart" height="160"></canvas>
-      <small class="text-muted d-block mt-2">Jarak (km) dan pace (detik/km) tiap sesi jogging — 30 hari terakhir.</small></div></div></div>
+      <small class="text-muted d-block mt-2">Jarak (km) dan pace (detik/km) tiap sesi jogging — 30 hari terakhir.</small></div>
+  </details></div>
 </div>
 
-<!-- Revisi 15 Juni 2026 — Statistik tren performa jogging (pace · durasi · jarak) -->
+<!-- Revisi 23 Juni 2026 — Statistik Tren Performa Jogging dibungkus <details> -->
 <div class="row g-3 mt-1">
   <div class="col-12">
-    <div class="card shadow-sm border-success">
-      <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-speedometer2"></i> <strong>Statistik Tren Performa Jogging (30 hari)</strong></span>
+    <details class="card shadow-sm border-success spoiler-card">
+      <summary class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
+        <span><i class="bi bi-speedometer2"></i> <strong>Statistik Tren Performa Jogging (30 hari)</strong> <span class="text-muted small">(klik buka/tutup)</span></span>
         <small class="text-muted"><?= (int)$jogStat['count'] ?> sesi</small>
-      </div>
+      </summary>
       <div class="card-body">
         <div class="row g-2 mb-3">
           <!-- Pace -->
@@ -334,7 +342,7 @@ include __DIR__.'/includes/header.php';
           </ul>
         </div>
       </div>
-    </div>
+    </details>
   </div>
 </div>
 
@@ -467,4 +475,21 @@ function _renderMonitoringCharts(){
 }
 document.addEventListener('DOMContentLoaded', _renderMonitoringCharts);
 </script>
+<!-- Revisi 23 Juni 2026 — saat <details> dibuka, resize Chart.js agar ukuran benar -->
+<script>
+(function(){
+  document.querySelectorAll('details.spoiler-card').forEach(function(d){
+    d.addEventListener('toggle', function(){
+      if (!d.open) return;
+      d.querySelectorAll('canvas').forEach(function(c){
+        try {
+          var ch = (window.Chart && Chart.getChart) ? Chart.getChart(c) : null;
+          if (ch) ch.resize();
+        } catch(e){}
+      });
+    });
+  });
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

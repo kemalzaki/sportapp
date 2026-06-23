@@ -350,6 +350,16 @@ document.addEventListener('DOMContentLoaded', function(){
       var id=m.id.replace('tpE','');
       setupMapPicker('editMap'+id,'editLat'+id,'editLng'+id,'editPlaceQuery'+id,'editSearchBtn'+id,'editSearchResults'+id,
         document.getElementById('editLat'+id).value, document.getElementById('editLng'+id).value);
+      /* Revisi 23 Juni 2026 — re-apply trail toggle setelah modal terlihat agar
+         input lat/lng tidak terkunci dalam state disabled. */
+      var form = m.querySelector('form[data-trail-form="1"]');
+      if (form && typeof window.__tempatApplyForm === 'function') window.__tempatApplyForm(form);
+      else if (form) {
+        form.querySelectorAll('input[disabled], select[disabled], textarea[disabled]').forEach(function(el){
+          // jangan auto-enable input file
+          if (el.type !== 'file') el.disabled = false;
+        });
+      }
     });
   });
 });
@@ -648,6 +658,7 @@ foreach ($rows as $r):
 /* Revisi 20 Juni 2026 R3 — Toggle panel Hiking/Camping berdasar pilihan Jenis */
 (function(){
   var TRAIL = (window.TRAIL_JENIS_IDS||[]).map(String);
+  window.__tempatApplyForm = applyForm;
   function applyForm(form){
     var sel = form.querySelector('select[name="jenis_id"]');
     if(!sel) return;
@@ -663,6 +674,16 @@ foreach ($rows as $r):
     var sel = f.querySelector('select[name="jenis_id"]');
     if(sel){ sel.addEventListener('change', function(){ applyForm(f); }); }
     applyForm(f);
+
+    /* Revisi 23 Juni 2026 — Pastikan SEMUA input ikut terkirim saat Simpan,
+       termasuk lat/lng yang sempat di-disable oleh trail toggle.
+       Sebelumnya beberapa field (terutama kordinat) tidak ikut ter-update
+       karena masih dalam state disabled saat submit. */
+    f.addEventListener('submit', function(){
+      f.querySelectorAll('input[disabled], select[disabled], textarea[disabled]').forEach(function(el){
+        el.disabled = false;
+      });
+    });
   });
 })();
 </script>

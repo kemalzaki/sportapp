@@ -135,11 +135,11 @@ include __DIR__.'/includes/header.php';
   <!-- Revisi 22 Juni 2026 R12 — filter via AJAX (tidak reload halaman) -->
   <form class="row g-2" id="tempatFilterForm" onsubmit="return false">
     <div class="col-md-6"><input class="form-control form-control-sm" name="q" id="fQ" value="<?= htmlspecialchars($q) ?>" placeholder="🔍 Cari nama / alamat..."></div>
-    <div class="col-md-4"><select class="form-select form-select-sm" name="jenis" id="fJenis">
+    <div class="col-md-6"><select class="form-select form-select-sm" name="jenis" id="fJenis">
       <option value="0">Semua Jenis</option>
       <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
     </select></div>
-    <div class="col-md-2 d-grid"><button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button></div>
+    <!-- Revisi 23 Juni 2026 — tombol Filter dihapus karena filter sudah otomatis via AJAX (change/Enter). -->
   </form>
 </div></div>
 

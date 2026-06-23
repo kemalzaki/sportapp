@@ -64,6 +64,18 @@ $qaSaved = db_all(
     "SELECT id, jenis, pertanyaan, jawaban, created_at
        FROM sport_qa_saved WHERE user_id=$1 ORDER BY id DESC LIMIT 50", [$uid]);
 
+/* Revisi 23 Juni 2026 — Ambil daftar kata terlarang (blocklist) untuk filter pencarian video.
+   Dikelola di admin/keywords.php (kategori: kasar / abuse / porno). */
+$BLOCKED_WORDS = [];
+try {
+    $br = db_all("SELECT kata FROM search_keywords WHERE aktif=TRUE AND kategori IN('kasar','abuse','porno')");
+    foreach ($br as $brow) {
+        $w = mb_strtolower(trim((string)$brow['kata']));
+        if ($w !== '') $BLOCKED_WORDS[] = $w;
+    }
+} catch (Throwable $e) { $BLOCKED_WORDS = []; }
+
+
 
 $ytId = function($s){
   $s = trim((string)$s);
@@ -680,6 +692,19 @@ include __DIR__.'/includes/header.php'; ?>
 (function(){
   var CSRF = '<?= csrf_token() ?>';
 
+  /* Revisi 23 Juni 2026 — blocklist kata terlarang dari admin/keywords.php */
+  window.AO_BLOCKED = <?= json_encode($BLOCKED_WORDS) ?>;
+  window.AO_isBlocked = function(q){
+    if (!q) return false;
+    var ql = String(q).toLowerCase();
+    var list = window.AO_BLOCKED || [];
+    for (var i=0;i<list.length;i++){
+      var w = String(list[i]||'').toLowerCase();
+      if (w && ql.indexOf(w) !== -1) return true;
+    }
+    return false;
+  };
+
   /* ===== Pencarian Video YouTube (Revisi R2 — Top 5 hasil, tanpa link YT) ===== */
   document.querySelectorAll('.ao-yt-box').forEach(function(box){
     var btn = box.querySelector('.ao-yt-btn');
@@ -689,6 +714,12 @@ include __DIR__.'/includes/header.php'; ?>
     async function doSearch(){
       var q = (inp.value||'').trim();
       if (!q) return;
+      /* Revisi 23 Juni 2026 — cek kata terlarang sebelum hit API */
+      if (window.AO_isBlocked && window.AO_isBlocked(q)) {
+        out.innerHTML = '<div class="alert alert-danger small mb-0"><i class="bi bi-shield-exclamation"></i> Kata pencarian mengandung kata terlarang. Video tidak ditampilkan.</div>';
+        try { alert('⚠ Peringatan: kata pencarian "' + q + '" mengandung kata kasar / abuse / pornografi. Pencarian dibatalkan & video tidak akan ditampilkan.'); } catch(e){}
+        return;
+      }
       out.innerHTML = '<div class="d-flex align-items-center gap-2 small text-muted py-2"><span class="spinner-border spinner-border-sm"></span> Mencari video di YouTube…</div>';
       var oldHtml = btn.innerHTML; btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari…';
