@@ -257,7 +257,7 @@ include __DIR__.'/includes/header.php';
 
 <div class="row g-3">
   <div class="col-lg-4">
-    <div class="card shadow-sm"><div class="card-body text-center">
+    <div class="card shadow-sm" data-live="profile-card-main"><div class="card-body text-center">
       <?php if(!empty($me['foto_url'])): ?>
         <img src="<?= htmlspecialchars($me['foto_url']) ?>" alt="" class="user-avatar zoomable" style="width:96px;height:96px;border-radius:50%;object-fit:cover;">
       <?php else: ?>
@@ -322,10 +322,11 @@ include __DIR__.'/includes/header.php';
         </script>
       </div>
 
-      <?php /* Revisi 20 Juni 2026 — Ganti foto profil: TIDAK pakai data-ajax,
-              agar setelah upload sukses, server me-redirect ke profile.php
-              sehingga halaman ter-reload penuh & foto baru langsung tampil. */ ?>
-      <form data-no-ajax method="post" enctype="multipart/form-data" class="mt-3 text-start">
+      <?php /* Revisi 23 Juni 2026 — Ganti foto profil sekarang juga AJAX.
+              Setelah upload sukses, softRefresh akan mengganti region
+              [data-live="profile-card-main"] sehingga foto baru langsung tampil
+              tanpa reload halaman. */ ?>
+      <form data-ajax data-ajax-label="Mengunggah foto..." method="post" enctype="multipart/form-data" class="mt-3 text-start">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_foto">
         <label class="form-label small fw-semibold">Ganti Foto Profil</label>
@@ -369,7 +370,7 @@ include __DIR__.'/includes/header.php';
     </div></div>
 
     <!-- Revisi 19 Juni 2026 Part Q — Akun Strava & Nickname -->
-    <div class="card shadow-sm mt-3"><div class="card-body">
+    <div class="card shadow-sm mt-3" data-live="profile-strava"><div class="card-body">
       <form data-ajax method="post" class="text-start">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_strava">
@@ -451,7 +452,7 @@ include __DIR__.'/includes/header.php';
         }
       }
     ?>
-    <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> Data Kesehatan (Publik) <a href="/kalkulator.php" class="btn btn-sm btn-outline-primary float-end"><i class="bi bi-calculator"></i> Kalkulator Sehat</a></div>
+    <div class="card shadow-sm mb-3" data-live="profile-kesehatan"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> Data Kesehatan (Publik) <a href="/kalkulator.php" class="btn btn-sm btn-outline-primary float-end"><i class="bi bi-calculator"></i> Kalkulator Sehat</a></div>
     <div class="card-body">
       <form data-ajax method="post" class="row g-2">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
@@ -601,7 +602,7 @@ include __DIR__.'/includes/header.php';
     </div></div>
 
     <!-- ===== v7: Pengalaman Hiking & Camping ===== -->
-    <div class="card shadow-sm mt-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card shadow-sm mt-3" data-live="profile-pengalaman"><div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="bi bi-mountain text-success"></i> Pengalaman Hiking & Camping</span>
       <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pengModal" onclick="pengReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
     </div>
@@ -891,7 +892,7 @@ if ($waSelf && !$cntPerl) {
 ?>
 
 <!-- ===== Revisi: Tema Warna Aplikasi dipindahkan ke BAGIAN BAWAH halaman ===== -->
-<section class="container my-3" id="temaWarna">
+<section class="container my-3" id="temaWarna" data-live="profile-tema">
   <div class="card shadow-sm">
     <div class="card-header"><i class="bi bi-palette-fill text-primary"></i> Tema Warna Aplikasi</div>
     <form data-ajax method="post" class="card-body">
