@@ -592,8 +592,7 @@ include __DIR__.'/includes/header.php'; ?>
       <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat — yuk kumpulkan keringat hari ini.</p>
       <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
     </div>
-    <img src="assets/img/card-olahraga.jpg" alt="Komunitas jogging" loading="lazy" width="180" height="120" class="rounded-3 d-none d-sm-block" style="width:180px;height:120px;object-fit:cover;box-shadow:0 6px 16px rgba(0,0,0,.25);">
-  </div>
+</div>
 </section>
 
 <script>

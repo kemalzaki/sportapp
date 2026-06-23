@@ -163,3 +163,39 @@ body{ padding-top: calc(var(--gt-h) + 56px) !important; }
    Bottom nav, top bar, chips, dan drawer aktif di semua ukuran layar. */
 .gj-nav.d-lg-none{ display: flex !important; }
 .gj-nav{ display: flex !important; }
+
+/* ============================================================
+   Revisi 23 Juni 2026 — Paksa tampilan mobile di desktop.
+   - Sembunyikan navbar bootstrap desktop di semua ukuran
+   - Aktifkan top bar (.gt-top), chips (.gt-chips), bottom nav (.gj-nav)
+   - Batasi lebar konten ~480px (frame mobile) saat layar >= 992px
+   ============================================================ */
+nav.navbar.sticky-top{ display: none !important; }
+.gt-top{ display: block !important; }
+.gt-chips{ display: block !important;
+  position: fixed; top: calc(var(--gt-h) + env(safe-area-inset-top, 0px));
+  left: 0; right: 0; z-index: 1050;
+  box-shadow: 0 2px 8px -4px rgba(15,23,42,.12);
+}
+.gj-nav, .gj-nav.d-lg-none{ display: flex !important; }
+body{ padding-top: calc(var(--gt-h) + 56px) !important; padding-bottom: 76px !important; }
+
+/* Frame mobile di desktop */
+@media (min-width: 992px){
+  html, body{ background:#0f172a !important; }
+  body > .container, body > main, body > section,
+  main.container, main > .container, .container.py-3, .container.py-4,
+  body > div.container, body > div.container-fluid{
+    max-width: 480px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    background: var(--gt-bg);
+  }
+  .gt-top, .gt-chips, .gj-nav{
+    max-width: 480px !important;
+    left: 50% !important; right: auto !important;
+    transform: translateX(-50%);
+  }
+  .gt-notif-pop{ position: fixed !important; left: 50% !important; right: auto !important;
+    transform: translateX(-50%); max-width: 460px !important; width: calc(480px - 20px) !important; }
+}
