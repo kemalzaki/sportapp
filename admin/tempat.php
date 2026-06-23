@@ -67,8 +67,10 @@ function save_gpx_upload($field='gpx_file'){
     $name = 'gpx_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.gpx';
 
     // === Upload ke ImageKit (mengikuti pola upload.php) ===
-    require_once __DIR__.'/../config/imagekit.php';
+    // Di dalam function, global harus dipanggil sebelum require supaya
+    // $imageKit dari config/imagekit.php masuk ke scope global yang sama.
     global $imageKit;
+    require_once __DIR__.'/../config/imagekit.php';
     if (!isset($imageKit)) {
         throw new RuntimeException('Upload GPX gagal: ImageKit SDK belum siap. Jalankan "composer install" di root project.');
     }
@@ -100,8 +102,8 @@ function save_gpx_upload($field='gpx_file'){
 function delete_gpx_remote($fileId, $url=null){
     if (!empty($fileId)) {
         try {
-            require_once __DIR__.'/../config/imagekit.php';
             global $imageKit;
+            require_once __DIR__.'/../config/imagekit.php';
             if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
         } catch (Throwable $e) { /* abaikan */ }
     }
