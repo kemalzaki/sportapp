@@ -22,11 +22,11 @@ function is_trail_jenis($namaJenis){
 }
 
 /* Helper: upload GPX ke ImageKit (mengikuti mekanisme foto di upload.php).
- * Revisi 23 Juni 2026 R2 — GPX disimpan di ImageKit, dengan fallback lokal
- * (uploads/gpx/) bila SDK ImageKit tidak terpasang atau upload gagal,
- * supaya peta tetap muncul saat dijalankan di local.
- * Sebelumnya fungsi ini return null secara senyap untuk semua error,
- * sehingga admin tidak tahu kenapa rute tidak terupload.
+ * Revisi 23 Juni 2026 R3 — GPX WAJIB disimpan di ImageKit (tanpa fallback lokal),
+ * karena folder /uploads selalu hilang setiap kali ada git push baru.
+ * Bila SDK ImageKit belum terpasang atau upload gagal, fungsi ini akan
+ * melempar RuntimeException supaya admin tahu kenapa rute tidak terupload
+ * (tidak diam-diam menulis ke disk lokal yang akan terhapus lagi).
  * Mengembalikan ['url'=>..., 'fileId'=>...] atau null jika tidak ada file.
  * Melempar RuntimeException jika file ada tapi gagal divalidasi/diupload. */
 function save_gpx_upload($field='gpx_file'){
@@ -99,23 +99,14 @@ function save_gpx_upload($field='gpx_file'){
         }
     }
 
-    // === Fallback: simpan ke filesystem lokal supaya peta tetap muncul ===
-    $dir = __DIR__.'/../uploads/gpx';
-    if (!is_dir($dir)) @mkdir($dir, 0775, true);
-    if (!is_dir($dir) || !is_writable($dir)) {
-        throw new RuntimeException('Upload GPX gagal: ImageKit error ('.$ikErr.') dan folder uploads/gpx tidak bisa ditulis.');
-    }
-    if (!@move_uploaded_file($tmp, $dir.'/'.$name) && !@file_put_contents($dir.'/'.$name, $data)) {
-        throw new RuntimeException('Upload GPX gagal: tidak bisa menyimpan ke uploads/gpx.');
-    }
-    // path relatif terhadap document root project (admin/ → ../uploads/gpx/<name>)
-    return [
-        'url'    => '../uploads/gpx/'.$name,
-        'fileId' => null, // tidak ada di ImageKit
-    ];
+    // Tidak ada fallback lokal — file di /uploads akan hilang saat git push.
+    throw new RuntimeException('Upload GPX gagal: '.$ikErr.'. Pastikan composer install sudah dijalankan dan kredensial ImageKit di config/imagekit.php valid.');
 }
 
-/* Helper hapus file GPX (ImageKit kalau ada fileId, atau lokal kalau path relatif). */
+/* Helper hapus file GPX di ImageKit.
+ * Revisi 23 Juni 2026 R3 — hanya menghapus dari ImageKit (file lokal lama
+ * di /uploads/gpx/ dibiarkan saja: akan ikut terhapus saat folder uploads
+ * direset oleh git push, dan tidak boleh dijadikan sumber data baru). */
 function delete_gpx_remote($fileId, $url=null){
     if (!empty($fileId)) {
         try {
@@ -126,15 +117,8 @@ function delete_gpx_remote($fileId, $url=null){
                 if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
             }
         } catch (Throwable $e) { /* abaikan */ }
-        return;
     }
-    // file lokal (fallback)
-    if ($url && strpos($url, '://') === false) {
-        $abs = realpath(__DIR__.'/../'.ltrim(preg_replace('#^\.\./#','',$url), '/'));
-        if ($abs && is_file($abs) && strpos($abs, realpath(__DIR__.'/../uploads/')) === 0) {
-            @unlink($abs);
-        }
-    }
+    // URL lokal lama (../uploads/gpx/...) diabaikan; tidak menghapus apa pun di disk.
 }
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
