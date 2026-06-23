@@ -67,7 +67,7 @@ include __DIR__.'/../includes/header.php';
       <div class="col-12 mt-3"><h5 class="mb-0"><i class="bi bi-envelope-paper text-info"></i> Pengirim Invoice Email</h5></div>
       <div class="col-md-6">
         <label class="form-label small">Email From</label>
-        <input type="email" name="invoice_email_from" class="form-control" value="<?= htmlspecialchars(app_setting('invoice_email_from','no-reply@hapfam.local')) ?>">
+        <input type="email" name="invoice_email_from" class="form-control" value="<?= htmlspecialchars(app_setting('invoice_email_from','no-reply@kawankeringat.local')) ?>">
       </div>
       <div class="col-md-6">
         <label class="form-label small">Nama Pengirim</label>

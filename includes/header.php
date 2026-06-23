@@ -205,7 +205,7 @@ if (empty($pageSkeleton)) {
         di avatar header atas dan ikon "Saya" di bottom nav). */ ?>
 <div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title brand-logo-colored" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Hap</span><span class="bl-2">Fam</span> <span class="bl-3">Sport</span><span class="bl-4">App</span></h5>
+    <h5 class="offcanvas-title brand-logo-colored" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
   </div>
   <div class="offcanvas-body p-0">
@@ -360,7 +360,7 @@ if (empty($pageSkeleton)) {
 
 <nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
   <div class="container">
-    <a class="navbar-brand fw-bold brand-logo-colored" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Hap</span><span class="bl-2">Fam</span> <span class="bl-3">Sport</span><span class="bl-4">App</span></a>
+    <a class="navbar-brand fw-bold brand-logo-colored" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></a>
     <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">

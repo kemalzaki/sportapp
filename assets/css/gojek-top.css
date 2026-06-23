@@ -20,11 +20,9 @@
   --gt-line: rgba(255,255,255,.08);
 }
 
-/* Sembunyikan navbar bootstrap lama di mobile */
-@media (max-width: 991.98px){
-  nav.navbar.sticky-top{ display: none !important; }
-  body{ padding-top: calc(var(--gt-h) + 56px) !important; }
-}
+/* Revisi: gunakan tampilan mobile di semua ukuran layar (desktop = mobile) */
+nav.navbar.sticky-top{ display: none !important; }
+body{ padding-top: calc(var(--gt-h) + 56px) !important; }
 
 .gt-top{
   display: none;
@@ -36,7 +34,7 @@
   box-shadow: 0 4px 14px -6px rgba(15,23,42,.55);
   border-bottom: 1px solid rgba(255,255,255,.06);
 }
-@media (max-width: 991.98px){ .gt-top{ display: block; } }
+.gt-top{ display: block; }
 
 .gt-row{ display: flex; align-items: center; gap: 10px; height: 48px; }
 .gt-burger{
@@ -92,12 +90,10 @@
   scrollbar-width: none;
 }
 .gt-chips::-webkit-scrollbar{ display: none; }
-@media (max-width: 991.98px){
-  .gt-chips{ display: block;
-    position: fixed; top: calc(var(--gt-h) + env(safe-area-inset-top, 0px));
-    left: 0; right: 0; z-index: 1050;
-    box-shadow: 0 2px 8px -4px rgba(15,23,42,.12);
-  }
+.gt-chips{ display: block;
+  position: fixed; top: calc(var(--gt-h) + env(safe-area-inset-top, 0px));
+  left: 0; right: 0; z-index: 1050;
+  box-shadow: 0 2px 8px -4px rgba(15,23,42,.12);
 }
 .gt-chip{
   display: inline-flex; align-items: center; gap: 6px;
@@ -160,7 +156,10 @@
 .gt-notif-foot{ padding:.55rem 1rem; text-align:center; border-top:1px solid var(--gt-line); }
 .gt-notif-foot a{ color: var(--gt-brand); font-size:.82rem; font-weight:600; text-decoration:none; }
 
-@media (min-width: 992px){
-  /* Desktop: dropdown menempel di atas; tetap fungsional kalau ada user pakai */
-  .gt-notif-pop{ position: absolute; right: 1rem; top: 60px; left:auto; width: 360px; }
-}
+/* Revisi: popup notifikasi tetap gaya mobile di desktop */
+
+
+/* Revisi: tampilan desktop disamakan dengan mobile.
+   Bottom nav, top bar, chips, dan drawer aktif di semua ukuran layar. */
+.gj-nav.d-lg-none{ display: flex !important; }
+.gj-nav{ display: flex !important; }

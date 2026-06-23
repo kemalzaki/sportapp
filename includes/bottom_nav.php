@@ -35,7 +35,7 @@ if (!function_exists('_gj_active')) {
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i{ color:#38bdf8 !important; }
 </style>
-<nav class="gj-nav d-lg-none" aria-label="Navigasi utama">
+<nav class="gj-nav" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">
     <span class="gj-ico gj-c-home"><i class="bi bi-house-door-fill"></i></span>
     <span class="gj-label">Beranda</span>

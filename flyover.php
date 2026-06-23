@@ -1271,11 +1271,11 @@ function drawFlyoverComposite(ctx, target, mapCanvas, o){
 /* ============================================================
    Revisi 18 Juni 2026 — Brand KawanKeringat (logo + copyright) untuk video
    ============================================================ */
-var HAPFAM_LOGO = new Image();
-HAPFAM_LOGO.crossOrigin = 'anonymous';
-HAPFAM_LOGO.src = '/assets/img/hapfam-logo.png';
-var HAPFAM_LOGO_READY = false;
-HAPFAM_LOGO.onload = function(){ HAPFAM_LOGO_READY = true; };
+var KAWANKERINGAT_LOGO = new Image();
+KAWANKERINGAT_LOGO.crossOrigin = 'anonymous';
+KAWANKERINGAT_LOGO.src = '/assets/img/kawankeringat-logo.png';
+var KAWANKERINGAT_LOGO_READY = false;
+KAWANKERINGAT_LOGO.onload = function(){ KAWANKERINGAT_LOGO_READY = true; };
 
 function drawKawanKeringatBrand(ctx, w, h, sx, sy){
   // Revisi 19 Juni 2026 — Toggle logo & copyright dari UI
@@ -1299,8 +1299,8 @@ function drawKawanKeringatBrand(ctx, w, h, sx, sy){
   ctx.shadowColor = 'transparent';
   // clip lingkaran utk gambar
   ctx.beginPath(); ctx.arc(cx, cy, size/2, 0, Math.PI*2); ctx.closePath(); ctx.clip();
-  if (HAPFAM_LOGO_READY){
-    try { ctx.drawImage(HAPFAM_LOGO, cx-size/2, cy-size/2, size, size); } catch(_){}
+  if (KAWANKERINGAT_LOGO_READY){
+    try { ctx.drawImage(KAWANKERINGAT_LOGO, cx-size/2, cy-size/2, size, size); } catch(_){}
   } else {
     // fallback teks
     ctx.fillStyle = '#0ea5e9'; ctx.fillRect(cx-size/2, cy-size/2, size, size);

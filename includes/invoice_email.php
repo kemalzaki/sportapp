@@ -14,7 +14,7 @@ function rupiah_fmt($n) { return 'Rp '.number_format((int)$n, 0, ',', '.'); }
 function kirim_invoice_email(array $order, array $items, ?string $hostBase = null): bool {
     if (empty($order['email_pemesan'])) return false;
 
-    $from      = app_setting('invoice_email_from', 'no-reply@hapfam.local');
+    $from      = app_setting('invoice_email_from', 'no-reply@kawankeringat.local');
     $fromNama  = app_setting('invoice_email_nama', 'KawanKeringat');
     $to        = trim($order['email_pemesan']);
     $kode      = $order['kode'] ?? '';

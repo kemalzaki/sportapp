@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!('Notification' in window)) return;
   function showOne(n){
     var opt = { body: n.isi || '', icon:'/assets/icon-192.png', badge:'/assets/icon-192.png',
-                tag: 'hapfam-'+n.id, data:{ url: n.url || '/' }, vibrate:[120,60,120] };
+                tag: 'kawankeringat-'+n.id, data:{ url: n.url || '/' }, vibrate:[120,60,120] };
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready.then(function(reg){ reg.showNotification(n.judul || 'KawanKeringat', opt); }).catch(function(){});
     } else {

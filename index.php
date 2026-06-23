@@ -1535,7 +1535,7 @@ function showStory(d){
       if (!r.ok) return;
       const data = await r.json();
       (data.items || []).forEach(n => {
-        const opt = { body: n.isi || '', icon: '/assets/icon-192.png', badge: '/assets/icon-192.png', tag: 'hapfam-'+n.id, data: { url: n.url || '/' } };
+        const opt = { body: n.isi || '', icon: '/assets/icon-192.png', badge: '/assets/icon-192.png', tag: 'kawankeringat-'+n.id, data: { url: n.url || '/' } };
         if (navigator.serviceWorker && navigator.serviceWorker.controller) {
           navigator.serviceWorker.ready.then(reg => reg.showNotification(n.judul || 'KawanKeringat', opt));
         } else {
