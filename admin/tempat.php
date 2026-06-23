@@ -66,41 +66,31 @@ function save_gpx_upload($field='gpx_file'){
 
     $name = 'gpx_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.gpx';
 
-    // === Coba ImageKit dulu ===
-    $ikErr = null; $ik = null;
-    $ikCfg = __DIR__.'/../config/imagekit.php';
-    $vendorOk = is_file(__DIR__.'/../vendor/autoload.php');
-    if ($vendorOk && is_file($ikCfg)) {
-        try {
-            require_once $ikCfg;
-            global $imageKit;
-            $ik = $imageKit ?? null;
-        } catch (Throwable $e) { $ikErr = 'config imagekit gagal: '.$e->getMessage(); }
-    } else {
-        $ikErr = 'vendor/imagekit SDK belum dipasang (jalankan composer install).';
+    // === Upload ke ImageKit (mengikuti pola upload.php) ===
+    require_once __DIR__.'/../config/imagekit.php';
+    global $imageKit;
+    if (!isset($imageKit)) {
+        throw new RuntimeException('Upload GPX gagal: ImageKit SDK belum siap. Jalankan "composer install" di root project.');
     }
-    if ($ik) {
-        try {
-            $uploadFile = $ik->uploadFile([
-                'file'     => base64_encode($data),
-                'fileName' => $name,
-                'folder'   => '/sportapp/gpx/'.date('F_Y'),
-                'useUniqueFileName' => true,
-            ]);
-            if ($uploadFile && empty($uploadFile->error) && !empty($uploadFile->result->url)) {
-                return [
-                    'url'    => $uploadFile->result->url,
-                    'fileId' => $uploadFile->result->fileId ?? null,
-                ];
-            }
-            $ikErr = 'imagekit response error: '.json_encode($uploadFile->error ?? $uploadFile);
-        } catch (Throwable $e) {
-            $ikErr = 'imagekit exception: '.$e->getMessage();
-        }
+    try {
+        $uploadFile = $imageKit->uploadFile([
+            'file'     => base64_encode($data),
+            'fileName' => $name,
+            'folder'   => '/sportapp/gpx/'.date('F_Y'),
+        ]);
+    } catch (Throwable $e) {
+        throw new RuntimeException('Upload GPX gagal: ImageKit exception: '.$e->getMessage());
     }
-
-    // Tidak ada fallback lokal — file di /uploads akan hilang saat git push.
-    throw new RuntimeException('Upload GPX gagal: '.$ikErr.'. Pastikan composer install sudah dijalankan dan kredensial ImageKit di config/imagekit.php valid.');
+    if (!$uploadFile || $uploadFile->error) {
+        $detail = $uploadFile && $uploadFile->error
+            ? json_encode($uploadFile->error)
+            : 'response kosong dari ImageKit';
+        throw new RuntimeException('Upload GPX gagal: '.$detail);
+    }
+    return [
+        'url'    => $uploadFile->result->url,
+        'fileId' => $uploadFile->result->fileId ?? null,
+    ];
 }
 
 /* Helper hapus file GPX di ImageKit.
@@ -110,12 +100,9 @@ function save_gpx_upload($field='gpx_file'){
 function delete_gpx_remote($fileId, $url=null){
     if (!empty($fileId)) {
         try {
-            $ikCfg = __DIR__.'/../config/imagekit.php';
-            if (is_file(__DIR__.'/../vendor/autoload.php') && is_file($ikCfg)) {
-                require_once $ikCfg;
-                global $imageKit;
-                if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
-            }
+            require_once __DIR__.'/../config/imagekit.php';
+            global $imageKit;
+            if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
         } catch (Throwable $e) { /* abaikan */ }
     }
     // URL lokal lama (../uploads/gpx/...) diabaikan; tidak menghapus apa pun di disk.
