@@ -22,50 +22,119 @@ function is_trail_jenis($namaJenis){
 }
 
 /* Helper: upload GPX ke ImageKit (mengikuti mekanisme foto di upload.php).
- * Revisi 23 Juni 2026 — GPX disimpan di ImageKit, bukan filesystem lokal.
- * Mengembalikan ['url'=>..., 'fileId'=>...] atau null jika gagal/kosong. */
+ * Revisi 23 Juni 2026 R2 — GPX disimpan di ImageKit, dengan fallback lokal
+ * (uploads/gpx/) bila SDK ImageKit tidak terpasang atau upload gagal,
+ * supaya peta tetap muncul saat dijalankan di local.
+ * Sebelumnya fungsi ini return null secara senyap untuk semua error,
+ * sehingga admin tidak tahu kenapa rute tidak terupload.
+ * Mengembalikan ['url'=>..., 'fileId'=>...] atau null jika tidak ada file.
+ * Melempar RuntimeException jika file ada tapi gagal divalidasi/diupload. */
 function save_gpx_upload($field='gpx_file'){
-    if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? 4) !== 0) return null;
+    if (empty($_FILES[$field]) || !isset($_FILES[$field]['error'])) return null;
+    $errCode = (int)$_FILES[$field]['error'];
+    if ($errCode === UPLOAD_ERR_NO_FILE) return null;
+    if ($errCode !== UPLOAD_ERR_OK) {
+        $map = [
+            UPLOAD_ERR_INI_SIZE   => 'file melebihi upload_max_filesize PHP',
+            UPLOAD_ERR_FORM_SIZE  => 'file melebihi MAX_FILE_SIZE form',
+            UPLOAD_ERR_PARTIAL    => 'upload terputus',
+            UPLOAD_ERR_NO_TMP_DIR => 'tmp dir PHP tidak ada',
+            UPLOAD_ERR_CANT_WRITE => 'gagal menulis ke disk',
+            UPLOAD_ERR_EXTENSION  => 'diblokir ekstensi PHP',
+        ];
+        throw new RuntimeException('Upload GPX gagal: '.($map[$errCode] ?? ('kode error '.$errCode)));
+    }
     $tmp  = $_FILES[$field]['tmp_name'];
     $orig = $_FILES[$field]['name'] ?? 'route.gpx';
     $ext  = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
     $sz   = (int)($_FILES[$field]['size'] ?? 0);
-    if ($sz <= 0 || $sz > 16 * 1024 * 1024) return null; // maks 16 MB
+    if ($sz <= 0)                   throw new RuntimeException('Upload GPX gagal: file kosong.');
+    if ($sz > 16 * 1024 * 1024)     throw new RuntimeException('Upload GPX gagal: maksimal 16 MB.');
+
     $head = @file_get_contents($tmp, false, null, 0, 4096);
-    $looksGpx = $head && (stripos($head, '<gpx') !== false || stripos($head, '<trk') !== false || stripos($head, '<wpt') !== false);
-    if ($ext !== 'gpx' && !$looksGpx) return null;
-    if ($ext === 'gpx' && !$looksGpx && $head && stripos($head, '<?xml') === false) return null;
+    $looksGpx = $head && (stripos($head, '<gpx') !== false || stripos($head, '<trk') !== false || stripos($head, '<wpt') !== false || stripos($head, '<rte') !== false);
+    $looksXml = $head && stripos($head, '<?xml') !== false;
+    if ($ext !== 'gpx' && !$looksGpx) {
+        throw new RuntimeException('Upload GPX gagal: file harus .gpx (XML rute).');
+    }
+    if ($ext === 'gpx' && !$looksGpx && !$looksXml) {
+        throw new RuntimeException('Upload GPX gagal: isi file bukan GPX/XML yang valid.');
+    }
 
     $data = @file_get_contents($tmp);
-    if ($data === false) return null;
-
-    require_once __DIR__.'/../config/imagekit.php';
-    global $imageKit;
-    if (!isset($imageKit)) return null;
+    if ($data === false) throw new RuntimeException('Upload GPX gagal: tidak bisa membaca file.');
 
     $name = 'gpx_'.date('Ymd_His').'_'.bin2hex(random_bytes(3)).'.gpx';
-    try {
-        $uploadFile = $imageKit->uploadFile([
-            'file'     => base64_encode($data),
-            'fileName' => $name,
-            'folder'   => '/sportapp/gpx/'.date('F_Y'),
-        ]);
-    } catch (Throwable $e) { return null; }
-    if (!$uploadFile || !empty($uploadFile->error)) return null;
+
+    // === Coba ImageKit dulu ===
+    $ikErr = null; $ik = null;
+    $ikCfg = __DIR__.'/../config/imagekit.php';
+    $vendorOk = is_file(__DIR__.'/../vendor/autoload.php');
+    if ($vendorOk && is_file($ikCfg)) {
+        try {
+            require_once $ikCfg;
+            global $imageKit;
+            $ik = $imageKit ?? null;
+        } catch (Throwable $e) { $ikErr = 'config imagekit gagal: '.$e->getMessage(); }
+    } else {
+        $ikErr = 'vendor/imagekit SDK belum dipasang (jalankan composer install).';
+    }
+    if ($ik) {
+        try {
+            $uploadFile = $ik->uploadFile([
+                'file'     => base64_encode($data),
+                'fileName' => $name,
+                'folder'   => '/sportapp/gpx/'.date('F_Y'),
+                'useUniqueFileName' => true,
+            ]);
+            if ($uploadFile && empty($uploadFile->error) && !empty($uploadFile->result->url)) {
+                return [
+                    'url'    => $uploadFile->result->url,
+                    'fileId' => $uploadFile->result->fileId ?? null,
+                ];
+            }
+            $ikErr = 'imagekit response error: '.json_encode($uploadFile->error ?? $uploadFile);
+        } catch (Throwable $e) {
+            $ikErr = 'imagekit exception: '.$e->getMessage();
+        }
+    }
+
+    // === Fallback: simpan ke filesystem lokal supaya peta tetap muncul ===
+    $dir = __DIR__.'/../uploads/gpx';
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    if (!is_dir($dir) || !is_writable($dir)) {
+        throw new RuntimeException('Upload GPX gagal: ImageKit error ('.$ikErr.') dan folder uploads/gpx tidak bisa ditulis.');
+    }
+    if (!@move_uploaded_file($tmp, $dir.'/'.$name) && !@file_put_contents($dir.'/'.$name, $data)) {
+        throw new RuntimeException('Upload GPX gagal: tidak bisa menyimpan ke uploads/gpx.');
+    }
+    // path relatif terhadap document root project (admin/ → ../uploads/gpx/<name>)
     return [
-        'url'    => $uploadFile->result->url,
-        'fileId' => $uploadFile->result->fileId,
+        'url'    => '../uploads/gpx/'.$name,
+        'fileId' => null, // tidak ada di ImageKit
     ];
 }
 
-/* Helper hapus file GPX di ImageKit (aman bila fileId kosong / sudah hilang). */
-function delete_gpx_remote($fileId){
-    if (empty($fileId)) return;
-    try {
-        require_once __DIR__.'/../config/imagekit.php';
-        global $imageKit;
-        if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
-    } catch (Throwable $e) { /* abaikan */ }
+/* Helper hapus file GPX (ImageKit kalau ada fileId, atau lokal kalau path relatif). */
+function delete_gpx_remote($fileId, $url=null){
+    if (!empty($fileId)) {
+        try {
+            $ikCfg = __DIR__.'/../config/imagekit.php';
+            if (is_file(__DIR__.'/../vendor/autoload.php') && is_file($ikCfg)) {
+                require_once $ikCfg;
+                global $imageKit;
+                if (isset($imageKit)) { $imageKit->deleteFile($fileId); }
+            }
+        } catch (Throwable $e) { /* abaikan */ }
+        return;
+    }
+    // file lokal (fallback)
+    if ($url && strpos($url, '://') === false) {
+        $abs = realpath(__DIR__.'/../'.ltrim(preg_replace('#^\.\./#','',$url), '/'));
+        if ($abs && is_file($abs) && strpos($abs, realpath(__DIR__.'/../uploads/')) === 0) {
+            @unlink($abs);
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -82,18 +151,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         throw new RuntimeException('Nama tempat wajib diisi.');
     }
     if ($a==='delete') {
-        // Hapus juga file GPX di ImageKit bila ada
-        $old = db_one("SELECT gpx_file_id FROM tempat WHERE id=$1", [(int)$_POST['id']]);
-        if ($old && !empty($old['gpx_file_id'])) {
-            delete_gpx_remote($old['gpx_file_id']);
-        }
+        // Hapus juga file GPX (ImageKit / lokal) bila ada
+        $old = db_one("SELECT gpx_file_id, gpx_path FROM tempat WHERE id=$1", [(int)$_POST['id']]);
+        if ($old) delete_gpx_remote($old['gpx_file_id'] ?? null, $old['gpx_path'] ?? null);
         db_exec("DELETE FROM tempat WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='edit') {
         $jenisId = ($_POST['jenis_id'] ?? '') !== '' ? (int)$_POST['jenis_id'] : null;
         $jenisRow = $jenisId ? db_one("SELECT nama FROM jenis_olahraga WHERE id=$1", [$jenisId]) : null;
         $isTrail = $jenisRow ? is_trail_jenis($jenisRow['nama']) : false;
 
-        // Khusus hiking/camping: kosongkan lat/lng. Selain itu: pertahankan / update.
         if ($isTrail) { $lat = null; $lng = null; }
         else {
             $lat = ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null;
@@ -102,18 +168,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $tampil = !empty($_POST['tampil_booking']) ? 'true' : 'false';
 
         // GPX: kalau ada upload baru, ganti; kalau ada flag hapus_gpx, hapus.
-        // Revisi 23 Juni 2026 — file GPX disimpan di ImageKit (mengikuti mekanisme foto).
-        $newGpx   = save_gpx_upload('gpx_file'); // ['url','fileId'] | null
+        // Revisi 23 Juni 2026 R2 — error eksplisit + fallback lokal bila ImageKit gagal.
+        $newGpx   = save_gpx_upload('gpx_file'); // ['url','fileId'] | null  (throw on error)
         $hapusGpx = !empty($_POST['hapus_gpx']);
         $existing = db_one("SELECT gpx_path, gpx_file_id FROM tempat WHERE id=$1", [(int)$_POST['id']]);
         $gpxFinal     = $existing['gpx_path']    ?? null;
         $gpxFileIdFin = $existing['gpx_file_id'] ?? null;
         if ($newGpx) {
-            if ($gpxFileIdFin) delete_gpx_remote($gpxFileIdFin);
+            delete_gpx_remote($gpxFileIdFin, $gpxFinal);
             $gpxFinal     = $newGpx['url'];
             $gpxFileIdFin = $newGpx['fileId'];
         } elseif ($hapusGpx && ($gpxFinal || $gpxFileIdFin)) {
-            if ($gpxFileIdFin) delete_gpx_remote($gpxFileIdFin);
+            delete_gpx_remote($gpxFileIdFin, $gpxFinal);
             $gpxFinal = null; $gpxFileIdFin = null;
         }
 
