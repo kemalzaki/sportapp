@@ -135,6 +135,23 @@ if (empty($pageSkeleton)) {
 .navbar-dark .brand-logo-colored .bl-3,.bg-dark .brand-logo-colored .bl-3{color:#6ee7b7;}
 .navbar-dark .brand-logo-colored .bl-4,.bg-dark .brand-logo-colored .bl-4{color:#a5b4fc;}
 
+/* Revisi 24 Juni 2026 — Tampilkan kembali navbar desktop di layar ≥992px
+   dengan warna sama persis seperti top header mobile (.gt-top). gojek-top.css
+   menyembunyikan navbar di semua ukuran, override khusus desktop di sini. */
+@media (min-width: 992px){
+  nav.navbar.sticky-top.kk-desktop-nav{
+    display: flex !important;
+    background: linear-gradient(135deg,#0f172a 0%, #1e293b 60%, #243049 100%) !important;
+  }
+  /* sembunyikan top bar mobile + chips + bottom nav saat versi desktop aktif */
+  .gt-top, .gt-chips, .gj-nav { display: none !important; }
+  body{ padding-top: 0 !important; padding-bottom: 0 !important; }
+  /* lepas batas lebar 480px (frame mobile) supaya desktop tampil lega */
+  body > .container, body > main, body > section,
+  main.container, main > .container, .container.py-3, .container.py-4,
+  body > div.container{ max-width: 1140px !important; background: transparent !important; }
+}
+
 
 </style>
 <style id="userTheme"><?= user_theme_css() ?></style>
@@ -205,7 +222,10 @@ if (empty($pageSkeleton)) {
         di avatar header atas dan ikon "Saya" di bottom nav). */ ?>
 <div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title brand-logo-colored" id="gtDrawerLabel"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></h5>
+    <h5 class="offcanvas-title brand-logo-colored d-flex align-items-center gap-2" id="gtDrawerLabel">
+      <img src="/assets/img/hapfam-logo.png" alt="KawanKeringat" height="26" style="height:26px;width:auto;border-radius:6px;background:#fff;padding:2px">
+      <span><span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></span>
+    </h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
   </div>
   <div class="offcanvas-body p-0">
@@ -358,9 +378,17 @@ if (empty($pageSkeleton)) {
 </div>
 <!-- /Mobile top header -->
 
-<nav class="navbar navbar-expand-lg sticky-top" data-bs-theme="dark" style="background:linear-gradient(135deg,#0f172a,#1e293b);">
+<!-- Revisi 24 Juni 2026 — Navbar desktop:
+     warna disamakan dengan top header mobile (.gt-top) yaitu gradien
+     #0f172a → #1e293b → #243049, dan logo brand memakai gambar
+     KawanKeringat (hapfam-logo.png), bukan icon petir. -->
+<nav class="navbar navbar-expand-lg sticky-top kk-desktop-nav" data-bs-theme="dark"
+     style="background:linear-gradient(135deg,#0f172a 0%, #1e293b 60%, #243049 100%);">
   <div class="container">
-    <a class="navbar-brand fw-bold brand-logo-colored" href="/index.php"><i class="bi bi-lightning-charge-fill text-warning"></i> <span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></a>
+    <a class="navbar-brand fw-bold brand-logo-colored d-flex align-items-center gap-2" href="/index.php">
+      <img src="/assets/img/hapfam-logo.png" alt="KawanKeringat" height="28" style="height:28px;width:auto;border-radius:6px;background:#fff;padding:2px">
+      <span><span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></span>
+    </a>
     <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">

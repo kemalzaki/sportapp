@@ -9,6 +9,14 @@ send_security_headers(); enforce_session_timeout();
 require_role('admin');
 $pageTitle = 'Admin · Event';
 
+/* Revisi 24 Juni 2026 — Tambah kolom kategori pelaksanaan event:
+   'internal' (acara internal komunitas) atau 'eksternal' (mis. event lari dari UNPAD).
+   Auto-migration aman dijalankan berulang. */
+try {
+  db_exec("ALTER TABLE event ADD COLUMN IF NOT EXISTS kategori_pelaksanaan VARCHAR(20) NOT NULL DEFAULT 'internal'");
+  db_exec("ALTER TABLE event ADD COLUMN IF NOT EXISTS sumber_eksternal TEXT");
+} catch (Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -21,13 +29,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             ? trim($_POST['tipe_custom'])
             : ($_POST['tipe'] ?? 'sosial');
 
-        $newRow = db_one("INSERT INTO event(nama,jenis,tipe,deskripsi,tanggal_mulai,tanggal_selesai,jam_mulai,jam_selesai,lokasi,batas_daftar,hadiah,status,created_by)
-                      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'open',$12) RETURNING id",
+        $katPel = ($_POST['kategori_pelaksanaan'] ?? 'internal') === 'eksternal' ? 'eksternal' : 'internal';
+        $sumberEks = trim((string)($_POST['sumber_eksternal'] ?? '')) ?: null;
+        $newRow = db_one("INSERT INTO event(nama,jenis,tipe,deskripsi,tanggal_mulai,tanggal_selesai,jam_mulai,jam_selesai,lokasi,batas_daftar,hadiah,status,created_by,kategori_pelaksanaan,sumber_eksternal)
+                      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'open',$12,$13,$14) RETURNING id",
             [trim($_POST['nama']), $jenisFinal, $tipeFinal, $_POST['deskripsi'] ?? '',
              $_POST['tanggal_mulai'], $_POST['tanggal_selesai'] ?: null,
              $_POST['jam_mulai'] ?: null, $_POST['jam_selesai'] ?: null,
              trim($_POST['lokasi'] ?? '') ?: null, $_POST['batas_daftar'] ?: null,
-             $_POST['hadiah'] ?? '', (int)current_user()['id']]);
+             $_POST['hadiah'] ?? '', (int)current_user()['id'], $katPel, $sumberEks]);
         $newId = (int)$newRow['id'];
 
         // Auto-tambahkan member yang dicentang sebagai peserta
@@ -48,15 +58,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $eid = (int)$_POST['id'];
         $jenisFinal = trim($_POST['jenis_custom'] ?? '') !== '' ? trim($_POST['jenis_custom']) : ($_POST['jenis'] ?? 'Lainnya');
         $tipeFinal  = trim($_POST['tipe_custom']  ?? '') !== '' ? trim($_POST['tipe_custom'])  : ($_POST['tipe']  ?? 'sosial');
+        $katPel = ($_POST['kategori_pelaksanaan'] ?? 'internal') === 'eksternal' ? 'eksternal' : 'internal';
+        $sumberEks = trim((string)($_POST['sumber_eksternal'] ?? '')) ?: null;
         db_exec("UPDATE event SET nama=$1, jenis=$2, tipe=$3, deskripsi=$4,
                     tanggal_mulai=$5, tanggal_selesai=$6, jam_mulai=$7, jam_selesai=$8,
-                    lokasi=$9, batas_daftar=$10, hadiah=$11
+                    lokasi=$9, batas_daftar=$10, hadiah=$11,
+                    kategori_pelaksanaan=$13, sumber_eksternal=$14
                  WHERE id=$12",
             [trim($_POST['nama']), $jenisFinal, $tipeFinal, $_POST['deskripsi'] ?? '',
              $_POST['tanggal_mulai'], $_POST['tanggal_selesai'] ?: null,
              $_POST['jam_mulai'] ?: null, $_POST['jam_selesai'] ?: null,
              trim($_POST['lokasi'] ?? '') ?: null, $_POST['batas_daftar'] ?: null,
-             $_POST['hadiah'] ?? '', $eid]);
+             $_POST['hadiah'] ?? '', $eid, $katPel, $sumberEks]);
     } elseif ($a==='status') {
         db_exec("UPDATE event SET status=$1 WHERE id=$2", [$_POST['status'], (int)$_POST['id']]);
     } elseif ($a==='add_match') {
@@ -180,6 +193,17 @@ include __DIR__.'/../includes/header.php';
     <input class="form-control" name="tipe_custom" placeholder="cth: Bakti Sosial">
   </div>
 
+  <!-- Revisi 24 Juni 2026 — Kategori Pelaksanaan: Internal vs Eksternal -->
+  <div class="col-md-3"><label class="small fw-semibold">Kategori Pelaksanaan</label>
+    <select name="kategori_pelaksanaan" class="form-select" onchange="(function(s){var b=s.form.querySelector('[name=sumber_eksternal]');if(b){b.parentElement.style.display=s.value==='eksternal'?'':'none';}})(this)">
+      <option value="internal">Internal (komunitas sendiri)</option>
+      <option value="eksternal">Eksternal (mis. dari UNPAD)</option>
+    </select>
+  </div>
+  <div class="col-md-3" style="display:none"><label class="small fw-semibold">Penyelenggara Eksternal</label>
+    <input class="form-control" name="sumber_eksternal" placeholder="cth: UNPAD, IKADI Bandung, Komunitas Lari Bdg">
+  </div>
+
   <div class="col-md-3"><label class="small fw-semibold">Tanggal Mulai</label><input type="date" name="tanggal_mulai" class="form-control" required></div>
   <div class="col-md-3"><label class="small fw-semibold">Tanggal Selesai</label><input type="date" name="tanggal_selesai" class="form-control"></div>
   <div class="col-md-2"><label class="small fw-semibold">Jam Mulai</label><input type="time" name="jam_mulai" class="form-control"></div>
@@ -241,7 +265,13 @@ include __DIR__.'/../includes/header.php';
   <div class="d-flex justify-content-between flex-wrap gap-2">
     <div><h5 class="mb-1"><?= htmlspecialchars($e['nama']) ?>
         <small class="text-muted">· <span class="badge bg-info-subtle text-info-emphasis"><?= htmlspecialchars($e['jenis']) ?></span>
-        <span class="badge bg-secondary"><?= htmlspecialchars($e['tipe']) ?></span></small></h5>
+        <span class="badge bg-secondary"><?= htmlspecialchars($e['tipe']) ?></span>
+        <?php $kat = ($e['kategori_pelaksanaan'] ?? 'internal') === 'eksternal' ? 'eksternal' : 'internal'; ?>
+        <span class="badge <?= $kat==='eksternal'?'bg-warning text-dark':'bg-success-subtle text-success-emphasis' ?>">
+          <i class="bi <?= $kat==='eksternal'?'bi-buildings':'bi-house-heart' ?>"></i> <?= $kat ?>
+          <?php if($kat==='eksternal' && !empty($e['sumber_eksternal'])): ?>· <?= htmlspecialchars($e['sumber_eksternal']) ?><?php endif; ?>
+        </span>
+        </small></h5>
       <div class="small text-muted"><?= htmlspecialchars($e['tanggal_mulai']) ?> → <?= htmlspecialchars($e['tanggal_selesai'] ?? '-') ?> · Status: <?= htmlspecialchars($e['status']) ?> · Peserta: <?= count($ps) ?></div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -288,6 +318,18 @@ include __DIR__.'/../includes/header.php';
                 <option value="<?= $tp ?>" <?= $e['tipe']===$tp?'selected':'' ?>><?= $tp ?></option>
               <?php endforeach; ?>
             </select>
+          </div>
+          <!-- Revisi 24 Juni 2026 — Kategori Pelaksanaan -->
+          <div class="col-md-4"><label class="small fw-semibold">Kategori Pelaksanaan</label>
+            <select name="kategori_pelaksanaan" class="form-select" onchange="(function(s){var b=s.form.querySelector('[name=sumber_eksternal]');if(b){b.parentElement.style.display=s.value==='eksternal'?'':'none';}})(this)">
+              <?php $curKat = ($e['kategori_pelaksanaan'] ?? 'internal') === 'eksternal' ? 'eksternal' : 'internal'; ?>
+              <option value="internal" <?= $curKat==='internal'?'selected':'' ?>>Internal (komunitas sendiri)</option>
+              <option value="eksternal" <?= $curKat==='eksternal'?'selected':'' ?>>Eksternal (mis. dari UNPAD)</option>
+            </select>
+          </div>
+          <div class="col-md-8" style="<?= $curKat==='eksternal' ? '' : 'display:none' ?>">
+            <label class="small fw-semibold">Penyelenggara Eksternal</label>
+            <input class="form-control" name="sumber_eksternal" value="<?= htmlspecialchars($e['sumber_eksternal'] ?? '') ?>" placeholder="cth: UNPAD, Komunitas Lari Bdg">
           </div>
           <div class="col-md-3"><label class="small fw-semibold">Tanggal Mulai</label>
             <input type="date" name="tanggal_mulai" class="form-control" required value="<?= htmlspecialchars($e['tanggal_mulai']) ?>"></div>

@@ -431,6 +431,22 @@ if ($_jids) {
     );
     foreach ($_rows as $r) $absByJadwal[(int)$r['jadwal_id']][] = $r;
 }
+
+// Revisi 24 Juni 2026 — Anggota hadir EKSTERNAL (member_eksternal) per jadwal terdekat,
+// supaya ikut tampil di kartu "Jadwal Terdekat" (bukan hanya tamu internal).
+$tamuByJadwal = [];
+if ($_jids) {
+    try {
+        $_tRows = db_all(
+          "SELECT me.jadwal_id, me.nama_tamu, me.dibawa_oleh_id, u.nama AS pembawa, u.foto_url AS pembawa_foto
+           FROM member_eksternal me
+           LEFT JOIN users u ON u.id = me.dibawa_oleh_id
+           WHERE me.jadwal_id = ANY($1::int[])
+           ORDER BY me.jadwal_id, me.nama_tamu",
+          ['{'.implode(',', $_jids).'}']);
+        foreach ($_tRows as $tr) $tamuByJadwal[(int)$tr['jadwal_id']][] = $tr;
+    } catch (Throwable $e) {}
+}
 $onlineMembers = db_all("SELECT id, nama, foto_url, last_seen FROM users
                          WHERE last_seen IS NOT NULL AND last_seen >= NOW() - INTERVAL '2 minutes' ORDER BY nama");
 
@@ -982,6 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <?php if($cnt['izin']): ?><span class="badge bg-info-subtle text-info" title="Izin">I <?= $cnt['izin'] ?></span><?php endif; ?>
               <?php if($cnt['sakit']): ?><span class="badge bg-secondary-subtle text-secondary" title="Sakit">S <?= $cnt['sakit'] ?></span><?php endif; ?>
               <?php if($cnt['absen']): ?><span class="badge bg-danger-subtle text-danger" title="Belum/Absen">A <?= $cnt['absen'] ?></span><?php endif; ?>
+              <?php $eksCnt = count($tamuByJadwal[$jid] ?? []); if($eksCnt): ?><span class="badge bg-success-subtle text-success-emphasis border" title="Hadir Eksternal">E <?= $eksCnt ?></span><?php endif; ?>
             </td>
           </tr>
           <tr class="collapse" id="jdetail<?= $jid ?>">
@@ -1006,6 +1023,34 @@ document.addEventListener('DOMContentLoaded', () => {
                   </tbody>
                 </table></div>
               <?php endif; ?>
+              <?php
+                // Revisi 24 Juni 2026 — Tampilkan anggota hadir EKSTERNAL di Jadwal Terdekat.
+                $tamuList = $tamuByJadwal[$jid] ?? [];
+              ?>
+              <div class="mt-2">
+                <strong class="small"><i class="bi bi-person-plus text-success"></i> Anggota Hadir Eksternal (<?= count($tamuList) ?>)</strong>
+                <?php if(!$tamuList): ?>
+                  <span class="small text-muted">— belum ada tamu eksternal —</span>
+                <?php else: ?>
+                  <div class="table-responsive"><table class="table table-sm mb-0">
+                    <thead><tr><th>Nama Tamu</th><th>Dibawa oleh</th></tr></thead>
+                    <tbody>
+                    <?php foreach($tamuList as $tr): ?>
+                      <tr>
+                        <td><span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-person"></i> <?= htmlspecialchars($tr['nama_tamu']) ?></span></td>
+                        <td class="small">
+                          <?php if(!empty($tr['pembawa'])): ?>
+                            <a class="text-decoration-none" href="/user.php?id=<?= (int)$tr['dibawa_oleh_id'] ?>"><?= user_name_with_avatar($tr['pembawa_foto'] ?? null, $tr['pembawa'], false, 20) ?></a>
+                          <?php else: ?>
+                            <span class="text-muted">—</span>
+                          <?php endif; ?>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                  </table></div>
+                <?php endif; ?>
+              </div>
               <?php
                 $perlKey = mb_strtolower($j['jenis']);
                 $perlItems = $perlByJadwal[$perlKey] ?? [];

@@ -155,6 +155,22 @@ if ($cat === 'konsisten') {
                                    THEN (uh.durasi_menit*60.0/uh.jarak_km)::int
                                    ELSE NULL END) ) BETWEEN 120 AND 900
                   ORDER BY skor ASC LIMIT 20");
+} elseif ($cat === 'penggaet_eksternal') {
+    // Revisi 24 Juni 2026 — Leaderboard "Penggaet Teman Eksternal Terbanyak":
+    // Hitung berapa tamu eksternal (member_eksternal.nama_tamu DISTINCT) yang
+    // dibawa oleh tiap user, terbatas pada periode jadwal terpilih.
+    try {
+      $lb = db_all("SELECT u.id, u.nama, u.foto_url,
+                           COUNT(DISTINCT LOWER(TRIM(me.nama_tamu))) AS skor
+                    FROM member_eksternal me
+                    JOIN users u ON u.id = me.dibawa_oleh_id
+                    JOIN jadwal j ON j.id = me.jadwal_id
+                    WHERE $periodSql AND me.dibawa_oleh_id IS NOT NULL
+                      AND COALESCE(TRIM(me.nama_tamu),'') <> ''
+                    GROUP BY u.id, u.nama, u.foto_url
+                    HAVING COUNT(DISTINCT LOWER(TRIM(me.nama_tamu))) > 0
+                    ORDER BY skor DESC LIMIT 20");
+    } catch (Throwable $e) { $lb = []; }
 } elseif ($cat === 'kalori') {
     $lb = db_all("SELECT u.id,u.nama,u.foto_url, COALESCE(SUM(uh.kalori),0) AS skor
                   FROM upload_harian uh JOIN users u ON u.id=uh.user_id
@@ -262,6 +278,16 @@ $myDays = $u ? db_all("
     AND tanggal >= CURRENT_DATE - INTERVAL '90 days'
   GROUP BY tanggal ORDER BY tanggal", [(int)$u['id']]) : [];
 
+/* Revisi 24 Juni 2026 — Tren Kehadiran Mingguan SEMUA ANGGOTA (dipindah dari monitoring.php). */
+$wkAllLabels = []; $wkAllVals = [];
+try {
+  $wkRows = db_all("SELECT to_char(date_trunc('week', j.tanggal), 'IYYY-\"W\"IW') AS wk, COUNT(*) AS c
+                    FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id
+                    WHERE a.hadir=1 AND j.tanggal >= CURRENT_DATE - INTERVAL '12 weeks'
+                    GROUP BY 1 ORDER BY 1");
+  foreach ($wkRows as $r) { $wkAllLabels[] = $r['wk']; $wkAllVals[] = (int)$r['c']; }
+} catch (Throwable $e) {}
+
 /* Revisi 22 Juni 2026 R12 — AJAX endpoint: return hanya fragmen leaderboard
    sehingga filter Kategori & Periode tidak perlu reload halaman penuh. */
 if (!empty($_GET['ajax_lb'])) {
@@ -278,6 +304,7 @@ if (!empty($_GET['ajax_lb'])) {
               if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
               elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
               elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
+              elseif ($cat==='penggaet_eksternal') echo (int)$row['skor'].' teman';
               else echo (int)$row['skor'];
             ?>
           </span>
@@ -296,7 +323,7 @@ include __DIR__.'/includes/header.php';
   <form class="row g-2 align-items-end" id="lbFilterForm" onsubmit="return false">
     <div class="col-md-3"><label class="small fw-semibold">Kategori</label>
       <select name="cat" id="lbCat" class="form-select">
-        <?php foreach(['konsisten'=>'Paling Konsisten','jarak'=>'Jarak Terbanyak','pace'=>'Pace Terbaik','kalori'=>'Kalori Terbanyak','all'=>'All Rounder'] as $k=>$v): ?>
+        <?php foreach(['konsisten'=>'Paling Konsisten','jarak'=>'Jarak Terbanyak','pace'=>'Pace Terbaik','kalori'=>'Kalori Terbanyak','all'=>'All Rounder','penggaet_eksternal'=>'Penggaet Teman Eksternal Terbanyak'] as $k=>$v): ?>
           <option value="<?= $k ?>" <?= $cat===$k?'selected':'' ?>><?= $v ?></option>
         <?php endforeach; ?>
       </select></div>
@@ -394,6 +421,7 @@ include __DIR__.'/includes/header.php';
               if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
               elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
               elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
+              elseif ($cat==='penggaet_eksternal') echo (int)$row['skor'].' teman';
               else echo (int)$row['skor'];
             ?>
           </span>
@@ -857,4 +885,30 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
   document.getElementById('lbPeriod').addEventListener('change', reload);
 })();
 </script>
+
+<!-- Revisi 24 Juni 2026 — Tren Kehadiran Mingguan SEMUA ANGGOTA (dipindah dari monitoring.php) -->
+<div class="card shadow-sm mb-3">
+  <div class="card-header"><i class="bi bi-people text-primary"></i> Tren Kehadiran Mingguan — Semua Anggota</div>
+  <div class="card-body">
+    <canvas id="rwAllAttendChart" height="140"></canvas>
+    <small class="text-muted d-block mt-2">Total kehadiran semua anggota per minggu (12 minggu terakhir).</small>
+  </div>
+</div>
+<script>
+(function(){
+  var labels = <?= json_encode($wkAllLabels ?: []) ?>;
+  var vals   = <?= json_encode($wkAllVals ?: []) ?>;
+  function draw(){
+    if (typeof Chart === 'undefined') { return setTimeout(draw, 250); }
+    var el = document.getElementById('rwAllAttendChart'); if(!el) return;
+    new Chart(el, {
+      type:'line',
+      data:{ labels: labels.length? labels:['—'], datasets:[{ label:'Total hadir', data: vals.length? vals:[0], tension:.3, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true }]},
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{precision:0} } } }
+    });
+  }
+  draw();
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

@@ -77,11 +77,13 @@ $fatigueLabel = $fatigue > 30 ? '🔥 Overload' : ($fatigue > 10 ? '⚠️ Cukup
 $heat = [];
 foreach ($uploads as $r) { $heat[$r['tanggal']] = ($heat[$r['tanggal']] ?? 0) + 1; }
 
-// ---- Tren Kehadiran Mingguan (12 minggu) — semua user ----
+// Revisi 24 Juni 2026 — Tren Kehadiran Mingguan PERSONAL (per user yang login).
+// Versi "semua anggota" telah dipindah ke /riwayat.php.
 $wkRows = db_all("SELECT to_char(date_trunc('week', j.tanggal), 'IYYY-\"W\"IW') AS wk, COUNT(*) AS c
                   FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id
-                  WHERE a.hadir=1 AND j.tanggal >= CURRENT_DATE - INTERVAL '12 weeks'
-                  GROUP BY 1 ORDER BY 1");
+                  WHERE a.hadir=1 AND a.user_id=$1
+                    AND j.tanggal >= CURRENT_DATE - INTERVAL '12 weeks'
+                  GROUP BY 1 ORDER BY 1", [(int)$u['id']]);
 $wkLabels=[]; $wkVals=[];
 foreach($wkRows as $r){ $wkLabels[]=$r['wk']; $wkVals[]=(int)$r['c']; }
 
@@ -272,9 +274,9 @@ include __DIR__.'/includes/header.php';
 <!-- Revisi 23 Juni 2026 — Tren Kehadiran & Tren Performa Jogging dibungkus <details> -->
 <div class="row g-3 mt-1">
   <div class="col-lg-6"><details class="card shadow-sm spoiler-card">
-    <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-people text-primary"></i> Tren Total Kehadiran Mingguan <span class="text-muted small">(klik buka/tutup)</span></summary>
+    <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-person-check text-primary"></i> Tren Kehadiran Mingguan (Personal) <span class="text-muted small">(klik buka/tutup)</span></summary>
     <div class="card-body"><canvas id="wkChart" height="160"></canvas>
-      <small class="text-muted d-block mt-2">Total kehadiran semua anggota per minggu (12 minggu terakhir).</small></div>
+      <small class="text-muted d-block mt-2">Total kehadiran <b>saya</b> per minggu (12 minggu terakhir). Versi seluruh anggota dipindah ke halaman <a href="/riwayat.php" class="text-decoration-none">Riwayat</a>.</small></div>
   </details></div>
   <div class="col-lg-6"><details class="card shadow-sm spoiler-card">
     <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-activity text-success"></i> Tren Performa Jogging Harian (saya) <span class="text-muted small">(klik buka/tutup)</span></summary>

@@ -74,6 +74,11 @@ include __DIR__.'/includes/header.php';
     <div class="p-3">
       <span class="pill"><?= htmlspecialchars($e['tipe']) ?></span>
       <span class="pill"><?= htmlspecialchars($e['jenis']) ?></span>
+      <?php $kat = ($e['kategori_pelaksanaan'] ?? 'internal') === 'eksternal' ? 'eksternal' : 'internal'; ?>
+      <span class="pill" style="background:<?= $kat==='eksternal'?'#fde68a':'#d1fae5' ?>;color:#111">
+        <i class="bi <?= $kat==='eksternal'?'bi-buildings':'bi-house-heart' ?>"></i> <?= $kat ?>
+        <?php if($kat==='eksternal' && !empty($e['sumber_eksternal'])): ?>· <?= htmlspecialchars($e['sumber_eksternal']) ?><?php endif; ?>
+      </span>
       <h6 class="mt-2 mb-1"><?= htmlspecialchars($e['nama']) ?></h6>
       <small class="text-muted"><?= htmlspecialchars($e['tanggal_mulai']) ?> · <?= (int)$e['jml'] ?> peserta</small>
       <div class="mt-2"><a class="btn btn-sm btn-primary w-100" href="?id=<?= $e['id'] ?>">Lihat detail</a></div>
@@ -87,7 +92,13 @@ include __DIR__.'/includes/header.php';
   <h4 class="mb-1"><?= htmlspecialchars($detail['nama']) ?></h4>
   <div><span class="pill"><?= htmlspecialchars($detail['tipe']) ?></span>
        <span class="pill"><?= htmlspecialchars($detail['jenis']) ?></span>
-       <span class="pill">Status: <?= htmlspecialchars($detail['status']) ?></span></div>
+       <span class="pill">Status: <?= htmlspecialchars($detail['status']) ?></span>
+       <?php $kat = ($detail['kategori_pelaksanaan'] ?? 'internal') === 'eksternal' ? 'eksternal' : 'internal'; ?>
+       <span class="pill" style="background:<?= $kat==='eksternal'?'#fde68a':'#d1fae5' ?>;color:#111">
+         <i class="bi <?= $kat==='eksternal'?'bi-buildings':'bi-house-heart' ?>"></i> <?= $kat ?>
+         <?php if($kat==='eksternal' && !empty($detail['sumber_eksternal'])): ?>· <?= htmlspecialchars($detail['sumber_eksternal']) ?><?php endif; ?>
+       </span>
+  </div>
   <p class="mt-2"><?= nl2br(htmlspecialchars($detail['deskripsi'] ?? '')) ?></p>
   <div class="row small g-2">
     <div class="col-md-4"><b><i class="bi bi-calendar-event"></i> Mulai:</b> <?= htmlspecialchars($detail['tanggal_mulai']) ?><?php if(!empty($detail['jam_mulai'])): ?> · <?= substr($detail['jam_mulai'],0,5) ?><?php endif; ?></div>

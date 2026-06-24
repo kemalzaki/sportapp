@@ -147,9 +147,15 @@ include __DIR__.'/includes/header.php';
 <?php tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total); ?>
 </div>
 
-<!-- Leaflet (untuk peta rute di popup) -->
+<!-- Revisi 24 Juni 2026 — Peta di tempat_list.php sekarang memakai MapBox (sama dgn run.php).
+     Rendering tetap memakai Leaflet sebagai layer engine, namun tile source memakai MapBox. -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  window.MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
+  window.MAPBOX_TILE_URL = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + window.MAPBOX_TOKEN_JS;
+  window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+</script>
 
 <!-- Popup detail Tempat -->
 <div class="modal fade" id="tempatModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -207,7 +213,7 @@ function _tmRenderMap(d){
   _tmDestroyMap();
   const center = hasCoord ? [Number(d.lat), Number(d.lng)] : [-6.9,107.6];
   _tmLeaflet = L.map('tmMap').setView(center, hasCoord?15:12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(_tmLeaflet);
+  L.tileLayer(window.MAPBOX_TILE_URL,{maxZoom:19,attribution:window.MAPBOX_ATTR}).addTo(_tmLeaflet);
   setTimeout(()=>{ if(_tmLeaflet) _tmLeaflet.invalidateSize(); }, 200);
   if (hasCoord) L.marker(center).addTo(_tmLeaflet).bindPopup('<b>'+(d.nama||'')+'</b>').openPopup();
   if (hasGpx) {

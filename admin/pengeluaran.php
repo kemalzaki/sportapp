@@ -70,8 +70,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 $filterJadwal = (int)($_GET['jadwal_id'] ?? 0);
+// Revisi 24 Juni 2026 — Filter Jadwal sekarang Per Bulan (format YYYY-MM).
+// Memfilter pengeluaran berdasarkan bulan tanggal jadwal terkait (j.tanggal).
+$filterBulan  = trim((string)($_GET['bulan'] ?? ''));
+if ($filterBulan !== '' && !preg_match('/^\d{4}-\d{2}$/', $filterBulan)) $filterBulan = '';
 $where = ''; $params = [];
-if ($filterJadwal) { $where = "WHERE p.jadwal_id=$1"; $params=[$filterJadwal]; }
+if ($filterJadwal) {
+    $where = "WHERE p.jadwal_id=$1"; $params=[$filterJadwal];
+} elseif ($filterBulan !== '') {
+    // Cocok bila jadwal terkait pada bulan tsb, ATAU (jika tidak terkait jadwal) pengeluaran-nya jatuh di bulan tsb.
+    $where = "WHERE (
+        (p.jadwal_id IS NOT NULL AND EXISTS (SELECT 1 FROM jadwal jj WHERE jj.id=p.jadwal_id AND to_char(jj.tanggal,'YYYY-MM')=$1))
+        OR (p.jadwal_id IS NULL AND to_char(p.tanggal,'YYYY-MM')=$1)
+    )";
+    $params = [$filterBulan];
+}
 
 // ===== Revisi 1 Jun 2026 (Lanjutan) #1: pagination 5 entri =====
 $PER_PAGE = 5;
@@ -92,6 +105,13 @@ $rows = db_all("SELECT p.*, j.tanggal AS j_tgl, j.jenis AS j_jenis, j.tempat AS 
 $totalAgg = (int) db_val("SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran_kegiatan p $where", $params);
 
 $jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal ORDER BY tanggal DESC LIMIT 200");
+// Revisi 24 Juni 2026 — Daftar bulan unik (dari tanggal jadwal + tanggal pengeluaran) untuk dropdown filter Per Bulan.
+$bulanRows = db_all("
+  SELECT bulan FROM (
+    SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM jadwal
+    UNION
+    SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM pengeluaran_kegiatan
+  ) x WHERE bulan IS NOT NULL ORDER BY bulan DESC LIMIT 60");
 
 /* Revisi 22 Juni 2026 R12 — AJAX fragment: kembalikan hanya bagian tabel + pagination. */
 if (!empty($_GET['ajax_table'])) {
@@ -173,10 +193,25 @@ include __DIR__.'/../includes/header.php';
 <h2 class="mb-3"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</h2>
 <p class="text-muted small">Revisi 1 Jun 2026: bukti pengeluaran kini disimpan ke <strong>ImageKit</strong>. Pembaruan terbaru: tombol <em>Edit</em> di setiap baris dan pagination 5 entri per halaman.</p>
 
-<form method="get" class="mb-3 d-flex gap-2 align-items-end">
-  <div><label class="small">Filter Jadwal</label>
+<form method="get" class="mb-3 d-flex gap-2 align-items-end flex-wrap">
+  <!-- Revisi 24 Juni 2026 — Filter Jadwal dibuat PER BULAN (YYYY-MM) -->
+  <div>
+    <label class="small">Filter Jadwal (Per Bulan)</label>
+    <select name="bulan" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">-- Semua Bulan --</option>
+      <?php foreach($bulanRows as $b):
+        $bv = $b['bulan'];
+        $ts = strtotime($bv.'-01');
+        $label = $ts ? strftime_id_my($ts) : $bv;
+      ?>
+        <option value="<?= htmlspecialchars($bv) ?>" <?= $filterBulan===$bv?'selected':'' ?>><?= htmlspecialchars($label) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div>
+    <label class="small text-muted">Atau pilih satu jadwal spesifik</label>
     <select name="jadwal_id" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="0">-- Semua --</option>
+      <option value="0">-- (abaikan, pakai filter bulan) --</option>
       <?php foreach($jadwalList as $j): ?>
         <option value="<?= (int)$j['id'] ?>" <?= $filterJadwal===(int)$j['id']?'selected':'' ?>>
           <?= date('d M Y',strtotime($j['tanggal'])) ?> · <?= htmlspecialchars($j['jenis']) ?> @ <?= htmlspecialchars($j['tempat']) ?>
@@ -184,8 +219,18 @@ include __DIR__.'/../includes/header.php';
       <?php endforeach; ?>
     </select>
   </div>
+  <?php if ($filterJadwal || $filterBulan !== ''): ?>
+    <div><a href="pengeluaran.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i> Reset</a></div>
+  <?php endif; ?>
   <div class="ms-auto small text-muted">Total: <strong class="text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></strong> · <?= $totalRows ?> entri</div>
 </form>
+<?php
+// Helper bulan Indonesia (didefinisikan inline supaya tidak butuh ekstensi intl).
+function strftime_id_my($ts){
+  static $bln=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  return $bln[(int)date('n',$ts)-1].' '.date('Y',$ts);
+}
+?>
 
 <div class="card mb-3"><div class="card-header"><i class="bi bi-plus-circle"></i> Tambah Pengeluaran</div>
 <div class="card-body">

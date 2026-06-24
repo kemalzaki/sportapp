@@ -578,13 +578,42 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!ids.length) throw new Error('tidak ada hasil');
       ids = ids.slice(0,3);
       var html = '<div class="small text-muted mb-1"><b>YouTube</b> — alternatif jika iTunes kosong. Putar untuk dengar musik (tidak terhubung ke trim/record).</div>';
+      // Revisi 24 Juni 2026 — Selain pratinjau, tampilkan tombol "Pakai sebagai
+      // musik latar (ekstrak MP3)" supaya audio dari YouTube benar-benar terpasang
+      // ke <audio id="musicAudio"> dan ikut terekam ke Rekam Video.
       ids.forEach(function(vid){
         html += '<div class="ratio ratio-16x9 mb-1 rounded overflow-hidden border">'+
           '<iframe loading="lazy" allowfullscreen src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(vid)+'?rel=0" '+
           'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>'+
           '</div>';
+        html += '<div class="d-flex gap-2 mb-2">'+
+          '<button type="button" class="btn btn-sm btn-danger flex-grow-1" data-yt-pick="'+encodeURIComponent(vid)+'">'+
+          '<i class="bi bi-download"></i> Ekstrak MP3 & pakai untuk Rekam Video</button></div>';
       });
       out.innerHTML = html;
+      // Bind tombol ekstrak
+      out.querySelectorAll('[data-yt-pick]').forEach(function(btn){
+        btn.addEventListener('click', async function(){
+          var vid = decodeURIComponent(btn.getAttribute('data-yt-pick'));
+          btn.disabled = true;
+          var orig = btn.innerHTML;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengekstrak audio (yt-dlp + ffmpeg)…';
+          try {
+            var qTxt = (document.getElementById('musicQ').value||'').trim();
+            var r = await fetch('/api_yt_mp3.php?v='+encodeURIComponent(vid)+'&title='+encodeURIComponent(qTxt), {credentials:'same-origin'});
+            var j = await r.json();
+            if (!j.ok) throw new Error(j.err || 'gagal ekstrak');
+            // Pakai pickMusic supaya semua pipeline (record, trim, lirik) ikut terkait.
+            pickMusic({ previewUrl: j.url, trackName: qTxt || ('YouTube · '+vid), artistName: 'YouTube' });
+            btn.classList.remove('btn-danger'); btn.classList.add('btn-success');
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Terpasang ke Rekam Video';
+          } catch(e) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+            alert('Ekstraksi gagal: '+(e.message||e));
+          }
+        });
+      });
     } catch(e) {
       out.innerHTML = '<div class="small text-danger py-2"><i class="bi bi-exclamation-triangle"></i> Gagal: '+escapeHtml(e.message||String(e))+'</div>';
     }
