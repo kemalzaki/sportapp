@@ -103,6 +103,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($a === 'del_external') {
             db_exec("DELETE FROM tim_external WHERE id=$1", [(int)$_POST['ext_id']]);
         }
+        elseif ($a === 'del_tim') {
+            // Revisi 24 Juni 2026 — Hapus tim beserta anggota & pemain eksternalnya.
+            $tid = (int)($_POST['tim_id'] ?? 0);
+            if ($tid > 0) {
+                // Lepas relasi dari jadwal agar tidak ada FK menggantung
+                db_exec("UPDATE jadwal SET tim_id=NULL WHERE tim_id=$1", [$tid]);
+                // tim_external & tim_member ikut terhapus (tim_external via ON DELETE CASCADE),
+                // tim_member dihapus eksplisit untuk jaga-jaga bila tanpa cascade.
+                try { db_exec("DELETE FROM tim_member WHERE tim_id=$1", [$tid]); } catch (Throwable $e) {}
+                try { db_exec("DELETE FROM tim_external WHERE tim_id=$1", [$tid]); } catch (Throwable $e) {}
+                db_exec("DELETE FROM tim WHERE id=$1", [$tid]);
+                $_SESSION['flash_ok'] = "Tim berhasil dihapus.";
+                header("Location: /admin/tim.php"); exit;
+            }
+        }
     } catch (Throwable $e) {
         $_SESSION['flash_err'] = $e->getMessage();
     }
@@ -206,7 +221,16 @@ include __DIR__.'/../includes/header.php';
       <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span><i class="bi bi-people"></i> <strong><?= htmlspecialchars($tim['nama']) ?></strong> · <?= htmlspecialchars($tim['jenis']) ?></span>
-          <span class="badge bg-secondary">Kuota <?= (int)$tim['kuota'] ?></span>
+          <span class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary">Kuota <?= (int)$tim['kuota'] ?></span>
+            <!-- Revisi 24 Juni 2026 — Tombol hapus tim -->
+            <form method="post" onsubmit="return confirm('Hapus tim &quot;<?= htmlspecialchars($tim['nama'], ENT_QUOTES) ?>&quot; beserta seluruh anggota & pemain eksternalnya? Tindakan ini tidak bisa dibatalkan.')" data-loading-btn>
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="del_tim">
+              <input type="hidden" name="tim_id" value="<?= (int)$tim['id'] ?>">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Hapus Tim</button>
+            </form>
+          </span>
         </div>
         <div class="card-body">
           <?php if($tjadwal): ?>

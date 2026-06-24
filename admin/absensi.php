@@ -3,6 +3,7 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
 require __DIR__.'/../includes/wa_notify.php';
+require __DIR__.'/../includes/badges.php';
 require_role('admin');
 $pageTitle='Input Absensi';
 
@@ -40,6 +41,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
         db_exec("INSERT INTO absensi(jadwal_id,user_id,hadir,status,keterangan) VALUES($1,$2,$3,$4,$5)",
                 [$jadwalId, $uid, $hadir, $st, $ket ?: null]);
+        // Revisi 24 Juni 2026 — evaluasi badge (mis. First Check-in) untuk yang hadir,
+        // karena check-in kini lewat input absensi admin (tanpa barcode/QR).
+        if ($hadir === 1) { try { recompute_badges($uid); } catch (Throwable $e) {} }
     }
     foreach (($_POST['tamu_nama'] ?? []) as $i => $n) {
         $n = trim($n); if (!$n) continue;
@@ -71,17 +75,39 @@ if ($jadwalId) {
     }
     $tamu = db_all("SELECT * FROM member_eksternal WHERE jadwal_id=$1", [$jadwalId]);
 }
-$jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal ORDER BY tanggal DESC");
+// Revisi 24 Juni 2026 — Filter bulanan agar dropdown jadwal tidak memanjang ke bawah.
+$blnList = db_all("SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS ym FROM jadwal ORDER BY ym DESC");
+$blnSel = (string)($_GET['bln'] ?? '');
+// Bila tidak memilih bulan & belum memilih jadwal, default ke bulan terbaru agar ringkas.
+if ($blnSel === '' && !$jadwalId && $blnList) { $blnSel = $blnList[0]['ym']; }
+if ($blnSel !== '' && preg_match('/^\d{4}-\d{2}$/', $blnSel)) {
+    $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal WHERE to_char(tanggal,'YYYY-MM')=$1 ORDER BY tanggal DESC", [$blnSel]);
+} else {
+    $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal ORDER BY tanggal DESC");
+}
+$bulanNama = [1=>'Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+$fmtBln = function($ym) use ($bulanNama){ [$y,$m]=explode('-',$ym); return ($bulanNama[(int)$m] ?? $m).' '.$y; };
 include __DIR__.'/../includes/header.php'; ?>
 
 <h2 class="mb-3"><i class="bi bi-check2-square text-primary"></i> Input Absensi (RSVP)</h2>
 
-<form method="get" class="row g-2 mb-3"><div class="col-md-8"><select name="id" class="form-select" onchange="this.form.submit()">
-  <option value="">— Pilih Jadwal —</option>
-  <?php foreach($jadwalList as $j): ?>
-    <option value="<?= $j['id'] ?>" <?= $j['id']==$jadwalId?'selected':'' ?>><?= $j['tanggal'] ?> — <?= $j['jenis'] ?> @ <?= htmlspecialchars($j['tempat']) ?></option>
-  <?php endforeach; ?>
-</select></div>
+<form method="get" class="row g-2 mb-3">
+  <div class="col-md-4"><label class="form-label small mb-1">Filter Bulan</label>
+    <select name="bln" class="form-select" onchange="this.form.submit()">
+      <option value="">— Semua Bulan —</option>
+      <?php foreach($blnList as $b): ?>
+        <option value="<?= htmlspecialchars($b['ym']) ?>" <?= $b['ym']===$blnSel?'selected':'' ?>><?= htmlspecialchars($fmtBln($b['ym'])) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="col-md-8"><label class="form-label small mb-1">Pilih Jadwal</label>
+    <select name="id" class="form-select" onchange="this.form.submit()">
+      <option value="">— Pilih Jadwal —</option>
+      <?php foreach($jadwalList as $j): ?>
+        <option value="<?= $j['id'] ?>" <?= $j['id']==$jadwalId?'selected':'' ?>><?= $j['tanggal'] ?> — <?= $j['jenis'] ?> @ <?= htmlspecialchars($j['tempat']) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
 <?php if($jadwalId): ?><div class="col-md-4"><a href="/export.php?type=absensi&jadwal_id=<?= $jadwalId ?>&format=csv" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</a>
 <a href="/export.php?type=absensi&jadwal_id=<?= $jadwalId ?>&format=pdf" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</a></div><?php endif; ?>
 </form>

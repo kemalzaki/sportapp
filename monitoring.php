@@ -87,6 +87,26 @@ $wkRows = db_all("SELECT to_char(date_trunc('week', j.tanggal), 'IYYY-\"W\"IW') 
 $wkLabels=[]; $wkVals=[];
 foreach($wkRows as $r){ $wkLabels[]=$r['wk']; $wkVals[]=(int)$r['c']; }
 
+// Revisi 24 Juni 2026 — Tren Izin / Sakit / Absen mingguan PERSONAL (dari data absensi.php).
+// Status diisi admin di /admin/absensi.php (izin, sakit, telat, absen, hadir).
+$stRows = db_all("SELECT to_char(date_trunc('week', j.tanggal), 'IYYY-\"W\"IW') AS wk,
+                         a.status AS status, COUNT(*) AS c
+                  FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id
+                  WHERE a.user_id=$1
+                    AND j.tanggal >= CURRENT_DATE - INTERVAL '12 weeks'
+                  GROUP BY 1,2 ORDER BY 1", [(int)$u['id']]);
+$stWeeks = [];          // wk => [izin,sakit,absen]
+foreach($stRows as $r){
+    $wk = $r['wk']; $stStat = strtolower((string)$r['status']);
+    if (!isset($stWeeks[$wk])) $stWeeks[$wk] = ['izin'=>0,'sakit'=>0,'absen'=>0];
+    if (isset($stWeeks[$wk][$stStat])) $stWeeks[$wk][$stStat] += (int)$r['c'];
+}
+ksort($stWeeks);
+$stLabels=[]; $stIzin=[]; $stSakit=[]; $stAbsen=[];
+foreach($stWeeks as $wk=>$v){ $stLabels[]=$wk; $stIzin[]=$v['izin']; $stSakit[]=$v['sakit']; $stAbsen[]=$v['absen']; }
+$stTotIzin = array_sum($stIzin); $stTotSakit = array_sum($stSakit); $stTotAbsen = array_sum($stAbsen);
+
+
 // ---- Tren Performa Jogging Harian saya (30 hari) ----
 // Revisi 19 Juni 2026 Part Q — perlonggar match jenis (Jogging/Lari/Run, case-insensitive, partial)
 // dan hitung pace fallback dari durasi/jarak bila pace_detik kosong supaya chart & statistik tidak nihil.
@@ -285,6 +305,25 @@ include __DIR__.'/includes/header.php';
   </details></div>
 </div>
 
+<!-- Revisi 24 Juni 2026 — Tren Izin / Sakit / Absen mingguan (data dari /admin/absensi.php) -->
+<div class="row g-3 mt-1">
+  <div class="col-12"><details class="card shadow-sm border-warning spoiler-card">
+    <summary class="card-header bg-warning-subtle text-warning-emphasis d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
+      <span><i class="bi bi-clipboard2-x text-warning"></i> <strong>Tren Izin · Sakit · Absen Mingguan (Personal)</strong> <span class="text-muted small">(klik buka/tutup)</span></span>
+      <small class="text-muted">Izin <?= (int)$stTotIzin ?> · Sakit <?= (int)$stTotSakit ?> · Absen <?= (int)$stTotAbsen ?></small>
+    </summary>
+    <div class="card-body">
+      <div class="row g-2 mb-3">
+        <div class="col-4"><div class="border rounded p-2 text-center"><div class="small text-muted"><i class="bi bi-envelope text-info"></i> Izin</div><div class="fw-bold fs-5 text-info"><?= (int)$stTotIzin ?></div></div></div>
+        <div class="col-4"><div class="border rounded p-2 text-center"><div class="small text-muted"><i class="bi bi-bandaid text-danger"></i> Sakit</div><div class="fw-bold fs-5 text-danger"><?= (int)$stTotSakit ?></div></div></div>
+        <div class="col-4"><div class="border rounded p-2 text-center"><div class="small text-muted"><i class="bi bi-x-circle text-secondary"></i> Absen</div><div class="fw-bold fs-5 text-secondary"><?= (int)$stTotAbsen ?></div></div></div>
+      </div>
+      <canvas id="statusChart" height="150"></canvas>
+      <small class="text-muted d-block mt-2">Rekap status absensi <b>saya</b> per minggu (12 minggu terakhir), bersumber dari input admin di halaman Absensi.</small>
+    </div>
+  </details></div>
+</div>
+
 <!-- Revisi 23 Juni 2026 — Statistik Tren Performa Jogging dibungkus <details> -->
 <div class="row g-3 mt-1">
   <div class="col-12">
@@ -446,6 +485,10 @@ const wkVals    = <?= json_encode($wkVals ?: []) ?>;
 const jogLabels = <?= json_encode($jogLabels ?: []) ?>;
 const jogDist   = <?= json_encode($jogDist ?: []) ?>;
 const jogPace   = <?= json_encode($jogPace ?: []) ?>;
+const stLabels  = <?= json_encode($stLabels ?: []) ?>;
+const stIzin    = <?= json_encode($stIzin ?: []) ?>;
+const stSakit   = <?= json_encode($stSakit ?: []) ?>;
+const stAbsen   = <?= json_encode($stAbsen ?: []) ?>;
 
 function _renderMonitoringCharts(){
   if (typeof Chart === 'undefined') { return setTimeout(_renderMonitoringCharts, 120); }
@@ -473,6 +516,19 @@ function _renderMonitoringCharts(){
     ]},
     options:{ scales:{ y:{ position:'left', title:{display:true,text:'km'} }, y1:{ position:'right', reverse:true, grid:{drawOnChartArea:false}, title:{display:true,text:'s/km'} } } }
   });
+  // Revisi 24 Juni 2026 — Tren Izin / Sakit / Absen mingguan (stacked bar)
+  var stCanvas = document.getElementById('statusChart');
+  if (stCanvas) {
+    new Chart(stCanvas, {
+      type:'bar',
+      data:{ labels: stLabels.length? stLabels:['—'], datasets:[
+        { label:'Izin',  data: stIzin.length? stIzin:[0],  backgroundColor:'#0dcaf0' },
+        { label:'Sakit', data: stSakit.length? stSakit:[0], backgroundColor:'#dc3545' },
+        { label:'Absen', data: stAbsen.length? stAbsen:[0], backgroundColor:'#6c757d' }
+      ]},
+      options:{ responsive:true, scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true, ticks:{ precision:0 } } } }
+    });
+  }
   if (window.bootstrap) document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 }
 document.addEventListener('DOMContentLoaded', _renderMonitoringCharts);

@@ -23,8 +23,9 @@ function award_badge(int $userId, string $kode): bool {
 
 /** Evaluasi semua badge user setelah aktivitas baru. */
 function recompute_badges(int $userId): void {
-    // FIRST_CHECKIN
-    $any = (int) db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1 AND metode='qr'", [$userId]);
+    // FIRST_CHECKIN — Revisi 24 Jun 2026: check-in tidak lagi pakai barcode/QR.
+    // Cukup tercatat hadir (hadir=1) di absensi apa pun (input admin / QR lama).
+    $any = (int) db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1 AND hadir=1", [$userId]);
     if ($any >= 1) award_badge($userId, 'FIRST_CHECKIN');
 
     // JOGGING_10

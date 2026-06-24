@@ -371,10 +371,12 @@ include __DIR__.'/includes/header.php';
 
     <!-- Revisi 19 Juni 2026 Part Q — Akun Strava & Nickname -->
     <div class="card shadow-sm mt-3" data-live="profile-strava"><div class="card-body">
-      <form data-ajax method="post" class="text-start">
+      <!-- Revisi 24 Juni 2026 — Akun Strava dibungkus <details> (spoiler) -->
+      <details class="spoiler-card">
+      <summary class="form-label small fw-semibold mb-0" style="cursor:pointer;list-style:revert"><i class="bi bi-bicycle text-warning"></i> Akun Strava / ID Strava <span class="text-muted">(klik untuk buka/tutup)</span></summary>
+      <form data-ajax method="post" class="text-start mt-2">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_strava">
-        <label class="form-label small fw-semibold"><i class="bi bi-bicycle text-warning"></i> Akun Strava / ID Strava</label>
         <div class="input-group input-group-sm">
           <input class="form-control" name="strava_account" maxlength="120" placeholder="cth: username atau ID Strava Anda" value="<?= htmlspecialchars($me['strava_account'] ?? '') ?>">
           <button class="btn btn-outline-primary" title="Simpan"><i class="bi bi-save"></i></button>
@@ -406,6 +408,7 @@ include __DIR__.'/includes/header.php';
         <?php endif; ?>
 
       </form>
+      </details>
 
       <form data-ajax method="post" class="text-start mt-3">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
@@ -540,7 +543,8 @@ include __DIR__.'/includes/header.php';
       </div>
     </div></div>
 
-    <div class="card shadow-sm"><div class="card-header"><i class="bi bi-award-fill text-warning"></i> Badge & Achievement</div>
+    <!-- Revisi 24 Juni 2026 — Badge & Achievement dibungkus <details> (spoiler) agar tidak memanjang ke bawah -->
+    <details class="card shadow-sm spoiler-card"><summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-award-fill text-warning"></i> Badge &amp; Achievement <span class="text-muted small">(klik untuk buka/tutup)</span></summary>
     <div class="card-body">
       <?php /* Revisi 20 Juni 2026 — Penjelasan cara mendapatkan Badge & Achievement */ ?>
       <div class="alert alert-info small mb-3">
@@ -549,7 +553,7 @@ include __DIR__.'/includes/header.php';
         Setiap badge memberi bonus <strong>XP</strong> yang menambah level akun Anda.</p>
         <div class="fw-semibold mb-1">Cara mendapatkan:</div>
         <ul class="mb-2 ps-3">
-          <li><i class="bi bi-qr-code-scan text-primary"></i> <strong>First Check-in</strong> (+30 XP) — Lakukan check-in pertama via QR di sesi olahraga.</li>
+          <li><i class="bi bi-check2-circle text-primary"></i> <strong>First Check-in</strong> (+30 XP) — Tercatat hadir pertama kali di sesi olahraga (absensi diinput admin, tanpa perlu scan barcode).</li>
           <li><i class="bi bi-person-running text-success"></i> <strong>Jogging 10x</strong> (+100 XP) — Hadir di sesi <em>Jogging</em> sebanyak 10 kali.</li>
           <li><i class="bi bi-shield-fill-check text-info"></i> <strong>Badminton Warrior</strong> (+120 XP) — Hadir di sesi <em>Badminton</em> sebanyak 10 kali.</li>
           <li><i class="bi bi-stars text-warning"></i> <strong>All Rounder</strong> (+150 XP) — Hadir di minimal 3 jenis olahraga berbeda.</li>
@@ -576,7 +580,7 @@ include __DIR__.'/includes/header.php';
         </div>
       <?php endforeach; ?>
       </div>
-    </div></div>
+    </div></details>
 
     <!-- ===== v7: Kondisi Terkini ===== -->
     <div class="card shadow-sm mt-3"><div class="card-header"><i class="bi bi-activity text-danger"></i> Kondisi Terkini</div>
@@ -602,10 +606,10 @@ include __DIR__.'/includes/header.php';
     </div></div>
 
     <!-- ===== v7: Pengalaman Hiking & Camping ===== -->
-    <div class="card shadow-sm mt-3" data-live="profile-pengalaman"><div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-mountain text-success"></i> Pengalaman Hiking & Camping</span>
-      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pengModal" onclick="pengReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
-    </div>
+    <details class="card shadow-sm mt-3 spoiler-card" data-live="profile-pengalaman"><summary class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
+      <span><i class="bi bi-mountain text-success"></i> Pengalaman Hiking &amp; Camping <span class="text-muted small">(klik buka/tutup)</span></span>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pengModal" onclick="event.stopPropagation();pengReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
+    </summary>
     <div class="card-body">
       <?php if(!$pengList): ?><p class="text-muted small mb-0 text-center">Belum ada pengalaman tercatat.</p><?php else: ?>
       <div class="table-responsive"><table class="table table-sm align-middle" data-paginate="6">
@@ -630,14 +634,14 @@ include __DIR__.'/includes/header.php';
         <?php endforeach; ?>
         </tbody></table></div>
       <?php endif; ?>
-    </div></div>
+    </div></details>
 
     <!-- ===== v7: Perlengkapan Olahraga ===== -->
     <div data-live="perlengkapan-profile">
-    <div class="card shadow-sm mt-3"><div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-bag-check text-primary"></i> Perlengkapan Olahraga</span>
-      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#perlModal" onclick="perlReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
-    </div>
+    <details class="card shadow-sm mt-3 spoiler-card"><summary class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
+      <span><i class="bi bi-bag-check text-primary"></i> Perlengkapan Olahraga <span class="text-muted small">(klik buka/tutup)</span></span>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#perlModal" onclick="event.stopPropagation();perlReset()"><i class="bi bi-plus-lg"></i> Tambah</button>
+    </summary>
     <div class="card-body">
       <?php if(!$perlList): ?><p class="text-muted small mb-0 text-center">Belum ada perlengkapan. Tambahkan agar terintegrasi otomatis dengan jadwal olahraga.</p><?php else: ?>
       <div class="table-responsive"><table class="table table-sm align-middle" data-paginate="8">
@@ -663,7 +667,7 @@ include __DIR__.'/includes/header.php';
         </tbody></table></div>
       <?php endif; ?>
       <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Perlengkapan otomatis muncul di "Jadwal Terdekat" sesuai jenis olahraga.</div>
-    </div></div>
+    </div></details>
     </div>
   </div>
 </div>

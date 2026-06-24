@@ -142,6 +142,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                     [(int)$u['id'], htmlspecialchars($caption), $fotoUrl, $jenis, $mediaType, $imagesJson]);
             }
             if (function_exists('sync_post_tags') && $newId) { sync_post_tags($newId, $caption); }
+            // Revisi 24 Juni 2026 — kirim notifikasi HP (in-app + FCM) ke semua member lain
+            // setiap ada Story / Social Feed baru, sama seperti notifikasi input absensi.
+            try {
+                $judulNotif = $jenis === 'story'
+                    ? '📸 '.$u['nama'].' membagikan Story baru'
+                    : '📝 '.$u['nama'].' membuat postingan baru';
+                $isiNotif = $caption !== '' ? mb_substr($caption, 0, 120) : 'Buka aplikasi untuk melihatnya.';
+                $urlNotif = $jenis === 'story' ? '/index.php#feed' : '/index.php#social';
+                $targets = db_all("SELECT id FROM users WHERE role IN ('member','admin') AND id <> $1", [(int)$u['id']]);
+                foreach ($targets as $t) {
+                    notify((int)$t['id'], $jenis === 'story' ? 'story' : 'post', $judulNotif, $isiNotif, $urlNotif);
+                }
+            } catch (Throwable $e) { /* silent */ }
             $postNewOk = true;
         }
     } elseif ($a === 'like') {
@@ -1424,29 +1437,10 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="small text-muted mb-2"><i class="bi bi-clock"></i> <span id="storyTime"></span></div>
 
       <?php if($u): ?>
-      <!-- Aksi like + jumlah komentar -->
+      <!-- Revisi 24 Juni 2026 — fitur Like & Komentar pada Story DIHAPUS. Hanya jumlah dilihat. -->
       <div class="d-flex gap-2 align-items-center border-top border-bottom py-2 mb-2">
-        <form method="post" class="d-inline" data-ajax id="storyLikeForm">
-          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-          <input type="hidden" name="_action" value="like">
-          <input type="hidden" name="post_id" id="storyLikePostId" value="">
-          <button class="btn btn-sm btn-outline-danger" id="storyLikeBtn" type="submit"><i class="bi bi-heart" id="storyLikeIcon"></i> <span id="storyLikeCount">0</span></button>
-        </form>
-        <span class="text-muted small"><i class="bi bi-chat"></i> <span id="storyCommentCount">0</span> komentar</span>
-        <span class="ms-auto small text-muted"><i class="bi bi-eye"></i> <span id="storyViewCount">0</span></span>
+        <span class="ms-auto small text-muted"><i class="bi bi-eye"></i> <span id="storyViewCount">0</span> dilihat</span>
       </div>
-
-      <!-- Daftar komentar -->
-      <div id="storyComments" class="mb-2" style="max-height:30vh;overflow:auto"></div>
-
-      <!-- Tambah komentar -->
-      <form method="post" class="d-flex gap-2" data-ajax id="storyCommentForm">
-        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-        <input type="hidden" name="_action" value="comment">
-        <input type="hidden" name="post_id" id="storyCommentPostId" value="">
-        <input class="form-control form-control-sm" name="isi" maxlength="300" placeholder="Tulis komentar untuk story…" required>
-        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-send"></i></button>
-      </form>
       <?php endif; ?>
 
       <div class="mt-3 border-top pt-2">
