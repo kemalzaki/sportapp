@@ -46,15 +46,27 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
             log_login_attempt($emailKey, $ok);
             if ($ok) {
-                session_regenerate_id(true);
-                $_SESSION['user'] = ['id'=>(int)$u['id'],'nama'=>$u['nama'],'email'=>$u['email']??'','role'=>$u['role']];
-                $_SESSION['last_activity'] = time();
-                unset($_SESSION['captcha_answer']);
-                app_login_cookie_set($_SESSION['user']);
-                session_write_close();
-                header('Location: /index.php'); exit;
+                // === R14 #6: Member yang tidak aktif tidak boleh login ===
+                $aktifRaw = $u['aktif'] ?? null;
+                $aktifBool = ($aktifRaw === null) ? true
+                    : in_array(strtolower((string)$aktifRaw), ['1','t','true','y','yes'], true);
+                if (!$aktifBool && ($u['role'] ?? '') !== 'admin') {
+                    $catatan = trim((string)($u['nonaktif_catatan'] ?? ''));
+                    $err = 'Akun Anda berstatus NON-AKTIF dan tidak dapat masuk.'
+                         . ($catatan !== '' ? ' Catatan admin: '.$catatan : '')
+                         . ' Hubungi admin untuk mengaktifkan kembali.';
+                } else {
+                    session_regenerate_id(true);
+                    $_SESSION['user'] = ['id'=>(int)$u['id'],'nama'=>$u['nama'],'email'=>$u['email']??'','role'=>$u['role']];
+                    $_SESSION['last_activity'] = time();
+                    unset($_SESSION['captcha_answer']);
+                    app_login_cookie_set($_SESSION['user']);
+                    session_write_close();
+                    header('Location: /index.php'); exit;
+                }
+            } else {
+                $err = 'Nama atau password salah.';
             }
-            $err = 'Nama atau password salah.';
         }
     }
 }

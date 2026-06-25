@@ -8,6 +8,9 @@ $pageTitle='Manajemen Member';
 // Revisi 14 Juni 2026 — kolom aktif (BOOLEAN) untuk status member aktif/nonaktif
 try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT TRUE"); } catch (Throwable $e) {}
 try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nonaktif_catatan TEXT"); } catch (Throwable $e) {}
+// R14 #2 — kolom paket fitur (gratis/pro/komunitas)
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS paket VARCHAR(20) DEFAULT 'gratis'"); } catch (Throwable $e) {}
+$PAKET_OPTS = ['gratis','pro','komunitas'];
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -17,6 +20,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='update_pic') {
         $pic = ($_POST['pic_admin_id'] ?? '') !== '' ? (int)$_POST['pic_admin_id'] : null;
         db_exec("UPDATE users SET pic_admin_id=$1 WHERE id=$2", [$pic, (int)$_POST['id']]);
+    } elseif ($a==='update_paket') {
+        // R14 #2 — ubah paket fitur member
+        $p = in_array($_POST['paket'] ?? '', $PAKET_OPTS, true) ? $_POST['paket'] : 'gratis';
+        db_exec("UPDATE users SET paket=$1 WHERE id=$2", [$p, (int)$_POST['id']]);
+        $_SESSION['flash'] = 'Paket fitur member diperbarui ke: '.$p;
     } elseif ($a==='toggle_aktif') {
         // Revisi 20 Juni 2026 — deteksi tipe kolom `aktif` (SMALLINT vs BOOLEAN)
         // agar tidak terjadi "invalid input syntax for type smallint: 'f'".
@@ -148,7 +156,7 @@ include __DIR__.'/../includes/header.php'; ?>
     </div>
   </div>
   <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable" data-paginate="10">
-  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Role</th><th>Aktif</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
+  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Role</th><th>Paket Fitur</th><th>Aktif</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null);
     $waDigits = preg_replace('/\D+/', '', $u['wa'] ?? '');
     if ($waDigits && str_starts_with($waDigits, '0')) $waDigits = '62'.substr($waDigits,1);
@@ -179,6 +187,21 @@ include __DIR__.'/../includes/header.php'; ?>
           <input type="hidden" name="id" value="<?= $u['id'] ?>">
           <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
             <?php foreach(['publik','member','admin'] as $r): ?><option <?= $u['role']===$r?'selected':'' ?>><?= $r ?></option><?php endforeach; ?>
+          </select>
+        </form>
+      </td>
+      <td>
+        <!-- R14 #2: Paket fitur (gratis/pro/komunitas) -->
+        <form method="post" class="d-flex">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="update_paket">
+          <input type="hidden" name="id" value="<?= $u['id'] ?>">
+          <?php $curPaket = strtolower((string)($u['paket'] ?? 'gratis')); if(!in_array($curPaket,$PAKET_OPTS,true)) $curPaket='gratis'; ?>
+          <select name="paket" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:120px">
+            <?php foreach($PAKET_OPTS as $p):
+              $lab = ['gratis'=>'🆓 Gratis','pro'=>'⭐ PRO','komunitas'=>'👥 Komunitas'][$p]; ?>
+              <option value="<?= $p ?>" <?= $curPaket===$p?'selected':'' ?>><?= $lab ?></option>
+            <?php endforeach; ?>
           </select>
         </form>
       </td>

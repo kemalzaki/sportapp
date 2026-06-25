@@ -355,6 +355,27 @@ INSERT INTO "catatan_hafalan" ("id", "user_id", "jenis", "judul", "referensi", "
 	(1, 2, 'Quran', 'MI Pokok', '76:1-2', 1, 1, 'selesai', '', NULL, '2026-06-11 17:31:13.443017', '2026-06-11 17:32:01.99662');
 /*!40000 ALTER TABLE "catatan_hafalan" ENABLE KEYS */;
 
+-- Revisi 25 Juni 2026 — tabel baru: Catatan Progress Baca Buku
+-- (juga dibuat otomatis oleh catatan_baca_buku.php bila belum ada)
+CREATE TABLE IF NOT EXISTS "catatan_baca_buku" (
+	"id" SERIAL PRIMARY KEY,
+	"user_id" INTEGER NOT NULL,
+	"kajian_id" INTEGER NULL DEFAULT NULL,
+	"judul_buku" VARCHAR(200) NOT NULL,
+	"penulis" VARCHAR(150) NULL DEFAULT NULL,
+	"halaman_total" INTEGER NULL DEFAULT 0,
+	"halaman_dibaca" INTEGER NULL DEFAULT 0,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'baca',
+	"rating" SMALLINT NULL DEFAULT 0,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"last_read" DATE NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT now(),
+	"updated_at" TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS "catatan_baca_buku_user_idx" ON "catatan_baca_buku" ("user_id");
+
+
+
 -- Dumping structure for table public.challenge_log
 CREATE TABLE IF NOT EXISTS "challenge_log" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''challenge_log_id_seq''::regclass)',

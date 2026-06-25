@@ -99,7 +99,9 @@ function islami_badge_label(string $key): string {
 // Konversi tanggal Masehi ke Hijriyah (perkiraan algoritmik – tabular Islamic calendar)
 function masehi_ke_hijriyah(?DateTime $date = null): array {
     $date = $date ?: new DateTime('today');
-    $jd = gregoriantojd((int)$date->format('m'), (int)$date->format('d'), (int)$date->format('Y'));
+    // Revisi 25 Juni 2026 — koreksi +1 hari agar selaras dengan rukyat/observasi
+    // (mis. 25/06/2026 = 10 Muharram, bukan 9 Muharram).
+    $jd = gregoriantojd((int)$date->format('m'), (int)$date->format('d'), (int)$date->format('Y')) + 1;
     $l = $jd - 1948440 + 10632;
     $n = (int) floor(($l - 1) / 10631);
     $l = $l - 10631 * $n + 354;
