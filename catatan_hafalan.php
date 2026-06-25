@@ -40,7 +40,7 @@ $uid = (int)$u['id'];
 
 /* ---------- Helper: render tabel daftar (dipakai server-side & AJAX) ---------- */
 function ch_render_list(int $uid, string $kw, string $surat, int $page, array $ISLAMI_SURAH): void {
-  $perPage = 10;
+  $perPage = 5; // R16 (#1): tampil 5 catatan per halaman + pagination AJAX
   $where = ['user_id=$1']; $params = [$uid]; $i = 2;
   if ($kw !== '') {
     $where[] = "(judul ILIKE \$$i OR referensi ILIKE \$$i OR catatan ILIKE \$$i)";

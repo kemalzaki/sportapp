@@ -149,10 +149,11 @@ include __DIR__.'/includes/header.php';
 
 <h5 class="mt-3"><i class="bi bi-collection text-warning"></i> Doa Harian Anak-Anak — Doa Bawaan Aplikasi (<?= count($builtin) ?>)</h5>
 <div class="alert alert-info py-2 small mb-3">
-  <i class="bi bi-volume-up-fill"></i> <strong>Fitur Baru:</strong> Klik tombol
+  <i class="bi bi-volume-up-fill"></i> <strong>Putar Suara:</strong> Klik tombol
   <span class="badge bg-primary">🧑 Dewasa</span> atau
   <span class="badge bg-warning text-dark">👶 Anak-anak</span>
   untuk mendengarkan pelafalan doa (suara berbeda untuk dewasa &amp; anak-anak).
+  <span id="ttsGlobalStatus" class="d-block mt-1 fw-semibold"></span>
 </div>
 
 <?php if (!$builtin): ?>
@@ -228,36 +229,53 @@ include __DIR__.'/includes/header.php';
   document.querySelectorAll('.wysiwyg').forEach(buildEditor);
 })();
 
-// === R15 #6: TTS Doa Anak-Anak — perbaikan agar selalu berbunyi ===
-// Masalah lama: utterance diantrikan tanpa menunggu voice list dimuat
-// (beberapa browser load voices async), dan synth.cancel() + speak()
-// berurutan bisa membuat utterance hilang. Sekarang kita:
-//   1) Tunggu voice list siap (timeout 1500 ms).
-//   2) Queue manual: bicara berikutnya hanya setelah onend.
-//   3) Tampilkan toast bila TTS tidak didukung.
+// === R16 #5: Putar suara Doa (Dewasa & Anak-anak) — diperkuat agar berbunyi di lokal ===
+// Perbaikan utama:
+//   1) "Priming" SpeechSynthesis pada interaksi pertama (banyak browser butuh
+//      gesture user + 1 utterance kosong agar suara berikutnya keluar).
+//   2) Status terlihat (Memutar / Selesai / tidak didukung) supaya pengguna tahu.
+//   3) Antrian manual: judul (ID) -> Arab (AR) -> arti (ID), dgn fallback voice.
+//   4) Bila tidak ada voice Arab, bagian Arab tetap dicoba (browser pakai default).
 (function(){
+  var statusEl = document.getElementById('ttsGlobalStatus');
+  function setStatus(msg, cls){
+    if (!statusEl) return;
+    statusEl.textContent = msg || '';
+    statusEl.className = 'd-block mt-1 fw-semibold ' + (cls || '');
+  }
+
   if (!('speechSynthesis' in window)) {
     document.querySelectorAll('.js-tts-play').forEach(function(b){
-      b.disabled = true; b.title = 'Browser tidak mendukung Text-To-Speech.';
+      b.disabled = true; b.title = 'Browser tidak mendukung pemutaran suara.';
     });
+    setStatus('Browser ini tidak mendukung pemutaran suara (Text-To-Speech). Coba Google Chrome / Microsoft Edge terbaru.', 'text-danger');
     return;
   }
   var synth = window.speechSynthesis;
+  var primed = false;
+
+  // Priming: panggil sekali dalam gesture user pertama.
+  function prime(){
+    if (primed) return;
+    primed = true;
+    try {
+      var u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0; // tidak terdengar, hanya membuka kanal audio
+      synth.speak(u);
+    } catch(e){}
+  }
 
   function getVoices(){ try { return synth.getVoices() || []; } catch(e){ return []; } }
 
-  // Tunggu voice list siap (Chrome load async)
   function whenVoicesReady(cb){
     var v = getVoices();
     if (v.length) return cb(v);
-    var done = false;
-    var t0 = Date.now();
+    var done = false, t0 = Date.now();
     if (typeof synth.onvoiceschanged !== 'undefined') {
       synth.addEventListener && synth.addEventListener('voiceschanged', function once(){
         if (done) return; done = true; cb(getVoices());
       }, { once: true });
     }
-    // polling fallback (Safari iOS)
     var iv = setInterval(function(){
       var vv = getVoices();
       if (vv.length || (Date.now() - t0) > 1500) {
@@ -269,89 +287,83 @@ include __DIR__.'/includes/header.php';
 
   function pickVoice(voices, lang, prefer){
     if (!voices || !voices.length) return null;
-    var L = (lang||'').toLowerCase();
+    var L = (lang||'').toLowerCase().slice(0,2);
     var langVoices = voices.filter(function(v){
-      return v.lang && v.lang.toLowerCase().indexOf(L.slice(0,2)) === 0;
+      return v.lang && v.lang.toLowerCase().indexOf(L) === 0;
     });
     if (!langVoices.length) langVoices = voices;
     if (prefer === 'female') {
       var f = langVoices.find(function(v){
-        return /female|wanita|perempuan|google.*female|samantha|zira|tessa|fiona|karen/i.test(v.name||'');
+        return /female|wanita|perempuan|google.*female|samantha|zira|tessa|fiona|karen|salma|laila/i.test(v.name||'');
       });
       if (f) return f;
     }
     if (prefer === 'male') {
       var m = langVoices.find(function(v){
-        return /male|pria|laki|david|alex|fred|daniel|jorge|diego/i.test(v.name||'');
+        return /male|pria|laki|david|alex|fred|daniel|jorge|diego|hamed|naayf/i.test(v.name||'');
       });
       if (m) return m;
     }
     return langVoices[0];
   }
 
-  var queue = [];
-  var playing = false;
-  var currentBtn = null;
+  var queue = [], playing = false, currentBtn = null;
 
   function clearHighlight(){
     if (currentBtn) currentBtn.classList.remove('js-tts-playing');
     currentBtn = null;
   }
-
   function stopAll(){
     queue = [];
     try { synth.cancel(); } catch(e){}
     playing = false;
     clearHighlight();
   }
-
   function playNext(){
-    if (!queue.length) { playing = false; clearHighlight(); return; }
+    if (!queue.length) {
+      playing = false; clearHighlight();
+      setStatus('Selesai memutar doa.', 'text-success');
+      return;
+    }
     playing = true;
     var item = queue.shift();
     var u = new SpeechSynthesisUtterance(item.text);
-    u.lang   = item.lang;
-    u.pitch  = item.pitch;
-    u.rate   = item.rate;
-    u.volume = 1;
+    u.lang = item.lang; u.pitch = item.pitch; u.rate = item.rate; u.volume = 1;
     if (item.voice) u.voice = item.voice;
     u.onend = function(){ setTimeout(playNext, 80); };
     u.onerror = function(){ setTimeout(playNext, 80); };
     try {
-      // Chrome workaround: kadang queue stuck → resume()
       try { synth.resume(); } catch(e){}
       synth.speak(u);
-    } catch(e) {
-      setTimeout(playNext, 80);
-    }
+    } catch(e) { setTimeout(playNext, 80); }
   }
 
   function speakSequence(parts, mode, voices){
     var pitch, rate, prefer;
-    if (mode === 'anak') { pitch = 1.6; rate = 1.0;  prefer = 'female'; }
-    else                 { pitch = 0.95; rate = 0.92; prefer = 'male';   }
+    // Beda jelas: anak = nada tinggi & sedikit cepat; dewasa = nada rendah & tenang.
+    if (mode === 'anak') { pitch = 1.8; rate = 1.05; prefer = 'female'; }
+    else                 { pitch = 0.8; rate = 0.9;  prefer = 'male';   }
     parts.forEach(function(p){
       if (!p.text) return;
-      queue.push({
-        text:  p.text,
-        lang:  p.lang,
-        pitch: pitch,
-        rate:  rate,
-        voice: pickVoice(voices, p.lang, prefer)
-      });
+      queue.push({ text: p.text, lang: p.lang, pitch: pitch, rate: rate, voice: pickVoice(voices, p.lang, prefer) });
     });
     if (!playing) playNext();
   }
 
   document.querySelectorAll('.js-tts-play').forEach(function(b){
     b.addEventListener('click', function(){
+      prime();
       stopAll();
       currentBtn = b; b.classList.add('js-tts-playing');
       var mode = b.dataset.mode || 'dewasa';
       var judul = (b.dataset.judul || '').trim();
       var arab = (b.dataset.arab || '').trim();
       var terjemah = (b.dataset.terjemah || '').trim();
+      setStatus('🔊 Memutar suara ' + (mode === 'anak' ? 'Anak-anak' : 'Dewasa') + ': ' + judul, 'text-primary');
       whenVoicesReady(function(voices){
+        if (!voices.length) {
+          setStatus('Tidak ada suara (voice) terpasang di perangkat ini. Mencoba memutar dengan suara bawaan…', 'text-warning');
+        }
         speakSequence([
           { text: judul ? judul + '.' : '', lang: 'id-ID' },
           { text: arab,                     lang: 'ar-SA' },
@@ -361,9 +373,10 @@ include __DIR__.'/includes/header.php';
     });
   });
   document.querySelectorAll('.js-tts-stop').forEach(function(b){
-    b.addEventListener('click', stopAll);
+    b.addEventListener('click', function(){ stopAll(); setStatus('Dihentikan.', 'text-muted'); });
   });
   window.addEventListener('beforeunload', stopAll);
 })();
+
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

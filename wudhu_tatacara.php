@@ -74,8 +74,8 @@ include __DIR__.'/includes/header.php';
 
 <div class="card shadow-sm mb-3 border-info">
   <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-droplet-fill"></i> <strong>TATA CARA WUDHU</strong> — Urutan, Bacaan & Ilustrasi (AI)</span>
-    <small class="opacity-75 d-none d-md-inline">Gambar di-generate oleh AI</small>
+    <span><i class="bi bi-droplet-fill"></i> <strong>TATA CARA WUDHU</strong> — Urutan, Bacaan &amp; Gambar Ilustrasi</span>
+    <small class="opacity-75 d-none d-md-inline">Hanya Gambar Ilustrasi</small>
   </div>
   <div class="card-body">
     <div class="accordion" id="accTataCaraWudhu">
@@ -95,7 +95,7 @@ include __DIR__.'/includes/header.php';
                 <img loading="lazy" class="img-fluid rounded border" alt="Ilustrasi: <?= htmlspecialchars($w[0]) ?>"
                      src="<?= htmlspecialchars(wudhu_img_path($i)) ?>"
                      onerror="this.onerror=null;this.src='/assets/img/wudhu/0.jpg';">
-                <div class="small text-muted mt-1"><i class="bi bi-stars"></i> Ilustrasi AI (Lovable)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-image"></i> Hanya Gambar Ilustrasi</div>
               </div>
               <div class="col-md-7">
                 <?php if($w[1]!=='—'): ?>

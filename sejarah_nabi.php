@@ -200,7 +200,8 @@ include __DIR__.'/includes/header.php'; ?>
     try{
       var from = range ? range[0] : 1;
       var to   = range ? range[1] : (range ? range[1] : 10);
-      var url  = '/api_quran_ayat.php?s='+s+'&from='+from+'&to='+to;
+      // R16 (#3): URL relatif agar tetap bekerja saat app dijalankan di subfolder lokal.
+      var url  = 'api_quran_ayat.php?s='+s+'&from='+from+'&to='+to;
       var r = await fetch(url, { credentials:'same-origin' });
       var html = await r.text();
       body.innerHTML = html || '<div class="alert alert-warning small mb-0">Ayat tidak ditemukan.</div>';
