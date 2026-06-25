@@ -228,7 +228,13 @@ include __DIR__.'/includes/header.php';
   document.querySelectorAll('.wysiwyg').forEach(buildEditor);
 })();
 
-// === R14 #3: Text-To-Speech untuk doa bawaan (Dewasa & Anak-anak) ===
+// === R15 #6: TTS Doa Anak-Anak — perbaikan agar selalu berbunyi ===
+// Masalah lama: utterance diantrikan tanpa menunggu voice list dimuat
+// (beberapa browser load voices async), dan synth.cancel() + speak()
+// berurutan bisa membuat utterance hilang. Sekarang kita:
+//   1) Tunggu voice list siap (timeout 1500 ms).
+//   2) Queue manual: bicara berikutnya hanya setelah onend.
+//   3) Tampilkan toast bila TTS tidak didukung.
 (function(){
   if (!('speechSynthesis' in window)) {
     document.querySelectorAll('.js-tts-play').forEach(function(b){
@@ -237,67 +243,121 @@ include __DIR__.'/includes/header.php';
     return;
   }
   var synth = window.speechSynthesis;
-  var voices = [];
-  function loadVoices(){ voices = synth.getVoices(); }
-  loadVoices();
-  if (typeof synth.onvoiceschanged !== 'undefined') synth.onvoiceschanged = loadVoices;
 
-  function pickVoice(lang, prefer){
-    if (!voices.length) voices = synth.getVoices();
-    // Cari voice sesuai bahasa (id-ID untuk Indonesia, ar-SA untuk Arab)
-    var langVoices = voices.filter(function(v){ return v.lang && v.lang.toLowerCase().indexOf(lang.toLowerCase()) === 0; });
+  function getVoices(){ try { return synth.getVoices() || []; } catch(e){ return []; } }
+
+  // Tunggu voice list siap (Chrome load async)
+  function whenVoicesReady(cb){
+    var v = getVoices();
+    if (v.length) return cb(v);
+    var done = false;
+    var t0 = Date.now();
+    if (typeof synth.onvoiceschanged !== 'undefined') {
+      synth.addEventListener && synth.addEventListener('voiceschanged', function once(){
+        if (done) return; done = true; cb(getVoices());
+      }, { once: true });
+    }
+    // polling fallback (Safari iOS)
+    var iv = setInterval(function(){
+      var vv = getVoices();
+      if (vv.length || (Date.now() - t0) > 1500) {
+        clearInterval(iv);
+        if (!done) { done = true; cb(vv); }
+      }
+    }, 120);
+  }
+
+  function pickVoice(voices, lang, prefer){
+    if (!voices || !voices.length) return null;
+    var L = (lang||'').toLowerCase();
+    var langVoices = voices.filter(function(v){
+      return v.lang && v.lang.toLowerCase().indexOf(L.slice(0,2)) === 0;
+    });
     if (!langVoices.length) langVoices = voices;
     if (prefer === 'female') {
-      var f = langVoices.find(function(v){ return /female|wanita|perempuan|google.*female|samantha|zira|google.*wavenet-?[abef]/i.test(v.name); });
+      var f = langVoices.find(function(v){
+        return /female|wanita|perempuan|google.*female|samantha|zira|tessa|fiona|karen/i.test(v.name||'');
+      });
       if (f) return f;
+    }
+    if (prefer === 'male') {
+      var m = langVoices.find(function(v){
+        return /male|pria|laki|david|alex|fred|daniel|jorge|diego/i.test(v.name||'');
+      });
+      if (m) return m;
     }
     return langVoices[0];
   }
 
-  var lastBtn = null;
-  function stopAll(){
-    try { synth.cancel(); } catch(e){}
-    if (lastBtn) lastBtn.classList.remove('js-tts-playing');
-    lastBtn = null;
+  var queue = [];
+  var playing = false;
+  var currentBtn = null;
+
+  function clearHighlight(){
+    if (currentBtn) currentBtn.classList.remove('js-tts-playing');
+    currentBtn = null;
   }
 
-  function speak(text, mode, lang){
-    if (!text) return;
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = lang;
-    // Mode dewasa = nada normal, mode anak = pitch tinggi + sedikit lebih cepat
-    if (mode === 'anak') {
-      u.pitch = 1.6;       // suara lebih tinggi (mirip anak-anak)
-      u.rate  = 1.05;
-      u.voice = pickVoice(lang, 'female');
-    } else {
-      u.pitch = 0.95;      // suara dewasa pria/normal
-      u.rate  = 0.92;
-      u.voice = pickVoice(lang, null);
+  function stopAll(){
+    queue = [];
+    try { synth.cancel(); } catch(e){}
+    playing = false;
+    clearHighlight();
+  }
+
+  function playNext(){
+    if (!queue.length) { playing = false; clearHighlight(); return; }
+    playing = true;
+    var item = queue.shift();
+    var u = new SpeechSynthesisUtterance(item.text);
+    u.lang   = item.lang;
+    u.pitch  = item.pitch;
+    u.rate   = item.rate;
+    u.volume = 1;
+    if (item.voice) u.voice = item.voice;
+    u.onend = function(){ setTimeout(playNext, 80); };
+    u.onerror = function(){ setTimeout(playNext, 80); };
+    try {
+      // Chrome workaround: kadang queue stuck → resume()
+      try { synth.resume(); } catch(e){}
+      synth.speak(u);
+    } catch(e) {
+      setTimeout(playNext, 80);
     }
-    synth.speak(u);
+  }
+
+  function speakSequence(parts, mode, voices){
+    var pitch, rate, prefer;
+    if (mode === 'anak') { pitch = 1.6; rate = 1.0;  prefer = 'female'; }
+    else                 { pitch = 0.95; rate = 0.92; prefer = 'male';   }
+    parts.forEach(function(p){
+      if (!p.text) return;
+      queue.push({
+        text:  p.text,
+        lang:  p.lang,
+        pitch: pitch,
+        rate:  rate,
+        voice: pickVoice(voices, p.lang, prefer)
+      });
+    });
+    if (!playing) playNext();
   }
 
   document.querySelectorAll('.js-tts-play').forEach(function(b){
     b.addEventListener('click', function(){
       stopAll();
-      lastBtn = b; b.classList.add('js-tts-playing');
+      currentBtn = b; b.classList.add('js-tts-playing');
       var mode = b.dataset.mode || 'dewasa';
-      var judul = b.dataset.judul || '';
-      var arab = b.dataset.arab || '';
-      var terjemah = b.dataset.terjemah || '';
-      // Urutan baca: Judul (ID) → Arab (AR) → Terjemah (ID).
-      // Karena banyak browser tidak punya voice Arab, fallback ke voice default.
-      if (judul) speak(judul + '.', mode, 'id-ID');
-      if (arab) speak(arab, mode, 'ar-SA');
-      if (terjemah) speak('Artinya: ' + terjemah, mode, 'id-ID');
-      // Bersihkan highlight setelah selesai
-      var checker = setInterval(function(){
-        if (!synth.speaking && !synth.pending) {
-          if (lastBtn === b) { b.classList.remove('js-tts-playing'); lastBtn = null; }
-          clearInterval(checker);
-        }
-      }, 400);
+      var judul = (b.dataset.judul || '').trim();
+      var arab = (b.dataset.arab || '').trim();
+      var terjemah = (b.dataset.terjemah || '').trim();
+      whenVoicesReady(function(voices){
+        speakSequence([
+          { text: judul ? judul + '.' : '', lang: 'id-ID' },
+          { text: arab,                     lang: 'ar-SA' },
+          { text: terjemah ? 'Artinya: ' + terjemah : '', lang: 'id-ID' }
+        ], mode, voices);
+      });
     });
   });
   document.querySelectorAll('.js-tts-stop').forEach(function(b){

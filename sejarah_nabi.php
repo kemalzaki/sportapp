@@ -195,25 +195,17 @@ include __DIR__.'/includes/header.php'; ?>
     openEl.href = '/quran_surah.php?s='+s + (range? '&a='+range[0]+'#a'+range[0] : '');
     body.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm"></div> Memuat ayat…</div>';
     modal.show();
+    // R15 fix #4: gunakan proxy server-side /api_quran_ayat.php agar tidak
+    // tergantung CORS/CSP browser ke equran.id.
     try{
-      var r = await fetch('https://equran.id/api/v2/surat/'+s);
-      var j = await r.json();
-      var ayatArr = (j && j.data && j.data.ayat) ? j.data.ayat : [];
-      var from = range? range[0] : 1;
-      var to   = range? range[1] : Math.min(ayatArr.length, 10);
-      var html = '<div class="mb-2 small text-muted">Surah '+SURAH[s]+' · '+(j.data.arti||'')+'</div>';
-      ayatArr.forEach(function(a){
-        if(a.nomorAyat>=from && a.nomorAyat<=to){
-          html += '<div class="border-bottom py-2">'
-            + '<div class="text-end" dir="rtl" style="font-family:\'Amiri\',serif;font-size:1.6rem;line-height:2.2">'+a.teksArab+' <span class="badge bg-success">'+a.nomorAyat+'</span></div>'
-            + '<div class="small text-success fst-italic mt-1">'+(a.teksLatin||'')+'</div>'
-            + '<div class="small mt-1">'+(a.teksIndonesia||'')+'</div>'
-            + '</div>';
-        }
-      });
+      var from = range ? range[0] : 1;
+      var to   = range ? range[1] : (range ? range[1] : 10);
+      var url  = '/api_quran_ayat.php?s='+s+'&from='+from+'&to='+to;
+      var r = await fetch(url, { credentials:'same-origin' });
+      var html = await r.text();
       body.innerHTML = html || '<div class="alert alert-warning small mb-0">Ayat tidak ditemukan.</div>';
     }catch(e){
-      body.innerHTML = '<div class="alert alert-danger small mb-0">Gagal memuat ayat (perlu koneksi internet).</div>';
+      body.innerHTML = '<div class="alert alert-danger small mb-0">Gagal memuat ayat. Periksa koneksi server.</div>';
     }
   }
   document.querySelectorAll('.js-ayat-pop').forEach(function(el){

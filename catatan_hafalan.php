@@ -1,8 +1,12 @@
 <?php
-// catatan_hafalan.php — CRUD Catatan Hafalan (Revisi R13 - 25 Juni 2026)
-// Perubahan R13:
-//  (#1) Statistik "Total Ayat" eksplisit diambil dari SUM(target_ayat).
-//  (#2) Filter pencarian kata kunci + surat via AJAX (endpoint ?ajax=list).
+// catatan_hafalan.php — CRUD Catatan Hafalan (Revisi R15 - 25 Juni 2026)
+// Perubahan R15:
+//  - Render daftar catatan langsung di server (initial render) agar tidak
+//    "loading terus" jika ada masalah AJAX di lingkungan lokal.
+//  - Filter pencarian tetap pakai AJAX (endpoint ?ajax=list) — sekarang
+//    URL relatif & error AJAX ditampilkan ke pengguna.
+//  - Popup "Lihat Ayat" memakai proxy server /api_quran_ayat.php (tidak
+//    lagi bergantung CORS browser ke equran.id).
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
@@ -34,21 +38,15 @@ try {
 
 $uid = (int)$u['id'];
 
-/* ---------- (#2) AJAX endpoint: list / search ---------- */
-if (isset($_GET['ajax']) && $_GET['ajax'] === 'list') {
-  header('Content-Type: text/html; charset=utf-8');
-  $kw     = trim($_GET['q'] ?? '');
-  $surat  = trim($_GET['surat'] ?? '');
+/* ---------- Helper: render tabel daftar (dipakai server-side & AJAX) ---------- */
+function ch_render_list(int $uid, string $kw, string $surat, int $page, array $ISLAMI_SURAH): void {
   $perPage = 10;
-  $page    = max(1, (int)($_GET['page'] ?? 1));
-
   $where = ['user_id=$1']; $params = [$uid]; $i = 2;
   if ($kw !== '') {
     $where[] = "(judul ILIKE \$$i OR referensi ILIKE \$$i OR catatan ILIKE \$$i)";
     $params[] = '%'.$kw.'%'; $i++;
   }
   if ($surat !== '' && ctype_digit($surat)) {
-    // cocokkan baik "Q.S. 67" atau nama surah dari $ISLAMI_SURAH
     $nm = $ISLAMI_SURAH[(int)$surat][0] ?? '';
     $where[] = "(referensi ~* \$$i OR judul ILIKE \$".($i+1)." OR referensi ILIKE \$".($i+1).")";
     $params[] = '(^|\D)'.((int)$surat).'(\D|$)';
@@ -56,13 +54,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'list') {
     $i += 2;
   }
   $wsql = 'WHERE '.implode(' AND ',$where);
-  $totalRows = (int) db_val("SELECT COUNT(*) FROM catatan_hafalan $wsql", $params);
-  $totalPages = max(1, (int)ceil($totalRows / $perPage));
-  $page = min($page, $totalPages);
-  $offset = ($page - 1) * $perPage;
-  $list = db_all("SELECT * FROM catatan_hafalan $wsql
-                  ORDER BY CASE status WHEN 'progress' THEN 0 WHEN 'muraja''ah' THEN 1 WHEN 'belum' THEN 2 ELSE 3 END,
-                  updated_at DESC LIMIT $perPage OFFSET $offset", $params);
+  try {
+    $totalRows  = (int) db_val("SELECT COUNT(*) FROM catatan_hafalan $wsql", $params);
+    $totalPages = max(1, (int)ceil($totalRows / $perPage));
+    $page       = max(1, min($page, $totalPages));
+    $offset     = ($page - 1) * $perPage;
+    $list = db_all("SELECT * FROM catatan_hafalan $wsql
+                    ORDER BY CASE status WHEN 'progress' THEN 0 WHEN 'muraja''ah' THEN 1 WHEN 'belum' THEN 2 ELSE 3 END,
+                    updated_at DESC LIMIT $perPage OFFSET $offset", $params);
+  } catch (Throwable $e) {
+    echo '<div class="alert alert-danger small m-2">Gagal memuat daftar: '.htmlspecialchars($e->getMessage()).'</div>';
+    return;
+  }
   ?>
   <table class="table table-hover align-middle mb-0">
     <thead class="table-light"><tr><th>Jenis</th><th>Judul / Ref</th><th>Progres</th><th>Status</th><th class="text-end">Aksi</th></tr></thead>
@@ -116,6 +119,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'list') {
     </div>
   <?php endif; ?>
   <?php
+}
+
+/* ---------- AJAX endpoint: list / search ---------- */
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'list') {
+  header('Content-Type: text/html; charset=utf-8');
+  ch_render_list(
+    $uid,
+    trim($_GET['q'] ?? ''),
+    trim($_GET['surat'] ?? ''),
+    max(1, (int)($_GET['page'] ?? 1)),
+    $ISLAMI_SURAH
+  );
   exit;
 }
 
@@ -264,7 +279,8 @@ include __DIR__.'/includes/header.php';
         </form>
       </div>
       <div class="table-responsive" id="listBox">
-        <div class="text-center text-muted py-4 small"><div class="spinner-border spinner-border-sm"></div> Memuat…</div>
+        <?php /* R15: render server-side agar tidak "loading terus" */
+        ch_render_list($uid, '', '', 1, $ISLAMI_SURAH); ?>
       </div>
     </div>
   </div>
@@ -314,18 +330,24 @@ include __DIR__.'/includes/header.php';
 
   function loadList(page){
     curPage = page || 1;
-    var params = new URLSearchParams({
-      ajax:'list', q: fKw.value, surat: fSurat.value, page: curPage
-    });
+    var params = new URLSearchParams();
+    params.set('ajax','list');
+    params.set('q', fKw.value || '');
+    params.set('surat', fSurat.value || '');
+    params.set('page', String(curPage));
     listBox.innerHTML = '<div class="text-center text-muted py-4 small"><div class="spinner-border spinner-border-sm"></div> Memuat…</div>';
-    fetch('/catatan_hafalan.php?'+params.toString(), {credentials:'same-origin'})
-      .then(function(r){ return r.text(); })
+    // URL relatif agar bekerja di subfolder lokal juga
+    fetch('catatan_hafalan.php?'+params.toString(), {credentials:'same-origin'})
+      .then(function(r){
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.text();
+      })
       .then(function(html){
         listBox.innerHTML = html;
         bindRowActions();
       })
-      .catch(function(){
-        listBox.innerHTML = '<div class="alert alert-danger small m-2">Gagal memuat daftar.</div>';
+      .catch(function(err){
+        listBox.innerHTML = '<div class="alert alert-danger small m-2">Gagal memuat daftar: '+(err && err.message ? err.message : 'unknown')+'</div>';
       });
   }
   function debounce(fn){ clearTimeout(debounceT); debounceT = setTimeout(fn, 300); }
@@ -387,30 +409,21 @@ include __DIR__.'/includes/header.php';
     openEl.href = '/quran_surah.php?s='+s + (range? '&a='+range[0]+'#a'+range[0] : '');
     body.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm"></div> Memuat ayat…</div>';
     modal.show();
+    // R15: pakai proxy server agar bebas dari masalah CORS/CSP browser.
     try{
-      var r = await fetch('https://equran.id/api/v2/surat/'+s);
-      var j = await r.json();
-      var ayatArr = (j && j.data && j.data.ayat) ? j.data.ayat : [];
-      var from = range? range[0] : 1;
-      var to   = range? range[1] : Math.min(ayatArr.length, 7);
-      var html = '<div class="mb-2 small text-muted">Surah '+SURAH[s]+' · '+(j.data.arti||'')+'</div>';
-      ayatArr.forEach(function(a){
-        if(a.nomorAyat>=from && a.nomorAyat<=to){
-          html += '<div class="border-bottom py-2">'
-            + '<div class="text-end" dir="rtl" style="font-family:\'Amiri\',serif;font-size:1.6rem;line-height:2.2">'+a.teksArab+' <span class="badge bg-success">'+a.nomorAyat+'</span></div>'
-            + '<div class="small text-success fst-italic mt-1">'+(a.teksLatin||'')+'</div>'
-            + '<div class="small mt-1">'+(a.teksIndonesia||'')+'</div>'
-            + '</div>';
-        }
-      });
+      var from = range ? range[0] : 1;
+      var to   = range ? range[1] : 7;
+      var url  = 'api_quran_ayat.php?s='+s+'&from='+from+'&to='+to;
+      var r = await fetch(url, { credentials:'same-origin' });
+      var html = await r.text();
       body.innerHTML = html || '<div class="alert alert-warning small mb-0">Ayat tidak ditemukan.</div>';
     }catch(e){
-      body.innerHTML = '<div class="alert alert-danger small mb-0">Gagal memuat ayat (perlu koneksi internet).</div>';
+      body.innerHTML = '<div class="alert alert-danger small mb-0">Gagal memuat ayat: '+(e && e.message ? e.message : 'error')+'</div>';
     }
   }
 
-  // initial load
-  loadList(1);
+  // R15: list sudah dirender server-side. Cukup bind tombol pagination & klik ayat.
+  bindRowActions();
 })();
 </script>
 

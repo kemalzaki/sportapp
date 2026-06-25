@@ -208,7 +208,9 @@ $editUserIds = array_filter(array_map(fn($x)=>(int)$x['user_id'], $editPemilik))
 $editExternal = implode(', ', array_filter(array_map(fn($x)=>(string)$x['nama_eksternal'], $editPemilik)));
 
 // Daftar member untuk dropdown pemilik
-$members = db_all("SELECT id, nama FROM users WHERE COALESCE(aktif,TRUE) ORDER BY nama");
+// R15 fix: kolom users.aktif bertipe SMALLINT (1/0), bukan boolean.
+// COALESCE(aktif, TRUE) menyebabkan error "types smallint and boolean cannot be matched".
+$members = db_all("SELECT id, nama FROM users WHERE COALESCE(aktif, 1) <> 0 ORDER BY nama");
 
 include __DIR__.'/includes/header.php';
 ?>

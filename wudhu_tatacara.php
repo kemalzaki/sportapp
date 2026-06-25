@@ -1,7 +1,8 @@
 <?php
-/** Revisi R14 (25 Juni 2026) — Halaman Tata Cara Wudhu (BARU)
- *  Item #10: Tambahkan Tata Cara Wudhu di atas Tata Cara Shalat,
- *  beserta gambar yang di-generate oleh AI (pollinations.ai).
+/** Revisi R15 (25 Juni 2026) — Halaman Tata Cara Wudhu
+ *  Ganti ilustrasi pollinations.ai (sering gagal) dengan gambar yang
+ *  sudah digenerate Lovable AI dan disimpan lokal di
+ *  /assets/img/wudhu/{n}.jpg.
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
@@ -58,9 +59,10 @@ $WUDHU = [
    'muslim man raising both hands palms-up after wudhu reciting doa, peaceful, soft warm light, instructional illustration'],
 ];
 
-function ai_img_url(string $prompt, int $w=640, int $h=400, int $seed=1): string {
-    // Pollinations.ai — image AI generator gratis tanpa API key.
-    return 'https://image.pollinations.ai/prompt/'.rawurlencode($prompt).'?width='.$w.'&height='.$h.'&nologo=true&seed='.$seed;
+function wudhu_img_path(int $i): string {
+    $f = __DIR__.'/assets/img/wudhu/'.$i.'.jpg';
+    if (is_file($f)) return '/assets/img/wudhu/'.$i.'.jpg';
+    return '/assets/img/wudhu/0.jpg';
 }
 
 include __DIR__.'/includes/header.php';
@@ -91,8 +93,9 @@ include __DIR__.'/includes/header.php';
             <div class="row g-3">
               <div class="col-md-5">
                 <img loading="lazy" class="img-fluid rounded border" alt="Ilustrasi: <?= htmlspecialchars($w[0]) ?>"
-                     src="<?= htmlspecialchars(ai_img_url($w[4], 640, 400, $i+100)) ?>">
-                <div class="small text-muted mt-1"><i class="bi bi-stars"></i> Ilustrasi AI (pollinations.ai)</div>
+                     src="<?= htmlspecialchars(wudhu_img_path($i)) ?>"
+                     onerror="this.onerror=null;this.src='/assets/img/wudhu/0.jpg';">
+                <div class="small text-muted mt-1"><i class="bi bi-stars"></i> Ilustrasi AI (Lovable)</div>
               </div>
               <div class="col-md-7">
                 <?php if($w[1]!=='—'): ?>
