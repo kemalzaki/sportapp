@@ -213,6 +213,8 @@ if ($cat === 'konsisten') {
 }
 
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
+                          -- Revisi — Jenis Kegiatan (Tim Kantor KK / Tim Public KK) dari tabel jenis_jadwal
+                          jj.nama AS jj_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text,
                           -- Revisi 22 Juni 2026 R6 — DISTINCT user_id supaya 'hadir' & 'total'
                           -- tidak menggelembung saat absensi punya baris ganda (data lama
                           -- tanpa UNIQUE). Telat tetap dihitung sebagai user unik.
@@ -220,7 +222,9 @@ $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                           (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id AND a.status='telat') AS telat,
                           (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id) AS total,
                           (SELECT COUNT(DISTINCT me.nama_tamu) FROM member_eksternal me WHERE me.jadwal_id=j.id) AS tamu
-                   FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
+                   FROM jadwal j
+                   LEFT JOIN users u ON u.id=j.koordinator_id
+                   LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
                    ORDER BY j.tanggal DESC LIMIT 50");
 
 $sesiDetail = [];
@@ -496,12 +500,20 @@ include __DIR__.'/includes/header.php';
 
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 text-primary"></i> Riwayat Sesi</div>
     <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
-      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
+      <thead><tr><th>Tanggal</th><th>Jenis</th><th>Jenis Kegiatan</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
       <tbody>
       <?php foreach($riwayat as $r): ?>
         <tr>
           <td data-label="Tanggal"><?= htmlspecialchars($r['tanggal']) ?> <span class="pill"><?= hari_id($r['tanggal']) ?></span></td>
           <td data-label="Jenis"><?= htmlspecialchars($r['jenis']) ?></td>
+          <td data-label="Jenis Kegiatan">
+            <?php if(!empty($r['jj_nama'])): ?>
+              <!-- Revisi — Tim Kantor KK / Tim Public KK (warna BG dari tabel jenis_jadwal) -->
+              <span class="badge" style="background:<?= htmlspecialchars($r['jj_bg'] ?? '#0ea5e9') ?>;color:<?= htmlspecialchars($r['jj_text'] ?? '#ffffff') ?>"><?= htmlspecialchars($r['jj_nama']) ?></span>
+            <?php else: ?>
+              <span class="text-muted small">—</span>
+            <?php endif; ?>
+          </td>
           <td data-label="Tempat"><?= htmlspecialchars($r['tempat']) ?></td>
           <td data-label="Koordinator"><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 22) ?></td>
           <td data-label="Durasi"><?= !empty($r['durasi_menit']) ? (int)$r['durasi_menit'].' mnt' : '<span class="text-muted small">—</span>' ?></td>

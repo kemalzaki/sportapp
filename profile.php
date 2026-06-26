@@ -5,6 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/migrations_v7.php';
+require __DIR__.'/includes/paket_helpers.php'; // Revisi — badge Paket Member (gratis/pro/komunitas)
 send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
@@ -268,6 +269,8 @@ include __DIR__.'/includes/header.php';
       <div class="mt-2"><span class="pill">Level <?= $level ?></span>
         <span class="pill" data-bs-toggle="tooltip" title="Streak (mgg) = jumlah minggu berturut-turut Anda upload aktivitas atau hadir di sesi. Reset jika 1 minggu kosong.">🔥 <?= (int)$me['streak_minggu'] ?> minggu</span>
         <span class="pill">⭐ <?= $xp ?> XP</span></div>
+      <?php /* Revisi — Status Paket Member (sinkron dengan admin/members.php / paket_helpers.php) */ ?>
+      <div class="mt-2"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($me)) ?></div>
       <div class="xp-bar mt-2"><div style="width:<?= min(100,$xpInLevel/2) ?>%"></div></div>
       <small class="text-muted">Butuh <?= $xpToNext ?> XP lagi ke Level <?= $level+1 ?></small>
 

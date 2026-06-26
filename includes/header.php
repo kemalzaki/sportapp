@@ -342,6 +342,75 @@ if (empty($pageSkeleton)) {
 <style id="userTheme"><?= user_theme_css() ?></style>
 </head>
 <body<?= !empty($pageSkeleton) ? ' data-skeleton="'.htmlspecialchars($pageSkeleton).'"' : '' ?>>
+
+<?php /* ===== Revisi — Peringatan: hanya bisa dibuka di mobile / install aplikasi =====
+        Overlay full-screen muncul untuk semua viewport ≥ 900px (desktop / tablet besar)
+        dan menutupi seluruh halaman sehingga isi aplikasi tidak dapat diakses. */ ?>
+<div id="kkDesktopBlocker" role="dialog" aria-modal="true" aria-labelledby="kkDesktopBlockerTitle">
+  <div class="kk-db-card">
+    <div class="kk-db-icon"><i class="bi bi-phone-fill"></i></div>
+    <h2 id="kkDesktopBlockerTitle" class="kk-db-title">Buka di Handphone</h2>
+    <p class="kk-db-desc">
+      Aplikasi <strong>KawanKeringat</strong> hanya bisa dibuka di <strong>handphone (mobile)</strong>.
+      Silakan buka halaman ini di handphone Anda dan <strong>install aplikasinya</strong> agar dapat digunakan sepenuhnya.
+    </p>
+    <div class="kk-db-steps">
+      <div><i class="bi bi-1-circle-fill"></i> Buka URL ini di browser handphone Anda</div>
+      <div><i class="bi bi-2-circle-fill"></i> Pilih menu browser → <em>Tambahkan ke Layar Utama</em> / <em>Install App</em></div>
+      <div><i class="bi bi-3-circle-fill"></i> Jalankan dari ikon di layar utama HP Anda</div>
+    </div>
+    <div class="kk-db-foot">
+      <i class="bi bi-info-circle"></i> Tampilan desktop dinonaktifkan demi konsistensi pengalaman aplikasi mobile.
+    </div>
+  </div>
+</div>
+<style>
+#kkDesktopBlocker{ display:none; }
+@media (min-width: 900px){
+  #kkDesktopBlocker{
+    display:flex; position:fixed; inset:0; z-index:2147483646;
+    background:radial-gradient(1200px 600px at 50% -10%, #1e293b 0%, #0f172a 60%, #0b1220 100%);
+    color:#e2e8f0; align-items:center; justify-content:center; padding:24px;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  /* Hentikan scroll dan sembunyikan konten di bawah overlay supaya benar-benar di-block */
+  html.kk-blocked, html.kk-blocked body{ overflow:hidden !important; }
+  html.kk-blocked body > *:not(#kkDesktopBlocker){ visibility:hidden !important; }
+  #kkDesktopBlocker .kk-db-card{
+    max-width:520px; width:100%; background:rgba(15,23,42,.85);
+    border:1px solid rgba(148,163,184,.25); border-radius:18px;
+    padding:32px 28px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.45);
+    backdrop-filter: blur(6px);
+  }
+  #kkDesktopBlocker .kk-db-icon{
+    width:72px; height:72px; border-radius:50%; margin:0 auto 14px;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#22d3ee,#3b82f6); color:#0b1220; font-size:34px;
+    box-shadow:0 10px 25px rgba(59,130,246,.35);
+  }
+  #kkDesktopBlocker .kk-db-title{ margin:0 0 8px; font-weight:800; font-size:1.55rem; color:#f8fafc; }
+  #kkDesktopBlocker .kk-db-desc{ margin:0 0 18px; line-height:1.55; color:#cbd5e1; }
+  #kkDesktopBlocker .kk-db-steps{
+    text-align:left; background:rgba(30,41,59,.6); border:1px solid rgba(148,163,184,.18);
+    border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; font-size:.93rem;
+  }
+  #kkDesktopBlocker .kk-db-steps i{ color:#22d3ee; margin-right:8px; }
+  #kkDesktopBlocker .kk-db-foot{
+    margin-top:16px; font-size:.82rem; color:#94a3b8;
+  }
+}
+</style>
+<script>
+(function(){
+  function apply(){
+    var mq = window.matchMedia('(min-width: 900px)');
+    document.documentElement.classList.toggle('kk-blocked', mq.matches);
+  }
+  apply();
+  window.addEventListener('resize', apply, { passive: true });
+})();
+</script>
+
 <div id="liveRefreshBadge" class="badge bg-success rounded-pill shadow"><i class="bi bi-arrow-clockwise"></i> Data diperbarui</div>
 
 <?php /* ===== TOP header (mobile only) — biru-kehitaman ===== */ ?>

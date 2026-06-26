@@ -6,6 +6,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/migrations_v7.php';
+require __DIR__.'/includes/paket_helpers.php'; // Revisi — badge Paket Member (gratis/pro/komunitas)
 send_security_headers(); enforce_session_timeout();
 require_login(); // wajib login utk melihat profil user lain (revisi 30 Mei 2026)
 $id = (int)($_GET['id'] ?? 0);
@@ -33,7 +34,7 @@ try {
     )");
 } catch (Throwable $e) {}
 
-$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit,strava_account,nickname FROM users WHERE id=$1", [$id]);
+$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit,strava_account,nickname,COALESCE(paket,'gratis') AS paket FROM users WHERE id=$1", [$id]);
 if (!$user) { http_response_code(404); die('User tidak ditemukan.'); }
 $pageTitle = 'Profil '.$user['nama'];
 
@@ -157,6 +158,8 @@ include __DIR__.'/includes/header.php';
       <span class="badge bg-light text-dark">Lv <?= (int)$user['level'] ?></span>
     </h4>
     <div class="text-muted small"><?= htmlspecialchars($user['role']) ?> · ⭐ <?= (int)$user['xp'] ?> XP · 🔥 <?= (int)$user['streak_minggu'] ?> minggu</div>
+    <?php /* Revisi — Status Paket Member (sinkron dengan admin/members.php / paket_helpers.php) */ ?>
+    <div class="mt-1"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($user)) ?></div>
     <?php if(!empty($user['strava_account'])):
       $sv = trim($user['strava_account']);
       // Revisi 19 Juni 2026 (R2) — selalu arahkan ke domain strava.com (jangan ke Google).

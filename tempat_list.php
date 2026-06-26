@@ -405,19 +405,33 @@ function showTempatDetail(d){
   }
   syncKmVisibility();
 
+  /* Revisi — Rentang Kiloan (Hiking) sebelumnya tidak berfungsi karena input
+     number hanya memantau event 'change' (baru jalan saat blur). Di mobile,
+     user jarang blur sehingga filter tidak pernah ter-trigger. Sekarang kita
+     juga dengarkan event 'input' dengan debounce 450ms, plus tombol Enter. */
+  var _kmTimer = null;
+  function _kmDebounced(){
+    if (_kmTimer) clearTimeout(_kmTimer);
+    _kmTimer = setTimeout(function(){ loadList(1); }, 450);
+  }
   ['fQ','fJenis','fKmMin','fKmMax'].forEach(function(id){
     var el = document.getElementById(id);
     if (!el) return;
-    if (el.tagName === 'SELECT') el.addEventListener('change', function(){ syncKmVisibility(); loadList(1); });
-    else {
-      el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadList(1); }});
+    if (el.tagName === 'SELECT') {
+      el.addEventListener('change', function(){ syncKmVisibility(); loadList(1); });
+    } else {
+      el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(_kmTimer){clearTimeout(_kmTimer);} loadList(1); }});
       el.addEventListener('change', function(){ loadList(1); });
+      if (id === 'fKmMin' || id === 'fKmMax') {
+        el.addEventListener('input', _kmDebounced);
+      }
     }
   });
   var rb = document.getElementById('fKmReset');
   if (rb) rb.addEventListener('click', function(){
     document.getElementById('fKmMin').value='';
     document.getElementById('fKmMax').value='';
+    if (_kmTimer) clearTimeout(_kmTimer);
     loadList(1);
   });
   // Delegate pagination clicks
