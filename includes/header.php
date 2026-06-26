@@ -214,6 +214,35 @@ if (empty($pageSkeleton)) {
   /* Modal & offcanvas tetap proporsional di dlm frame */
   .modal-dialog{ max-width: min(100%, 460px) !important; margin: 1rem auto !important; }
   .offcanvas-start.gt-drawer{ max-width: 320px !important; }
+
+  /* === Revisi: PAKSA drawer tertutup di desktop ===
+     desktop-fix.css versi lama memaksa .gt-drawer selalu tampil sebagai sidebar
+     permanen — hal ini bertentangan dengan tampilan ponsel yg diharapkan.
+     Override di sini agar drawer hanya muncul ketika tombol burger ditekan
+     (Bootstrap menambahkan class .show). */
+  .gt-drawer,
+  .offcanvas.offcanvas-start.gt-drawer{
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    transform: translateX(-100%) !important;
+    visibility: hidden !important;
+    box-shadow: none !important;
+    z-index: 1055 !important;
+    transition: transform .25s ease, visibility 0s linear .25s !important;
+  }
+  .gt-drawer.show,
+  .offcanvas.offcanvas-start.gt-drawer.show{
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    transition: transform .25s ease !important;
+  }
+  /* Backdrop tetap berfungsi seperti di mobile */
+  .offcanvas-backdrop{ z-index: 1054 !important; }
+
+  /* Body JANGAN diberi margin/padding kiri untuk "menampung" sidebar */
+  body{ margin-left: auto !important; margin-right: auto !important; }
 }
 
 
