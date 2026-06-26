@@ -7,6 +7,51 @@ require_once __DIR__ . '/theme_user.php';
 require_once __DIR__ . '/migrations_v7.php';
 require_once __DIR__ . '/migrations_v8.php';
 require_once __DIR__ . '/migrations_v9.php';
+require_once __DIR__ . '/paket_helpers.php';
+
+/* ============================================================
+ * Revisi 30 Jun 2026 — Lock badge untuk menu Pro / Komunitas.
+ * Mapping fitur ke paket yang dibutuhkan, dan helper render
+ * ikon gembok + label di samping nama menu pada drawer / navbar.
+ * ============================================================ */
+if (!function_exists('nav_feature_paket_map')) {
+    function nav_feature_paket_map(): array {
+        // pages => required paket(s)
+        return [
+            'islami.php'              => ['komunitas'],
+            'kalori_mingguan.php'     => ['pro','komunitas'],
+            'live_tracking.php'       => ['pro','komunitas'],
+            'flyover.php'             => ['pro','komunitas'],
+            'kalkulator.php'          => ['pro','komunitas'],
+            'kalkulator_jantung.php'  => ['pro','komunitas'],
+            'kalkulator_kesehatan.php'=> ['pro','komunitas'],
+            'gaya_hidup.php'          => ['pro','komunitas'],
+            'run.php'                 => ['pro','komunitas'],
+            'monitoring.php'          => ['pro','komunitas'],
+        ];
+    }
+}
+if (!function_exists('nav_lock_badge_for')) {
+    /** Return HTML lock badge for a given page filename (no leading slash). Empty if free. */
+    function nav_lock_badge_for(string $page): string {
+        $page = ltrim($page, '/');
+        // Strip query / hash
+        $page = preg_replace('/[?#].*$/', '', $page);
+        $map = nav_feature_paket_map();
+        if (!isset($map[$page])) return '';
+        $req = $map[$page];
+        $labels = [];
+        if (in_array('pro', $req, true))       $labels[] = 'Pro';
+        if (in_array('komunitas', $req, true)) $labels[] = 'Komunitas';
+        $text = implode(' &amp; ', $labels);
+        $cls  = (count($req) === 1 && $req[0] === 'komunitas')
+                ? 'bg-success-subtle text-success-emphasis border border-success-subtle'
+                : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+        return ' <span class="badge rounded-pill '.$cls.' ms-1 nav-lock-badge" title="Khusus paket '.$text.'">'
+             . '<i class="bi bi-lock-fill"></i> '.$text.'</span>';
+    }
+}
+
 send_security_headers(); enforce_session_timeout();
 $u = current_user();
 if ($u) touch_online();
@@ -499,12 +544,12 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-activity text-success"></i> Jogging Progress</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpJogging">
-          <a class="list-group-item list-group-item-action ps-4" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring<?= nav_lock_badge_for('monitoring.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
           <a class="list-group-item list-group-item-action ps-4" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon<?= nav_lock_badge_for('live_tracking.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D<?= nav_lock_badge_for('flyover.php') ?></a>
           <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih -->
           <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</a>
         </div>
@@ -518,7 +563,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)<?= nav_lock_badge_for('kalori_mingguan.php') ?></a>
         </div>
 
         <?php /* Grup: Agenda Kita */ ?>
@@ -539,10 +584,10 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-calculator-fill text-primary"></i> Kalkulator</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpKalkulator">
-          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat<?= nav_lock_badge_for('kalkulator.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung<?= nav_lock_badge_for('kalkulator_jantung.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan<?= nav_lock_badge_for('kalkulator_kesehatan.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup<?= nav_lock_badge_for('gaya_hidup.php') ?></a>
         </div>
 
         <?php /* Grup: Info dan Wawasan (revisi 12 Juni 2026) — dipindah dari index.php */ ?>
@@ -565,7 +610,7 @@ if (empty($pageSkeleton)) {
         <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
         <?php /* Revisi 22 Juni 2026 R7 — menu drawer Pesan (dm.php) dihapus. */ ?>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
-        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami</a>
+        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a>
 
 
         <?php if ($u['role']==='admin'): ?>
@@ -653,31 +698,31 @@ if (empty($pageSkeleton)) {
           <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
           <?php /* Revisi 6 Juni 2026: Check-in via barcode dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a></li>
-          <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring</a></li>
+          <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring<?= nav_lock_badge_for('monitoring.php') ?></a></li>
           <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
           <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-calculator-fill"></i> Kalkulator</a>
             <ul class="dropdown-menu shadow">
               <li><h6 class="dropdown-header">Kalkulator</h6></li>
-              <li><a class="dropdown-item" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat</a></li>
-              <li><a class="dropdown-item" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung</a></li>
-              <li><a class="dropdown-item" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan</a></li>
+              <li><a class="dropdown-item" href="/kalkulator.php"><i class="bi bi-heart-pulse-fill"></i> Kalkulator Sehat<?= nav_lock_badge_for('kalkulator.php') ?></a></li>
+              <li><a class="dropdown-item" href="/kalkulator_jantung.php"><i class="bi bi-heart-pulse text-danger"></i> Kalkulator Detak Jantung<?= nav_lock_badge_for('kalkulator_jantung.php') ?></a></li>
+              <li><a class="dropdown-item" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan<?= nav_lock_badge_for('kalkulator_kesehatan.php') ?></a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Kalori</h6></li>
               <li><a class="dropdown-item" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a></li>
               <li><a class="dropdown-item" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a></li>
               <li><a class="dropdown-item" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong</a></li>
               <li><a class="dropdown-item" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a></li>
-              <li><a class="dropdown-item" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)</a></li>
+              <li><a class="dropdown-item" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)<?= nav_lock_badge_for('kalori_mingguan.php') ?></a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup</a></li>
+              <li><a class="dropdown-item" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup<?= nav_lock_badge_for('gaya_hidup.php') ?></a></li>
             </ul>
           </li>
-          <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur</a></li>
+          <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a></li>
           <?php /* Revisi 22 Juni 2026 R7 — nav-link Pesan (dm.php) dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
-          <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami</a></li>
+          <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a></li>
         <?php endif; ?>
         <?php if ($u && $u['role']==='admin'): ?>
           <li class="nav-item dropdown">
@@ -1045,3 +1090,9 @@ body[data-hf-loading="1"] main{visibility:hidden;}
   });
 })();
 </script>
+
+<style>
+/* Revisi 30 Jun 2026 — kompak untuk lock-badge di menu */
+.nav-lock-badge{ font-size:.68rem; font-weight:600; padding:.18rem .45rem; vertical-align:1px; }
+.nav-lock-badge .bi{ font-size:.72rem; margin-right:2px; }
+</style>

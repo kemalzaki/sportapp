@@ -64,8 +64,10 @@ try {
   }
 } catch (Throwable $e) {}
 
-$kmMin = isset($_GET['km_min']) && $_GET['km_min'] !== '' ? (float)$_GET['km_min'] : null;
-$kmMax = isset($_GET['km_max']) && $_GET['km_max'] !== '' ? (float)$_GET['km_max'] : null;
+/* Revisi 30 Jun 2026 — Rentang KM dihapus, diganti dengan SORT (khusus Hiking):
+ *   sort = km_asc | km_desc | nama_asc | nama_desc */
+$sort = strtolower(trim((string)($_GET['sort'] ?? '')));
+if (!in_array($sort, ['km_asc','km_desc','nama_asc','nama_desc'], true)) $sort = '';
 
 /* Cari id Hiking sekali (case-insensitive) supaya filter rentang trek hanya
  * berlaku saat jenis Hiking dipilih, sesuai revisi. */
@@ -79,10 +81,15 @@ if ($q !== '') { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $param
 if ($fJenis)   { $where[] = "t.jenis_id = \$$i"; $params[]=$fJenis; $i++; }
 /* Filter rentang trek hanya aktif ketika jenis Hiking dipilih + nilainya berlaku
  * untuk tempat yg punya kiloan (jarak_km atau run_route). */
-if ($isHikingFilter && $kmMin !== null) { $where[] = "$distExpr >= \$$i"; $params[]=$kmMin; $i++; }
-if ($isHikingFilter && $kmMax !== null) { $where[] = "$distExpr <= \$$i"; $params[]=$kmMax; $i++; }
 $wsql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
 
+$orderSql = 't.nama ASC';
+if ($isHikingFilter) {
+  if ($sort === 'km_asc')   $orderSql = "$distExpr ASC, t.nama ASC";
+  elseif ($sort === 'km_desc')  $orderSql = "$distExpr DESC, t.nama ASC";
+  elseif ($sort === 'nama_desc')$orderSql = 't.nama DESC';
+  else $orderSql = 't.nama ASC';
+}
 $total     = (int) db_val("SELECT COUNT(*) FROM tempat t LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql", $params);
 $totalPage = max(1, (int)ceil($total / $perPage));
 if ($page > $totalPage) $page = $totalPage;
@@ -93,7 +100,7 @@ $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_ur
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id
                 LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql
-                ORDER BY t.nama ASC
+                ORDER BY {$orderSql}
                 LIMIT $perPage OFFSET $offset", $params);
 
 $jenisList = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
@@ -220,15 +227,17 @@ include __DIR__.'/includes/header.php';
       <option value="0">Semua Jenis</option>
       <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
     </select></div>
-    <!-- Revisi — Filter rentang kiloan HANYA muncul saat jenis Hiking dipilih -->
-    <div class="col-md-12" id="fKmWrap" style="<?= $isHikingFilter?'':'display:none' ?>">
+    <!-- Revisi 30 Jun 2026 — Rentang KM dihapus. Diganti Sort (khusus Hiking). -->
+    <div class="col-md-12" id="fSortWrap" style="<?= $isHikingFilter?'':'display:none' ?>">
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="small text-success fw-semibold"><i class="bi bi-signpost-split"></i> Rentang Kiloan (Hiking):</span>
-        <input type="number" min="0" step="0.1" class="form-control form-control-sm" style="max-width:120px" id="fKmMin" placeholder="min km" value="<?= $kmMin!==null?htmlspecialchars((string)$kmMin):'' ?>">
-        <span class="small">s/d</span>
-        <input type="number" min="0" step="0.1" class="form-control form-control-sm" style="max-width:120px" id="fKmMax" placeholder="max km" value="<?= $kmMax!==null?htmlspecialchars((string)$kmMax):'' ?>">
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="fKmReset"><i class="bi bi-x-circle"></i> Reset KM</button>
-        <small class="text-muted">Filter ini hanya aktif untuk jenis Hiking dan tempat yang sudah punya kiloan.</small>
+        <span class="small text-success fw-semibold"><i class="bi bi-sort-down"></i> Urutkan (Hiking):</span>
+        <select id="fSort" class="form-select form-select-sm" style="max-width:240px">
+          <option value="nama_asc"  <?= $sort===''||$sort==='nama_asc'?'selected':'' ?>>Nama Tempat (A → Z)</option>
+          <option value="nama_desc" <?= $sort==='nama_desc'?'selected':'' ?>>Nama Tempat (Z → A)</option>
+          <option value="km_asc"    <?= $sort==='km_asc'?'selected':'' ?>>Kiloan Terdekat (Kecil → Besar)</option>
+          <option value="km_desc"   <?= $sort==='km_desc'?'selected':'' ?>>Kiloan Terjauh (Besar → Kecil)</option>
+        </select>
+        <small class="text-muted">Pengurutan ini hanya aktif untuk jenis Hiking.</small>
       </div>
     </div>
     <input type="hidden" id="fHikingId" value="<?= (int)$hikingId ?>">
@@ -362,11 +371,11 @@ function showTempatDetail(d){
     loading = true;
     var q = document.getElementById('fQ').value.trim();
     var j = document.getElementById('fJenis').value;
-    var kmin = document.getElementById('fKmMin').value;
-    var kmax = document.getElementById('fKmMax').value;
+    var sortEl = document.getElementById('fSort');
+    var sort = sortEl ? sortEl.value : '';
     var p = page || 1;
     var url = '/tempat_list.php?ajax_list=1&q='+encodeURIComponent(q)+'&jenis='+encodeURIComponent(j)
-              + '&km_min='+encodeURIComponent(kmin)+'&km_max='+encodeURIComponent(kmax)+'&page='+p;
+              + '&sort='+encodeURIComponent(sort)+'&page='+p;
     wrap.style.opacity = '0.5';
     fetch(url, {headers:{'X-Requested-With':'fetch'}})
       .then(function(r){ return r.text(); })
@@ -378,8 +387,7 @@ function showTempatDetail(d){
           var qs = new URLSearchParams();
           if (q) qs.set('q', q);
           if (j && j!=='0') qs.set('jenis', j);
-          if (kmin) qs.set('km_min', kmin);
-          if (kmax) qs.set('km_max', kmax);
+          if (sort) qs.set('sort', sort);
           if (p>1) qs.set('page', p);
           history.replaceState(null, '', '/tempat_list.php'+(qs.toString()?('?'+qs.toString()):''));
         } catch(e){}
@@ -389,50 +397,38 @@ function showTempatDetail(d){
   }
   form.addEventListener('submit', function(e){ e.preventDefault(); loadList(1); });
 
-  /* Tampilkan/sembunyikan blok filter kiloan sesuai jenis terpilih */
-  function syncKmVisibility(){
+  /* Tampilkan/sembunyikan blok Sort (Hiking) sesuai jenis terpilih */
+  function syncSortVisibility(){
     var hid  = parseInt((document.getElementById('fHikingId')||{}).value || '0', 10);
     var jSel = document.getElementById('fJenis');
-    var wrap = document.getElementById('fKmWrap');
+    var wrap = document.getElementById('fSortWrap');
     if (!wrap || !jSel) return;
     var show = hid && parseInt(jSel.value||'0',10) === hid;
     wrap.style.display = show ? '' : 'none';
     if (!show){
-      // reset nilai jika filter disembunyikan supaya tidak ikut terkirim
-      var a=document.getElementById('fKmMin'), b=document.getElementById('fKmMax');
-      if (a) a.value=''; if (b) b.value='';
+      var ss = document.getElementById('fSort');
+      if (ss) ss.value = 'nama_asc';
     }
   }
-  syncKmVisibility();
+  syncSortVisibility();
 
-  /* Revisi — Rentang Kiloan (Hiking) sebelumnya tidak berfungsi karena input
-     number hanya memantau event 'change' (baru jalan saat blur). Di mobile,
-     user jarang blur sehingga filter tidak pernah ter-trigger. Sekarang kita
-     juga dengarkan event 'input' dengan debounce 450ms, plus tombol Enter. */
-  var _kmTimer = null;
-  function _kmDebounced(){
-    if (_kmTimer) clearTimeout(_kmTimer);
-    _kmTimer = setTimeout(function(){ loadList(1); }, 450);
-  }
-  ['fQ','fJenis','fKmMin','fKmMax'].forEach(function(id){
+  /* Revisi 30 Jun 2026 — listener untuk pencarian, jenis, dan sort (Hiking). */
+  var _qTimer = null;
+  ['fQ','fJenis','fSort'].forEach(function(id){
     var el = document.getElementById(id);
     if (!el) return;
     if (el.tagName === 'SELECT') {
-      el.addEventListener('change', function(){ syncKmVisibility(); loadList(1); });
+      el.addEventListener('change', function(){
+        if (id === 'fJenis') syncSortVisibility();
+        loadList(1);
+      });
     } else {
-      el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(_kmTimer){clearTimeout(_kmTimer);} loadList(1); }});
-      el.addEventListener('change', function(){ loadList(1); });
-      if (id === 'fKmMin' || id === 'fKmMax') {
-        el.addEventListener('input', _kmDebounced);
-      }
+      el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(_qTimer){clearTimeout(_qTimer);} loadList(1); }});
+      el.addEventListener('input', function(){
+        if (_qTimer) clearTimeout(_qTimer);
+        _qTimer = setTimeout(function(){ loadList(1); }, 450);
+      });
     }
-  });
-  var rb = document.getElementById('fKmReset');
-  if (rb) rb.addEventListener('click', function(){
-    document.getElementById('fKmMin').value='';
-    document.getElementById('fKmMax').value='';
-    if (_kmTimer) clearTimeout(_kmTimer);
-    loadList(1);
   });
   // Delegate pagination clicks
   wrap.addEventListener('click', function(e){
