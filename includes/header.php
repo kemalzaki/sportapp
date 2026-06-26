@@ -290,27 +290,6 @@ if (empty($pageSkeleton)) {
 
   /* Menjamin form, card, dan modal tidak overflow ke kanan */
   .card, .form-control, .form-select, .btn{ max-width: 100% !important; }
-
-  /* === Revisi (lanjutan) — Drawer offcanvas harus muncul DI DALAM frame ponsel
-     (480px center) saat dibuka di desktop, bukan menempel ke tepi kiri viewport.
-     Ini yang membuat tampilan desktop tampak "tidak rapih" — drawer terpisah
-     jauh dari frame ponsel di tengah. */
-  .offcanvas.offcanvas-start.gt-drawer,
-  .gt-drawer{
-    left: calc(50% - 240px) !important;   /* sejajar tepi kiri frame 480px */
-    right: auto !important;
-    width: min(86vw, 360px) !important;
-    max-width: min(86vw, 360px) !important;
-    border-right: 1px solid rgba(0,0,0,.08) !important;
-    box-shadow: 8px 0 24px rgba(0,0,0,.25) !important;
-  }
-  /* Saat tertutup, slide-out ke tepi kiri frame, bukan tepi kiri viewport */
-  .offcanvas.offcanvas-start.gt-drawer:not(.show),
-  .gt-drawer:not(.show){
-    transform: translateX(calc(-100% - 8px)) !important;
-  }
-  /* Backdrop tetap penuh viewport, sedikit lebih gelap supaya area luar frame redup */
-  .offcanvas-backdrop.show{ opacity:.55 !important; }
 }
 
 

@@ -25,6 +25,45 @@ $ajax    = !empty($_GET['ajax_list']);
  * mengisi langsung tanpa harus membuat run_route lebih dulu. */
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS jarak_km NUMERIC(6,2) NULL");
 
+/* Revisi R20 — auto-isi kolom jarak_km untuk tempat Hiking yg punya gpx_path
+ * tetapi belum punya jarak_km. Sebelumnya kiloan hanya muncul di tempat_detail.php
+ * karena dihitung via JS dari GPX. Di list kita hitung sekali di server lalu
+ * cache ke tempat.jarak_km supaya badge "X.XX km" tampil di kartu. */
+function _r20_haversine_km($lat1,$lon1,$lat2,$lon2){
+  $R=6371.0; $dLat=deg2rad($lat2-$lat1); $dLon=deg2rad($lon2-$lon1);
+  $a=sin($dLat/2)**2 + cos(deg2rad($lat1))*cos(deg2rad($lat2))*sin($dLon/2)**2;
+  return 2*$R*asin(min(1,sqrt($a)));
+}
+function _r20_gpx_to_km($gpxPath){
+  if (!$gpxPath) return null;
+  $fs = __DIR__ . '/' . ltrim($gpxPath,'/');
+  if (!is_file($fs)) return null;
+  $xml = @simplexml_load_file($fs); if (!$xml) return null;
+  $pts = [];
+  foreach ($xml->xpath('//*[local-name()="trkpt"]') as $p) {
+    $pts[] = [(float)$p['lat'], (float)$p['lon']];
+  }
+  if (!$pts) foreach ($xml->xpath('//*[local-name()="rtept"]') as $p) {
+    $pts[] = [(float)$p['lat'], (float)$p['lon']];
+  }
+  if (count($pts)<2) return null;
+  $km = 0.0;
+  for ($i=1;$i<count($pts);$i++) $km += _r20_haversine_km($pts[$i-1][0],$pts[$i-1][1],$pts[$i][0],$pts[$i][1]);
+  return round($km,2);
+}
+try {
+  $pending = db_all("SELECT t.id, t.gpx_path FROM tempat t
+                     LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
+                     WHERE t.jarak_km IS NULL AND t.gpx_path IS NOT NULL AND t.gpx_path<>''
+                       AND LOWER(jo.nama)='hiking'");
+  foreach ($pending as $p) {
+    $km = _r20_gpx_to_km($p['gpx_path']);
+    if ($km !== null && $km > 0) {
+      @db_exec("UPDATE tempat SET jarak_km=$1 WHERE id=$2", [$km, (int)$p['id']]);
+    }
+  }
+} catch (Throwable $e) {}
+
 $kmMin = isset($_GET['km_min']) && $_GET['km_min'] !== '' ? (float)$_GET['km_min'] : null;
 $kmMax = isset($_GET['km_max']) && $_GET['km_max'] !== '' ? (float)$_GET['km_max'] : null;
 
