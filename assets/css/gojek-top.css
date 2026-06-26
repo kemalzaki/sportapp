@@ -181,21 +181,6 @@ nav.navbar.sticky-top{ display: none !important; }
 body{ padding-top: calc(var(--gt-h) + 56px) !important; padding-bottom: 76px !important; }
 
 /* Frame mobile di desktop */
-@media (min-width: 992px){
-  html, body{ background:#0f172a !important; }
-  body > .container, body > main, body > section,
-  main.container, main > .container, .container.py-3, .container.py-4,
-  body > div.container, body > div.container-fluid{
-    max-width: 480px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    background: var(--gt-bg);
-  }
-  .gt-top, .gt-chips, .gj-nav{
-    max-width: 480px !important;
-    left: 50% !important; right: auto !important;
-    transform: translateX(-50%);
-  }
-  .gt-notif-pop{ position: fixed !important; left: 50% !important; right: auto !important;
-    transform: translateX(-50%); max-width: 460px !important; width: calc(480px - 20px) !important; }
-}
+/* Revisi 28 Juni 2026 — blok frame mobile-di-desktop dipindahkan
+   ke includes/header.php agar tidak bertabrakan. Sengaja dikosongkan. */
+

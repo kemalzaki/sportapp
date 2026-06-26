@@ -135,33 +135,85 @@ if (empty($pageSkeleton)) {
 .navbar-dark .brand-logo-colored .bl-3,.bg-dark .brand-logo-colored .bl-3{color:#6ee7b7;}
 .navbar-dark .brand-logo-colored .bl-4,.bg-dark .brand-logo-colored .bl-4{color:#a5b4fc;}
 
-/* === Revisi 27 Juni 2026 #9 — PAKSA TAMPILAN MOBILE meskipun dibuka di desktop ===
-   User minta layout ponsel di semua ukuran layar (frame ~480px di tengah). */
+/* === Revisi 28 Juni 2026 — PAKSA tampilan MOBILE di desktop (FINAL/CANONICAL) ===
+   Sumber kebenaran tunggal frame ponsel ~480px di tengah layar.
+   Menggantikan blok lama yang bentrok dengan gojek-top.css. */
 @media (min-width: 992px){
-  nav.navbar.sticky-top.kk-desktop-nav{ display: none !important; }
-  .gt-top, .gt-chips { display: flex !important; }
-  .gj-nav { display: flex !important; }
-  html{ background:#e9ecef !important; }
+  /* Sembunyikan SEMUA varian navbar desktop bootstrap */
+  nav.navbar.sticky-top,
+  nav.navbar.sticky-top.kk-desktop-nav,
+  nav.navbar.fixed-top.kk-desktop-nav { display: none !important; }
+
+  /* Tampilkan top-bar, chips, bottom nav seperti versi mobile */
+  .gt-top   { display: block !important; }
+  .gt-chips { display: flex  !important; }
+  .gj-nav, .gj-nav.d-lg-none { display: flex !important; }
+
+  /* Latar luar gelap supaya frame ponsel terlihat menonjol di tengah */
+  html { background:#0f172a !important; }
+
+  /* FRAME PONSEL — body sebagai kontainer 480px terpusat */
   body{
     max-width: 480px !important;
     width: 100% !important;
     margin: 0 auto !important;
-    background: #ffffff !important;
-    box-shadow: 0 0 24px rgba(0,0,0,.10) !important;
-    border-left: 1px solid rgba(0,0,0,.05) !important;
-    border-right: 1px solid rgba(0,0,0,.05) !important;
+    background: var(--gt-bg, #ffffff) !important;
+    box-shadow: 0 0 32px rgba(0,0,0,.35) !important;
+    border-left: 1px solid rgba(0,0,0,.08) !important;
+    border-right: 1px solid rgba(0,0,0,.08) !important;
     overflow-x: hidden !important;
-    padding-top: 60px !important;   /* ruang utk .gt-top fixed di mobile */
-    padding-bottom: 70px !important;/* ruang utk bottom nav .gj-nav */
+    /* gunakan padding yang sama dgn versi mobile gojek-top.css */
+    padding-top: calc(var(--gt-h, 56px) + 56px) !important;
+    padding-bottom: 76px !important;
+    min-height: 100vh !important;
   }
-  body > .container, body > main.container, main.container,
-  .container, .container-sm, .container-md, .container-lg{
+
+  /* Semua container bootstrap mengikuti lebar body, JANGAN dibatasi lagi */
+  body > .container, body > .container-fluid, body > main, body > section,
+  main.container, main > .container,
+  .container, .container-sm, .container-md, .container-lg,
+  .container-xl, .container-xxl, .container-fluid{
     max-width: 100% !important;
     width: auto !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    background: transparent !important;
   }
-  .gt-top, .gj-nav{ max-width: 480px; margin: 0 auto; left: 0; right: 0; }
+
+  /* Bar-bar position:fixed harus center di viewport, bukan di body.
+     Pakai left:50% + translateX(-50%) saja, JANGAN dicampur dgn left/right:0. */
+  .gt-top, .gt-chips, .gj-nav{
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: 100% !important;
+    max-width: 480px !important;
+    margin: 0 !important;
+  }
+  .gt-top   { top: 0 !important; }
+  .gt-chips { top: calc(var(--gt-h, 56px) + env(safe-area-inset-top, 0px)) !important; }
+  .gj-nav   { bottom: 0 !important; top: auto !important; }
+
+  /* Popup notifikasi & DM floating juga harus center di frame */
+  .gt-notif-pop{
+    position: fixed !important;
+    left: 50% !important; right: auto !important;
+    transform: translateX(-50%) !important;
+    max-width: 460px !important;
+    width: calc(480px - 20px) !important;
+  }
+  #fbDmPanel, #fbDmChat{
+    left: 50% !important; right: auto !important;
+    transform: translateX(calc(-50% + 220px));
+    max-width: 360px !important;
+  }
+
+  /* Modal & offcanvas tetap proporsional di dlm frame */
+  .modal-dialog{ max-width: min(100%, 460px) !important; margin: 1rem auto !important; }
+  .offcanvas-start.gt-drawer{ max-width: 320px !important; }
 }
 
 
