@@ -151,14 +151,20 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
             <?php if($isHiking && !empty($r['gpx_path'])): ?>
               <span class="badge bg-success-subtle text-success-emphasis ms-1"><i class="bi bi-bezier2"></i> Rute GPX</span>
             <?php endif; ?>
-            <?php /* Revisi — Kiloan HANYA untuk Hiking. Tampil meski belum punya
-                     run_route_id, asal kolom tempat.jarak_km sudah diisi admin. */ ?>
+            <?php /* Revisi 28 Jun 2026 — Kiloan untuk Hiking selalu ditampilkan.
+                     Jika kolom jarak_km sudah ada → tampil langsung.
+                     Jika 0 tapi punya gpx_path → dihitung di client (sama seperti tempat_detail.php). */ ?>
             <?php if($isHiking && $km > 0): ?>
-              <span class="badge bg-primary-subtle text-primary-emphasis ms-1" title="Jarak rute (kiloan)">
+              <span class="badge bg-primary-subtle text-primary-emphasis ms-1 km-badge" title="Jarak rute (kiloan)">
                 <i class="bi bi-signpost-split"></i> <?= number_format($km, 2, ',', '.') ?> km
               </span>
+            <?php elseif($isHiking && !empty($r['gpx_path'])): ?>
+              <span class="badge bg-primary-subtle text-primary-emphasis ms-1 km-badge js-km-from-gpx"
+                    data-gpx="<?= htmlspecialchars($r['gpx_path']) ?>" title="Menghitung jarak rute…">
+                <i class="bi bi-signpost-split"></i> <span class="km-val">menghitung…</span>
+              </span>
             <?php elseif($isHiking): ?>
-              <span class="badge bg-warning-subtle text-warning-emphasis ms-1" title="Kiloan belum diisi">
+              <span class="badge bg-warning-subtle text-warning-emphasis ms-1 km-badge" title="Kiloan belum diisi">
                 <i class="bi bi-signpost-split"></i> kiloan: —
               </span>
             <?php endif; ?>
@@ -425,6 +431,61 @@ function showTempatDetail(d){
     loadList(p);
     window.scrollTo({top: wrap.offsetTop - 60, behavior:'smooth'});
   });
+})();
+
+/* ===== Revisi 28 Jun 2026 — Hitung kiloan dari GPX di kartu (parity dgn tempat_detail.php).
+ * Untuk badge .js-km-from-gpx (Hiking, jarak_km belum diisi tapi gpx_path ada),
+ * fetch file GPX lalu hitung total jarak via haversine. Cache di memori per URL
+ * supaya GPX yang sama tidak diunduh berulang kali. */
+(function(){
+  var _gpxCache = {};
+  function haversine(a, b){
+    var R = 6371; var toRad = function(d){ return d*Math.PI/180; };
+    var dLat = toRad(b[0]-a[0]), dLon = toRad(b[1]-a[1]);
+    var s = Math.sin(dLat/2)*Math.sin(dLat/2)
+          + Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return 2*R*Math.asin(Math.min(1, Math.sqrt(s)));
+  }
+  function computeKmFromGpxText(xml){
+    var doc = new DOMParser().parseFromString(xml,'application/xml');
+    var nodes = doc.getElementsByTagName('trkpt');
+    if (!nodes.length) nodes = doc.getElementsByTagName('rtept');
+    var pts = [];
+    for (var i=0;i<nodes.length;i++){
+      var la = parseFloat(nodes[i].getAttribute('lat'));
+      var lo = parseFloat(nodes[i].getAttribute('lon'));
+      if (!isNaN(la) && !isNaN(lo)) pts.push([la,lo]);
+    }
+    if (pts.length < 2) return null;
+    var km = 0;
+    for (var j=1;j<pts.length;j++) km += haversine(pts[j-1], pts[j]);
+    return km;
+  }
+  function fmtKm(km){ return km.toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' km'; }
+  function hydrate(root){
+    (root||document).querySelectorAll('.js-km-from-gpx').forEach(function(badge){
+      if (badge.dataset.kmDone) return;
+      badge.dataset.kmDone = '1';
+      var url = badge.getAttribute('data-gpx'); if (!url) return;
+      var done = function(km){
+        var v = badge.querySelector('.km-val');
+        if (km && km > 0){ if(v) v.textContent = fmtKm(km); badge.title = 'Jarak rute (kiloan)'; }
+        else { badge.classList.remove('bg-primary-subtle','text-primary-emphasis');
+               badge.classList.add('bg-warning-subtle','text-warning-emphasis');
+               if(v) v.textContent = 'kiloan: —'; badge.title='Kiloan belum diisi'; }
+      };
+      if (_gpxCache[url] !== undefined){ done(_gpxCache[url]); return; }
+      fetch(url).then(function(r){ return r.ok ? r.text() : Promise.reject(); })
+        .then(function(xml){ var km = computeKmFromGpxText(xml); _gpxCache[url] = km; done(km); })
+        .catch(function(){ _gpxCache[url] = null; done(null); });
+    });
+  }
+  hydrate(document);
+  /* Re-hydrate setiap kali fragment grid di-replace oleh AJAX filter/pagination. */
+  var wrap = document.getElementById('tempatListWrap');
+  if (wrap && 'MutationObserver' in window){
+    new MutationObserver(function(){ hydrate(wrap); }).observe(wrap, {childList:true, subtree:true});
+  }
 })();
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

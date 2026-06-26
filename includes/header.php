@@ -245,20 +245,21 @@ if (empty($pageSkeleton)) {
   body{ margin-left: auto !important; margin-right: auto !important; }
 }
 
-/* === Revisi R18 (26 Jun 2026) — Penguat tampilan ponsel di desktop ===
-   Beberapa override (mis. dari desktop-fix.css eksternal atau bootstrap)
-   masih membuat tampilan desktop tidak rapih / tidak persis seperti HP.
-   Blok ini ditaruh paling akhir agar selalu menang specificity. */
+/* === Revisi 28 Jun 2026 — FINAL phone-frame di desktop (sesuai mockup 4.png) ===
+   Sebelumnya `.gt-top` / `.gt-chips` masih bisa melebar melewati frame ponsel 480px
+   karena gojek-top.css memakai selector + !important yg menang specificity.
+   Blok ini menggunakan selector lebih spesifik (html body header.gt-top dll)
+   agar override selalu menang, dan menambahkan box-sizing + overflow guard
+   supaya konten di dalam top-bar (search input) tidak mendorong lebar keluar. */
 @media (min-width: 992px){
-  /* Background luar gelap konsisten */
   html, html body{ background:#0f172a !important; }
 
-  /* Sembunyikan SEMUA navbar bootstrap apapun variannya */
+  /* Matikan semua varian navbar bootstrap di desktop */
   nav.navbar, nav.navbar.kk-desktop-nav, .kk-desktop-nav{ display:none !important; }
 
-  /* Pastikan body persis 480px, scrollbar berasal dari html, bukan body */
+  /* Frame ponsel 480px terpusat — scrollbar di html, body bersih */
   html{ overflow-y: auto !important; }
-  body{
+  html body{
     max-width: 480px !important;
     width: 480px !important;
     margin-left: auto !important;
@@ -266,30 +267,74 @@ if (empty($pageSkeleton)) {
     background:#ffffff !important;
     box-shadow: 0 0 32px rgba(0,0,0,.45) !important;
     overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 
-  /* Top bar / chips / bottom nav benar-benar muncul dan terkunci 480px */
-  .gt-top, .gt-chips, .gj-nav{
-    display:flex !important;
+  /* Bar fixed (top/chips/bottom-nav) — selector lebih spesifik supaya menang
+     atas gojek-top.css. KUNCI lebar ke 480px + box-sizing border-box agar
+     padding/border tidak menambah lebar. */
+  html body header.gt-top,
+  html body nav.gt-chips,
+  html body nav.gj-nav,
+  html body .gt-top,
+  html body .gt-chips,
+  html body .gj-nav{
+    display: flex !important;
     position: fixed !important;
-    left: 50% !important; right: auto !important;
+    left: 50% !important;
+    right: auto !important;
     transform: translateX(-50%) !important;
     width: 480px !important;
     max-width: 480px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
-  .gj-nav{ bottom: 0 !important; top: auto !important; }
+  html body header.gt-top { top: 0 !important; }
+  html body nav.gt-chips  { top: calc(var(--gt-h, 56px) + env(safe-area-inset-top, 0px)) !important;
+                            overflow-x: auto !important; overflow-y: hidden !important;
+                            -webkit-overflow-scrolling: touch; flex-wrap: nowrap !important; }
+  html body nav.gj-nav    { bottom: 0 !important; top: auto !important; }
 
-  /* Table / row stack agar tidak melebar keluar frame */
+  /* Isi dalam top-bar tidak boleh memaksa lebar > 480 */
+  html body .gt-top .gt-row{ width: 100% !important; max-width: 100% !important;
+                             min-width: 0 !important; box-sizing: border-box !important;
+                             flex-wrap: nowrap !important; }
+  html body .gt-top .gt-search{ flex: 1 1 auto !important; min-width: 0 !important; }
+  html body .gt-top .gt-search input{ width: 100% !important; min-width: 0 !important; }
+
+  /* Container bootstrap mengikuti lebar frame, jangan dibatasi lagi */
+  body > .container, body > .container-fluid, body > main, body > section,
+  main.container, main > .container,
+  .container, .container-sm, .container-md, .container-lg,
+  .container-xl, .container-xxl, .container-fluid{
+    max-width: 100% !important; width: auto !important;
+    padding-left: 12px !important; padding-right: 12px !important;
+    margin-left: 0 !important; margin-right: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Stack kolom + jaga tabel/form agar tidak overflow frame */
   table{ width: 100% !important; }
   .table-responsive{ overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
   .row{ margin-left: 0 !important; margin-right: 0 !important; }
-  .row > [class^="col-"], .row > [class*=" col-"]{ flex: 0 0 100% !important; max-width: 100% !important; padding-left: 6px !important; padding-right: 6px !important; }
+  .row > [class^="col-"], .row > [class*=" col-"]{
+    flex: 0 0 100% !important; max-width: 100% !important;
+    padding-left: 6px !important; padding-right: 6px !important;
+  }
+  .card, .form-control, .form-select, .btn, .input-group{ max-width: 100% !important; }
+  img, video, iframe{ max-width: 100% !important; height: auto !important; }
 
-  /* Tutup sidebar permanen — sama dgn versi mobile */
-  .gt-sidebar, .kk-sidebar, .desktop-sidebar{ display:none !important; }
+  /* Tutup sidebar permanen apapun */
+  .gt-sidebar, .kk-sidebar, .desktop-sidebar{ display: none !important; }
 
-  /* Menjamin form, card, dan modal tidak overflow ke kanan */
-  .card, .form-control, .form-select, .btn{ max-width: 100% !important; }
+  /* Popup notif & DM tetap di dalam frame */
+  html body .gt-notif-pop{
+    position: fixed !important; left: 50% !important; right: auto !important;
+    transform: translateX(-50%) !important;
+    width: calc(480px - 20px) !important; max-width: 460px !important;
+  }
 }
 
 
