@@ -88,10 +88,7 @@ $pageSkeleton = 'feed';
 ?>
 <link rel="stylesheet" href="assets/css/sport-islami.css">
 
-<?php if (!$IS_KOMUNITAS): /* === R15 #5: Hub Islami hanya untuk paket KOMUNITAS === */
-  $waMsg = "Assalamu'alaikum, saya ingin memesan paket Komunitas (akses Hub Islami) di aplikasi KawanKeringat. Mohon informasinya. Terima kasih.";
-  $waUrl = 'https://wa.me/6281386369207?text='.rawurlencode($waMsg);
-?>
+<?php if (!$IS_KOMUNITAS): /* === R15 #5 / R21: Hub Islami hanya untuk paket KOMUNITAS === */ ?>
   <nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
     <li class="breadcrumb-item"><a href="/index.php">Beranda</a></li>
     <li class="breadcrumb-item active">Hub Islami</li>
@@ -103,22 +100,10 @@ $pageSkeleton = 'feed';
       <p class="small mb-0 opacity-85">Akses lengkap Al-Qur'an, Sholat, Doa, Kalender Hijriyah, AI Tanya Jawab, Challenge, dan lainnya — eksklusif untuk paket <strong>KOMUNITAS</strong>. Paket <strong>Gratis</strong> dan <strong>Pro</strong> tidak bisa mengakses halaman ini.</p>
     </div>
   </div>
-  <div class="card shadow-sm border-success mb-3">
-    <div class="card-body text-center py-4">
-      <div class="display-4 mb-2">🔒👥</div>
-      <h4 class="fw-bold text-success-emphasis">Hub Islami <small class="badge bg-success">KOMUNITAS</small></h4>
-      <p class="text-muted mb-3">
-        Halaman Hub Islami beserta semua menu Islami premium (Tanya Jawab AI, Tata Cara Wudhu/Shalat,
-        Doa Harian Anak-Anak, Kajian Literatur, dll.) <strong>hanya tersedia untuk member dengan paket KOMUNITAS</strong>.
-        Paket <strong>Gratis</strong> dan <strong>Pro</strong> tidak bisa mengakses fitur ini.<br>
-        Status paket Anda saat ini: <strong><?= strtoupper(htmlspecialchars($USER_PAKET)) ?></strong>.
-      </p>
-      <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="btn btn-success btn-lg">
-        <i class="bi bi-whatsapp"></i> Pesan Paket Komunitas via WhatsApp
-      </a>
-      <div class="small text-muted mt-2">Hubungi: <strong>0813-8636-9207</strong></div>
-    </div>
-  </div>
+  <?php /* Revisi R21 — banner kunci sekarang memakai satu tombol terpadu
+           "Lihat Paket & Upgrade" yang membuka /paket_upgrade.php. */ ?>
+  <?= paket_komunitas_lock_banner('Hub Islami',
+        'Halaman Hub Islami beserta semua menu Islami premium (Tanya Jawab AI, Tata Cara Wudhu/Shalat, Doa Harian Anak-Anak, Kajian Literatur, dll.) hanya tersedia untuk member dengan paket KOMUNITAS. Status paket Anda saat ini: '.strtoupper($USER_PAKET).'.') ?>
   <div class="card border-light shadow-sm">
     <div class="card-body">
       <h6 class="fw-bold"><i class="bi bi-check2-square text-success"></i> Yang akan Anda dapatkan di paket KOMUNITAS:</h6>

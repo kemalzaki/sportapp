@@ -75,6 +75,11 @@ $hikingId = (int) db_val("SELECT id FROM jenis_olahraga WHERE LOWER(nama)='hikin
 $isHikingFilter = $hikingId && $fJenis === $hikingId;
 
 $distExpr = "COALESCE(t.jarak_km, rr.jarak_m/1000.0, 0)";
+/* Revisi 1 Jul 2026 — ekspresi khusus untuk ORDER BY: hasilkan NULL (bukan 0)
+ * supaya tempat yang BELUM memiliki kiloan bisa didorong ke akhir hasil
+ * (NULLS LAST). Sebelumnya semua entri tanpa km dianggap 0 sehingga muncul
+ * paling atas pada km_asc dan membuat fitur sort "tidak terasa berfungsi". */
+$distSort = "COALESCE(t.jarak_km, rr.jarak_m/1000.0)";
 
 $where = []; $params = []; $i=1;
 if ($q !== '') { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $params[]="%$q%"; $i++; }
@@ -85,10 +90,10 @@ $wsql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
 
 $orderSql = 't.nama ASC';
 if ($isHikingFilter) {
-  if ($sort === 'km_asc')   $orderSql = "$distExpr ASC, t.nama ASC";
-  elseif ($sort === 'km_desc')  $orderSql = "$distExpr DESC, t.nama ASC";
-  elseif ($sort === 'nama_desc')$orderSql = 't.nama DESC';
-  else $orderSql = 't.nama ASC';
+  if ($sort === 'km_asc')        $orderSql = "$distSort ASC NULLS LAST, t.nama ASC";
+  elseif ($sort === 'km_desc')   $orderSql = "$distSort DESC NULLS LAST, t.nama ASC";
+  elseif ($sort === 'nama_desc') $orderSql = 't.nama DESC';
+  else                           $orderSql = 't.nama ASC';
 }
 $total     = (int) db_val("SELECT COUNT(*) FROM tempat t LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql", $params);
 $totalPage = max(1, (int)ceil($total / $perPage));

@@ -1,18 +1,25 @@
 <?php
 /**
- * includes/paket_helpers.php — Revisi R14 (25 Juni 2026)
- * Helper untuk fitur PRO / paket member (gratis/pro/komunitas).
+ * includes/paket_helpers.php — Revisi R21 (1 Juli 2026)
  *
  * Paket:
  *   - gratis     : akses fitur dasar
- *   - pro        : akses fitur premium (Hub Islami lengkap, dst.)
- *   - komunitas  : sama seperti pro + diberikan untuk admin / kontributor komunitas
+ *   - pro        : akses fitur premium
+ *   - komunitas  : akses fitur premium + Hub Islami
+ *
+ * Revisi R21:
+ *   - Banner kunci PRO / KOMUNITAS dihapus tombol WhatsApp-nya.
+ *     Diganti SATU tombol "Lihat Paket & Upgrade" → /paket_upgrade.php
+ *     yang membuka halaman pemilihan paket + pembayaran Midtrans.
+ *   - Helper baru: paket_lock_banner($needed, $fiturNama, $deskripsi)
+ *     untuk PRO maupun KOMUNITAS.
+ *   - paket_pro_lock_banner() tetap ada (backward-compatible) tapi
+ *     sekarang men-render varian baru.
  */
 
 if (!function_exists('paket_user')) {
     function paket_user(?array $u): string {
         if (!$u) return 'gratis';
-        // Admin selalu dianggap komunitas (akses penuh)
         if (($u['role'] ?? '') === 'admin') return 'komunitas';
         try {
             $p = (string) db_val("SELECT paket FROM users WHERE id=$1", [(int)$u['id']]);
@@ -25,8 +32,7 @@ if (!function_exists('paket_user')) {
 
 if (!function_exists('paket_is_pro')) {
     function paket_is_pro(?array $u): bool {
-        $p = paket_user($u);
-        return in_array($p, ['pro','komunitas'], true);
+        return in_array(paket_user($u), ['pro','komunitas'], true);
     }
 }
 
@@ -44,29 +50,70 @@ if (!function_exists('paket_badge')) {
 }
 
 if (!function_exists('paket_wa_pro_url')) {
-    /** Nomor WA pemesanan PRO (revisi R14 #1) */
+    /* Backward-compat: masih dipakai di beberapa halaman lama. */
     function paket_wa_pro_url(string $fiturNama = 'Fitur PRO'): string {
         $msg = "Assalamu'alaikum, saya ingin memesan ".$fiturNama." di aplikasi KawanKeringat. Mohon informasinya. Terima kasih.";
         return 'https://wa.me/6281386369207?text='.rawurlencode($msg);
     }
 }
 
-if (!function_exists('paket_pro_lock_banner')) {
-    /** Banner kunci PRO + tombol pesan via WA */
-    function paket_pro_lock_banner(string $fiturNama, string $deskripsi = ''): string {
-        $wa = paket_wa_pro_url($fiturNama);
-        $desc = $deskripsi ?: 'Fitur ini terkunci. Upgrade ke paket PRO untuk mengakses fitur premium ini.';
+if (!function_exists('paket_lock_banner')) {
+    /**
+     * Banner kunci baru — SATU tombol saja yang membuka halaman pilihan paket.
+     *
+     * @param string $needed     'pro' atau 'komunitas' (paket minimum yg dibutuhkan)
+     * @param string $fiturNama  Nama fitur (mis. "Hub Islami")
+     * @param string $deskripsi  Deskripsi opsional
+     */
+    function paket_lock_banner(string $needed, string $fiturNama, string $deskripsi = ''): string {
+        $needed = strtolower($needed) === 'komunitas' ? 'komunitas' : 'pro';
+        $isKom  = $needed === 'komunitas';
+        $cls    = $isKom ? 'success' : 'warning';
+        $icon   = $isKom ? '🔒👥' : '🔒⭐';
+        $label  = $isKom ? 'KOMUNITAS' : 'PRO';
+        $desc   = $deskripsi ?: ($isKom
+            ? 'Fitur ini hanya tersedia untuk paket KOMUNITAS. Upgrade paket Anda untuk mengaksesnya.'
+            : 'Fitur ini terkunci. Upgrade ke paket PRO atau KOMUNITAS untuk mengaksesnya.');
+        $href = '/paket_upgrade.php?need=' . urlencode($needed);
         return '
-<div class="card shadow-sm border-warning mb-3">
+<div class="card shadow-sm border-'.$cls.' mb-3">
   <div class="card-body text-center py-4">
-    <div class="display-4 mb-2">🔒⭐</div>
-    <h4 class="fw-bold text-warning-emphasis">'.htmlspecialchars($fiturNama).' <small class="badge bg-warning text-dark">PRO</small></h4>
+    <div class="display-4 mb-2">'.$icon.'</div>
+    <h4 class="fw-bold text-'.$cls.'-emphasis">'.htmlspecialchars($fiturNama).' <small class="badge bg-'.$cls.' text-dark">'.$label.'</small></h4>
     <p class="text-muted mb-3">'.htmlspecialchars($desc).'</p>
-    <a href="'.htmlspecialchars($wa).'" target="_blank" rel="noopener" class="btn btn-success btn-lg">
-      <i class="bi bi-whatsapp"></i> Pesan Fitur PRO via WhatsApp
+    <a href="'.htmlspecialchars($href).'" class="btn btn-'.$cls.' btn-lg">
+      <i class="bi bi-stars"></i> Lihat Paket &amp; Upgrade
     </a>
-    <div class="small text-muted mt-2">Hubungi: <strong>0813-8636-9207</strong></div>
+    <div class="small text-muted mt-2">Pembayaran aman via Midtrans · status paket otomatis aktif setelah lunas.</div>
   </div>
 </div>';
+    }
+}
+
+if (!function_exists('paket_pro_lock_banner')) {
+    /* Wrapper backward-compatible — sekarang memanggil paket_lock_banner('pro', ...). */
+    function paket_pro_lock_banner(string $fiturNama, string $deskripsi = ''): string {
+        return paket_lock_banner('pro', $fiturNama, $deskripsi);
+    }
+}
+
+if (!function_exists('paket_komunitas_lock_banner')) {
+    function paket_komunitas_lock_banner(string $fiturNama, string $deskripsi = ''): string {
+        return paket_lock_banner('komunitas', $fiturNama, $deskripsi);
+    }
+}
+
+if (!function_exists('paket_prices')) {
+    /** Harga paket (Rupiah / bulan). Bisa di-override via tabel app_settings:
+     *   skey='paket_price_pro'        → harga PRO
+     *   skey='paket_price_komunitas'  → harga KOMUNITAS
+     */
+    function paket_prices(): array {
+        $pro = 25000; $kom = 50000;
+        if (function_exists('app_setting_int')) {
+            $pro = app_setting_int('paket_price_pro', $pro);
+            $kom = app_setting_int('paket_price_komunitas', $kom);
+        }
+        return ['pro' => max(1000,$pro), 'komunitas' => max(1000,$kom)];
     }
 }
