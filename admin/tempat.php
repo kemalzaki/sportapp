@@ -14,6 +14,7 @@ $pageTitle='Manajemen Tempat';
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS gpx_file_id TEXT");
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS parkir_info TEXT");
 @db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS run_route_id BIGINT");
+@db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS jarak_km NUMERIC(6,2) NULL"); // Revisi — kiloan Hiking
 
 /* Jenis olahraga yang dianggap "outdoor trail" (butuh GPX) */
 function is_trail_jenis($namaJenis){
@@ -158,12 +159,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
         $parkir = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
         $runRouteId = ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
+        $jarakKm = ($isTrail && ($_POST['jarak_km'] ?? '') !== '') ? (float)$_POST['jarak_km'] : null;
 
         db_exec("UPDATE tempat SET nama=$1, alamat=$2, harga_lapang=$3, harga_per_jam=$4,
                    harga_tiket=$5, harga_parkir=$6, status_booking=$7, catatan=$8,
                    pic_user_id=$9, kontak_wa=$10, jenis_id=$11, lat=$12, lng=$13, tampil_booking=$14,
-                   gpx_path=$15, parkir_info=$16, run_route_id=$17, gpx_file_id=$18
-                 WHERE id=$19",
+                   gpx_path=$15, parkir_info=$16, run_route_id=$17, gpx_file_id=$18, jarak_km=$19
+                 WHERE id=$20",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -171,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              $jenisId, $lat, $lng, $tampil,
-             $gpxFinal, $parkir, $runRouteId, $gpxFileIdFin,
+             $gpxFinal, $parkir, $runRouteId, $gpxFileIdFin, $jarakKm,
              (int)$_POST['id']]);
     } elseif ($a==='toggle_booking') {
         db_exec("UPDATE tempat SET tampil_booking = NOT tampil_booking WHERE id=$1", [(int)$_POST['id']]);
@@ -191,9 +193,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $gpxFileId = $gpxUp['fileId'] ?? null;
         $parkir    = $isTrail ? (trim($_POST['parkir_info'] ?? '') ?: null) : null;
         $runRouteId= ($isTrail && ($_POST['run_route_id'] ?? '') !== '') ? (int)$_POST['run_route_id'] : null;
+        $jarakKm   = ($isTrail && ($_POST['jarak_km'] ?? '') !== '') ? (float)$_POST['jarak_km'] : null;
 
-        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking,gpx_path,parkir_info,run_route_id,gpx_file_id)
-                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)",
+        db_exec("INSERT INTO tempat(nama,alamat,harga_lapang,harga_per_jam,harga_tiket,harga_parkir,status_booking,catatan,pic_user_id,kontak_wa,jenis_id,lat,lng,tampil_booking,gpx_path,parkir_info,run_route_id,gpx_file_id,jarak_km)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)",
             [trim($_POST['nama']), trim($_POST['alamat'] ?? ''),
              (float)($_POST['harga_lapang'] ?? 0), (float)($_POST['harga_per_jam'] ?? 0),
              (float)($_POST['harga_tiket'] ?? 0), (float)($_POST['harga_parkir'] ?? 0),
@@ -201,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
              ($_POST['pic_user_id'] ?? '') !== '' ? (int)$_POST['pic_user_id'] : null,
              trim($_POST['kontak_wa'] ?? '') ?: null,
              $jenisId, $lat, $lng, $tampil,
-             $gpxFinal, $parkir, $runRouteId, $gpxFileId]);
+             $gpxFinal, $parkir, $runRouteId, $gpxFileId, $jarakKm]);
     }
     $_SESSION['flash_ok'] = $a==='delete' ? 'Tempat dihapus.' : ($a==='edit' ? 'Tempat diperbarui.' : ($a==='toggle_booking' ? 'Status booking diperbarui.' : 'Tempat ditambahkan.'));
     } catch (Throwable $e) {
@@ -331,6 +334,11 @@ include __DIR__.'/../includes/header.php'; ?>
               <?php if (!$savedRoutes): ?><option value="" disabled>Belum ada rute tersimpan di run.php</option><?php endif; ?>
             </select>
             <small class="text-muted">Bila keduanya diisi, file GPX yang dipakai untuk visualisasi peta.</small>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="bi bi-signpost-split text-success"></i> Kiloan Trek (km)</label>
+            <input type="number" step="0.01" min="0" name="jarak_km" class="form-control" placeholder="cth 5.20">
+            <small class="text-muted">Khusus Hiking. Tampil di tempat_list.php bila &gt; 0.</small>
           </div>
           <div class="col-12">
             <label class="form-label small fw-semibold"><i class="bi bi-p-square text-primary"></i> Tempat Parkir yang Disarankan</label>
@@ -594,6 +602,11 @@ document.addEventListener('DOMContentLoaded', function(){
                   </option>
                 <?php endforeach; ?>
               </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold"><i class="bi bi-signpost-split text-success"></i> Kiloan Trek (km)</label>
+              <input type="number" step="0.01" min="0" name="jarak_km" class="form-control" value="<?= htmlspecialchars((string)($r['jarak_km'] ?? '')) ?>" placeholder="cth 5.20">
+              <small class="text-muted">Khusus Hiking. Tampil di tempat_list.php bila &gt; 0.</small>
             </div>
             <div class="col-12">
               <label class="form-label small fw-semibold"><i class="bi bi-p-square text-primary"></i> Tempat Parkir yang Disarankan</label>

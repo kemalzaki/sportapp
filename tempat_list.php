@@ -19,17 +19,29 @@ $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 9;
 $ajax    = !empty($_GET['ajax_list']);
 
-/* Revisi R18 (26 Jun 2026) — filter rentang kiloan khusus Hiking.
- * Sumber distance: run_routes.jarak_m (meter) yang ditautkan ke tempat.run_route_id. */
+/* Revisi R19 — filter rentang kiloan KHUSUS Hiking.
+ * Sumber distance: COALESCE(tempat.jarak_km, run_routes.jarak_m/1000).
+ * Kolom tempat.jarak_km ditambah otomatis (idempotent) supaya admin bisa
+ * mengisi langsung tanpa harus membuat run_route lebih dulu. */
+@db_exec("ALTER TABLE tempat ADD COLUMN IF NOT EXISTS jarak_km NUMERIC(6,2) NULL");
+
 $kmMin = isset($_GET['km_min']) && $_GET['km_min'] !== '' ? (float)$_GET['km_min'] : null;
 $kmMax = isset($_GET['km_max']) && $_GET['km_max'] !== '' ? (float)$_GET['km_max'] : null;
+
+/* Cari id Hiking sekali (case-insensitive) supaya filter rentang trek hanya
+ * berlaku saat jenis Hiking dipilih, sesuai revisi. */
+$hikingId = (int) db_val("SELECT id FROM jenis_olahraga WHERE LOWER(nama)='hiking' LIMIT 1");
+$isHikingFilter = $hikingId && $fJenis === $hikingId;
+
+$distExpr = "COALESCE(t.jarak_km, rr.jarak_m/1000.0, 0)";
 
 $where = []; $params = []; $i=1;
 if ($q !== '') { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $params[]="%$q%"; $i++; }
 if ($fJenis)   { $where[] = "t.jenis_id = \$$i"; $params[]=$fJenis; $i++; }
-/* Filter rentang kiloan: hanya berlaku untuk tempat yg punya rute (run_route_id) — biasanya hiking */
-if ($kmMin !== null) { $where[] = "COALESCE(rr.jarak_m/1000.0,0) >= \$$i"; $params[]=$kmMin; $i++; }
-if ($kmMax !== null) { $where[] = "COALESCE(rr.jarak_m/1000.0,0) <= \$$i"; $params[]=$kmMax; $i++; }
+/* Filter rentang trek hanya aktif ketika jenis Hiking dipilih + nilainya berlaku
+ * untuk tempat yg punya kiloan (jarak_km atau run_route). */
+if ($isHikingFilter && $kmMin !== null) { $where[] = "$distExpr >= \$$i"; $params[]=$kmMin; $i++; }
+if ($isHikingFilter && $kmMax !== null) { $where[] = "$distExpr <= \$$i"; $params[]=$kmMax; $i++; }
 $wsql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
 
 $total     = (int) db_val("SELECT COUNT(*) FROM tempat t LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql", $params);
@@ -38,7 +50,7 @@ if ($page > $totalPage) $page = $totalPage;
 $offset    = ($page-1) * $perPage;
 
 $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto, u.nomor_wa AS pic_wa,
-                COALESCE(rr.jarak_m/1000.0, 0) AS distance_km
+                $distExpr AS distance_km
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id
                 LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql
@@ -55,7 +67,8 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
   $maps = ($r['lat'] && $r['lng']) ? ('https://www.google.com/maps/search/?api=1&query='.$r['lat'].','.$r['lng']) : ('https://www.google.com/maps/search/?api=1&query='.urlencode($r['nama'].' '.($r['alamat']??'')));
   $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
   $jenisLower = mb_strtolower(trim((string)($r['jenis_nama'] ?? '')));
-  $isTrail = in_array($jenisLower, ['hiking','camping'], true);
+  $isHiking = ($jenisLower === 'hiking');
+  $isTrail  = $isHiking; // alias — kiloan/peta GPX hanya untuk Hiking sesuai revisi
   $km = (float)($r['distance_km'] ?? 0);
   $popup = [
     'nama' => $r['nama'],
@@ -80,6 +93,7 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
     'gpx_path' => $r['gpx_path'] ?? '',
     'id' => (int)$r['id'],
     'detail_url' => '/tempat_detail.php?id='.(int)$r['id'],
+    'km' => $km,
   ];
 ?>
   <div class="col-md-6 col-lg-4">
@@ -92,15 +106,21 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
         </div>
         <?php if($r['jenis_nama']): ?>
           <div class="mb-2">
-            <span class="pill <?= $isTrail?'text-success':'' ?>">
-              <i class="bi <?= $isTrail?'bi-tree-fill':'bi-tags' ?>"></i> <?= htmlspecialchars($r['jenis_nama']) ?>
+            <span class="pill <?= $isHiking?'text-success':'' ?>">
+              <i class="bi <?= $isHiking?'bi-tree-fill':'bi-tags' ?>"></i> <?= htmlspecialchars($r['jenis_nama']) ?>
             </span>
-            <?php if(!empty($r['gpx_path'])): ?>
+            <?php if($isHiking && !empty($r['gpx_path'])): ?>
               <span class="badge bg-success-subtle text-success-emphasis ms-1"><i class="bi bi-bezier2"></i> Rute GPX</span>
             <?php endif; ?>
-            <?php if($isTrail && $km > 0): ?>
+            <?php /* Revisi — Kiloan HANYA untuk Hiking. Tampil meski belum punya
+                     run_route_id, asal kolom tempat.jarak_km sudah diisi admin. */ ?>
+            <?php if($isHiking && $km > 0): ?>
               <span class="badge bg-primary-subtle text-primary-emphasis ms-1" title="Jarak rute (kiloan)">
                 <i class="bi bi-signpost-split"></i> <?= number_format($km, 2, ',', '.') ?> km
+              </span>
+            <?php elseif($isHiking): ?>
+              <span class="badge bg-warning-subtle text-warning-emphasis ms-1" title="Kiloan belum diisi">
+                <i class="bi bi-signpost-split"></i> kiloan: —
               </span>
             <?php endif; ?>
           </div>
@@ -155,17 +175,18 @@ include __DIR__.'/includes/header.php';
       <option value="0">Semua Jenis</option>
       <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
     </select></div>
-    <!-- Revisi R18 — Filter rentang kiloan (khusus Hiking / rute) -->
-    <div class="col-md-12">
+    <!-- Revisi — Filter rentang kiloan HANYA muncul saat jenis Hiking dipilih -->
+    <div class="col-md-12" id="fKmWrap" style="<?= $isHikingFilter?'':'display:none' ?>">
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="small text-muted"><i class="bi bi-signpost-split text-success"></i> Rentang Kiloan (Hiking):</span>
+        <span class="small text-success fw-semibold"><i class="bi bi-signpost-split"></i> Rentang Kiloan (Hiking):</span>
         <input type="number" min="0" step="0.1" class="form-control form-control-sm" style="max-width:120px" id="fKmMin" placeholder="min km" value="<?= $kmMin!==null?htmlspecialchars((string)$kmMin):'' ?>">
         <span class="small">s/d</span>
         <input type="number" min="0" step="0.1" class="form-control form-control-sm" style="max-width:120px" id="fKmMax" placeholder="max km" value="<?= $kmMax!==null?htmlspecialchars((string)$kmMax):'' ?>">
         <button type="button" class="btn btn-sm btn-outline-secondary" id="fKmReset"><i class="bi bi-x-circle"></i> Reset KM</button>
-        <small class="text-muted">Hanya tempat dengan rute terhubung yg tersaring.</small>
+        <small class="text-muted">Filter ini hanya aktif untuk jenis Hiking dan tempat yang sudah punya kiloan.</small>
       </div>
     </div>
+    <input type="hidden" id="fHikingId" value="<?= (int)$hikingId ?>">
     <!-- Revisi 23 Juni 2026 — tombol Filter dihapus karena filter sudah otomatis via AJAX (change/Enter). -->
   </form>
 </div></div>
@@ -322,10 +343,27 @@ function showTempatDetail(d){
       .finally(function(){ loading = false; });
   }
   form.addEventListener('submit', function(e){ e.preventDefault(); loadList(1); });
+
+  /* Tampilkan/sembunyikan blok filter kiloan sesuai jenis terpilih */
+  function syncKmVisibility(){
+    var hid  = parseInt((document.getElementById('fHikingId')||{}).value || '0', 10);
+    var jSel = document.getElementById('fJenis');
+    var wrap = document.getElementById('fKmWrap');
+    if (!wrap || !jSel) return;
+    var show = hid && parseInt(jSel.value||'0',10) === hid;
+    wrap.style.display = show ? '' : 'none';
+    if (!show){
+      // reset nilai jika filter disembunyikan supaya tidak ikut terkirim
+      var a=document.getElementById('fKmMin'), b=document.getElementById('fKmMax');
+      if (a) a.value=''; if (b) b.value='';
+    }
+  }
+  syncKmVisibility();
+
   ['fQ','fJenis','fKmMin','fKmMax'].forEach(function(id){
     var el = document.getElementById(id);
     if (!el) return;
-    if (el.tagName === 'SELECT') el.addEventListener('change', function(){ loadList(1); });
+    if (el.tagName === 'SELECT') el.addEventListener('change', function(){ syncKmVisibility(); loadList(1); });
     else {
       el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadList(1); }});
       el.addEventListener('change', function(){ loadList(1); });
