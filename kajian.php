@@ -214,6 +214,11 @@ $members = db_all("SELECT id, nama FROM users WHERE COALESCE(aktif, 1) <> 0 ORDE
 
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
+  <li class="breadcrumb-item"><a href="/index.php">Beranda</a></li>
+  <li class="breadcrumb-item"><a href="/islami.php">Islami</a></li>
+  <li class="breadcrumb-item active">Kajian Literatur Buku</li>
+</ol></nav>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
 
@@ -378,13 +383,33 @@ include __DIR__.'/includes/header.php';
   <?php if(!empty($r['isi'])): ?><div class="mt-2"><?= nl2br(htmlspecialchars($r['isi'])) ?></div><?php endif; ?>
   <div class="mt-2 d-flex flex-wrap gap-2">
     <?php if(!empty($r['link_web'])): ?>
-      <button type="button" class="btn btn-sm btn-outline-primary js-web-pop" data-url="<?= htmlspecialchars($r['link_web']) ?>" data-title="<?= htmlspecialchars($r['judul']) ?>"><i class="bi bi-globe"></i> Buka Web</button>
+      <a href="<?= htmlspecialchars($r['link_web']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary"><i class="bi bi-globe"></i> Buka Web</a>
     <?php endif; ?>
     <?php if(!empty($r['pdf_path'])): ?><a href="<?= htmlspecialchars($r['pdf_path']) ?>" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf"></i> Baca PDF</a><?php endif; ?>
     <?php if(!empty($r['link_video'])): ?>
-      <button type="button" class="btn btn-sm btn-outline-info js-video-pop" data-url="<?= htmlspecialchars($r['link_video']) ?>" data-title="<?= htmlspecialchars($r['judul']) ?>"><i class="bi bi-play-circle"></i> Lihat Video</button>
+      <a href="<?= htmlspecialchars($r['link_video']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info"><i class="bi bi-play-circle"></i> Lihat Video (YouTube)</a>
     <?php endif; ?>
-    <a class="btn btn-sm btn-outline-success" href="https://wa.me/?text=<?= rawurlencode($r['judul'].' - '.($r['link_web'] ?? '')) ?>" target="_blank"><i class="bi bi-share"></i> Bagikan</a>
+    <?php
+      // Revisi 27 Juni 2026 #1 — WA share berisi info lengkap literatur
+      $_pe = $pemilikMap[(int)$r['id']] ?? [];
+      $_peNames = $_pe ? implode(', ', array_map(fn($x)=>$x['nama'], $_pe)) : '';
+      $_appBase = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']==='on' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'kawankeringat.local');
+      $_pdfUrl = !empty($r['pdf_path']) ? $_appBase . $r['pdf_path'] : '';
+      $_shareLines = [];
+      $_shareLines[] = "📚 *".$r['judul']."*";
+      if (!empty($r['penulis']))  $_shareLines[] = "✍️ Penulis: " . $r['penulis'];
+      if (!empty($r['tipe']))     $_shareLines[] = "🏷️ Tipe: "    . strtoupper($r['tipe']);
+      if (!empty($r['kategori'])) $_shareLines[] = "📂 Kategori: ". $r['kategori'];
+      if ($_peNames !== '')       $_shareLines[] = "👥 Pemilik: " . $_peNames;
+      if (!empty($r['nama']))     $_shareLines[] = "🙋 Dibagikan: ". $r['nama'];
+      if (!empty($r['isi']))      $_shareLines[] = "\n📝 Ringkasan:\n" . mb_strimwidth($r['isi'], 0, 400, '…');
+      if (!empty($r['link_web']))   $_shareLines[] = "🔗 Web: "   . $r['link_web'];
+      if (!empty($r['link_video'])) $_shareLines[] = "▶️ Video: " . $r['link_video'];
+      if ($_pdfUrl !== '')          $_shareLines[] = "📄 PDF: "   . $_pdfUrl;
+      $_shareLines[] = "\n— Dibagikan via KawanKeringat · Kajian Literatur Islami";
+      $_shareText = implode("\n", $_shareLines);
+    ?>
+    <a class="btn btn-sm btn-outline-success" href="https://wa.me/?text=<?= rawurlencode($_shareText) ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Bagikan ke WhatsApp</a>
   </div>
 </div></div>
 <?php endforeach; if (!$rows): ?><div class="text-muted">Belum ada literatur untuk filter ini.</div><?php endif; ?>

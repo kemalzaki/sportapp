@@ -56,6 +56,8 @@ if ($jumpAyat > 0) {
 
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">QS </li></ol></nav>
+
 <div class="mb-2">
   <a href="/quran.php" class="btn btn-sm btn-success"><i class="bi bi-arrow-left"></i> Kembali ke Daftar Surat</a>
 </div>

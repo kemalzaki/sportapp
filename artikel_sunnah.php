@@ -54,6 +54,8 @@ $editRow = ($editId && $u['role']==='admin') ? db_one("SELECT * FROM islami_arti
 
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Artikel Sunnah Menjaga Kesehatan</li></ol></nav>
+
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <h4 class="mb-3"><i class="bi bi-journal-text text-success"></i> Artikel Sunnah Menjaga Kesehatan</h4>
 

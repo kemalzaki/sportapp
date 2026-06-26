@@ -75,6 +75,8 @@ for ($d=1; $d<=$dim; $d++) {
     if ($tags) $puasaSet[$d] = $tags;
 }
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Kalender Hijriyah & Puasa Sunnah</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-calendar3 text-success"></i> Kalender Hijriyah &amp; Puasa Sunnah</h4>
 
 <h5 class="mt-2"><i class="bi bi-droplet-half text-info"></i> Jenis Puasa Sunnah &amp; Countdown</h5>

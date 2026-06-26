@@ -344,31 +344,35 @@ include __DIR__.'/includes/header.php';
       })
       .then(function(html){
         listBox.innerHTML = html;
-        bindRowActions();
       })
       .catch(function(err){
         listBox.innerHTML = '<div class="alert alert-danger small m-2">Gagal memuat daftar: '+(err && err.message ? err.message : 'unknown')+'</div>';
       });
   }
   function debounce(fn){ clearTimeout(debounceT); debounceT = setTimeout(fn, 300); }
-  fKw.addEventListener('input', function(){ debounce(function(){ loadList(1); }); });
-  fSurat.addEventListener('change', function(){ loadList(1); });
-  fReset.addEventListener('click', function(){ fKw.value=''; fSurat.value=''; loadList(1); });
+  if (fKw)    fKw.addEventListener('input', function(){ debounce(function(){ loadList(1); }); });
+  if (fSurat) fSurat.addEventListener('change', function(){ loadList(1); });
+  if (fReset) fReset.addEventListener('click', function(){ fKw.value=''; fSurat.value=''; loadList(1); });
 
-  function bindRowActions(){
-    listBox.querySelectorAll('.js-page').forEach(function(a){
-      a.addEventListener('click', function(e){
-        e.preventDefault();
-        loadList(+a.dataset.page || 1);
-      });
-    });
-    listBox.querySelectorAll('.js-ayat-pop').forEach(function(el){
-      el.addEventListener('click', function(e){
-        e.preventDefault();
-        showAyat(el.dataset.ref, el.dataset.judul);
-      });
-    });
-  }
+  /* Revisi 27 Juni 2026 #7 — Event delegation pada #listBox supaya tombol
+     pagination & klik ayat langsung jalan pada render server-side awal,
+     tanpa harus klik tombol Reset terlebih dahulu. */
+  listBox.addEventListener('click', function(e){
+    var pg = e.target.closest('.js-page');
+    if (pg) {
+      e.preventDefault();
+      var pn = parseInt(pg.dataset.page, 10) || 1;
+      var li = pg.closest('.page-item');
+      if (li && li.classList.contains('disabled')) return;
+      loadList(pn);
+      return;
+    }
+    var ay = e.target.closest('.js-ayat-pop');
+    if (ay) {
+      e.preventDefault();
+      showAyat(ay.dataset.ref, ay.dataset.judul);
+    }
+  });
 
   /* ---- Popup ayat ---- */
   var SURAH = <?= json_encode(array_map(function($x){return $x[0];}, $ISLAMI_SURAH), JSON_UNESCAPED_UNICODE) ?>;
@@ -422,8 +426,7 @@ include __DIR__.'/includes/header.php';
     }
   }
 
-  // R15: list sudah dirender server-side. Cukup bind tombol pagination & klik ayat.
-  bindRowActions();
+  // R15+R27Jun: list dirender server-side & klik di-handle lewat event delegation.
 })();
 </script>
 

@@ -135,6 +135,8 @@ $pageData = array_slice($data, ($page-1)*$perPage, $perPage);
 
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Ensiklopedia Hadist</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-book-half text-success"></i> Ensiklopedia Hadist</h4>
 <p class="text-muted small">Koleksi hadits dari <strong>Sahih Bukhari</strong> &amp; <strong>Sahih Muslim</strong> bertema
 <em>Perjuangan</em>, <em>Olahraga</em>, <em>Akhir Zaman</em>, <em>Politik</em>, dan <em>Ekonomi/Bisnis</em>. Sumber: koleksi internal + <code>api.hadith.gading.dev</code>.</p>

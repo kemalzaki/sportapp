@@ -47,6 +47,8 @@ function sort_link($key, $label, $curSort, $curDir) {
 }
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Leaderboard Amal & Aktivitas Sehat</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-bar-chart-line text-danger"></i> Leaderboard Amal & Aktivitas Sehat</h4>
 
 <form class="row g-2 mb-3" method="get">

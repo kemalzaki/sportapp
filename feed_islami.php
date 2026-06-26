@@ -44,6 +44,8 @@ $quotes = db_all("SELECT q.*, u.nama, u.foto_url
 
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Feed Quote Islami Komunitas</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-chat-dots text-warning"></i> Feed Quote Islami Komunitas
   <span class="badge bg-secondary ms-1" title="Total quote"><?= $total ?></span>
 </h4>

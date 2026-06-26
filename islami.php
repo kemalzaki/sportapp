@@ -327,6 +327,8 @@ $pageSkeleton = 'feed';
 <!-- KOMPAS KIBLAT dihapus sesuai revisi 6 Juni 2026 -->
 
 <div class="row g-3 mb-3">
+  <!-- Revisi 27 Juni 2026 #8 — Kalender Hijriyah dipindah ke atas Al-Qur'an Digital -->
+  <div class="col-md-3"><a href="/kalender_hijriyah.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-calendar3 fs-2 text-success"></i><div class="fw-semibold mt-1">Kalender Hijriyah</div></div></a></div>
   <div class="col-md-3"><a href="/quran.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-success"></i><div class="fw-semibold mt-1">Al-Qur'an Digital</div></div></a></div>
 
   <!-- R17 #3-#6: setelah Al-Qur'an Digital → Ensiklopedia Hadist, Belajar Tajwid, Sejarah Nabi & Rasul, lalu Tata Cara Wudhu/Shalat/Rawatib/Duha-Tahajud -->
@@ -345,7 +347,6 @@ $pageSkeleton = 'feed';
   <div class="col-md-3"><a href="/catatan_baca_buku.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-journal-check fs-2 text-info"></i><div class="fw-semibold mt-1">Catatan Baca Buku</div><div class="small text-muted">Pantau progress baca dari Kajian Literatur</div></div></a></div>
 
   <div class="col-md-3"><a href="/dzikir.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-brightness-high fs-2 text-info"></i><div class="fw-semibold mt-1">Dzikir Pagi & Petang</div></div></a></div>
-  <div class="col-md-3"><a href="/kalender_hijriyah.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-calendar3 fs-2 text-success"></i><div class="fw-semibold mt-1">Kalender Hijriyah</div></div></a></div>
   <div class="col-md-3"><a href="/challenge.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-trophy fs-2 text-warning"></i><div class="fw-semibold mt-1">Challenge Islami</div></div></a></div>
   <div class="col-md-3"><a href="/leaderboard_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-bar-chart-line fs-2 text-danger"></i><div class="fw-semibold mt-1">Leaderboard Amal</div></div></a></div>
   <div class="col-md-3"><a href="/statistik_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-graph-up fs-2 text-primary"></i><div class="fw-semibold mt-1">Statistik & Streak</div></div></a></div>

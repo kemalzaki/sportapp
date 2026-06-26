@@ -11,6 +11,8 @@ $rows=db_all("SELECT d.*, u.nama, u.foto_url,
  (SELECT COUNT(*) FROM doa_aamiin a WHERE a.doa_id=d.id) AS jml_aamiin
  FROM doa_request d JOIN users u ON u.id=d.user_id ORDER BY d.created_at DESC LIMIT 100");
 include __DIR__.'/includes/header.php'; ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Saling Mendoakan</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-heart text-danger"></i> Saling Mendoakan Antar Member</h4>
 <?php if($u): ?>
 <form method="post" class="card card-body mb-3"><input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="post">

@@ -24,6 +24,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
 $list = $w==='petang' ? $ISLAMI_DZIKIR_PETANG : $ISLAMI_DZIKIR_PAGI;
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
+  <li class="breadcrumb-item"><a href="/index.php">Beranda</a></li>
+  <li class="breadcrumb-item"><a href="/islami.php">Islami</a></li>
+  <li class="breadcrumb-item active">Dzikir <?= ucfirst($w) ?></li>
+</ol></nav>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="m-0"><i class="bi bi-<?= $w==='petang'?'sunset':'sunrise' ?> text-warning"></i> Dzikir <?= ucfirst($w) ?></h4>

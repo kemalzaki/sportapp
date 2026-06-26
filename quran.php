@@ -18,6 +18,8 @@ if ($u) {
 }
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Al-Qur\</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-book text-success"></i> Al-Qur'an Digital</h4>
 
 <div class="row g-2 mb-3">

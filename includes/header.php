@@ -135,45 +135,33 @@ if (empty($pageSkeleton)) {
 .navbar-dark .brand-logo-colored .bl-3,.bg-dark .brand-logo-colored .bl-3{color:#6ee7b7;}
 .navbar-dark .brand-logo-colored .bl-4,.bg-dark .brand-logo-colored .bl-4{color:#a5b4fc;}
 
-/* Revisi 24 Juni 2026 — Tampilkan kembali navbar desktop di layar ≥992px
-   dengan warna sama persis seperti top header mobile (.gt-top). gojek-top.css
-   menyembunyikan navbar di semua ukuran, override khusus desktop di sini. */
+/* === Revisi 27 Juni 2026 #9 — PAKSA TAMPILAN MOBILE meskipun dibuka di desktop ===
+   User minta layout ponsel di semua ukuran layar (frame ~480px di tengah). */
 @media (min-width: 992px){
-  nav.navbar.sticky-top.kk-desktop-nav{
-    display: flex !important;
-    background: linear-gradient(135deg,#0f172a 0%, #1e293b 60%, #243049 100%) !important;
-  }
-  /* sembunyikan top bar mobile + chips + bottom nav saat versi desktop aktif */
-  .gt-top, .gt-chips, .gj-nav { display: none !important; }
-  body{ padding-top: 0 !important; padding-bottom: 0 !important; }
-  /* === Revisi 26 Juni 2026 #1 — paksa tampilan DESKTOP saat layar ≥992px,
-     bukan frame mobile 480px. Override penuh untuk container, html dan body. === */
-  html, body{
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    overflow-x: visible !important;
-  }
+  nav.navbar.sticky-top.kk-desktop-nav{ display: none !important; }
+  .gt-top, .gt-chips { display: flex !important; }
+  .gj-nav { display: flex !important; }
+  html{ background:#e9ecef !important; }
   body{
-    background: #f5f6f8 !important;
-    box-shadow: none !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
+    max-width: 480px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 24px rgba(0,0,0,.10) !important;
+    border-left: 1px solid rgba(0,0,0,.05) !important;
+    border-right: 1px solid rgba(0,0,0,.05) !important;
+    overflow-x: hidden !important;
+    padding-top: 60px !important;   /* ruang utk .gt-top fixed di mobile */
+    padding-bottom: 70px !important;/* ruang utk bottom nav .gj-nav */
   }
-  body > *, body > .container, body > main, body > section, body > div,
-  main, main.container, main > .container,
-  .container, .container-sm, .container-md, .container-lg,
-  .container.py-3, .container.py-4, body > div.container,
-  .kk-shell, .app-shell, .mobile-shell, .mobile-frame, #app-shell, #pageContent{
-    max-width: 1140px !important;
+  body > .container, body > main.container, main.container,
+  .container, .container-sm, .container-md, .container-lg{
+    max-width: 100% !important;
     width: auto !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
+  .gt-top, .gj-nav{ max-width: 480px; margin: 0 auto; left: 0; right: 0; }
 }
 
 

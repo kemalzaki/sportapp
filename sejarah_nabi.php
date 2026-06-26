@@ -76,6 +76,8 @@ $sel = isset($_GET['n']) ? max(1, min(25, (int)$_GET['n'])) : 0;
 $tab = $_GET['tab'] ?? 'rasul'; // rasul | kaum
 
 include __DIR__.'/includes/header.php'; ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Sejarah Nabi & Rasul</li></ol></nav>
+
 
 <?php ip_card_open('Sejarah Nabi & Rasul (25 Rasul)', 'bi-book'); ?>
 

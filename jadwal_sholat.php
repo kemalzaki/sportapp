@@ -10,6 +10,8 @@ $u = current_user();
 $pref = $u ? islami_pref((int)$u['id']) : ['kota'=>'Jakarta','negara'=>'Indonesia','mode_tenang'=>1];
 include __DIR__.'/includes/header.php';
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Jadwal Sholat</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-mosque text-primary"></i> Jadwal Sholat Realtime</h4>
 <div id="prayerCard" data-kota="<?= htmlspecialchars($pref['kota']) ?>" data-negara="<?= htmlspecialchars($pref['negara']) ?>" data-mode-tenang="<?= (int)$pref['mode_tenang'] ?>" class="card shadow-sm"><div class="card-body">
   <div class="fs-3" id="prayerNext">Memuat…</div>

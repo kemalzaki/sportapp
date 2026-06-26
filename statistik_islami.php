@@ -8,6 +8,8 @@ $streak=islami_streak_count((int)$u['id']);
 $totalPoin=(int)db_val("SELECT COALESCE(SUM(poin),0) FROM islami_streak WHERE user_id=$1",[(int)$u['id']]);
 $hadirOlahraga=(int)db_val("SELECT COUNT(*) FROM absensi WHERE user_id=$1 AND hadir=1",[(int)$u['id']]);
 ?>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Statistik & Streak</li></ol></nav>
+
 <h4 class="mb-3"><i class="bi bi-graph-up text-primary"></i> Statistik Hari Produktif & Sehat</h4>
 <div class="row g-3 mb-3">
  <div class="col-md-3"><div class="card text-center"><div class="card-body"><div class="display-6"><?= $streak ?></div><div class="small text-muted">Streak hari</div></div></div></div>
