@@ -325,11 +325,13 @@ try {
 
 $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama,
                           tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama,
-                          tp.gpx_path AS tp_gpx_path, tp.run_route_id AS tp_run_route_id
+                          tp.gpx_path AS tp_gpx_path, tp.run_route_id AS tp_run_route_id,
+                          jj.nama AS jj_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text
                           FROM jadwal j
                           LEFT JOIN users u ON u.id=j.koordinator_id
                           LEFT JOIN tim t ON t.id=j.tim_id
                           LEFT JOIN tempat tp ON tp.id=j.tempat_id
+                          LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
                           WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT 5");
 // Revisi 22 Juni 2026 — pra-resolve GeoJSON rute Hiking (dari run_routes) untuk ditampilkan di Jadwal Terdekat
 $jadwalRouteGeo = [];
@@ -968,7 +970,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
               ?>
             </td>
-            <td data-label="Jenis"><span class="pill"><?= htmlspecialchars($j['jenis']) ?></span></td>
+            <td data-label="Jenis">
+              <span class="pill"><?= htmlspecialchars($j['jenis']) ?></span>
+              <?php if(!empty($j['jj_nama'])): ?>
+                <!-- Revisi R18 — Badge Jenis Jadwal (Tim Kantor KK / Tim Public KK) dgn warna BG -->
+                <div class="mt-1"><span class="badge" style="background:<?= htmlspecialchars($j['jj_bg']) ?>;color:<?= htmlspecialchars($j['jj_text']) ?>"><?= htmlspecialchars($j['jj_nama']) ?></span></div>
+              <?php endif; ?>
+            </td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
              <td data-label="Lokasi">
                <?php

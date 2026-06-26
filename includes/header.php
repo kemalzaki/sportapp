@@ -245,6 +245,53 @@ if (empty($pageSkeleton)) {
   body{ margin-left: auto !important; margin-right: auto !important; }
 }
 
+/* === Revisi R18 (26 Jun 2026) — Penguat tampilan ponsel di desktop ===
+   Beberapa override (mis. dari desktop-fix.css eksternal atau bootstrap)
+   masih membuat tampilan desktop tidak rapih / tidak persis seperti HP.
+   Blok ini ditaruh paling akhir agar selalu menang specificity. */
+@media (min-width: 992px){
+  /* Background luar gelap konsisten */
+  html, html body{ background:#0f172a !important; }
+
+  /* Sembunyikan SEMUA navbar bootstrap apapun variannya */
+  nav.navbar, nav.navbar.kk-desktop-nav, .kk-desktop-nav{ display:none !important; }
+
+  /* Pastikan body persis 480px, scrollbar berasal dari html, bukan body */
+  html{ overflow-y: auto !important; }
+  body{
+    max-width: 480px !important;
+    width: 480px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    background:#ffffff !important;
+    box-shadow: 0 0 32px rgba(0,0,0,.45) !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Top bar / chips / bottom nav benar-benar muncul dan terkunci 480px */
+  .gt-top, .gt-chips, .gj-nav{
+    display:flex !important;
+    position: fixed !important;
+    left: 50% !important; right: auto !important;
+    transform: translateX(-50%) !important;
+    width: 480px !important;
+    max-width: 480px !important;
+  }
+  .gj-nav{ bottom: 0 !important; top: auto !important; }
+
+  /* Table / row stack agar tidak melebar keluar frame */
+  table{ width: 100% !important; }
+  .table-responsive{ overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .row{ margin-left: 0 !important; margin-right: 0 !important; }
+  .row > [class^="col-"], .row > [class*=" col-"]{ flex: 0 0 100% !important; max-width: 100% !important; padding-left: 6px !important; padding-right: 6px !important; }
+
+  /* Tutup sidebar permanen — sama dgn versi mobile */
+  .gt-sidebar, .kk-sidebar, .desktop-sidebar{ display:none !important; }
+
+  /* Menjamin form, card, dan modal tidak overflow ke kanan */
+  .card, .form-control, .form-select, .btn{ max-width: 100% !important; }
+}
+
 
 </style>
 <style id="userTheme"><?= user_theme_css() ?></style>

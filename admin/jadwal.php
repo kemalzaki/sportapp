@@ -13,7 +13,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     // error apapun (ON CONFLICT dari trigger/migrasi, kolom hilang, dll) tidak
     // melempar halaman HTML dari set_exception_handler. Pesan tampil di flash.
     try {
-        if ($a === 'delete') {
+        /* Revisi R18 (26 Jun 2026) — CRUD Jenis Jadwal (Tim Kantor KK / Tim Public KK).
+         * Action: jj_create / jj_edit / jj_delete. */
+        if ($a === 'jj_create') {
+            db_exec("INSERT INTO jenis_jadwal(nama, warna_bg, warna_text) VALUES($1,$2,$3)",
+                [trim($_POST['nama'] ?? ''), $_POST['warna_bg'] ?? '#0ea5e9', $_POST['warna_text'] ?? '#ffffff']);
+            $_SESSION['flash_ok'] = 'Jenis Jadwal ditambahkan.';
+        } elseif ($a === 'jj_edit') {
+            db_exec("UPDATE jenis_jadwal SET nama=$1, warna_bg=$2, warna_text=$3 WHERE id=$4",
+                [trim($_POST['nama'] ?? ''), $_POST['warna_bg'] ?? '#0ea5e9', $_POST['warna_text'] ?? '#ffffff', (int)$_POST['id']]);
+            $_SESSION['flash_ok'] = 'Jenis Jadwal diperbarui.';
+        } elseif ($a === 'jj_delete') {
+            db_exec("DELETE FROM jenis_jadwal WHERE id=$1", [(int)$_POST['id']]);
+            $_SESSION['flash_ok'] = 'Jenis Jadwal dihapus.';
+        } elseif ($a === 'delete') {
             db_exec("DELETE FROM jadwal WHERE id=$1", [(int)$_POST['id']]);
             $_SESSION['flash_ok'] = 'Jadwal dihapus.';
         } elseif ($a === 'edit') {
@@ -26,14 +39,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             if ($tempatId) { $row = db_one("SELECT nama FROM tempat WHERE id=$1", [$tempatId]); if ($row) $tempatNama = $row['nama']; }
             $jm = $_POST['jam_mulai'] ?: null;
             $js = $_POST['jam_selesai'] ?: null;
+            $jenisJadwalId = (int)($_POST['jenis_jadwal_id'] ?? 0) ?: null;
             db_exec("UPDATE jadwal SET tanggal=$1, bulan=$2, minggu_ke=$3, jenis=$4, tempat=$5,
                                        tempat_id=$6, durasi_menit=$7, koordinator_id=$8,
-                                       konten_obrolan=$9, catatan=$10, jam_mulai=$11, jam_selesai=$12
-                     WHERE id=$13",
+                                       konten_obrolan=$9, catatan=$10, jam_mulai=$11, jam_selesai=$12,
+                                       jenis_jadwal_id=$13
+                     WHERE id=$14",
                     [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama,
                      $tempatId, ((int)($_POST['durasi_menit'] ?? 0) ?: null),
                      (int)($_POST['koordinator_id'] ?? 0) ?: null,
-                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $id]);
+                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $jenisJadwalId, $id]);
             $_SESSION['flash_ok'] = 'Jadwal diperbarui.';
         } else {
             $tgl   = $_POST['tanggal'];
@@ -44,12 +59,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             if ($tempatId) { $row = db_one("SELECT nama FROM tempat WHERE id=$1", [$tempatId]); if ($row) $tempatNama = $row['nama']; }
             $jm = $_POST['jam_mulai'] ?: null;
             $js = $_POST['jam_selesai'] ?: null;
-            db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai)
-                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+            $jenisJadwalId = (int)($_POST['jenis_jadwal_id'] ?? 0) ?: null;
+            db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai,jenis_jadwal_id)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
                     [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama, $tempatId,
                      ((int)($_POST['durasi_menit'] ?? 0) ?: null),
                      (int)($_POST['koordinator_id'] ?? 0) ?: current_user()['id'],
-                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js]);
+                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $jenisJadwalId]);
             $_SESSION['flash_ok'] = 'Jadwal ditambahkan.';
         }
     } catch (Throwable $e) {
@@ -66,16 +82,87 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header('Location: jadwal.php'); exit;
 }
 
-$rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id ORDER BY tanggal DESC");
+$rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
+                          jj.nama AS jenis_jadwal_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text
+                  FROM jadwal j
+                  LEFT JOIN users u ON u.id=j.koordinator_id
+                  LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
+                  ORDER BY tanggal DESC");
 $admins = db_all("SELECT id,nama FROM users WHERE role='admin' ORDER BY nama");
 $jenisRows = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 $jenisList = array_column($jenisRows, 'nama');
 if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya']; $jenisRows = []; }
 $tempatList = db_all("SELECT id,nama,jenis_id FROM tempat ORDER BY nama");
+/* Revisi R18 — daftar Jenis Jadwal (Tim Kantor KK / Tim Public KK / dst.) */
+$jenisJadwalList = db_all("SELECT id, nama, warna_bg, warna_text FROM jenis_jadwal ORDER BY nama");
 require_once __DIR__.'/../includes/header.php';
 ?>
 
 <h2 class="mb-3"><i class="bi bi-calendar-event text-primary"></i> Manajemen Jadwal</h2>
+
+<?php if (!empty($_SESSION['flash_ok'])): ?><div class="alert alert-success"><?= htmlspecialchars($_SESSION['flash_ok']) ?></div><?php unset($_SESSION['flash_ok']); endif; ?>
+<?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
+
+<!-- ============ Revisi R18 (26 Jun 2026) — CRUD Jenis Jadwal ============ -->
+<div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-tags-fill me-1 text-info"></i> Jenis Jadwal (Tim Kantor KK / Tim Public KK)</span>
+  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#jjPanel"><i class="bi bi-gear"></i> Kelola</button>
+</div>
+<div class="collapse <?= empty($jenisJadwalList)?'show':'' ?>" id="jjPanel"><div class="card-body">
+  <form method="post" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <input type="hidden" name="_action" value="jj_create">
+    <div class="col-md-4"><label class="form-label small fw-semibold">Nama Jenis</label>
+      <input name="nama" class="form-control form-control-sm" placeholder="Tim Kantor KK / Tim Public KK" required></div>
+    <div class="col-md-3"><label class="form-label small fw-semibold">Warna Background</label>
+      <input type="color" name="warna_bg" class="form-control form-control-color form-control-sm" value="#0ea5e9"></div>
+    <div class="col-md-3"><label class="form-label small fw-semibold">Warna Tulisan</label>
+      <input type="color" name="warna_text" class="form-control form-control-color form-control-sm" value="#ffffff"></div>
+    <div class="col-md-2"><button class="btn btn-primary btn-sm w-100"><i class="bi bi-plus-lg"></i> Tambah</button></div>
+  </form>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    <thead><tr><th>#</th><th>Nama</th><th>Preview</th><th>BG</th><th>Text</th><th class="text-end">Aksi</th></tr></thead>
+    <tbody>
+    <?php foreach($jenisJadwalList as $idx=>$jj): ?>
+      <tr>
+        <td><?= $idx+1 ?></td>
+        <td><?= htmlspecialchars($jj['nama']) ?></td>
+        <td><span class="badge" style="background:<?= htmlspecialchars($jj['warna_bg']) ?>;color:<?= htmlspecialchars($jj['warna_text']) ?>"><?= htmlspecialchars($jj['nama']) ?></span></td>
+        <td><code><?= htmlspecialchars($jj['warna_bg']) ?></code></td>
+        <td><code><?= htmlspecialchars($jj['warna_text']) ?></code></td>
+        <td class="text-end" style="white-space:nowrap">
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#jjEdit<?= $jj['id'] ?>"><i class="bi bi-pencil"></i></button>
+          <form method="post" class="d-inline" onsubmit="return confirm('Hapus jenis jadwal ini?')">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="jj_delete">
+            <input type="hidden" name="id" value="<?= $jj['id'] ?>">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+    <?php endforeach; if(!$jenisJadwalList): ?>
+      <tr><td colspan="6" class="text-muted small">Belum ada Jenis Jadwal. Tambahkan minimal "Tim Kantor KK" dan "Tim Public KK".</td></tr>
+    <?php endif; ?>
+    </tbody></table></div>
+</div></div>
+</div>
+
+<?php foreach($jenisJadwalList as $jj): ?>
+<div class="modal fade" id="jjEdit<?= $jj['id'] ?>" tabindex="-1"><div class="modal-dialog">
+  <form method="post" class="modal-content">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <input type="hidden" name="_action" value="jj_edit">
+    <input type="hidden" name="id" value="<?= $jj['id'] ?>">
+    <div class="modal-header"><h5 class="modal-title">Edit Jenis Jadwal</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body row g-2">
+      <div class="col-12"><label class="form-label small">Nama</label><input name="nama" class="form-control" value="<?= htmlspecialchars($jj['nama']) ?>" required></div>
+      <div class="col-6"><label class="form-label small">Warna BG</label><input type="color" name="warna_bg" class="form-control form-control-color" value="<?= htmlspecialchars($jj['warna_bg']) ?>"></div>
+      <div class="col-6"><label class="form-label small">Warna Text</label><input type="color" name="warna_text" class="form-control form-control-color" value="<?= htmlspecialchars($jj['warna_text']) ?>"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>
+  </form>
+</div></div>
+<?php endforeach; ?>
 
 <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Jadwal</div>
 <div class="card-body">
@@ -90,6 +177,13 @@ require_once __DIR__.'/../includes/header.php';
     <div class="col-md-2"><label class="form-label small fw-semibold">Jenis</label>
       <select name="jenis" class="form-select">
         <?php foreach($jenisList as $j): ?><option><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
+      </select></div>
+    <div class="col-md-4"><label class="form-label small fw-semibold">Jenis Jadwal</label>
+      <select name="jenis_jadwal_id" class="form-select">
+        <option value="">— Pilih (opsional) —</option>
+        <?php foreach($jenisJadwalList as $jj): ?>
+          <option value="<?= (int)$jj['id'] ?>"><?= htmlspecialchars($jj['nama']) ?></option>
+        <?php endforeach; ?>
       </select></div>
     <div class="col-md-4"><label class="form-label small fw-semibold">Tempat</label>
       <select name="tempat_id" class="form-select" required>
@@ -122,7 +216,12 @@ require_once __DIR__.'/../includes/header.php';
       <td><small><?= htmlspecialchars(substr($r['jam_mulai'] ?? '',0,5)) ?: '—' ?><?= !empty($r['jam_selesai']) ? '<br>s/d '.htmlspecialchars(substr($r['jam_selesai'],0,5)) : '' ?></small></td>
       <td><?= htmlspecialchars($r['bulan']) ?></td>
       <td><span class="pill"><?= htmlspecialchars($r['minggu_ke']) ?></span></td>
-      <td><?= htmlspecialchars($r['jenis']) ?></td>
+      <td>
+        <?= htmlspecialchars($r['jenis']) ?>
+        <?php if(!empty($r['jenis_jadwal_nama'])): ?>
+          <div class="mt-1"><span class="badge" style="background:<?= htmlspecialchars($r['jj_bg']) ?>;color:<?= htmlspecialchars($r['jj_text']) ?>"><?= htmlspecialchars($r['jenis_jadwal_nama']) ?></span></div>
+        <?php endif; ?>
+      </td>
       <td><?= htmlspecialchars($r['tempat']) ?></td>
       <td><?= !empty($r['durasi_menit']) ? ((int)$r['durasi_menit'].' mnt') : '<span class="text-muted small">—</span>' ?></td>
       <td><?= user_name_with_avatar($r['koord_foto'] ?? null, $r['koord'] ?? '-', false, 26) ?></td>
@@ -180,6 +279,13 @@ require_once __DIR__.'/../includes/header.php';
             <select name="jenis" class="form-select">
               <?php foreach($jenisList as $j): ?><option <?= $r['jenis']===$j?'selected':'' ?>><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
               <?php if (!in_array($r['jenis'], $jenisList, true)): ?><option selected><?= htmlspecialchars($r['jenis']) ?></option><?php endif; ?>
+            </select></div>
+          <div class="col-md-4"><label class="form-label small fw-semibold">Jenis Jadwal</label>
+            <select name="jenis_jadwal_id" class="form-select">
+              <option value="">— Pilih (opsional) —</option>
+              <?php foreach($jenisJadwalList as $jj): ?>
+                <option value="<?= (int)$jj['id'] ?>" <?= ((int)($r['jenis_jadwal_id']??0))===(int)$jj['id']?'selected':'' ?>><?= htmlspecialchars($jj['nama']) ?></option>
+              <?php endforeach; ?>
             </select></div>
           <div class="col-md-4"><label class="form-label small fw-semibold">Koordinator (admin)</label>
             <select name="koordinator_id" class="form-select">

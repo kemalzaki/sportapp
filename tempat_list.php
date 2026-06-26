@@ -19,19 +19,29 @@ $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 9;
 $ajax    = !empty($_GET['ajax_list']);
 
+/* Revisi R18 (26 Jun 2026) — filter rentang kiloan khusus Hiking.
+ * Sumber distance: run_routes.jarak_m (meter) yang ditautkan ke tempat.run_route_id. */
+$kmMin = isset($_GET['km_min']) && $_GET['km_min'] !== '' ? (float)$_GET['km_min'] : null;
+$kmMax = isset($_GET['km_max']) && $_GET['km_max'] !== '' ? (float)$_GET['km_max'] : null;
+
 $where = []; $params = []; $i=1;
 if ($q !== '') { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $params[]="%$q%"; $i++; }
 if ($fJenis)   { $where[] = "t.jenis_id = \$$i"; $params[]=$fJenis; $i++; }
+/* Filter rentang kiloan: hanya berlaku untuk tempat yg punya rute (run_route_id) — biasanya hiking */
+if ($kmMin !== null) { $where[] = "COALESCE(rr.jarak_m/1000.0,0) >= \$$i"; $params[]=$kmMin; $i++; }
+if ($kmMax !== null) { $where[] = "COALESCE(rr.jarak_m/1000.0,0) <= \$$i"; $params[]=$kmMax; $i++; }
 $wsql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
 
-$total     = (int) db_val("SELECT COUNT(*) FROM tempat t $wsql", $params);
+$total     = (int) db_val("SELECT COUNT(*) FROM tempat t LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql", $params);
 $totalPage = max(1, (int)ceil($total / $perPage));
 if ($page > $totalPage) $page = $totalPage;
 $offset    = ($page-1) * $perPage;
 
-$rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto, u.nomor_wa AS pic_wa
+$rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto, u.nomor_wa AS pic_wa,
+                COALESCE(rr.jarak_m/1000.0, 0) AS distance_km
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
-                LEFT JOIN users u ON u.id=t.pic_user_id $wsql
+                LEFT JOIN users u ON u.id=t.pic_user_id
+                LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql
                 ORDER BY t.nama ASC
                 LIMIT $perPage OFFSET $offset", $params);
 
@@ -46,6 +56,7 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
   $picWa = preg_replace('/^0/','62', preg_replace('/\D+/','', $r['kontak_wa'] ?: ($r['pic_wa'] ?? '')));
   $jenisLower = mb_strtolower(trim((string)($r['jenis_nama'] ?? '')));
   $isTrail = in_array($jenisLower, ['hiking','camping'], true);
+  $km = (float)($r['distance_km'] ?? 0);
   $popup = [
     'nama' => $r['nama'],
     'alamat' => $r['alamat'] ?? '',
@@ -86,6 +97,11 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
             </span>
             <?php if(!empty($r['gpx_path'])): ?>
               <span class="badge bg-success-subtle text-success-emphasis ms-1"><i class="bi bi-bezier2"></i> Rute GPX</span>
+            <?php endif; ?>
+            <?php if($isTrail && $km > 0): ?>
+              <span class="badge bg-primary-subtle text-primary-emphasis ms-1" title="Jarak rute (kiloan)">
+                <i class="bi bi-signpost-split"></i> <?= number_format($km, 2, ',', '.') ?> km
+              </span>
             <?php endif; ?>
           </div>
         <?php endif; ?>
@@ -139,6 +155,17 @@ include __DIR__.'/includes/header.php';
       <option value="0">Semua Jenis</option>
       <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
     </select></div>
+    <!-- Revisi R18 — Filter rentang kiloan (khusus Hiking / rute) -->
+    <div class="col-md-12">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="small text-muted"><i class="bi bi-signpost-split text-success"></i> Rentang Kiloan (Hiking):</span>
+        <input type="number" min="0" step="0.1" class="form-control form-control-sm" style="max-width:120px" id="fKmMin" placeholder="min km" value="<?= $kmMin!==null?htmlspecialchars((string)$kmMin):'' ?>">
+        <span class="small">s/d</span>
+        <input type="number" min="0" step="0.1" class="form-control form-control-sm" style="max-width:120px" id="fKmMax" placeholder="max km" value="<?= $kmMax!==null?htmlspecialchars((string)$kmMax):'' ?>">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="fKmReset"><i class="bi bi-x-circle"></i> Reset KM</button>
+        <small class="text-muted">Hanya tempat dengan rute terhubung yg tersaring.</small>
+      </div>
+    </div>
     <!-- Revisi 23 Juni 2026 — tombol Filter dihapus karena filter sudah otomatis via AJAX (change/Enter). -->
   </form>
 </div></div>
@@ -269,8 +296,11 @@ function showTempatDetail(d){
     loading = true;
     var q = document.getElementById('fQ').value.trim();
     var j = document.getElementById('fJenis').value;
+    var kmin = document.getElementById('fKmMin').value;
+    var kmax = document.getElementById('fKmMax').value;
     var p = page || 1;
-    var url = '/tempat_list.php?ajax_list=1&q='+encodeURIComponent(q)+'&jenis='+encodeURIComponent(j)+'&page='+p;
+    var url = '/tempat_list.php?ajax_list=1&q='+encodeURIComponent(q)+'&jenis='+encodeURIComponent(j)
+              + '&km_min='+encodeURIComponent(kmin)+'&km_max='+encodeURIComponent(kmax)+'&page='+p;
     wrap.style.opacity = '0.5';
     fetch(url, {headers:{'X-Requested-With':'fetch'}})
       .then(function(r){ return r.text(); })
@@ -282,6 +312,8 @@ function showTempatDetail(d){
           var qs = new URLSearchParams();
           if (q) qs.set('q', q);
           if (j && j!=='0') qs.set('jenis', j);
+          if (kmin) qs.set('km_min', kmin);
+          if (kmax) qs.set('km_max', kmax);
           if (p>1) qs.set('page', p);
           history.replaceState(null, '', '/tempat_list.php'+(qs.toString()?('?'+qs.toString()):''));
         } catch(e){}
@@ -290,11 +322,20 @@ function showTempatDetail(d){
       .finally(function(){ loading = false; });
   }
   form.addEventListener('submit', function(e){ e.preventDefault(); loadList(1); });
-  ['fQ','fJenis'].forEach(function(id){
+  ['fQ','fJenis','fKmMin','fKmMax'].forEach(function(id){
     var el = document.getElementById(id);
     if (!el) return;
     if (el.tagName === 'SELECT') el.addEventListener('change', function(){ loadList(1); });
-    else el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadList(1); }});
+    else {
+      el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadList(1); }});
+      el.addEventListener('change', function(){ loadList(1); });
+    }
+  });
+  var rb = document.getElementById('fKmReset');
+  if (rb) rb.addEventListener('click', function(){
+    document.getElementById('fKmMin').value='';
+    document.getElementById('fKmMax').value='';
+    loadList(1);
   });
   // Delegate pagination clicks
   wrap.addEventListener('click', function(e){
