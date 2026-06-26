@@ -1,6 +1,6 @@
 <?php
-// tajwid.php — Belajar Tajwid (Revisi R13 - 25 Juni 2026)
-// Materi hukum-hukum tajwid dasar untuk pemula. Tanpa dependensi eksternal.
+// tajwid.php — Belajar Tajwid (Revisi R17 - 26 Juni 2026)
+// R17: Setiap hukum tajwid dibungkus accordion (spoiler) agar halaman tidak memanjang ke bawah.
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
@@ -32,7 +32,7 @@ if ($u && $_SERVER['REQUEST_METHOD']==='POST') {
              ON CONFLICT (user_id,hukum) DO UPDATE SET dipelajari=EXCLUDED.dipelajari, updated_at=now()",
              [(int)$u['id'], $hukum, $on]);
   }
-  header('Location: /tajwid.php#'.urlencode($hukum)); exit;
+  header('Location: /tajwid.php#h'.md5($hukum)); exit;
 }
 
 $progress = [];
@@ -95,7 +95,7 @@ include __DIR__.'/includes/header.php';
 </nav>
 
 <h2 class="mb-2"><i class="bi bi-mic-fill text-success"></i> Belajar Tajwid</h2>
-<p class="text-muted small">Ringkasan hukum tajwid dasar untuk membaca Al-Qur\'an dengan benar. Tandai materi yang sudah dipelajari untuk memantau progres.</p>
+<p class="text-muted small">Ringkasan hukum tajwid dasar untuk membaca Al-Qur'an dengan benar. Klik tiap hukum untuk membuka detail (spoiler). Tandai materi yang sudah dipelajari untuk memantau progres.</p>
 
 <?php if($u): ?>
 <div class="alert alert-success py-2 small d-flex align-items-center gap-2">
@@ -105,31 +105,40 @@ include __DIR__.'/includes/header.php';
 </div>
 <?php endif; ?>
 
-<?php foreach($MATERI as $grp): ?>
+<?php foreach($MATERI as $gi=>$grp): ?>
   <h5 class="mt-4 mb-2"><i class="bi bi-bookmark-check text-primary"></i> <?= htmlspecialchars($grp['kategori']) ?></h5>
-  <div class="row g-3">
-    <?php foreach($grp['items'] as $m):
-      $checked = !empty($progress[$m['nama']]); ?>
-      <div class="col-md-6" id="<?= htmlspecialchars(urlencode($m['nama'])) ?>">
-        <div class="card shadow-sm h-100 <?= $checked?'border-success':'' ?>">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-              <h6 class="card-title mb-1"><?= htmlspecialchars($m['nama']) ?></h6>
-              <?php if($u): ?>
-              <form method="post" class="m-0">
-                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-                <input type="hidden" name="hukum" value="<?= htmlspecialchars($m['nama']) ?>">
-                <input type="hidden" name="on" value="<?= $checked?'0':'1' ?>">
-                <button class="btn btn-sm <?= $checked?'btn-success':'btn-outline-secondary' ?>" title="Tandai dipelajari">
-                  <i class="bi <?= $checked?'bi-check2-circle':'bi-circle' ?>"></i> <?= $checked?'Sudah':'Tandai' ?>
-                </button>
-              </form>
-              <?php endif; ?>
-            </div>
+  <div class="accordion mb-2" id="accTajwid<?= $gi ?>">
+    <?php foreach($grp['items'] as $ii=>$m):
+      $checked = !empty($progress[$m['nama']]);
+      $hid = 'tj_'.$gi.'_'.$ii;
+    ?>
+      <div class="accordion-item <?= $checked?'border-success':'' ?>" id="h<?= md5($m['nama']) ?>">
+        <h2 class="accordion-header" id="head_<?= $hid ?>">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#col_<?= $hid ?>" aria-expanded="false" aria-controls="col_<?= $hid ?>">
+            <span class="me-2"><?= $checked? '<i class="bi bi-check2-circle text-success"></i>' : '<i class="bi bi-circle text-secondary"></i>' ?></span>
+            <strong><?= htmlspecialchars($m['nama']) ?></strong>
+            <?php if($checked): ?><span class="badge bg-success ms-2">Sudah dipelajari</span><?php endif; ?>
+          </button>
+        </h2>
+        <div id="col_<?= $hid ?>" class="accordion-collapse collapse"
+             aria-labelledby="head_<?= $hid ?>" data-bs-parent="#accTajwid<?= $gi ?>">
+          <div class="accordion-body">
             <p class="small mb-2"><?= htmlspecialchars($m['def']) ?></p>
             <div class="small"><strong>Huruf:</strong> <span dir="rtl" style="font-family:'Amiri',serif;font-size:1.2rem"><?= htmlspecialchars($m['huruf']) ?></span></div>
             <div class="small mt-1"><strong>Contoh:</strong> <span dir="rtl" style="font-family:'Amiri',serif;font-size:1.2rem"><?= htmlspecialchars($m['contoh']) ?></span></div>
             <div class="small text-muted mt-1"><i class="bi bi-lightbulb"></i> <?= htmlspecialchars($m['tips']) ?></div>
+            <?php if($u): ?>
+              <form method="post" class="mt-2">
+                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                <input type="hidden" name="hukum" value="<?= htmlspecialchars($m['nama']) ?>">
+                <input type="hidden" name="on" value="<?= $checked?'0':'1' ?>">
+                <button class="btn btn-sm <?= $checked?'btn-success':'btn-outline-success' ?>">
+                  <i class="bi <?= $checked?'bi-check2-circle':'bi-circle' ?>"></i>
+                  <?= $checked?'Batal tandai':'Tandai sudah dipelajari' ?>
+                </button>
+              </form>
+            <?php endif; ?>
           </div>
         </div>
       </div>
@@ -138,7 +147,7 @@ include __DIR__.'/includes/header.php';
 <?php endforeach; ?>
 
 <div class="alert alert-info small mt-4">
-  <i class="bi bi-info-circle"></i> Untuk latihan langsung dengan ayat, gunakan <a href="/quran.php">Al-Qur\'an Digital</a> dan praktikkan hukum-hukum di atas pada setiap ayat.
+  <i class="bi bi-info-circle"></i> Untuk latihan langsung dengan ayat, gunakan <a href="/quran.php">Al-Qur'an Digital</a> dan praktikkan hukum-hukum di atas pada setiap ayat.
 </div>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

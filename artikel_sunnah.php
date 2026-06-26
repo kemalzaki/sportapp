@@ -41,7 +41,14 @@ if (!(int)db_val("SELECT COUNT(*) FROM islami_artikel")) {
     foreach ($seed as $s) db_exec("INSERT INTO islami_artikel(user_id,judul,isi) VALUES(NULL,$1,$2)", [$s[0],$s[1]]);
 }
 
-$rows = db_all("SELECT a.*, u.nama FROM islami_artikel a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC");
+// Revisi R17 (26 Juni 2026) — Pagination Artikel Sunnah
+$perPage = 5;
+$page = max(1, (int)($_GET['p'] ?? 1));
+$totalRows = (int)db_val("SELECT COUNT(*) FROM islami_artikel");
+$totalPages = max(1, (int)ceil($totalRows / $perPage));
+if ($page > $totalPages) $page = $totalPages;
+$offset = ($page - 1) * $perPage;
+$rows = db_all("SELECT a.*, u.nama FROM islami_artikel a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT $perPage OFFSET $offset");
 $editId = (int)($_GET['edit'] ?? 0);
 $editRow = ($editId && $u['role']==='admin') ? db_one("SELECT * FROM islami_artikel WHERE id=$1", [$editId]) : null;
 
@@ -81,4 +88,27 @@ include __DIR__.'/includes/header.php';
   <div class="mt-2"><?= nl2br(htmlspecialchars($r['isi'])) ?></div>
 </div></div>
 <?php endforeach; ?>
+
+<?php if ($totalPages > 1): ?>
+<nav aria-label="Pagination Artikel Sunnah" class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center mb-1">
+    <li class="page-item <?= $page<=1?'disabled':'' ?>">
+      <a class="page-link" href="?p=<?= max(1,$page-1) ?>" aria-label="Sebelumnya">&laquo;</a>
+    </li>
+    <?php
+      $start = max(1, $page-2); $end = min($totalPages, $page+2);
+      if ($start > 1) echo '<li class="page-item"><a class="page-link" href="?p=1">1</a></li>'.($start>2?'<li class="page-item disabled"><span class="page-link">…</span></li>':'');
+      for ($i=$start; $i<=$end; $i++): ?>
+        <li class="page-item <?= $i===$page?'active':'' ?>"><a class="page-link" href="?p=<?= $i ?>"><?= $i ?></a></li>
+    <?php endfor;
+      if ($end < $totalPages) echo ($end<$totalPages-1?'<li class="page-item disabled"><span class="page-link">…</span></li>':'').'<li class="page-item"><a class="page-link" href="?p='.$totalPages.'">'.$totalPages.'</a></li>';
+    ?>
+    <li class="page-item <?= $page>=$totalPages?'disabled':'' ?>">
+      <a class="page-link" href="?p=<?= min($totalPages,$page+1) ?>" aria-label="Berikutnya">&raquo;</a>
+    </li>
+  </ul>
+  <div class="text-center small text-muted">Halaman <?= $page ?> dari <?= $totalPages ?> · Total <?= $totalRows ?> artikel</div>
+</nav>
+<?php endif; ?>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

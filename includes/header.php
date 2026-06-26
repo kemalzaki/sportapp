@@ -146,10 +146,34 @@ if (empty($pageSkeleton)) {
   /* sembunyikan top bar mobile + chips + bottom nav saat versi desktop aktif */
   .gt-top, .gt-chips, .gj-nav { display: none !important; }
   body{ padding-top: 0 !important; padding-bottom: 0 !important; }
-  /* lepas batas lebar 480px (frame mobile) supaya desktop tampil lega */
-  body > .container, body > main, body > section,
-  main.container, main > .container, .container.py-3, .container.py-4,
-  body > div.container{ max-width: 1140px !important; background: transparent !important; }
+  /* === Revisi 26 Juni 2026 #1 — paksa tampilan DESKTOP saat layar ≥992px,
+     bukan frame mobile 480px. Override penuh untuk container, html dan body. === */
+  html, body{
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    overflow-x: visible !important;
+  }
+  body{
+    background: #f5f6f8 !important;
+    box-shadow: none !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
+  body > *, body > .container, body > main, body > section, body > div,
+  main, main.container, main > .container,
+  .container, .container-sm, .container-md, .container-lg,
+  .container.py-3, .container.py-4, body > div.container,
+  .kk-shell, .app-shell, .mobile-shell, .mobile-frame, #app-shell, #pageContent{
+    max-width: 1140px !important;
+    width: auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
 }
 
 

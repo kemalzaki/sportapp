@@ -11,6 +11,22 @@ send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kalkulator Gaya Hidup';
 $u = current_user();
 if (!$u) { header('Location: /login.php'); exit; }
+
+/* Revisi 26 Juni 2026 — Gating Paket PRO & KOMUNITAS.
+   Paket Gratis dikunci, ditampilkan banner upgrade + tombol pesan via WA. */
+require_once __DIR__.'/includes/paket_helpers.php';
+if (!isset($u) || !$u) { require_login(); $u = current_user(); }
+$USER_PAKET = paket_user($u);
+if (!in_array($USER_PAKET, ['pro','komunitas'], true)) {
+    $__lockTitle = isset($pageTitle) && $pageTitle ? $pageTitle : 'Fitur PRO';
+    include __DIR__.'/includes/header.php';
+    echo '<h2 class="mb-3"><i class="bi bi-lock-fill text-warning"></i> '.htmlspecialchars($__lockTitle).'</h2>';
+    echo paket_pro_lock_banner($__lockTitle,
+        'Fitur ini hanya tersedia untuk paket PRO & KOMUNITAS. Paket Gratis tidak dapat mengakses fitur ini. Status paket Anda saat ini: '.strtoupper($USER_PAKET).'. Silakan upgrade untuk membuka akses.');
+    include __DIR__.'/includes/footer.php';
+    exit;
+}
+
 $uid = (int)$u['id'];
 
 // --- Pastikan kolom baru tersedia (idempotent). Data lama TIDAK dihapus. ---

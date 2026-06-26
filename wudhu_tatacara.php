@@ -59,11 +59,7 @@ $WUDHU = [
    'muslim man raising both hands palms-up after wudhu reciting doa, peaceful, soft warm light, instructional illustration'],
 ];
 
-function wudhu_img_path(int $i): string {
-    $f = __DIR__.'/assets/img/wudhu/'.$i.'.jpg';
-    if (is_file($f)) return '/assets/img/wudhu/'.$i.'.jpg';
-    return '/assets/img/wudhu/0.jpg';
-}
+// R17 #8: Gambar ilustrasi dihapus pada halaman ini.
 
 include __DIR__.'/includes/header.php';
 ?>
@@ -74,8 +70,7 @@ include __DIR__.'/includes/header.php';
 
 <div class="card shadow-sm mb-3 border-info">
   <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-droplet-fill"></i> <strong>TATA CARA WUDHU</strong> — Urutan, Bacaan &amp; Gambar Ilustrasi</span>
-    <small class="opacity-75 d-none d-md-inline">Hanya Gambar Ilustrasi</small>
+    <span><i class="bi bi-droplet-fill"></i> <strong>TATA CARA WUDHU</strong> — Urutan &amp; Bacaan</span>
   </div>
   <div class="card-body">
     <div class="accordion" id="accTataCaraWudhu">
@@ -90,21 +85,11 @@ include __DIR__.'/includes/header.php';
         <div id="cW<?= $i ?>" class="accordion-collapse collapse <?= $i===0?'show':'' ?>"
              aria-labelledby="hW<?= $i ?>" data-bs-parent="#accTataCaraWudhu">
           <div class="accordion-body">
-            <div class="row g-3">
-              <div class="col-md-5">
-                <img loading="lazy" class="img-fluid rounded border" alt="Ilustrasi: <?= htmlspecialchars($w[0]) ?>"
-                     src="<?= htmlspecialchars(wudhu_img_path($i)) ?>"
-                     onerror="this.onerror=null;this.src='/assets/img/wudhu/0.jpg';">
-                <div class="small text-muted mt-1"><i class="bi bi-image"></i> Hanya Gambar Ilustrasi</div>
-              </div>
-              <div class="col-md-7">
-                <?php if($w[1]!=='—'): ?>
-                <div class="mb-2 text-end" dir="rtl" lang="ar" style="font-size:1.4rem;line-height:2.2;font-family:'Scheherazade New','Amiri',serif;"><?= htmlspecialchars($w[1]) ?></div>
-                <?php endif; ?>
-                <div class="mb-2"><span class="badge bg-primary-subtle text-primary me-1">Latin</span><em><?= htmlspecialchars($w[2]) ?></em></div>
-                <div class="small"><span class="badge bg-success-subtle text-success me-1">Arti / Keterangan</span><?= htmlspecialchars($w[3]) ?></div>
-              </div>
-            </div>
+            <?php if($w[1]!=='—'): ?>
+            <div class="mb-2 text-end" dir="rtl" lang="ar" style="font-size:1.4rem;line-height:2.2;font-family:'Scheherazade New','Amiri',serif;"><?= htmlspecialchars($w[1]) ?></div>
+            <?php endif; ?>
+            <div class="mb-2"><span class="badge bg-primary-subtle text-primary me-1">Latin</span><em><?= htmlspecialchars($w[2]) ?></em></div>
+            <div class="small"><span class="badge bg-success-subtle text-success me-1">Arti / Keterangan</span><?= htmlspecialchars($w[3]) ?></div>
           </div>
         </div>
       </div>

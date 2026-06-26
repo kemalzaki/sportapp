@@ -109,6 +109,26 @@ if (($_GET['action'] ?? '') !== '' || ($_POST['action'] ?? '') !== '') {
                      [$uid,$d]);
       echo json_encode(['ok'=>true,'rows'=>$rows]); exit;
     }
+    if ($act === 'ext_list') {
+      // Revisi 26 Juni 2026 #2 — daftar member eksternal yang dibawa oleh user tertentu
+      $tid = (int)($_GET['user_id'] ?? 0);
+      $per = $_GET['period'] ?? 'all';
+      $where = "me.dibawa_oleh_id=$1 AND COALESCE(TRIM(me.nama_tamu),'') <> ''";
+      if ($per === 'weekly')  $where .= " AND j.tanggal >= CURRENT_DATE - INTERVAL '7 days'";
+      if ($per === 'monthly') $where .= " AND j.tanggal >= CURRENT_DATE - INTERVAL '30 days'";
+      try {
+        $rows = db_all("SELECT TRIM(me.nama_tamu) AS nama,
+                               COUNT(*) AS kali,
+                               MAX(j.tanggal) AS terakhir
+                        FROM member_eksternal me
+                        JOIN jadwal j ON j.id=me.jadwal_id
+                        WHERE $where
+                        GROUP BY LOWER(TRIM(me.nama_tamu)), TRIM(me.nama_tamu)
+                        ORDER BY kali DESC, terakhir DESC", [$tid]);
+      } catch (Throwable $e) { $rows = []; }
+      $owner = db_one("SELECT nama FROM users WHERE id=$1", [$tid]);
+      echo json_encode(['ok'=>true,'owner'=>$owner['nama']??'-','rows'=>$rows]); exit;
+    }
     echo json_encode(['ok'=>false,'msg'=>'unknown action']); exit;
   } catch (Throwable $e) {
     echo json_encode(['ok'=>false,'msg'=>$e->getMessage()]); exit;
@@ -295,19 +315,28 @@ if (!empty($_GET['ajax_lb'])) {
     <div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
     <ol class="list-group list-group-flush list-group-numbered">
       <?php foreach($lb as $i=>$row): ?>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <a href="/user.php?id=<?= (int)$row['id'] ?>" class="text-decoration-none">
             <?= user_name_with_avatar($row['foto_url'] ?? null, $row['nama'], false, 28) ?>
           </a>
-          <span class="badge bg-primary rounded-pill">
-            <?php
-              if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
-              elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
-              elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
-              elseif ($cat==='penggaet_eksternal') echo (int)$row['skor'].' teman';
-              else echo (int)$row['skor'];
-            ?>
-          </span>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-primary rounded-pill">
+              <?php
+                if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
+                elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
+                elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
+                elseif ($cat==='penggaet_eksternal') echo (int)$row['skor'].' teman';
+                else echo (int)$row['skor'];
+              ?>
+            </span>
+            <?php if ($cat==='penggaet_eksternal'): /* Revisi 26 Juni 2026 #2 */ ?>
+              <button type="button" class="btn btn-sm btn-outline-info"
+                      onclick="showEksternal(<?= (int)$row['id'] ?>, '<?= htmlspecialchars(addslashes($row['nama']), ENT_QUOTES) ?>')"
+                      title="Lihat siapa saja member eksternal yang dibawa">
+                <i class="bi bi-people"></i> Eksternal
+              </button>
+            <?php endif; ?>
+          </div>
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
     </ol>
@@ -412,25 +441,59 @@ include __DIR__.'/includes/header.php';
     <div class="card shadow-sm" id="lbCard"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
     <ol class="list-group list-group-flush list-group-numbered">
       <?php foreach($lb as $i=>$row): ?>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <a href="/user.php?id=<?= (int)$row['id'] ?>" class="text-decoration-none">
             <?= user_name_with_avatar($row['foto_url'] ?? null, $row['nama'], false, 28) ?>
           </a>
-          <span class="badge bg-primary rounded-pill">
-            <?php
-              if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
-              elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
-              elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
-              elseif ($cat==='penggaet_eksternal') echo (int)$row['skor'].' teman';
-              else echo (int)$row['skor'];
-            ?>
-          </span>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-primary rounded-pill">
+              <?php
+                if ($cat==='jarak') echo number_format((float)$row['skor'],2).' km';
+                elseif ($cat==='pace') { $s=(int)$row['skor']; echo sprintf('%d:%02d /km', intdiv($s,60), $s%60); }
+                elseif ($cat==='kalori') echo number_format((int)$row['skor']).' kkal';
+                elseif ($cat==='penggaet_eksternal') echo (int)$row['skor'].' teman';
+                else echo (int)$row['skor'];
+              ?>
+            </span>
+            <?php if ($cat==='penggaet_eksternal'): /* Revisi 26 Juni 2026 #2 */ ?>
+              <button type="button" class="btn btn-sm btn-outline-info"
+                      onclick="showEksternal(<?= (int)$row['id'] ?>, '<?= htmlspecialchars(addslashes($row['nama']), ENT_QUOTES) ?>')"
+                      title="Lihat member eksternal yang dibawa">
+                <i class="bi bi-people"></i> Eksternal
+              </button>
+            <?php endif; ?>
+          </div>
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
     </ol></div>
   </div>
 
   <div class="col-lg-7">
+    <!-- Revisi 26 Juni 2026 #4 — Tren Kehadiran Mingguan dipindah ke ATAS Riwayat Sesi -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header"><i class="bi bi-people text-primary"></i> Tren Kehadiran Mingguan — Semua Anggota</div>
+      <div class="card-body">
+        <canvas id="rwAllAttendChart" height="140"></canvas>
+        <small class="text-muted d-block mt-2">Total kehadiran semua anggota per minggu (12 minggu terakhir).</small>
+      </div>
+    </div>
+    <script>
+    (function(){
+      var labels = <?= json_encode($wkAllLabels ?: []) ?>;
+      var vals   = <?= json_encode($wkAllVals ?: []) ?>;
+      function draw(){
+        if (typeof Chart === 'undefined') { return setTimeout(draw, 250); }
+        var el = document.getElementById('rwAllAttendChart'); if(!el) return;
+        new Chart(el, {
+          type:'line',
+          data:{ labels: labels.length? labels:['—'], datasets:[{ label:'Total hadir', data: vals.length? vals:[0], tension:.3, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true }]},
+          options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{precision:0} } } }
+        });
+      }
+      draw();
+    })();
+    </script>
+
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-calendar3 text-primary"></i> Riwayat Sesi</div>
     <div class="table-responsive"><table class="table table-hover table-stack mb-0" data-paginate="5">
       <thead><tr><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Koordinator</th><th>Durasi</th><th>Tamu Eks.</th><th>Kehadiran</th></tr></thead>
@@ -886,29 +949,45 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
 })();
 </script>
 
-<!-- Revisi 24 Juni 2026 — Tren Kehadiran Mingguan SEMUA ANGGOTA (dipindah dari monitoring.php) -->
-<div class="card shadow-sm mb-3">
-  <div class="card-header"><i class="bi bi-people text-primary"></i> Tren Kehadiran Mingguan — Semua Anggota</div>
-  <div class="card-body">
-    <canvas id="rwAllAttendChart" height="140"></canvas>
-    <small class="text-muted d-block mt-2">Total kehadiran semua anggota per minggu (12 minggu terakhir).</small>
+<!-- Revisi 26 Juni 2026 #4 — Tren Kehadiran Mingguan dipindah ke atas Riwayat Sesi. -->
+<!-- Revisi 26 Juni 2026 #2 — Modal daftar member eksternal per user -->
+<div class="modal fade" id="extModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-people"></i> Member Eksternal — <span id="extOwner">-</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body" id="extBody">
+        <div class="text-center text-muted py-3"><i class="bi bi-arrow-clockwise"></i> Memuat…</div>
+      </div>
+    </div>
   </div>
 </div>
 <script>
-(function(){
-  var labels = <?= json_encode($wkAllLabels ?: []) ?>;
-  var vals   = <?= json_encode($wkAllVals ?: []) ?>;
-  function draw(){
-    if (typeof Chart === 'undefined') { return setTimeout(draw, 250); }
-    var el = document.getElementById('rwAllAttendChart'); if(!el) return;
-    new Chart(el, {
-      type:'line',
-      data:{ labels: labels.length? labels:['—'], datasets:[{ label:'Total hadir', data: vals.length? vals:[0], tension:.3, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.15)', fill:true }]},
-      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{precision:0} } } }
-    });
-  }
-  draw();
-})();
+var _extModal=null;
+function showEksternal(userId, nama){
+  if(!_extModal) _extModal = new bootstrap.Modal(document.getElementById('extModal'));
+  document.getElementById('extOwner').textContent = nama || '-';
+  var body = document.getElementById('extBody');
+  body.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-arrow-clockwise"></i> Memuat…</div>';
+  _extModal.show();
+  var per = (document.getElementById('lbPeriod')||{}).value || 'all';
+  fetch('riwayat.php?action=ext_list&user_id='+encodeURIComponent(userId)+'&period='+encodeURIComponent(per))
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if (!j.ok) { body.innerHTML = '<div class="text-danger small">Gagal memuat.</div>'; return; }
+      if (!j.rows || !j.rows.length) { body.innerHTML = '<div class="text-muted small">Belum ada member eksternal pada periode ini.</div>'; return; }
+      var html = '<div class="small text-muted mb-2">Total: <b>'+j.rows.length+'</b> member eksternal unik</div>';
+      html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Nama Tamu</th><th class="text-center">Kali Hadir</th><th>Terakhir</th></tr></thead><tbody>';
+      j.rows.forEach(function(r,i){
+        html += '<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r.nama||'-')+'</td><td class="text-center"><span class="badge bg-info-subtle text-info-emphasis">'+(r.kali||0)+'×</span></td><td class="small text-muted">'+(r.terakhir||'-')+'</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      body.innerHTML = html;
+    })
+    .catch(function(){ body.innerHTML = '<div class="text-danger small">Gagal memuat.</div>'; });
+}
 </script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

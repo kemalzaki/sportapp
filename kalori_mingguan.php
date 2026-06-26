@@ -6,12 +6,25 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/ai_gemini.php';
+require __DIR__.'/includes/paket_helpers.php'; // Revisi 26 Juni 2026 #7 — gating PRO/KOMUNITAS
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kalori Mingguan';
 $pageSkeleton = 'table';
 $u = current_user();
 if (!$u) { header('Location: /login.php'); exit; }
 $uid = (int)$u['id'];
+
+/* Revisi 26 Juni 2026 #7 — Kalori Mingguan hanya untuk paket PRO & KOMUNITAS.
+   Paket Gratis: dikunci, ditampilkan banner PRO + tombol pesan via WA. */
+$USER_PAKET = paket_user($u);
+if (!in_array($USER_PAKET, ['pro','komunitas'], true)) {
+    include __DIR__.'/includes/header.php';
+    echo '<h2 class="mb-3"><i class="bi bi-lock-fill text-warning"></i> Kalori Mingguan</h2>';
+    echo paket_pro_lock_banner('Kalori Mingguan',
+        'Pencatatan kalori harian/mingguan, target, dan estimasi AI dari foto makanan hanya tersedia untuk paket PRO & KOMUNITAS. Paket Gratis tidak bisa mengakses fitur ini. Status paket Anda saat ini: '.strtoupper($USER_PAKET).'.');
+    include __DIR__.'/includes/footer.php';
+    exit;
+}
 
 // Auto-buat tabel (idempotent) — dipisah dari kalori_log (workout) agar tidak bentrok skema.
 try {

@@ -328,15 +328,21 @@ $pageSkeleton = 'feed';
 
 <div class="row g-3 mb-3">
   <div class="col-md-3"><a href="/quran.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-success"></i><div class="fw-semibold mt-1">Al-Qur'an Digital</div></div></a></div>
+
+  <!-- R17 #3-#6: setelah Al-Qur'an Digital → Ensiklopedia Hadist, Belajar Tajwid, Sejarah Nabi & Rasul, lalu Tata Cara Wudhu/Shalat/Rawatib/Duha-Tahajud -->
+  <div class="col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
+  <div class="col-md-3"><a href="/tajwid.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-mic-fill fs-2 text-success"></i><div class="fw-semibold mt-1">Belajar Tajwid</div><div class="small text-muted">Hukum nun sukun, mim, mad, qalqalah</div></div></a></div>
+  <div class="col-md-3"><a href="/sejarah_nabi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-warning"></i><div class="fw-semibold mt-1">Sejarah Nabi &amp; Rasul</div><div class="small text-muted">25 Nabi &amp; Rasul</div></div></a></div>
+  <div class="col-md-3"><a href="/wudhu_tatacara.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-droplet-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Tata Cara Wudhu</div><div class="small text-muted">Bacaan &amp; tuntunan</div></div></a></div>
+  <div class="col-md-3"><a href="/shalat_tatacara.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-person-arms-up fs-2 text-primary"></i><div class="fw-semibold mt-1">Tata Cara Shalat</div><div class="small text-muted">Bacaan &amp; tuntunan</div></div></a></div>
+  <div class="col-md-3"><a href="/shalat_rawatib.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-stars fs-2 text-warning"></i><div class="fw-semibold mt-1">Shalat Sunnah Rawatib</div><div class="small text-muted">12 rakaat mengiringi fardhu</div></div></a></div>
+  <div class="col-md-3"><a href="/shalat_sunnah.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-sun fs-2 text-info"></i><div class="fw-semibold mt-1">Shalat Duha &amp; Tahajud</div><div class="small text-muted">Sunnah penambah pahala</div></div></a></div>
+
   <div class="col-md-3"><a href="/jadwal_sholat.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-clock-history fs-2 text-primary"></i><div class="fw-semibold mt-1">Jadwal Sholat</div><div class="small text-muted">Waktu sholat 5 waktu</div></div></a></div>
   <div class="col-md-3"><a href="/doa.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-chat-quote fs-2 text-warning"></i><div class="fw-semibold mt-1">Doa Harian</div></div></a></div>
-  <!-- Revisi 25 Juni 2026: Catatan Hafalan dipindah ke bawah Doa Harian -->
   <div class="col-md-3"><a href="/catatan_hafalan.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-bookmark-heart fs-2 text-success"></i><div class="fw-semibold mt-1">Catatan Hafalan</div><div class="small text-muted">Catat &amp; pantau hafalan Qur'an / Hadist</div></div></a></div>
-  <!-- Revisi R13 (#3): Kajian Literatur Buku langsung di bawah Catatan Hafalan -->
   <div class="col-md-3"><a href="/kajian.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-journal-bookmark fs-2 text-info"></i><div class="fw-semibold mt-1">Kajian Literatur Buku</div></div></a></div>
   <div class="col-md-3"><a href="/catatan_baca_buku.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-journal-check fs-2 text-info"></i><div class="fw-semibold mt-1">Catatan Baca Buku</div><div class="small text-muted">Pantau progress baca dari Kajian Literatur</div></div></a></div>
-  <!-- Revisi R13 (#8): Belajar Tajwid -->
-  <div class="col-md-3"><a href="/tajwid.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-mic-fill fs-2 text-success"></i><div class="fw-semibold mt-1">Belajar Tajwid</div><div class="small text-muted">Hukum nun sukun, mim, mad, qalqalah</div></div></a></div>
 
   <div class="col-md-3"><a href="/dzikir.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-brightness-high fs-2 text-info"></i><div class="fw-semibold mt-1">Dzikir Pagi & Petang</div></div></a></div>
   <div class="col-md-3"><a href="/kalender_hijriyah.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-calendar3 fs-2 text-success"></i><div class="fw-semibold mt-1">Kalender Hijriyah</div></div></a></div>
@@ -346,20 +352,9 @@ $pageSkeleton = 'feed';
   <div class="col-md-3"><a href="/artikel_sunnah.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-journal-text fs-2 text-success"></i><div class="fw-semibold mt-1">Artikel Sunnah</div></div></a></div>
   <div class="col-md-3"><a href="/feed_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-chat-dots fs-2 text-warning"></i><div class="fw-semibold mt-1">Feed Quote Komunitas</div></div></a></div>
   <div class="col-md-3"><a href="/doa_antar_member.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart fs-2 text-danger"></i><div class="fw-semibold mt-1">Saling Mendoakan</div></div></a></div>
-
-  <div class="col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
-  <div class="col-md-3"><a href="/sejarah_nabi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-warning"></i><div class="fw-semibold mt-1">Sejarah Nabi &amp; Rasul</div><div class="small text-muted">25 Nabi &amp; Rasul</div></div></a></div>
-  <!-- Revisi 15 Juni 2026: 4 papan panduan shalat & rukun islam diubah jadi icon card (dipindah ke halaman tersendiri) -->
-  <!-- R14 #10: Tata Cara Wudhu (BARU) — diletakkan tepat di atas Tata Cara Shalat -->
-  <div class="col-md-3"><a href="/wudhu_tatacara.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-droplet-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Tata Cara Wudhu</div><div class="small text-muted">Bacaan · Ilustrasi AI</div></div></a></div>
-  <div class="col-md-3"><a href="/shalat_tatacara.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-person-arms-up fs-2 text-primary"></i><div class="fw-semibold mt-1">Tata Cara Shalat</div><div class="small text-muted">Bacaan · Ilustrasi AI</div></div></a></div>
-  <div class="col-md-3"><a href="/shalat_rawatib.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-stars fs-2 text-warning"></i><div class="fw-semibold mt-1">Shalat Sunnah Rawatib</div><div class="small text-muted">12 rakaat mengiringi fardhu</div></div></a></div>
-  <div class="col-md-3"><a href="/shalat_sunnah.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-sun fs-2 text-info"></i><div class="fw-semibold mt-1">Shalat Duha &amp; Tahajud</div><div class="small text-muted">Sunnah penambah pahala</div></div></a></div>
   <div class="col-md-3"><a href="/rukun_islam.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-bricks fs-2 text-success"></i><div class="fw-semibold mt-1">Rukun Islam</div><div class="small text-muted">5 Pilar · Syarat Sah &amp; Wajib</div></div></a></div>
-  <!-- Revisi 25 Juni 2026: Catatan Hafalan dipindah ke atas (di bawah Doa Harian). -->
 
   <?php if (!empty($u) && ($u['role'] ?? '') === 'admin'): ?>
-  <!-- Revisi: Kelola Challenge Islami dipindah ke islami.php (admin only) -->
   <div class="col-md-3"><a href="/admin/challenge.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-trophy-fill fs-2 text-warning"></i><div class="fw-semibold mt-1">Kelola Challenge Islami</div><div class="small text-muted">Admin · CRUD Challenge</div></div></a></div>
   <?php endif; ?>
 </div>

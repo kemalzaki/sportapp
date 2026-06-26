@@ -11,9 +11,22 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/paket_helpers.php'; // Revisi 26 Juni 2026 #8 — gating PRO/KOMUNITAS
 send_security_headers(); require_login();
 $u = current_user(); $uid = (int)$u['id'];
 $pageTitle = 'Live Tracking / Beacon';
+
+/* Revisi 26 Juni 2026 #8 — Live Tracking hanya untuk paket PRO & KOMUNITAS.
+   Paket Gratis: dikunci, ditampilkan banner PRO + tombol pesan via WA. */
+$USER_PAKET = paket_user($u);
+if (!in_array($USER_PAKET, ['pro','komunitas'], true)) {
+    include __DIR__.'/includes/header.php';
+    echo '<h2 class="mb-3"><i class="bi bi-lock-fill text-warning"></i> Live Tracking / Beacon</h2>';
+    echo paket_pro_lock_banner('Live Tracking / Beacon',
+        'Berbagi lokasi real-time ke keluarga / kontak darurat selama berolahraga hanya tersedia untuk paket PRO & KOMUNITAS. Paket Gratis tidak bisa mengakses fitur ini. Status paket Anda saat ini: '.strtoupper($USER_PAKET).'.');
+    include __DIR__.'/includes/footer.php';
+    exit;
+}
 
 // Revisi 19 Juni 2026 — Ikon pelari memakai foto profil user
 $userRow = db_one("SELECT foto_url FROM users WHERE id=$1", [$uid]);

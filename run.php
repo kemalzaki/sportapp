@@ -8,6 +8,22 @@ $u = current_user(); $uid = (int)$u['id'];
 $pageTitle = 'Tracking Jalur / Rute';
 $pageSkeleton = 'grid';
 
+/* Revisi 26 Juni 2026 — Gating Paket PRO & KOMUNITAS.
+   Paket Gratis dikunci, ditampilkan banner upgrade + tombol pesan via WA. */
+require_once __DIR__.'/includes/paket_helpers.php';
+if (!isset($u) || !$u) { require_login(); $u = current_user(); }
+$USER_PAKET = paket_user($u);
+if (!in_array($USER_PAKET, ['pro','komunitas'], true)) {
+    $__lockTitle = isset($pageTitle) && $pageTitle ? $pageTitle : 'Fitur PRO';
+    include __DIR__.'/includes/header.php';
+    echo '<h2 class="mb-3"><i class="bi bi-lock-fill text-warning"></i> '.htmlspecialchars($__lockTitle).'</h2>';
+    echo paket_pro_lock_banner($__lockTitle,
+        'Fitur ini hanya tersedia untuk paket PRO & KOMUNITAS. Paket Gratis tidak dapat mengakses fitur ini. Status paket Anda saat ini: '.strtoupper($USER_PAKET).'. Silakan upgrade untuk membuka akses.');
+    include __DIR__.'/includes/footer.php';
+    exit;
+}
+
+
 // Revisi 19 Juni 2026 — foto profil user untuk ikon pelari di peta tracking
 $userRow = db_one("SELECT foto_url FROM users WHERE id=$1", [$uid]);
 $userPhoto = trim((string)($userRow['foto_url'] ?? ''));
@@ -531,55 +547,154 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
   });
 
-  // ===== Revisi 15 Juni 2026 — Document Picture-in-Picture (peta melayang) =====
-  // Saat user pindah ke app/tab lain di HP, jendela melayang ini tetap menampilkan
-  // peta + status, sehingga browser tidak men-throttle JavaScript & GPS tetap aktif.
-  // Mengikuti pola Google Maps PiP. Memerlukan Chromium 116+/HTTPS.
+  // ===== Revisi 26 Juni 2026 #6 — Popup Melayang (in-page floating mini window) =====
+  // Jika browser MENDUKUNG Document Picture-in-Picture (Chromium 116+), pakai itu.
+  // Jika TIDAK mendukung, fallback ke mini-window MELAYANG di dalam halaman
+  // (mirip "Restore Down" / balon mini browser) yang bisa di-drag, di-minimize,
+  // dan ditutup — jadi tetap kelihatan peta tanpa harus pindah aplikasi.
   var pipWin = null;
-  document.getElementById('btnPip').addEventListener('click', async function(){
-    if (!('documentPictureInPicture' in window)) {
-      alert('Browser Anda belum mendukung Document Picture-in-Picture.\nGunakan Chrome/Edge versi terbaru di Android/Desktop, lalu jalankan dari HTTPS.');
-      return;
+  var floatWin = null; // fallback in-page floating window
+  function ensureFloatStyles(){
+    if (document.getElementById('runFloatStyle')) return;
+    var st = document.createElement('style'); st.id='runFloatStyle';
+    st.textContent = `
+      #runFloatWin{position:fixed;right:14px;bottom:14px;width:340px;height:420px;z-index:11000;
+        background:#fff;border:1px solid #cbd5e1;border-radius:14px;
+        box-shadow:0 18px 50px rgba(15,23,42,.35), 0 4px 14px rgba(15,23,42,.18);
+        display:flex;flex-direction:column;overflow:hidden;resize:both;min-width:240px;min-height:200px;max-width:90vw;max-height:90vh;}
+      #runFloatWin .rfw-head{cursor:move;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;
+        padding:.45rem .7rem;display:flex;align-items:center;justify-content:space-between;font-size:.85rem;font-weight:600;user-select:none;}
+      #runFloatWin .rfw-head .bi{margin-right:.35rem;}
+      #runFloatWin .rfw-actions button{background:transparent;border:0;color:#fff;font-size:1rem;padding:.1rem .35rem;line-height:1;border-radius:6px;}
+      #runFloatWin .rfw-actions button:hover{background:rgba(255,255,255,.15);}
+      #runFloatWin .rfw-body{flex:1;position:relative;background:#eef2f7;}
+      #runFloatWin .rfw-body > *{width:100% !important;height:100% !important;}
+      #runFloatWin.rfw-min{height:42px !important;resize:none;}
+      #runFloatWin.rfw-min .rfw-body{display:none;}
+      @media (max-width:520px){ #runFloatWin{width:88vw;height:55vh;right:6vw;bottom:80px;} }
+    `;
+    document.head.appendChild(st);
+  }
+  function makeDraggable(el, handle){
+    var sx=0, sy=0, ox=0, oy=0, dragging=false;
+    handle.addEventListener('mousedown', start);
+    handle.addEventListener('touchstart', function(e){ if(e.touches[0]) start(e.touches[0]); }, {passive:true});
+    function start(e){
+      dragging=true; sx=e.clientX; sy=e.clientY;
+      var r=el.getBoundingClientRect(); ox=r.left; oy=r.top;
+      el.style.left = ox+'px'; el.style.top = oy+'px';
+      el.style.right='auto'; el.style.bottom='auto';
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', stop);
+      document.addEventListener('touchmove', tmove, {passive:false});
+      document.addEventListener('touchend', stop);
     }
-    if (pipWin) { try { pipWin.close(); } catch(e){} pipWin = null; return; }
-    try {
-      pipWin = await window.documentPictureInPicture.requestWindow({ width: 340, height: 420 });
-      // Salin stylesheet ke jendela PiP
-      [...document.styleSheets].forEach(function(ss){
-        try {
-          var rules = [...ss.cssRules].map(function(r){return r.cssText;}).join('');
-          var s = pipWin.document.createElement('style'); s.textContent = rules;
-          pipWin.document.head.appendChild(s);
-        } catch(e) {
-          if (ss.href) {
-            var l = pipWin.document.createElement('link');
-            l.rel='stylesheet'; l.href=ss.href; pipWin.document.head.appendChild(l);
-          }
-        }
-      });
-      // Pindahkan elemen peta ke PiP window
-      var mapHost = document.getElementById('runMap');
-      var placeholder = document.createElement('div');
-      placeholder.id = 'runMapPiPPlaceholder';
-      placeholder.style.height = mapHost.style.height;
-      placeholder.className = 'd-flex align-items-center justify-content-center text-muted border rounded bg-light';
-      placeholder.innerHTML = '<div class="text-center small"><i class="bi bi-pip fs-2"></i><br>Peta sedang melayang. Tutup popup untuk mengembalikan.</div>';
-      mapHost.parentNode.insertBefore(placeholder, mapHost);
-      pipWin.document.body.style.margin = '0';
-      pipWin.document.body.appendChild(mapHost);
-      mapHost.style.height = '100%';
-      setTimeout(function(){ map.invalidateSize(); }, 80);
+    function move(e){ if(!dragging) return;
+      var nx = Math.max(0, Math.min(window.innerWidth-60, ox + (e.clientX - sx)));
+      var ny = Math.max(0, Math.min(window.innerHeight-40, oy + (e.clientY - sy)));
+      el.style.left = nx+'px'; el.style.top = ny+'px';
+    }
+    function tmove(e){ if(!dragging || !e.touches[0]) return; e.preventDefault(); move(e.touches[0]); }
+    function stop(){ dragging=false;
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', stop);
+      document.removeEventListener('touchmove', tmove);
+      document.removeEventListener('touchend', stop);
+    }
+  }
+  function openFloatMap(){
+    ensureFloatStyles();
+    if (floatWin) { closeFloatMap(); return; }
+    var mapHost = document.getElementById('runMap');
+    var placeholder = document.createElement('div');
+    placeholder.id = 'runMapFloatPlaceholder';
+    placeholder.style.height = mapHost.style.height || '380px';
+    placeholder.className = 'd-flex align-items-center justify-content-center text-muted border rounded bg-light';
+    placeholder.innerHTML = '<div class="text-center small p-3"><i class="bi bi-pip fs-2"></i><br>Peta sedang melayang dalam mini-window. Tutup popup untuk mengembalikan.</div>';
+    mapHost.parentNode.insertBefore(placeholder, mapHost);
 
-      pipWin.addEventListener('pagehide', function(){
-        // Kembalikan peta ke halaman utama
-        mapHost.style.height = '380px';
-        placeholder.parentNode.replaceChild(mapHost, placeholder);
-        setTimeout(function(){ map.invalidateSize(); }, 80);
-        pipWin = null;
-      });
-    } catch(err) {
-      alert('Tidak dapat membuka popup melayang: '+err.message);
+    floatWin = document.createElement('div');
+    floatWin.id = 'runFloatWin';
+    floatWin.innerHTML = ''
+      + '<div class="rfw-head" id="rfwHead">'
+      +   '<span><i class="bi bi-pip-fill"></i> Peta Tracking</span>'
+      +   '<span class="rfw-actions">'
+      +     '<button type="button" id="rfwMin" title="Kecilkan / Restore">—</button>'
+      +     '<button type="button" id="rfwClose" title="Tutup">×</button>'
+      +   '</span>'
+      + '</div>'
+      + '<div class="rfw-body" id="rfwBody"></div>';
+    document.body.appendChild(floatWin);
+    floatWin.querySelector('#rfwBody').appendChild(mapHost);
+    mapHost.style.height = '100%';
+    setTimeout(function(){ try { map.invalidateSize(); } catch(e){} }, 80);
+    makeDraggable(floatWin, floatWin.querySelector('#rfwHead'));
+    floatWin.querySelector('#rfwMin').addEventListener('click', function(){
+      floatWin.classList.toggle('rfw-min');
+      setTimeout(function(){ try { map.invalidateSize(); } catch(e){} }, 60);
+    });
+    floatWin.querySelector('#rfwClose').addEventListener('click', closeFloatMap);
+  }
+  function closeFloatMap(){
+    if (!floatWin) return;
+    var mapHost = floatWin.querySelector('#rfwBody > div, #runMap') || document.getElementById('runMap');
+    var placeholder = document.getElementById('runMapFloatPlaceholder');
+    if (mapHost && placeholder) {
+      mapHost.style.height = '380px';
+      placeholder.parentNode.replaceChild(mapHost, placeholder);
+      setTimeout(function(){ try { map.invalidateSize(); } catch(e){} }, 80);
     }
+    floatWin.remove(); floatWin = null;
+  }
+
+  document.getElementById('btnPip').addEventListener('click', async function(){
+    // Tutup mode yang aktif (toggle)
+    if (pipWin) { try { pipWin.close(); } catch(e){} pipWin = null; return; }
+    if (floatWin) { closeFloatMap(); return; }
+
+    // Coba Document PiP dulu (browser modern)
+    if ('documentPictureInPicture' in window) {
+      try {
+        pipWin = await window.documentPictureInPicture.requestWindow({ width: 340, height: 420 });
+        [...document.styleSheets].forEach(function(ss){
+          try {
+            var rules = [...ss.cssRules].map(function(r){return r.cssText;}).join('');
+            var s = pipWin.document.createElement('style'); s.textContent = rules;
+            pipWin.document.head.appendChild(s);
+          } catch(e) {
+            if (ss.href) {
+              var l = pipWin.document.createElement('link');
+              l.rel='stylesheet'; l.href=ss.href; pipWin.document.head.appendChild(l);
+            }
+          }
+        });
+        var mapHost = document.getElementById('runMap');
+        var placeholder = document.createElement('div');
+        placeholder.id = 'runMapPiPPlaceholder';
+        placeholder.style.height = mapHost.style.height;
+        placeholder.className = 'd-flex align-items-center justify-content-center text-muted border rounded bg-light';
+        placeholder.innerHTML = '<div class="text-center small"><i class="bi bi-pip fs-2"></i><br>Peta sedang melayang. Tutup popup untuk mengembalikan.</div>';
+        mapHost.parentNode.insertBefore(placeholder, mapHost);
+        pipWin.document.body.style.margin = '0';
+        pipWin.document.body.appendChild(mapHost);
+        mapHost.style.height = '100%';
+        setTimeout(function(){ map.invalidateSize(); }, 80);
+        pipWin.addEventListener('pagehide', function(){
+          mapHost.style.height = '380px';
+          placeholder.parentNode.replaceChild(mapHost, placeholder);
+          setTimeout(function(){ map.invalidateSize(); }, 80);
+          pipWin = null;
+        });
+        return;
+      } catch(err) {
+        // Jatuh ke fallback in-page floating window
+        console.warn('PiP gagal, fallback mini-window:', err);
+        pipWin = null;
+      }
+    }
+
+    // Fallback: mini-window MELAYANG di halaman (mirip Restore Down / balon browser)
+    openFloatMap();
   });
 
 
