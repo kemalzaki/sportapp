@@ -599,12 +599,32 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/opini_viral.php"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini/Viral <span class="badge bg-danger ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca <span class="badge bg-success ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga Terdekat <span class="badge bg-success ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
           <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
           <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode</a>
+        </div>
+
+        <?php /* Revisi R23 (27 Juni 2026) — Grup Paket Anak & Paket Lansia (di atas menu Tempat) */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpPaketAnak" role="button" aria-expanded="false">
+          <span><i class="bi bi-emoji-smile-fill text-success"></i> Paket Anak</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpPaketAnak">
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_2_4.php"><i class="bi bi-balloon"></i> Usia 2–4 Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun</a>
+        </div>
+
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpPaketLansia" role="button" aria-expanded="false">
+          <span><i class="bi bi-heart-pulse-fill text-info"></i> Paket Lansia</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpPaketLansia">
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun</a>
         </div>
 
         <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
@@ -659,6 +679,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> CRUD Toko Perlengkapan Olahraga</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/sistem.php"><i class="bi bi-cpu text-info"></i> Cek Sistem</a>
             <?php /* Revisi 22 Juni 2026 R7 — CRUD kata kunci filter pencarian video (kalistenik & survival) */ ?>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/keywords.php"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Video</a>
@@ -696,6 +717,22 @@ if (empty($pageSkeleton)) {
         <?php if ($u): ?>
           <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a></li>
           <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-emoji-smile-fill"></i> Paket Anak</a>
+            <ul class="dropdown-menu shadow">
+              <li><a class="dropdown-item" href="/paket_anak_2_4.php"><i class="bi bi-balloon"></i> Usia 2–4 Tahun</a></li>
+              <li><a class="dropdown-item" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun</a></li>
+              <li><a class="dropdown-item" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun</a></li>
+              <li><a class="dropdown-item" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-heart-pulse-fill"></i> Paket Lansia</a>
+            <ul class="dropdown-menu shadow">
+              <li><a class="dropdown-item" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun</a></li>
+              <li><a class="dropdown-item" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun</a></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
           <?php /* Revisi 6 Juni 2026: Check-in via barcode dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a></li>
@@ -736,6 +773,7 @@ if (empty($pageSkeleton)) {
               <li><a class="dropdown-item" href="/admin/members.php">Member</a></li>
               <li><a class="dropdown-item" href="/admin/tim.php">Tim</a></li>
               <li><a class="dropdown-item" href="/admin/tempat.php">Tempat</a></li>
+              <li><a class="dropdown-item" href="/admin/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga</a></li>
               <li><a class="dropdown-item" href="/admin/event.php">Event / Tournament</a></li>
               <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
               <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>

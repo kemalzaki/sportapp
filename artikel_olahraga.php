@@ -106,6 +106,7 @@ function ao_anim_svg($slug, $section) {
     'hiking'    => ['#15803d', '#dcfce7', '#14532d'],
     'pingpong'  => ['#ca8a04', '#fef9c3', '#713f12'],
     'futsal'    => ['#2563eb', '#dbeafe', '#1e3a8a'],
+    'basket'    => ['#ea580c', '#ffedd5', '#7c2d12'],
     'biliard'   => ['#1f2937', '#e5e7eb', '#0f172a'],
   ];
   $pal = $palette[$slug] ?? ['#0ea5e9', '#e0f2fe', '#0c4a6e'];
@@ -196,6 +197,22 @@ function ao_anim_svg($slug, $section) {
       }
       break;
 
+    case 'basket':
+      $field = '<rect x="40" y="30" width="400" height="160" fill="#fed7aa" stroke="'.$dark.'" stroke-width="3"/>'
+             . '<line x1="240" y1="30" x2="240" y2="190" stroke="'.$dark.'" stroke-width="2"/>'
+             . '<circle cx="240" cy="110" r="32" fill="none" stroke="'.$dark.'" stroke-width="2"/>'
+             . '<rect x="40" y="70" width="60" height="80" fill="none" stroke="'.$dark.'" stroke-width="2"/>'
+             . '<rect x="380" y="70" width="60" height="80" fill="none" stroke="'.$dark.'" stroke-width="2"/>'
+             . '<circle cx="70" cy="110" r="22" fill="none" stroke="'.$dark.'" stroke-width="2"/>'
+             . '<circle cx="410" cy="110" r="22" fill="none" stroke="'.$dark.'" stroke-width="2"/>';
+      $motion = '<circle r="9" fill="'.$fg.'" stroke="'.$dark.'" stroke-width="1"><animateMotion dur="2.5s" repeatCount="indefinite" path="M 90,110 Q 240,30 390,110 Q 240,180 90,110 Z"/></circle>';
+      if ($section==='tim') {
+        for ($i=0;$i<5;$i++){ $y=50+$i*22;
+          $motion .= '<circle cx="130" cy="'.$y.'" r="8" fill="'.$fg.'"/>';
+          $motion .= '<circle cx="350" cy="'.$y.'" r="8" fill="#1f2937"/>'; }
+      }
+      break;
+
     case 'biliard':
     default:
       $field = '<rect x="40" y="30" width="400" height="160" fill="#065f46" stroke="#78350f" stroke-width="8" rx="6"/>'
@@ -226,7 +243,7 @@ function ao_anim_svg($slug, $section) {
 function ao_eq_img($slug, $name) {
   $hex = [
     'lari'=>'16a34a','badminton'=>'dc2626','renang'=>'0284c7','hiking'=>'15803d',
-    'pingpong'=>'ca8a04','futsal'=>'2563eb','biliard'=>'1f2937',
+    'pingpong'=>'ca8a04','futsal'=>'2563eb','basket'=>'ea580c','biliard'=>'1f2937',
   ];
   $c = isset($hex[$slug]) ? $hex[$slug] : '0ea5e9';
   $label = rawurlencode(mb_strimwidth($name, 0, 22, '…'));
@@ -260,6 +277,13 @@ $ARTIKEL = [
       ['nama'=>'Jam GPS / Smartwatch','img'=>'/assets/img/peralatan/eq02.jpg','desc'=>'Mengukur pace, jarak, HR, ketinggian.'],
       ['nama'=>'Botol air / hydration belt','img'=>'/assets/img/peralatan/eq03.jpg','desc'=>'Untuk lari ≥ 8 km dan cuaca panas.'],
     ],
+    'tips_perawatan' => [
+      'Cuci sepatu lari dengan lap basah, hindari mesin cuci agar bantalan tidak rusak.',
+      'Angin-anginkan sepatu di tempat teduh setelah dipakai, jangan dijemur langsung di matahari.',
+      'Rotasi 2 pasang sepatu agar busa midsole sempat memulihkan kepadatan (24–48 jam).',
+      'Ganti sepatu lari setelah 600–800 km pemakaian (busa sudah mati & meningkatkan risiko cedera).',
+      'Simpan pakaian dry-fit di tempat kering & berventilasi untuk mencegah bakteri penyebab bau.',
+    ],
   ],
   [
     'slug'   => 'badminton',
@@ -284,6 +308,13 @@ $ARTIKEL = [
       ['nama'=>'Shuttlecock (kok)','img'=>'/assets/img/peralatan/eq05.jpg','desc'=>'Bulu angsa untuk turnamen, plastik untuk latihan.'],
       ['nama'=>'Sepatu badminton','img'=>'/assets/img/peralatan/eq06.jpg','desc'=>'Sol gum non-marking, ringan, grip kuat.'],
       ['nama'=>'Net & tiang','img'=>'/assets/img/peralatan/eq07.jpg','desc'=>'Tinggi net 1,55 m di tepi, 1,524 m di tengah.'],
+    ],
+    'tips_perawatan' => [
+      'Lap raket dengan kain microfiber setelah pakai, hindari paparan suhu ekstrem (mobil panas).',
+      'Senar raket: ganti tiap 3–6 bulan atau saat tegangan turun (suara tidak nyaring lagi).',
+      'Pakai cover raket saat tidak digunakan untuk mencegah benturan & debu.',
+      'Sepatu badminton: bersihkan sol karet dari debu agar grip tetap maksimal di lapangan.',
+      'Shuttlecock bulu: simpan di tabung tertutup dengan kelembapan rendah agar bulu tidak rapuh.',
     ],
   ],
   [
@@ -310,6 +341,13 @@ $ARTIKEL = [
       ['nama'=>'Swimming cap','img'=>'/assets/img/peralatan/eq10.jpg','desc'=>'Silikon, mengurangi hambatan air.'],
       ['nama'=>'Pull buoy & papan luncur','img'=>'/assets/img/peralatan/eq11.jpg','desc'=>'Alat bantu latih teknik tangan & kaki.'],
     ],
+    'tips_perawatan' => [
+      'Bilas kacamata renang & baju renang dengan air bersih segera setelah pakai (klorin merusak karet & serat).',
+      'Jangan jemur baju renang langsung di matahari — gantung di tempat teduh berangin.',
+      'Anti-fog kacamata: jangan diusap bagian dalam, cukup bilas — usapan menghapus lapisan anti-kabut.',
+      'Simpan kacamata di kotak khusus agar lensa tidak tergores.',
+      'Ganti baju renang tiap 6–12 bulan pemakaian aktif (elastisitas berkurang).',
+    ],
   ],
   [
     'slug'   => 'hiking',
@@ -334,6 +372,13 @@ $ARTIKEL = [
       ['nama'=>'Ransel / carrier','img'=>'/assets/img/peralatan/eq13.jpg','desc'=>'Kapasitas 40–60 L untuk pendakian 1–2 malam.'],
       ['nama'=>'Tenda & sleeping bag','img'=>'/assets/img/peralatan/eq14.jpg','desc'=>'Tenda double layer & SB rating sesuai suhu.'],
       ['nama'=>'Headlamp & kompas/GPS','img'=>'/assets/img/peralatan/eq15.jpg','desc'=>'Navigasi malam & jalur tertutup kabut.'],
+    ],
+    'tips_perawatan' => [
+      'Cuci sepatu hiking dengan sikat lembut & sabun netral, keringkan dengan koran di dalam sepatu.',
+      'Re-waterproofing sepatu/jaket gore-tex tiap 6 bulan dengan spray khusus.',
+      'Tas carrier: cuci dengan tangan, tidak boleh mesin cuci (jahitan & frame bisa rusak).',
+      'Tenda: keringkan sempurna sebelum disimpan agar tidak berjamur.',
+      'Periksa kompor portabel & gas sebelum trip, simpan terpisah dari makanan.',
     ],
   ],
   [
@@ -360,6 +405,13 @@ $ARTIKEL = [
       ['nama'=>'Meja standar ITTF','img'=>'/assets/img/peralatan/eq18.jpg','desc'=>'2,74 × 1,525 m, tinggi 76 cm.'],
       ['nama'=>'Net & klem','img'=>'/assets/img/peralatan/eq19.jpg','desc'=>'Tinggi net 15,25 cm di atas permukaan meja.'],
     ],
+    'tips_perawatan' => [
+      'Cuci karet bet dengan air & spons lembut atau cleaner khusus, lalu lap kering.',
+      'Pakai pelindung karet (rubber protector) saat bet disimpan agar karet tidak teroksidasi.',
+      'Hindari menyimpan bet di tempat panas/lembap — karet bisa mengeras & kehilangan spin.',
+      'Ganti karet tiap 3–6 bulan untuk pemain rutin (saat permukaan sudah licin).',
+      'Bola: cek bentuk bulat sempurna sebelum main; bola peyot mengganggu pantulan.',
+    ],
   ],
   [
     'slug'   => 'futsal',
@@ -385,6 +437,46 @@ $ARTIKEL = [
       ['nama'=>'Jersey & celana pendek','img'=>'/assets/img/peralatan/eq22.jpg','desc'=>'Bahan dry-fit, nomor punggung jelas.'],
       ['nama'=>'Shin guard & sarung tangan kiper','img'=>'/assets/img/peralatan/eq23.jpg','desc'=>'Pelindung tulang kering + glove kiper.'],
     ],
+    'tips_perawatan' => [
+      'Cuci sepatu futsal dengan sikat halus & sabun netral; jangan rendam terlalu lama.',
+      'Sol karet harus bersih dari debu agar grip di lantai parket/vinyl tetap optimal.',
+      'Bola futsal: bersihkan dengan lap basah, jangan ditendang di permukaan kasar (aspal) — kulit cepat sobek.',
+      'Pompa angin bola sesuai standar (0,6–0,9 atm) — terlalu kencang bisa pecahkan jahitan.',
+      'Shin guard: cuci dengan sabun antibakteri tiap habis pakai untuk cegah jamur kulit.',
+    ],
+  ],
+  [
+    'slug'   => 'basket',
+    'judul'  => 'Basket (Bola Basket)',
+    'icon'   => 'bi-basket', 'warna' => 'warning',
+    'definisi'=> 'Olahraga bola besar dimainkan 2 tim, masing-masing 5 pemain di lapangan, dengan tujuan memasukkan bola ke ring lawan setinggi 3,05 m. Diatur oleh FIBA (internasional) dan NBA (Amerika). Lapangan keras (parket / sintetis) ukuran 28 × 15 m (FIBA).',
+    'cara'   => 'Pemain menggiring bola (dribble) dengan satu tangan, memberi umpan (pass) ke rekan, atau menembak (shoot) ke ring lawan. Dilarang berjalan tanpa men-dribble (travel), men-dribble dua kali (double dribble), atau menyerang lawan secara fisik (foul). Pertandingan dimulai dengan jump ball di lingkaran tengah.',
+    'cara_img'=> '',
+    'tim'    => '5 pemain per tim di lapangan: 1 point guard, 2 shooting guard / small forward, 2 power forward / center. Maksimal 7 cadangan. Pergantian pemain bebas saat bola mati.',
+    'tim_img'=> '',
+    'skoring'=> 'Tembakan di dalam garis 3 angka = 2 poin. Tembakan di luar garis 3 angka = 3 poin. Free throw (lemparan bebas) = 1 poin. Pertandingan FIBA: 4 × 10 menit (NBA: 4 × 12 menit). Waktu serangan dibatasi shot clock 24 detik.',
+    'skoring_img'=> '',
+    'menang' => 'Menang: tim dengan poin terbanyak setelah 4 quarter. Bila imbang: overtime 5 menit, diulang sampai ada pemenang. Pelanggaran: travel, double dribble, 3 detik di area lawan, foul (5 foul personal = keluar di FIBA, 6 di NBA), goaltending (menghadang bola yang sedang turun ke ring).',
+    'video'  => 'https://www.youtube.com/watch?v=LFLG6KEn3qY',
+    'videoLabel' => 'Teknik Dasar Basket',
+    'manfaat' => 'Olahraga kardio intens, membakar 500–750 kkal/jam, meningkatkan tinggi badan (lompatan vertikal merangsang lempeng pertumbuhan), memperkuat tungkai &amp; inti tubuh, melatih koordinasi tangan-mata, kerja sama tim, dan kelincahan (agility). Sangat baik untuk perkembangan postural remaja.',
+    'penyembuhan' => 'Membantu mengatasi <b>obesitas</b>, memperbaiki <b>postur bungkuk</b> (karena terbiasa menjangkau ke atas), menurunkan <b>tekanan darah</b>, meningkatkan <b>kepadatan tulang</b> (pencegahan osteoporosis dini), melatih jantung &amp; paru, serta membantu pemulihan <b>kecemasan sosial</b> berkat interaksi tim.',
+    'hormon'      => '<b>Adrenalin</b> (sprint pendek), <b>endorfin</b>, <b>dopamin</b> (mencetak poin), <b>HGH</b> (growth hormone karena lompatan vertikal), <b>testosteron</b> (kompetisi sehat), serta <b>oksitosin</b> (ikatan tim).',
+    'mental'      => '<b>Kerja sama tim</b>, <b>komunikasi non-verbal</b> (eye contact / hand signal), <b>kepemimpinan</b>, <b>pengambilan keputusan cepat</b>, <b>kontrol emosi</b> (tidak panik di akhir kuarter), <b>resiliensi</b>, &amp; <b>sportivitas</b>.',
+    'peralatan' => [
+      ['nama'=>'Bola basket ukuran 7 (pria) / 6 (wanita)','img'=>'','desc'=>'Karet/komposit, keliling 75–78 cm, berat 567–650 g.'],
+      ['nama'=>'Sepatu basket (high cut)','img'=>'','desc'=>'Sol non-marking, melindungi pergelangan kaki dari cedera engsel.'],
+      ['nama'=>'Jersey &amp; celana basket','img'=>'','desc'=>'Bahan dry-fit longgar, nomor punggung &amp; nama jelas.'],
+      ['nama'=>'Ring basket setinggi 3,05 m + papan pantul','img'=>'','desc'=>'Diameter ring 45 cm, papan 1,8 × 1,05 m (FIBA).'],
+    ],
+    'tips_perawatan' => [
+      'Lap bola basket dengan kain kering setelah pakai, simpan di tempat teduh.',
+      'Hindari memantulkan bola indoor di permukaan kasar (aspal) — kulit/komposit cepat aus.',
+      'Periksa tekanan angin bola (0,5–0,6 atm) seminggu sekali; pompa pelan-pelan dengan jarum yang dibasahi.',
+      'Sepatu basket: jangan dipakai di luar lapangan agar sol non-marking tidak kotor & licin.',
+      'Bersihkan ring & jaring secara berkala, jaring nilon ganti tiap 6–12 bulan bila sobek.',
+      'Simpan jersey dry-fit dengan dilipat lembut, jangan disetrika panas (serat bisa meleleh).',
+    ],
   ],
   [
     'slug'   => 'biliard',
@@ -409,6 +501,14 @@ $ARTIKEL = [
       ['nama'=>'Set bola pool','img'=>'/assets/img/peralatan/eq25.jpg','desc'=>'1 cue ball putih + 15 bola bernomor.'],
       ['nama'=>'Meja biliar','img'=>'/assets/img/peralatan/eq26.jpg','desc'=>'Ukuran 7/8/9 ft, kain wool felt.'],
       ['nama'=>'Kapur stik & rack segitiga','img'=>'/assets/img/peralatan/eq27.jpg','desc'=>'Kapur biru + rack segitiga untuk break.'],
+    ],
+    'tips_perawatan' => [
+      'Bersihkan stik (cue) dengan kain microfiber kering, hindari air & alkohol.',
+      'Kapur tip stik secara merata sebelum tiap pukulan untuk cegah miscue.',
+      'Ganti tip stik (kulit) tiap 6–12 bulan atau saat sudah pipih/keras.',
+      'Bola biliar: lap dengan kain lembut & cleaner khusus, simpan di rak agar tidak berbenturan.',
+      'Kain meja (felt): sikat searah serat dengan sikat khusus billiard, tutup dengan cover saat tidak dipakai.',
+      'Jangan letakkan minuman/makanan di atas meja billiard — noda pada felt sulit dihilangkan.',
     ],
   ],
 ];
@@ -607,6 +707,20 @@ include __DIR__.'/includes/header.php'; ?>
                       </div>
                     </div>
                   <?php endforeach; ?>
+                </div>
+              </div>
+              <?php endif; ?>
+
+              <?php /* Revisi R23 (27 Juni 2026) — Tips Merawat Alat Olahraga per jenis */ ?>
+              <?php if (!empty($a['tips_perawatan'])): ?>
+              <div class="mt-3">
+                <strong class="text-<?= $a['warna'] ?>"><i class="bi bi-droplet-half"></i> Tips Merawat Alat Olahraga:</strong>
+                <div class="alert alert-info border small mt-1 mb-0 py-2">
+                  <ul class="mb-0 ps-3">
+                    <?php foreach ($a['tips_perawatan'] as $tip): ?>
+                      <li><?= htmlspecialchars($tip) ?></li>
+                    <?php endforeach; ?>
+                  </ul>
                 </div>
               </div>
               <?php endif; ?>
