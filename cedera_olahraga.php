@@ -4,10 +4,15 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate KOMUNITAS
 send_security_headers(); enforce_session_timeout();
 require_login();
 $pageTitle = 'Cedera Olahraga & Penanganan';
 $u = current_user(); $uid = (int)$u['id'];
+
+// Revisi R22 — Cedera Olahraga khusus paket KOMUNITAS
+paket_require_or_lock('komunitas', $u, 'Cedera Olahraga & Penanganan',
+    'Panduan cedera olahraga + pencarian Puskesmas/RS terdekat tersedia untuk paket Komunitas.');
 
 // Revisi 18 Juni 2026 — tabel penyimpanan Q&A AI Health (idempotent)
 try {
@@ -260,5 +265,166 @@ include __DIR__.'/includes/ai_qa_widget.php';
 <div class="alert alert-danger mt-4 small">
   <i class="bi bi-telephone-fill"></i> <strong>Darurat medis:</strong> hubungi <strong>119</strong> (Layanan Gawat Darurat) atau <strong>118</strong> (Ambulans) bila terjadi tidak sadar &gt; 1 menit, sesak napas berat, nyeri dada, atau perdarahan tidak berhenti.
 </div>
+
+
+
+<!-- ============================================================
+     Revisi R22 — Pencarian Otomatis Puskesmas / Rumah Sakit Terdekat
+     Sumber: OpenStreetMap (Overpass API) + OSRM (rute), tanpa API key.
+     ============================================================ -->
+<div class="card shadow-sm mt-4 border-danger" id="rsTerdekat">
+  <div class="card-header bg-danger-subtle text-danger-emphasis d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-hospital-fill"></i> <strong>Puskesmas &amp; Rumah Sakit Terdekat</strong></span>
+    <div class="btn-group btn-group-sm">
+      <button type="button" id="btnLocate" class="btn btn-danger"><i class="bi bi-crosshair"></i> Gunakan Lokasi Saya</button>
+      <button type="button" id="btnRefreshRs" class="btn btn-outline-danger" disabled><i class="bi bi-arrow-repeat"></i> Muat Ulang</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">
+      Aktifkan akses lokasi browser, lalu sistem mencari fasilitas kesehatan dalam radius 5 km
+      dan menampilkan rute (jarak dalam km) ke titik pilihan.
+    </div>
+    <div id="rsStatus" class="alert alert-info small py-2 mb-2">Klik <b>Gunakan Lokasi Saya</b> untuk mulai.</div>
+    <div id="rsMap" style="height:380px;border-radius:8px;overflow:hidden;background:#eef2f7"></div>
+    <div id="rsList" class="list-group list-group-flush mt-3"></div>
+  </div>
+</div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  var map, userMarker, routeLayer, facilityLayer;
+  var userLatLng = null;
+  var status = document.getElementById('rsStatus');
+  var listEl = document.getElementById('rsList');
+  var btnLoc = document.getElementById('btnLocate');
+  var btnRef = document.getElementById('btnRefreshRs');
+
+  function initMap(lat,lng){
+    if (map){ map.setView([lat,lng],14); return; }
+    map = L.map('rsMap').setView([lat,lng],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19, attribution:'&copy; OpenStreetMap'
+    }).addTo(map);
+    facilityLayer = L.layerGroup().addTo(map);
+    routeLayer = L.layerGroup().addTo(map);
+  }
+  function distKm(a,b){
+    var R=6371, toRad=function(x){return x*Math.PI/180;};
+    var dLat=toRad(b[0]-a[0]), dLng=toRad(b[1]-a[1]);
+    var s=Math.sin(dLat/2)**2+Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+  async function fetchFacilities(lat,lng){
+    status.className='alert alert-info small py-2 mb-2';
+    status.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mencari fasilitas kesehatan dalam radius 5 km…';
+    var q = `[out:json][timeout:25];(
+      node["amenity"~"hospital|clinic|doctors"](around:5000,${lat},${lng});
+      way["amenity"~"hospital|clinic|doctors"](around:5000,${lat},${lng});
+      node["healthcare"~"hospital|clinic|doctor"](around:5000,${lat},${lng});
+    );out center 60;`;
+    try {
+      var r = await fetch('https://overpass-api.de/api/interpreter',
+                {method:'POST', body:q});
+      var j = await r.json();
+      var els = (j.elements||[]).map(function(e){
+        var la = e.lat || (e.center && e.center.lat);
+        var ln = e.lon || (e.center && e.center.lon);
+        if (!la||!ln) return null;
+        var tags = e.tags||{};
+        var nama = tags.name || (tags.amenity==='hospital'?'Rumah Sakit':
+                  tags.amenity==='clinic'?'Klinik':
+                  tags.amenity==='doctors'?'Praktik Dokter':'Fasilitas Kesehatan');
+        return { lat:la, lng:ln, nama:nama, tipe: tags.amenity || tags.healthcare || '-',
+                 alamat: (tags['addr:full']||tags['addr:street']||''),
+                 telp: tags.phone || tags['contact:phone'] || '' };
+      }).filter(Boolean);
+      els.forEach(function(e){ e.km = distKm([lat,lng],[e.lat,e.lng]); });
+      els.sort(function(a,b){return a.km-b.km;});
+      return els.slice(0,15);
+    } catch(err){
+      throw new Error('Gagal mengakses Overpass API: '+err.message);
+    }
+  }
+  function renderList(items){
+    facilityLayer.clearLayers();
+    listEl.innerHTML = '';
+    if (!items.length){
+      listEl.innerHTML = '<div class="text-muted small p-2">Tidak ada fasilitas kesehatan dalam radius 5 km.</div>';
+      return;
+    }
+    items.forEach(function(it,i){
+      var m = L.marker([it.lat,it.lng]).addTo(facilityLayer)
+        .bindPopup('<b>'+it.nama+'</b><br>'+it.tipe+'<br>'+it.km.toFixed(2)+' km');
+      var icon = it.tipe==='hospital' ? 'bi-hospital-fill text-danger' :
+                 it.tipe==='clinic'   ? 'bi-bandaid-fill text-warning' :
+                                        'bi-person-vcard text-info';
+      var item = document.createElement('button');
+      item.type='button';
+      item.className='list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+      item.innerHTML =
+        '<div><i class="bi '+icon+'"></i> <strong>'+it.nama+'</strong> '+
+        '<span class="badge bg-secondary ms-1">'+it.tipe+'</span><br>'+
+        '<small class="text-muted">'+(it.alamat||'Alamat tidak tersedia')+'</small></div>'+
+        '<span class="badge bg-danger rounded-pill">'+it.km.toFixed(2)+' km</span>';
+      item.addEventListener('click', function(){ showRoute(it,m); });
+      listEl.appendChild(item);
+    });
+  }
+  async function showRoute(it, marker){
+    routeLayer.clearLayers();
+    marker.openPopup();
+    status.className='alert alert-info small py-2 mb-2';
+    status.innerHTML='<span class="spinner-border spinner-border-sm"></span> Menghitung rute ke <b>'+it.nama+'</b>…';
+    try {
+      var url='https://router.project-osrm.org/route/v1/driving/'+
+        userLatLng[1]+','+userLatLng[0]+';'+it.lng+','+it.lat+
+        '?overview=full&geometries=geojson';
+      var r = await fetch(url);
+      var j = await r.json();
+      if (j.routes && j.routes[0]){
+        var rt = j.routes[0];
+        var line = L.geoJSON(rt.geometry,{style:{color:'#dc3545',weight:5,opacity:0.8}}).addTo(routeLayer);
+        map.fitBounds(line.getBounds(),{padding:[40,40]});
+        var km = (rt.distance/1000).toFixed(2);
+        var menit = Math.round(rt.duration/60);
+        status.className='alert alert-success small py-2 mb-2';
+        status.innerHTML = '<i class="bi bi-signpost-2-fill"></i> Rute ke <b>'+it.nama+'</b>: '+
+          '<strong>'+km+' km</strong> · estimasi '+menit+' menit (berkendara). '+
+          '<a href="https://www.google.com/maps/dir/?api=1&origin='+userLatLng[0]+','+userLatLng[1]+
+          '&destination='+it.lat+','+it.lng+'" target="_blank" class="ms-2">Buka di Google Maps</a>';
+      } else throw new Error('Rute tidak ditemukan');
+    } catch(err){
+      status.className='alert alert-warning small py-2 mb-2';
+      status.textContent='Gagal mengambil rute: '+err.message;
+    }
+  }
+  btnLoc.addEventListener('click', function(){
+    if (!navigator.geolocation){ status.textContent='Browser tidak mendukung Geolocation.'; return; }
+    status.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mendeteksi lokasi…';
+    navigator.geolocation.getCurrentPosition(async function(pos){
+      userLatLng = [pos.coords.latitude, pos.coords.longitude];
+      initMap(userLatLng[0], userLatLng[1]);
+      if (userMarker) userMarker.remove();
+      userMarker = L.marker(userLatLng, {title:'Lokasi Anda'}).addTo(map).bindPopup('📍 Lokasi Anda').openPopup();
+      btnRef.disabled = false;
+      try {
+        var items = await fetchFacilities(userLatLng[0], userLatLng[1]);
+        renderList(items);
+        status.className='alert alert-success small py-2 mb-2';
+        status.innerHTML = 'Ditemukan <b>'+items.length+'</b> fasilitas kesehatan di sekitar Anda. Klik salah satu untuk melihat rute.';
+      } catch(e){
+        status.className='alert alert-warning small py-2 mb-2';
+        status.textContent=e.message;
+      }
+    }, function(err){
+      status.className='alert alert-danger small py-2 mb-2';
+      status.textContent='Gagal mendapatkan lokasi: '+err.message;
+    },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+  });
+  btnRef.addEventListener('click', function(){ if (userLatLng) btnLoc.click(); });
+})();
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

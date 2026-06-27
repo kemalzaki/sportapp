@@ -8,9 +8,14 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate KOMUNITAS
 send_security_headers(); require_login();
 $pageTitle = 'Survival Mode';
 $u = current_user();
+
+// Revisi R22 — Survival Mode khusus paket KOMUNITAS
+paket_require_or_lock('komunitas', $u, 'Survival Mode',
+    'Pengetahuan survival hutan, makanan boleh/tidak, dan AI Survival Coach tersedia untuk paket Komunitas.');
 
 // Tabel penyimpanan Q&A Survival (idempotent)
 try {
@@ -167,8 +172,119 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
-<!-- Pengetahuan Survival di Hutan -->
-<div class="row g-3">
+
+<!-- ============================================================
+     Revisi R22 — Rekomendasi Hutan per Provinsi (Forest Finder)
+     ============================================================ -->
+<div class="card shadow-sm mb-3 border-success" id="forestFinder">
+  <div class="card-header bg-success-subtle text-success-emphasis d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-geo-alt-fill"></i> <strong>Rekomendasi Hutan per Provinsi</strong></span>
+    <div class="d-flex align-items-center gap-2">
+      <label class="small mb-0">Provinsi:</label>
+      <select id="provSel" class="form-select form-select-sm" style="min-width:220px">
+        <?php
+        $PROVINCE_FORESTS = [
+          'Aceh'                => [ ['Taman Nasional Gunung Leuser', 3.7333, 97.3833, 5, 'Hutan hujan tropis, sumber air & buah hutan melimpah'] ],
+          'Sumatera Utara'      => [ ['Taman Nasional Batang Gadis', 0.6500, 99.5500, 4, 'Hutan pegunungan, banyak rebung & buah liar'] ],
+          'Sumatera Barat'      => [ ['Taman Nasional Kerinci Seblat (Sumbar)', -1.6500, 101.2667, 5, 'Buah, ikan sungai, pakis muda'] ],
+          'Riau'                => [ ['Taman Nasional Tesso Nilo', -0.0500, 101.9000, 3, 'Hutan dataran rendah, perlu hati-hati gajah liar'] ],
+          'Jambi'               => [ ['Taman Nasional Bukit Tigapuluh', -1.0833, 102.4500, 4, 'Sumber air banyak, buah & umbi-umbian'] ],
+          'Sumatera Selatan'    => [ ['Taman Nasional Sembilang', -2.0167, 104.5333, 3, 'Mangrove, ikan & kepiting bakau'] ],
+          'Bengkulu'            => [ ['Taman Nasional Kerinci Seblat (Bengkulu)', -3.3500, 102.4000, 4, 'Hutan hujan, buah & sayur liar'] ],
+          'Lampung'             => [ ['Taman Nasional Way Kambas', -4.8667, 105.7500, 3, 'Hutan dataran rendah, waspada gajah'] ],
+          'Bangka Belitung'     => [ ['Hutan Lindung Gunung Maras', -1.6833, 105.7167, 2, 'Vegetasi terbatas, sumber air sedikit'] ],
+          'Kepulauan Riau'      => [ ['Hutan Bakau Pulau Bintan', 1.0833, 104.5167, 2, 'Mangrove, ikan & kerang'] ],
+          'DKI Jakarta'         => [ ['Hutan Kota Srengseng', -6.2333, 106.7667, 1, 'Hutan kota — survival sangat terbatas'] ],
+          'Banten'              => [ ['Taman Nasional Ujung Kulon', -6.7500, 105.3333, 4, 'Buah, ikan laut, kelapa pesisir'] ],
+          'Jawa Barat'          => [ ['Taman Nasional Gunung Halimun Salak', -6.7333, 106.5333, 4, 'Air jernih, pakis, bambu muda'] ],
+          'Jawa Tengah'         => [ ['Taman Nasional Gunung Merbabu', -7.4500, 110.4333, 3, 'Vegetasi pegunungan, suhu dingin'] ],
+          'DI Yogyakarta'       => [ ['Hutan Pinus Mangunan', -7.9167, 110.4167, 2, 'Hutan pinus, sumber makanan minim'] ],
+          'Jawa Timur'          => [ ['Taman Nasional Bromo Tengger Semeru', -8.0167, 112.9500, 3, 'Pegunungan, edelweis dilindungi'] ],
+          'Bali'                => [ ['Taman Nasional Bali Barat', -8.1167, 114.4833, 3, 'Hutan musim, buah hutan'] ],
+          'NTB'                 => [ ['Taman Nasional Gunung Rinjani', -8.4111, 116.4575, 3, 'Air panas, buah liar terbatas'] ],
+          'NTT'                 => [ ['Taman Nasional Kelimutu', -8.7667, 121.8167, 2, 'Savana, sumber air terbatas'] ],
+          'Kalimantan Barat'    => [ ['Taman Nasional Gunung Palung', -1.1500, 110.1167, 5, 'Hutan hujan kaya, buah & ikan sungai'] ],
+          'Kalimantan Tengah'   => [ ['Taman Nasional Tanjung Puting', -2.7500, 111.9333, 5, 'Hutan rawa & buah hutan melimpah'] ],
+          'Kalimantan Selatan'  => [ ['Pegunungan Meratus', -2.7333, 115.5833, 4, 'Hutan tropis, buah & ikan sungai'] ],
+          'Kalimantan Timur'    => [ ['Taman Nasional Kutai', 0.4500, 117.4500, 5, 'Hutan hujan kaya, makanan melimpah'] ],
+          'Kalimantan Utara'    => [ ['Taman Nasional Kayan Mentarang', 3.0667, 115.7333, 5, 'Hutan primer, buah, ikan, umbi'] ],
+          'Sulawesi Utara'      => [ ['Taman Nasional Bogani Nani Wartabone', 0.5500, 123.6833, 4, 'Buah, ikan sungai, sagu'] ],
+          'Gorontalo'           => [ ['Cagar Alam Panua', 0.4833, 121.6167, 3, 'Hutan pantai, ikan & kelapa'] ],
+          'Sulawesi Tengah'     => [ ['Taman Nasional Lore Lindu', -1.4667, 120.2167, 4, 'Buah hutan, ikan air tawar'] ],
+          'Sulawesi Barat'      => [ ['Hutan Lindung Mamasa', -2.9500, 119.3500, 3, 'Pegunungan, kopi liar'] ],
+          'Sulawesi Selatan'    => [ ['Taman Nasional Bantimurung-Bulusaraung', -5.0167, 119.6833, 3, 'Hutan karst, buah & madu hutan'] ],
+          'Sulawesi Tenggara'   => [ ['Taman Nasional Rawa Aopa Watumohai', -4.4500, 121.9333, 4, 'Rawa & ikan tawar'] ],
+          'Maluku'              => [ ['Taman Nasional Manusela', -3.0833, 129.5667, 4, 'Sagu, ikan, buah pala liar'] ],
+          'Maluku Utara'        => [ ['Hutan Lindung Aketajawe-Lolobata', 1.0333, 127.9000, 4, 'Sagu & buah hutan'] ],
+          'Papua Barat'         => [ ['Pegunungan Arfak', -1.1000, 133.9333, 4, 'Buah merah, sagu, umbi-umbian'] ],
+          'Papua'               => [ ['Taman Nasional Lorentz', -4.6500, 137.6500, 5, 'Hutan primer terluas, sumber makanan banyak'] ],
+        ];
+        foreach (array_keys($PROVINCE_FORESTS) as $prov):
+        ?>
+          <option value="<?= htmlspecialchars($prov) ?>"><?= htmlspecialchars($prov) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <button id="btnFindForest" class="btn btn-sm btn-success"><i class="bi bi-search"></i> Cari</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">Tingkat survival makanan: ⭐ semakin tinggi semakin mudah menemukan air, buah, ikan, dan tumbuhan dapat dimakan.</div>
+    <div id="forestStatus" class="alert alert-info small py-2 mb-2">Pilih provinsi lalu klik <b>Cari</b>.</div>
+    <div id="forestMap" style="height:380px;border-radius:8px;overflow:hidden;background:#eef2f7"></div>
+    <div id="forestList" class="list-group list-group-flush mt-3"></div>
+  </div>
+</div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+window.__PROVINCE_FORESTS = <?= json_encode($PROVINCE_FORESTS, JSON_UNESCAPED_UNICODE) ?>;
+(function(){
+  var map, layer;
+  function init(lat,lng){
+    if (!map){
+      map = L.map('forestMap').setView([lat,lng],7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
+      layer = L.layerGroup().addTo(map);
+    } else { map.setView([lat,lng],7); }
+  }
+  document.getElementById('btnFindForest').addEventListener('click', function(){
+    var prov = document.getElementById('provSel').value;
+    var data = (window.__PROVINCE_FORESTS||{})[prov] || [];
+    var st   = document.getElementById('forestStatus');
+    var list = document.getElementById('forestList');
+    list.innerHTML='';
+    if (!data.length){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='Belum ada data hutan untuk provinsi ini.'; return; }
+    init(data[0][1], data[0][2]);
+    if (layer) layer.clearLayers();
+    var bounds = [];
+    data.forEach(function(f){
+      var nama=f[0], lat=f[1], lng=f[2], lvl=f[3], desc=f[4];
+      var stars='⭐'.repeat(lvl)+'☆'.repeat(5-lvl);
+      var color = lvl>=4?'#198754':(lvl===3?'#fd7e14':'#dc3545');
+      L.circleMarker([lat,lng],{radius:10,color:color,fillColor:color,fillOpacity:0.65})
+        .addTo(layer)
+        .bindPopup('<b>'+nama+'</b><br>'+stars+' (Survival '+lvl+'/5)<br><small>'+desc+'</small>');
+      bounds.push([lat,lng]);
+      var btn=document.createElement('div');
+      btn.className='list-group-item';
+      btn.innerHTML='<div class="d-flex justify-content-between align-items-center">'+
+        '<div><i class="bi bi-tree-fill" style="color:'+color+'"></i> <strong>'+nama+'</strong><br>'+
+        '<small class="text-muted">'+desc+'</small></div>'+
+        '<span class="badge bg-success-subtle text-success-emphasis">'+stars+'</span></div>';
+      list.appendChild(btn);
+    });
+    if (bounds.length>1) map.fitBounds(bounds,{padding:[40,40]});
+    st.className='alert alert-success small py-2 mb-2';
+    st.innerHTML='Ditemukan <b>'+data.length+'</b> lokasi hutan rekomendasi di <b>'+prov+'</b>. Titik hijau = survival makanan tinggi, oranye = sedang, merah = rendah.';
+  });
+})();
+</script>
+
+<!-- Pengetahuan Survival di Hutan (Revisi R22 — spoiler/collapse) -->
+<div class="alert alert-success-subtle small py-2 mb-2"><i class="bi bi-info-circle"></i>
+  Klik judul kartu untuk membuka/menutup isi.</div>
+<div class="row g-3 surv-spoilers">
   <div class="col-md-6">
     <div class="card shadow-sm h-100 border-success">
       <div class="card-header"><i class="bi bi-tree text-success"></i> <strong>Pengetahuan Dasar Survival di Hutan</strong></div>
@@ -386,6 +502,24 @@ include __DIR__.'/includes/header.php';
     }
     btn.addEventListener('click', doSearch);
     inp.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doSearch(); }});
+  });
+})();
+</script>
+
+
+<style>
+.surv-spoilers .card .card-header{cursor:pointer; user-select:none;}
+.surv-spoilers .card .card-header::after{content:"\25BC"; float:right; transition:transform .25s ease; font-size:.8em;}
+.surv-spoilers .card.collapsed .card-header::after{transform:rotate(-90deg);}
+.surv-spoilers .card.collapsed .card-body{display:none;}
+</style>
+<script>
+(function(){
+  document.querySelectorAll('.surv-spoilers > div > .card').forEach(function(c, i){
+    if (i>0) c.classList.add('collapsed'); // default: kartu pertama terbuka
+    var h = c.querySelector('.card-header');
+    if (!h) return;
+    h.addEventListener('click', function(){ c.classList.toggle('collapsed'); });
   });
 })();
 </script>

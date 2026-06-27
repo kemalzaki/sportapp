@@ -4,10 +4,15 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate PRO
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'IPTV Indonesia';
 $u = current_user();
 if (!$u) { header('Location: /login.php'); exit; }
+
+// Revisi R22 — IPTV khusus paket PRO / KOMUNITAS
+paket_require_or_lock('pro', $u, 'IPTV Indonesia',
+    'Streaming IPTV Indonesia tersedia untuk paket PRO atau Komunitas.');
 
 // Ambil channel dari DB (hanya yang aktif), urut sort_order lalu nama
 $channels = db_all("SELECT id, nama, logo_url, group_name, url

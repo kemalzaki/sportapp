@@ -14,8 +14,13 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate KOMUNITAS
 send_security_headers(); enforce_session_timeout();
 require_login();
+$u = current_user();
+// Revisi R22 — Artikel Olahraga khusus paket KOMUNITAS
+paket_require_or_lock('komunitas', $u, 'Artikel Olahraga & Teknik',
+    'Kumpulan artikel olahraga & teknik mendalam tersedia untuk paket Komunitas.');
 $pageTitle = 'Artikel Olahraga & Teknik';
 $pageSkeleton = 'feed';
 $u = current_user();

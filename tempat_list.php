@@ -3,10 +3,14 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate KOMUNITAS
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Daftar Tempat';
 $pageSkeleton = 'grid';
 $u = current_user();
+paket_require_or_lock('komunitas', $u, 'Daftar Tempat / Lapangan',
+    'Direktori tempat & lapangan komunitas tersedia untuk paket Komunitas.');
 $isAdmin = $u && $u['role']==='admin';
 
 /* ====== Revisi 22 Juni 2026 R12 ======

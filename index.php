@@ -660,13 +660,58 @@ document.addEventListener('DOMContentLoaded', () => {
     $headerJadwal = '<small class="text-muted">Belum ada jadwal terdekat</small>';
   }
 ?>
+<?php
+  // Revisi R22 — link Grup WhatsApp komunitas (dari app_settings)
+  $waGrupLink = '';
+  try { $waGrupLink = (string) db_val("SELECT sval FROM app_settings WHERE skey='wa_grup_link' LIMIT 1"); } catch (Throwable $e) {}
+  $waGrupLink = trim($waGrupLink);
+  $waGrupUrl  = ($waGrupLink && preg_match('~^https?://~i',$waGrupLink))
+      ? $waGrupLink
+      : '';
+  $waGrupShareUrl = $waGrupUrl
+      ? $waGrupUrl
+      : ('https://api.whatsapp.com/send?text=' . rawurlencode($msgTpl));
+?>
 <div class="card shadow-sm mb-3" id="sec-kabari">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-megaphone text-warning"></i> Kabari Member (Koordinator PIC)</span>
+    <span><i class="bi bi-megaphone text-warning"></i> Kabari Member (PIC &amp; Grup WhatsApp)</span>
     <?= $headerJadwal ?>
   </div>
   <div class="card-body">
-    <p class="small text-muted mb-2">Sebagai PIC, klik WhatsApp untuk mengabari setiap member di bawah koordinasi kamu. Daftar diambil dari pengaturan PIC di halaman <em>Admin → Members</em>.</p>
+    <div class="alert alert-success d-flex flex-wrap align-items-center gap-2 py-2 mb-3">
+      <i class="bi bi-whatsapp fs-4"></i>
+      <div class="flex-grow-1 small">
+        <strong>Kabari semua member sekaligus lewat Grup WhatsApp komunitas.</strong>
+        <?php if (!$waGrupUrl): ?>
+          <div class="text-muted small">Link grup belum diset — admin dapat mengatur di tabel <code>app_settings</code> (skey=<code>wa_grup_link</code>) atau menu Admin → Pengaturan.</div>
+        <?php endif; ?>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <?php if ($waGrupUrl): ?>
+          <a href="<?= htmlspecialchars($waGrupUrl) ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm">
+            <i class="bi bi-people-fill"></i> Buka Grup WA
+          </a>
+        <?php endif; ?>
+        <button type="button" id="btnSalinPesanGrup" class="btn btn-outline-success btn-sm" data-pesan="<?= htmlspecialchars($msgTpl) ?>">
+          <i class="bi bi-clipboard-check"></i> Salin Pesan Grup
+        </button>
+        <a href="https://api.whatsapp.com/send?text=<?= rawurlencode($msgTpl) ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm">
+          <i class="bi bi-whatsapp"></i> Bagikan ke WA
+        </a>
+      </div>
+    </div>
+    <script>
+    (function(){
+      var b = document.getElementById('btnSalinPesanGrup');
+      if (!b) return;
+      b.addEventListener('click', function(){
+        var t = b.dataset.pesan || '';
+        if (navigator.clipboard) { navigator.clipboard.writeText(t).then(function(){ b.innerHTML='<i class="bi bi-check2"></i> Tersalin'; setTimeout(function(){b.innerHTML='<i class=\"bi bi-clipboard-check\"></i> Salin Pesan Grup';},2000); }); }
+        else { var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); b.innerHTML='<i class="bi bi-check2"></i> Tersalin'; }
+      });
+    })();
+    </script>
+    <p class="small text-muted mb-2">Atau klik WhatsApp di bawah untuk mengabari setiap member di bawah koordinasi kamu. Daftar diambil dari pengaturan PIC di halaman <em>Admin → Members</em>.</p>
     <div class="row g-2">
       <?php foreach($kabariKawan as $k):
         $rawWa = preg_replace('/\D+/','', $k['nomor_wa'] ?? '');

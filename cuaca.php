@@ -94,7 +94,6 @@ include __DIR__.'/includes/header.php'; ?>
 
 <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
   <h2 class="mb-0"><i class="bi bi-cloud-sun-fill text-primary"></i> Perkiraan Cuaca</h2>
-  <span class="badge bg-info text-dark"><i class="bi bi-info-circle"></i> Sumber: Open-Meteo</span>
 </div>
 
 <form method="get" class="card card-body shadow-sm mb-3">
@@ -174,8 +173,80 @@ include __DIR__.'/includes/header.php'; ?>
     </div>
   <?php endif; ?>
 
-  <div class="alert alert-info small mt-3 mb-0">
-    <i class="bi bi-lightbulb"></i> <strong>Tips olahraga:</strong> hindari latihan outdoor saat UV &gt; 7 atau peluang hujan &gt; 70%. Pertimbangkan latihan indoor atau geser jadwal ke pagi/sore.
+<?php
+  // Revisi R22 — Auto rekomendasi jogging / outdoor
+  $temp = (float)($cur['temperature_2m'] ?? 0);
+  $hum  = (int)($cur['relative_humidity_2m'] ?? 0);
+  $wind = (float)($cur['wind_speed_10m'] ?? 0);
+  $rain = (int)(($forecast['daily']['precipitation_probability_max'][0] ?? 0));
+  $uv   = (float)(($forecast['daily']['uv_index_max'][0] ?? 0));
+  $code = (int)($cur['weather_code'] ?? 0);
+  $isDay= (int)($cur['is_day'] ?? 1);
+
+  $skor = 100; $alasan = [];
+  if ($temp > 33)        { $skor -= 30; $alasan[] = "suhu panas {$temp}°C"; }
+  elseif ($temp > 30)    { $skor -= 15; $alasan[] = "suhu agak panas {$temp}°C"; }
+  elseif ($temp < 18)    { $skor -= 10; $alasan[] = "suhu dingin {$temp}°C"; }
+  if ($hum > 85)         { $skor -= 15; $alasan[] = "kelembaban tinggi {$hum}%"; }
+  if ($wind > 25)        { $skor -= 20; $alasan[] = "angin kencang {$wind} km/j"; }
+  if ($rain > 70)        { $skor -= 40; $alasan[] = "peluang hujan {$rain}%"; }
+  elseif ($rain > 40)    { $skor -= 20; $alasan[] = "peluang hujan {$rain}%"; }
+  if ($uv > 8)           { $skor -= 25; $alasan[] = "UV ekstrem {$uv}"; }
+  elseif ($uv > 6)       { $skor -= 10; $alasan[] = "UV tinggi {$uv}"; }
+  if (in_array($code, [95,96,99,82], true)) { $skor -= 60; $alasan[] = "badai/petir"; }
+  if (!$isDay)           { $alasan[] = "saat ini malam"; }
+  $skor = max(0, min(100, $skor));
+
+  if ($skor >= 75)      { $cat = 'success'; $ico='bi-emoji-smile-fill'; $kata='SANGAT BAIK untuk jogging / outdoor'; }
+  elseif ($skor >= 55)  { $cat = 'info';    $ico='bi-emoji-neutral';     $kata='CUKUP BAIK — outdoor masih disarankan'; }
+  elseif ($skor >= 35)  { $cat = 'warning'; $ico='bi-emoji-expressionless';$kata='KURANG IDEAL — pertimbangkan menunda atau latihan indoor'; }
+  else                  { $cat = 'danger';  $ico='bi-emoji-frown-fill';  $kata='TIDAK DISARANKAN — pilih latihan indoor'; }
+
+  // Rekomendasi jam ideal dari forecast per-jam (skor sederhana per jam)
+  $bestHours = [];
+  if (!empty($h['time'])) {
+      $scored = [];
+      for ($i=$startIdx; $i<min($startIdx+24,count($h['time'])); $i++) {
+          $sc = 100;
+          $tt = (float)$h['temperature_2m'][$i];
+          $pp = (int)($h['precipitation_probability'][$i] ?? 0);
+          if ($tt > 32) $sc -= 25; elseif ($tt < 19) $sc -= 10;
+          if ($pp > 60) $sc -= 40; elseif ($pp > 30) $sc -= 15;
+          $scored[] = ['t'=>$h['time'][$i],'s'=>$sc,'tt'=>$tt,'pp'=>$pp];
+      }
+      usort($scored, fn($a,$b)=>$b['s']<=>$a['s']);
+      $bestHours = array_slice($scored, 0, 3);
+  }
+?>
+  <div class="card shadow-sm mt-3 border-<?= $cat ?>">
+    <div class="card-header bg-<?= $cat ?>-subtle text-<?= $cat ?>-emphasis">
+      <i class="bi bi-person-walking"></i> <strong>Rekomendasi Jogging / Outdoor (Auto)</strong>
+      <span class="badge bg-<?= $cat ?> ms-2">Skor <?= $skor ?>/100</span>
+    </div>
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <i class="bi <?= $ico ?> fs-1 text-<?= $cat ?>"></i>
+        <div>
+          <div class="fw-bold fs-5"><?= htmlspecialchars($kata) ?></div>
+          <?php if ($alasan): ?><div class="small text-muted">Faktor: <?= htmlspecialchars(implode(', ', $alasan)) ?>.</div><?php endif; ?>
+        </div>
+      </div>
+      <?php if ($bestHours): ?>
+        <div class="small mb-1"><strong>Jam terbaik (24 jam ke depan):</strong></div>
+        <div class="d-flex flex-wrap gap-2">
+          <?php foreach ($bestHours as $bh): ?>
+            <span class="badge bg-light text-dark border">
+              <i class="bi bi-clock"></i> <?= htmlspecialchars(substr($bh['t'],11,5)) ?> ·
+              <?= number_format($bh['tt'],0) ?>° · hujan <?= $bh['pp'] ?>%
+            </span>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i>
+        Pedoman umum: hindari outdoor saat UV &gt; 7, peluang hujan &gt; 70%, atau ada badai petir.
+        Untuk lari jauh, pilih jam saat suhu 22–28°C &amp; kelembaban &lt; 80%.
+      </div>
+    </div>
   </div>
 <?php endif; ?>
 

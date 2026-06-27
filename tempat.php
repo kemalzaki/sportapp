@@ -4,10 +4,15 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/notifications.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate Komunitas
 send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
 $pageTitle = 'Booking Lapangan';
+
+// Revisi R22 — Fitur Tempat khusus paket KOMUNITAS
+paket_require_or_lock('komunitas', $u, 'Booking Tempat / Lapangan',
+    'Fitur reservasi lapangan komunitas (kalender, status, recurring, reminder DP) tersedia untuk paket Komunitas.');
 
 $isAdmin = ($u['role'] ?? '') === 'admin';
 

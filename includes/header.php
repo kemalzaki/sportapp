@@ -596,6 +596,7 @@ if (empty($pageSkeleton)) {
         </a>
         <div class="collapse" id="grpInfoWawasan">
           <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/opini_viral.php"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini/Viral <span class="badge bg-danger ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca <span class="badge bg-success ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
           <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>

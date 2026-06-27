@@ -117,3 +117,33 @@ if (!function_exists('paket_prices')) {
         return ['pro' => max(1000,$pro), 'komunitas' => max(1000,$kom)];
     }
 }
+
+if (!function_exists('paket_require_or_lock')) {
+    /**
+     * Revisi R22 — Gate halaman berdasarkan paket.
+     *   $needed : 'pro' | 'komunitas'
+     *   $u      : current_user()
+     *   $fitur  : nama fitur (untuk banner)
+     *   $desc   : deskripsi opsional
+     * Jika user belum memenuhi paket, render header + lock banner + footer lalu exit().
+     */
+    function paket_require_or_lock(string $needed, ?array $u, string $fitur, string $desc=''): void {
+        $needed = strtolower($needed) === 'komunitas' ? 'komunitas' : 'pro';
+        $paket  = paket_user($u);
+        $ok = ($needed === 'pro')
+            ? in_array($paket, ['pro','komunitas'], true)
+            : ($paket === 'komunitas');
+        if ($ok) return;
+
+        global $pageTitle;
+        if (empty($pageTitle)) $pageTitle = $fitur;
+        // header & footer mungkin sudah di-include; cek dulu via flag konstan.
+        if (!defined('PAKET_GATE_RENDERED')) {
+            define('PAKET_GATE_RENDERED', true);
+            include __DIR__.'/header.php';
+            echo paket_lock_banner($needed, $fitur, $desc);
+            include __DIR__.'/footer.php';
+        }
+        exit;
+    }
+}

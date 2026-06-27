@@ -4,8 +4,15 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
+require __DIR__.'/includes/paket_helpers.php'; // R22 — gate PRO
 send_security_headers(); enforce_session_timeout();
+require_login();
+$u = current_user();
 $pageTitle = 'Paket Bugar Kalistenik';
+
+// Revisi R22 — Paket Bugar Kalistenik khusus paket PRO / KOMUNITAS
+paket_require_or_lock('pro', $u, 'Paket Bugar Kalistenik',
+    'Program latihan kalistenik terstruktur tersedia untuk paket PRO atau Komunitas.');
 $pageSkeleton = 'grid'; // Skeleton sesuai data: grid gerakan
 
 // Revisi 6 Juni 2026:
