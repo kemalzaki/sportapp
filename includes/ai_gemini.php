@@ -185,6 +185,7 @@ function _gemini_call(array $parts, array $opts = []) {
     $postBody = json_encode($body, JSON_UNESCAPED_UNICODE);
 
     $lastErr = ''; $lastJson = null; $lastKind = '';
+    error_log("===== GEMINI KEYS =====");
     foreach ($keys as $keyIdx => $key) {
         $kind = _gemini_key_kind($key);
         $lastKind = $kind;
@@ -213,6 +214,15 @@ function _gemini_call(array $parts, array $opts = []) {
             $resp = curl_exec($ch);
             $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $cerr = curl_error($ch);
+
+            // DEBUG
+            error_log("===== GEMINI DEBUG =====");
+            error_log("URL      : ".$url);
+            error_log("HTTP     : ".$code);
+            error_log("MODEL    : ".$model);
+            error_log("KEY TYPE : ".$kind);
+            error_log("RESP     : ".$resp);
+
             curl_close($ch);
             $transient = ($resp===false) || ($code>=500 && $code<600);
             if ($resp===false && stripos($cerr,'SSL')!==false && $attempt===1) {
@@ -262,15 +272,18 @@ function _gemini_call(array $parts, array $opts = []) {
                 // Pesan ringkas yang aman ditampilkan ke user.
                 $msg = 'Model AI sedang sibuk (high demand). Coba lagi sebentar, atau tambahkan GEMINI_API_KEY cadangan agar otomatis dirotasi.';
             }
-            if ($isGeo) {
+            //if ($isGeo) {
                 // Pesan ramah + saran setup proxy / API key region didukung.
-                $msg = 'Layanan Gemini AI menolak permintaan karena wilayah/IP server tidak didukung '
-                     . '("User location is not supported"). Solusi: (1) jalankan PHP melalui proxy/VPN ke '
-                     . 'region yang didukung Gemini, (2) set environment GEMINI_API_KEY dari project Google AI '
-                     . 'di region yang diizinkan, atau (3) gunakan Vertex AI endpoint melalui Cloud Run di '
-                     . 'region us-central1. Aplikasi tetap berjalan tanpa AI — fitur sinkron musik akan '
-                     . 'memakai mode fallback (beat-detection lokal).';
+            if ($isGeo) {
+                error_log("GOOGLE ERROR: ".$json['error']['message']);
             }
+                //$msg = 'Layanan Gemini AI menolak permintaan karena wilayah/IP server tidak didukung '
+                //     . '("User location is not supported"). Solusi: (1) jalankan PHP melalui proxy/VPN ke '
+                //     . 'region yang didukung Gemini, (2) set environment GEMINI_API_KEY dari project Google AI '
+                //     . 'di region yang diizinkan, atau (3) gunakan Vertex AI endpoint melalui Cloud Run di '
+                //     . 'region us-central1. Aplikasi tetap berjalan tanpa AI — fitur sinkron musik akan '
+                //     . 'memakai mode fallback (beat-detection lokal).';
+            //}
             return ['ok'=>false,'text'=>'','err'=>$msg,'code'=>($isGeo?'GEO_BLOCK':($isQuota?'QUOTA':($isOverloaded?'OVERLOADED':'ERR'))),'raw'=>$json];
 
         }
