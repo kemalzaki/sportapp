@@ -81,9 +81,42 @@ function _gemini_key() {
  * otomatis mencoba key berikutnya tanpa mengganggu user.
  */
 function _gemini_keys() {
-    return [
-        getenv('GEMINI_API_KEY_1')
-    ];
+    $keys = [];
+
+    // helper ambil env var dari getenv / $_ENV / $_SERVER
+    $readEnv = function($name) {
+        $v = getenv($name);
+        if ($v === false || $v === '') $v = $_ENV[$name]    ?? '';
+        if ($v === '')                 $v = $_SERVER[$name] ?? '';
+        return is_string($v) ? trim($v) : '';
+    };
+    $push = function($v) use (&$keys) {
+        if ($v === '' || stripos($v,'GANTI')!==false) return;
+        $keys[] = $v;
+    };
+
+    // 1) Single key (backward compatible)
+    $push($readEnv('GEMINI_API_KEY'));
+
+    // 2) GEMINI_API_KEY_1 .. GEMINI_API_KEY_20 (Revisi 19 Juni 2026)
+    for ($i = 1; $i <= 20; $i++) {
+        $push($readEnv('GEMINI_API_KEY_' . $i));
+    }
+
+    // 3) GEMINI_API_KEYS=key1,key2,... (CSV)
+    $multi = $readEnv('GEMINI_API_KEYS');
+    if ($multi) {
+        foreach (preg_split('/[,\s;]+/', $multi) as $kk) {
+            $push(trim($kk));
+        }
+    }
+
+    if (!$keys && GEMINI_API_KEY_DEFAULT !== '') $keys[] = GEMINI_API_KEY_DEFAULT;
+    if (!$keys) {
+        $tok = $readEnv('GEMINI_ACCESS_TOKEN');
+        if ($tok) $keys[] = $tok;
+    }
+    return array_values(array_unique(array_filter($keys)));
 }
 
 function _gemini_model() {
@@ -178,6 +211,18 @@ function _gemini_call(array $parts, array $opts = []) {
             if (getenv('GEMINI_INSECURE_SSL') === '1') {
                 $curlOpts[CURLOPT_SSL_VERIFYPEER]=false; $curlOpts[CURLOPT_SSL_VERIFYHOST]=0;
             }
+            // Revisi 28 Juni 2026 — dukung proxy via env supaya bisa keluar dari
+            // region yang diblok Gemini (error "User location is not supported").
+            // Set GEMINI_HTTP_PROXY=http://user:pass@host:port (atau socks5h://...)
+            $proxy = getenv('GEMINI_HTTP_PROXY') ?: getenv('HTTPS_PROXY') ?: getenv('HTTP_PROXY') ?: '';
+            if ($proxy) {
+                $curlOpts[CURLOPT_PROXY] = $proxy;
+                if (stripos($proxy, 'socks5h://') === 0) {
+                    $curlOpts[CURLOPT_PROXYTYPE] = CURLPROXY_SOCKS5_HOSTNAME;
+                } elseif (stripos($proxy, 'socks5://') === 0) {
+                    $curlOpts[CURLOPT_PROXYTYPE] = CURLPROXY_SOCKS5;
+                }
+            }
             curl_setopt_array($ch, $curlOpts);
             $resp = curl_exec($ch);
             $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -237,21 +282,18 @@ function _gemini_call(array $parts, array $opts = []) {
                 $msg .= ' [Tip: tambahkan GEMINI_API_KEY_1, GEMINI_API_KEY_2, dst. (atau GEMINI_API_KEYS=key1,key2,...) untuk rotasi otomatis saat quota habis.]';
             }
             if ($isOverloaded) {
-                // Pesan ringkas yang aman ditampilkan ke user.
                 $msg = 'Model AI sedang sibuk (high demand). Coba lagi sebentar, atau tambahkan GEMINI_API_KEY cadangan agar otomatis dirotasi.';
             }
-            //if ($isGeo) {
-                // Pesan ramah + saran setup proxy / API key region didukung.
             if ($isGeo) {
-                error_log("GOOGLE ERROR: ".$json['error']['message']);
+                error_log("GOOGLE GEO ERROR: ".($json['error']['message'] ?? ''));
+                $msg = 'Layanan Gemini AI menolak permintaan karena lokasi server tidak didukung Google '
+                     . '("User location is not supported for the API use"). '
+                     . 'Solusi cepat: (1) jalankan PHP via proxy/VPN ke region yang didukung — set env '
+                     . 'GEMINI_HTTP_PROXY=http://user:pass@host:port lalu reload halaman; '
+                     . '(2) buat API key baru di Google AI Studio dari akun yang berada di region didukung '
+                     . '(mis. US/SG/JP) lalu set di GEMINI_API_KEY; '
+                     . '(3) deploy ke Cloud Run region us-central1 / asia-southeast1 yang mendukung Gemini.';
             }
-                //$msg = 'Layanan Gemini AI menolak permintaan karena wilayah/IP server tidak didukung '
-                //     . '("User location is not supported"). Solusi: (1) jalankan PHP melalui proxy/VPN ke '
-                //     . 'region yang didukung Gemini, (2) set environment GEMINI_API_KEY dari project Google AI '
-                //     . 'di region yang diizinkan, atau (3) gunakan Vertex AI endpoint melalui Cloud Run di '
-                //     . 'region us-central1. Aplikasi tetap berjalan tanpa AI — fitur sinkron musik akan '
-                //     . 'memakai mode fallback (beat-detection lokal).';
-            //}
             return ['ok'=>false,'text'=>'','err'=>$msg,'code'=>($isGeo?'GEO_BLOCK':($isQuota?'QUOTA':($isOverloaded?'OVERLOADED':'ERR'))),'raw'=>$json];
 
         }

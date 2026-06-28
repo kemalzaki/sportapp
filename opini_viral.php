@@ -327,16 +327,63 @@ include __DIR__.'/includes/header.php'; ?>
               <p class="small text-muted mb-2"><?= htmlspecialchars(mb_strimwidth($r['ringkasan'],0,220,'…')) ?></p>
             <?php endif; ?>
             <?php
-              /* Revisi R25 (28 Juni 2026) — tampilkan komentar netizen jika ada. */
+              /* Revisi R26 (28 Juni 2026) — tampilkan statistik komentar netizen
+                 per berita: total, panjang rata-rata, terpendek/terpanjang,
+                 dan jumlah komentar dengan indikasi sentimen kasar (positif vs
+                 negatif berdasarkan kata kunci). */
               $komenList = [];
               if (!empty($r['komentar'])) {
                   $dec = json_decode($r['komentar'], true);
                   if (is_array($dec)) $komenList = $dec;
               }
+              $kStats = null;
+              if ($komenList) {
+                  $lens = array_map(function($c){ return mb_strlen((string)$c); }, $komenList);
+                  $pos = 0; $neg = 0;
+                  $posKw = ['bagus','mantap','setuju','keren','hebat','top','suka','baik','dukung','salut','semangat','alhamdulillah','sukses','terima kasih','makasih'];
+                  $negKw = ['jelek','buruk','marah','benci','tolol','goblok','bodoh','anjing','bangsat','kecewa','gagal','korup','penipu','sampah','sedih','prihatin'];
+                  foreach ($komenList as $cmt) {
+                      $low = mb_strtolower((string)$cmt);
+                      foreach ($posKw as $w) if (strpos($low,$w)!==false) { $pos++; break; }
+                      foreach ($negKw as $w) if (strpos($low,$w)!==false) { $neg++; break; }
+                  }
+                  $kStats = [
+                      'total'  => count($komenList),
+                      'avg'    => $lens ? (int)round(array_sum($lens)/count($lens)) : 0,
+                      'min'    => $lens ? min($lens) : 0,
+                      'max'    => $lens ? max($lens) : 0,
+                      'pos'    => $pos,
+                      'neg'    => $neg,
+                      'netral' => max(0, count($komenList) - $pos - $neg),
+                  ];
+              }
               if ($komenList):
             ?>
               <div class="mt-2 p-2 rounded bg-light border">
-                <div class="small fw-bold text-muted mb-1"><i class="bi bi-chat-quote"></i> Komentar Netizen (<?= count($komenList) ?>):</div>
+                <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">
+                  <div class="small fw-bold text-muted"><i class="bi bi-chat-quote"></i> Komentar Netizen (<?= (int)$kStats['total'] ?>)</div>
+                  <div class="small">
+                    <span class="badge bg-success-subtle text-success" title="Komentar bernada positif"><i class="bi bi-emoji-smile"></i> <?= (int)$kStats['pos'] ?></span>
+                    <span class="badge bg-secondary-subtle text-secondary" title="Komentar netral"><i class="bi bi-emoji-neutral"></i> <?= (int)$kStats['netral'] ?></span>
+                    <span class="badge bg-danger-subtle text-danger" title="Komentar bernada negatif"><i class="bi bi-emoji-frown"></i> <?= (int)$kStats['neg'] ?></span>
+                  </div>
+                </div>
+                <div class="small text-muted mb-1" style="font-size:.72rem">
+                  <i class="bi bi-bar-chart"></i> Panjang rata-rata <b><?= (int)$kStats['avg'] ?></b> karakter
+                  · terpendek <?= (int)$kStats['min'] ?> · terpanjang <?= (int)$kStats['max'] ?>
+                </div>
+                <?php
+                  // Bar sentimen sederhana
+                  $tot = max(1,(int)$kStats['total']);
+                  $pP = round(100*$kStats['pos']/$tot);
+                  $pN = round(100*$kStats['netral']/$tot);
+                  $pNg = max(0, 100 - $pP - $pN);
+                ?>
+                <div class="progress mb-2" style="height:6px">
+                  <div class="progress-bar bg-success" style="width:<?= $pP ?>%"></div>
+                  <div class="progress-bar bg-secondary" style="width:<?= $pN ?>%"></div>
+                  <div class="progress-bar bg-danger" style="width:<?= $pNg ?>%"></div>
+                </div>
                 <ul class="small mb-0 ps-3" style="max-height:160px;overflow:auto">
                   <?php foreach (array_slice($komenList,0,5) as $cmt): ?>
                     <li class="mb-1"><?= htmlspecialchars(mb_strimwidth($cmt,0,220,'…')) ?></li>

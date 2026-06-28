@@ -62,7 +62,6 @@ switch ($task) {
                "navigasi & mitigasi tersesat, serta langkah jika SUDAH tersesat. Jika ada potensi cedera berat / ".
                "kondisi mengancam nyawa, ingatkan untuk segera memanggil 115 (Basarnas) / 112. ".
                "Akhiri dengan: 'Tetap tenang dan utamakan keselamatan.'";
-	error_log("Gemini Helper Version: ".GEMINI_HELPER_VERSION);
         $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }

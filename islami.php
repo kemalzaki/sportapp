@@ -362,6 +362,9 @@ $pageSkeleton = 'feed';
   <div class="col-md-3"><a href="/doa_antar_member.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart fs-2 text-danger"></i><div class="fw-semibold mt-1">Saling Mendoakan</div></div></a></div>
   <div class="col-md-3"><a href="/rukun_islam.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-bricks fs-2 text-success"></i><div class="fw-semibold mt-1">Rukun Islam</div><div class="small text-muted">5 Pilar · Syarat Sah &amp; Wajib</div></div></a></div>
 
+  <!-- Revisi R26 (28 Juni 2026) — Menu BARU: Jam Tidur yang Disarankan & Dilarang (sunnah Rasul). -->
+  <div class="col-md-3"><a href="/jam_tidur_islami.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-moon-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Jam Tidur Disarankan &amp; Dilarang</div><div class="small text-muted">Sunnah tidur Rasulullah ﷺ</div></div></a></div>
+
   <?php if (!empty($u) && ($u['role'] ?? '') === 'admin'): ?>
   <div class="col-md-3"><a href="/admin/challenge.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-trophy-fill fs-2 text-warning"></i><div class="fw-semibold mt-1">Kelola Challenge Islami</div><div class="small text-muted">Admin · CRUD Challenge</div></div></a></div>
   <?php endif; ?>

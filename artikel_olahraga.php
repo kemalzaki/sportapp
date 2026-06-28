@@ -457,7 +457,7 @@ $ARTIKEL = [
     'skoring'=> 'Tembakan di dalam garis 3 angka = 2 poin. Tembakan di luar garis 3 angka = 3 poin. Free throw (lemparan bebas) = 1 poin. Pertandingan FIBA: 4 × 10 menit (NBA: 4 × 12 menit). Waktu serangan dibatasi shot clock 24 detik.',
     'skoring_img'=> '',
     'menang' => 'Menang: tim dengan poin terbanyak setelah 4 quarter. Bila imbang: overtime 5 menit, diulang sampai ada pemenang. Pelanggaran: travel, double dribble, 3 detik di area lawan, foul (5 foul personal = keluar di FIBA, 6 di NBA), goaltending (menghadang bola yang sedang turun ke ring).',
-    'video'  => 'https://www.youtube.com/watch?v=LFLG6KEn3qY',
+    'video'  => 'https://www.youtube.com/watch?v=YL6MgD56TaQ',
     'videoLabel' => 'Teknik Dasar Basket',
     'manfaat' => 'Olahraga kardio intens, membakar 500–750 kkal/jam, meningkatkan tinggi badan (lompatan vertikal merangsang lempeng pertumbuhan), memperkuat tungkai &amp; inti tubuh, melatih koordinasi tangan-mata, kerja sama tim, dan kelincahan (agility). Sangat baik untuk perkembangan postural remaja.',
     'penyembuhan' => 'Membantu mengatasi <b>obesitas</b>, memperbaiki <b>postur bungkuk</b> (karena terbiasa menjangkau ke atas), menurunkan <b>tekanan darah</b>, meningkatkan <b>kepadatan tulang</b> (pencegahan osteoporosis dini), melatih jantung &amp; paru, serta membantu pemulihan <b>kecemasan sosial</b> berkat interaksi tim.',

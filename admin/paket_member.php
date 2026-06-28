@@ -79,20 +79,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header('Location: paket_member.php'); exit;
 }
 
-$fPosisi = in_array($_GET['posisi'] ?? '', ['drawer','top','bottom'], true) ? $_GET['posisi'] : '';
-$fPaket  = in_array($_GET['paket']  ?? '', ['','gratis','pro','komunitas'], true) ? $_GET['paket']  : '';
+/* Revisi R26 (28 Juni 2026) — Fix:
+   - Warning "Undefined array key paket" (line 83): sebelumnya
+     in_array($_GET['paket'] ?? '', [...]) yang true → return $_GET['paket']
+     yang BISA undefined. Pakai $rawPaket variabel dulu.
+   - "bind message supplies 0 parameters but prepared statement requires 1":
+     terjadi ketika filter Paket dipilih lalu Reset/refresh meninggalkan
+     placeholder $N yang tidak konsisten. Rebuild $args & $where pakai
+     counter eksplisit. */
+$rawPosisi = isset($_GET['posisi']) ? (string)$_GET['posisi'] : '';
+$rawPaket  = isset($_GET['paket'])  ? (string)$_GET['paket']  : '';
+$fPosisi = in_array($rawPosisi, ['drawer','top','bottom'], true) ? $rawPosisi : '';
+$fPaket  = in_array($rawPaket,  ['gratis','pro','komunitas'],  true) ? $rawPaket  : '';
+$fPaketTanpa = ($rawPaket === '-'); // (tanpa label)
 
-$where = "WHERE 1=1"; $args = [];
-if ($fPosisi) { $args[] = $fPosisi; $where .= " AND m.posisi=$".count($args); }
-if ($fPaket==='-' || ($fPaket==='' && isset($_GET['paket']) && $_GET['paket']==='-')) {
-    $where .= " AND (m.paket IS NULL OR m.paket='')";
-} elseif ($fPaket) {
-    $args[] = $fPaket; $where .= " AND m.paket=$".count($args);
-}
+$args = []; $clauses = ['1=1'];
+if ($fPosisi !== '') { $args[] = $fPosisi; $clauses[] = 'm.posisi=$'.count($args); }
+if ($fPaketTanpa)    { $clauses[] = "(m.paket IS NULL OR m.paket='')"; }
+elseif ($fPaket !== '') { $args[] = $fPaket; $clauses[] = 'm.paket=$'.count($args); }
+$where = 'WHERE '.implode(' AND ', $clauses);
 
 $rows = db_all("SELECT m.id,m.label,m.url,m.icon,m.posisi,m.paket,p.label AS parent_label
                 FROM nav_menu m LEFT JOIN nav_menu p ON p.id=m.parent_id
-                $where ORDER BY m.posisi, COALESCE(m.parent_id,0), m.urutan, m.id");
+                $where ORDER BY m.posisi, COALESCE(m.parent_id,0), m.urutan, m.id", $args);
 
 $stat = db_all("SELECT COALESCE(NULLIF(paket,''),'(tanpa)') AS k, COUNT(*) AS c
                 FROM nav_menu GROUP BY 1 ORDER BY 1");

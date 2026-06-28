@@ -395,49 +395,77 @@ function strftime_id_my($ts){
 </div>
 
 <script>
-/* Revisi R25 (28 Juni 2026) — Perbaikan definitif tombol Edit pengeluaran.
-   Masalah sebelumnya:
-   - Ada DUA IIFE yang sama-sama me-bind handler ke .btn-edit-peng → handler dobel,
-     pada beberapa browser modal hanya "berkedip" lalu tertutup kembali.
-   - Setelah AJAX refresh tabel, handler awal lepas dari DOM baru.
-   Solusi: pakai event delegation di document, satu handler saja, buka modal
-   via getOrCreateInstance. Form edit di-submit normal (full reload) supaya
-   redirect server bekerja & file upload (multipart) konsisten. */
+/* Revisi R26 (28 Juni 2026) — FIX tombol Edit Pengeluaran tidak respon.
+   Root cause: bootstrap.bundle.min.js dimuat di footer.php SETELAH script
+   inline ini, sehingga `window.bootstrap` masih undefined saat IIFE jalan
+   → handler langsung return dan TIDAK pernah ter-bind.
+   Solusi: tunggu DOMContentLoaded + window.load supaya bootstrap sudah ada,
+   dan resolve modal instance secara LAZY di dalam handler click. */
 (function(){
   if (window.__pengEditBound) return;
   window.__pengEditBound = true;
 
-  var modalEl = document.getElementById('editPengModal');
-  if (!modalEl || !window.bootstrap) return;
-  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-
   function setVal(id, v){ var el = document.getElementById(id); if (el) el.value = (v==null?'':v); }
 
-  document.addEventListener('click', function(e){
-    var btn = e.target.closest('.btn-edit-peng');
-    if (!btn) return;
-    e.preventDefault();
-    var d = btn.dataset;
-    setVal('ep_id',        d.id);
-    setVal('ep_jadwal_id', d.jadwal_id || '0');
-    setVal('ep_tanggal',   d.tanggal);
-    setVal('ep_kategori',  d.kategori);
-    setVal('ep_judul',     d.judul);
-    setVal('ep_jumlah',    d.jumlah || '0');
-    setVal('ep_catatan',   d.catatan);
-    setVal('ep_dana_dari', d.dana_dari);
-    setVal('ep_bukti_url', d.bukti_url);
-    modal.show();
-  });
+  function init(){
+    var modalEl = document.getElementById('editPengModal');
+    if (!modalEl) return;
 
-  // Tombol submit modal — beri feedback "menyimpan" lalu biarkan submit normal.
-  var editForm = modalEl.querySelector('form');
-  if (editForm) {
-    editForm.addEventListener('submit', function(){
-      var btn = editForm.querySelector('button[type=submit]');
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
-      return true;
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('.btn-edit-peng');
+      if (!btn) return;
+      e.preventDefault();
+      var d = btn.dataset;
+      setVal('ep_id',        d.id);
+      setVal('ep_jadwal_id', d.jadwal_id || '0');
+      setVal('ep_tanggal',   d.tanggal);
+      setVal('ep_kategori',  d.kategori);
+      setVal('ep_judul',     d.judul);
+      setVal('ep_jumlah',    d.jumlah || '0');
+      setVal('ep_catatan',   d.catatan);
+      setVal('ep_dana_dari', d.dana_dari);
+      setVal('ep_bukti_url', d.bukti_url);
+      if (window.bootstrap && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+      } else {
+        // Fallback bila bootstrap JS gagal load: tampilkan modal manual.
+        modalEl.classList.add('show');
+        modalEl.style.display = 'block';
+        modalEl.removeAttribute('aria-hidden');
+        modalEl.setAttribute('aria-modal','true');
+        document.body.classList.add('modal-open');
+        if (!document.querySelector('.modal-backdrop.peng-fallback')) {
+          var bd = document.createElement('div');
+          bd.className = 'modal-backdrop fade show peng-fallback';
+          document.body.appendChild(bd);
+        }
+        // Tombol close & batal manual
+        modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(b){
+          b.addEventListener('click', function(){
+            modalEl.classList.remove('show'); modalEl.style.display='';
+            document.body.classList.remove('modal-open');
+            var bd = document.querySelector('.modal-backdrop.peng-fallback');
+            if (bd) bd.remove();
+          }, { once:true });
+        });
+      }
     });
+
+    var editForm = modalEl.querySelector('form');
+    if (editForm) {
+      editForm.addEventListener('submit', function(){
+        var btn = editForm.querySelector('button[type=submit]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
+        return true;
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();
 </script>

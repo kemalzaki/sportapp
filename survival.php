@@ -489,6 +489,75 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
     </div>
   </div>
 
+  <!-- Revisi R26 (28 Juni 2026) — Menu BARU: Penanganan terhadap Hewan Liar.
+       Diletakkan tepat di bawah "Mitigasi Agar Tidak Tersesat" agar urut
+       (mitigasi → penanganan hewan → jika tersesat). -->
+  <div class="col-12">
+    <div class="card shadow-sm border-warning">
+      <div class="card-header bg-warning-subtle text-warning-emphasis">
+        <i class="bi bi-bug-fill"></i> <strong>Penanganan terhadap Hewan Liar</strong>
+        <span class="small text-muted ms-2">(panduan singkat per jenis hewan)</span>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning small py-2 mb-3">
+          <i class="bi bi-shield-exclamation"></i>
+          Prinsip umum: <b>JANGAN lari</b> (memicu insting kejar), <b>JANGAN tatap mata langsung</b>
+          pada predator besar, mundur perlahan menghadap hewan, lindungi leher &amp; kepala.
+          Bawa pluit, headlamp terang, dan obat anti-bisa ular polivalen bila masuk hutan dalam.
+        </div>
+        <div class="row g-2">
+          <?php
+          $hewan = [
+            ['Ular berbisa (kobra, weling, viper hijau)','bi-virus','danger',
+              'Jangan dipukul/dikejar. Diam mematung, biarkan ular menjauh. JANGAN ikat tourniquet atau sayat luka. Imobilisasi anggota tubuh yang digigit (lebih rendah dari jantung), evakuasi ke faskes untuk SABU (Serum Anti Bisa Ular) polivalen Bio Farma. Foto ular bila aman untuk identifikasi.'],
+            ['Babi hutan / celeng','bi-piggy-bank','warning',
+              'Sangat agresif jika ada anaknya. Naik pohon/batu setinggi >2 m. Jangan lari lurus — zig-zag. Bila terpaksa konfrontasi, gunakan ranting panjang & teriak keras menjaga jarak.'],
+            ['Beruang madu (sun bear)','bi-emoji-dizzy','danger',
+              'Hindari kontak mata, mundur perlahan sambil bicara tenang. Jangan panjat pohon (beruang madu pandai memanjat). Bila diserang: tiarap meringkuk, lindungi tengkuk dengan tangan, diam — beruang sering pergi setelah merasa "menang".'],
+            ['Harimau / macan tutul','bi-x-octagon-fill','danger',
+              'Berdiri tegak, angkat tangan/jaket agar terlihat besar. JANGAN berbalik / lari. Pelan-pelan mundur sambil tetap menghadap. Hindari berjongkok (tampak seperti mangsa). Bila menyerang: lawan dengan apa pun — pukul moncong & mata.'],
+            ['Buaya muara (di sungai/rawa)','bi-water','danger',
+              'Jangan mandi/cuci di tepi sungai berlumpur saat senja-malam. Bila bertemu di darat: lari zig-zag menjauh ≥10 m (buaya cepat tapi pendek nafas). Bila diserang di air: serang mata & lubang hidung, sumbat reflek tutup matanya.'],
+            ['Monyet ekor panjang / lutung','bi-emoji-laughing','info',
+              'Jangan menatap mata & jangan tunjukkan makanan/botol. Lepaskan tas/topi bila direbut — jangan tarik ulur. Suara tegas & langkah mantap menjauh; hindari senyum (gigi terlihat = ancaman).'],
+            ['Lebah/tawon liar (vespa, tawon ndas)','bi-bug','warning',
+              'Bila satu-dua mengikuti: jalan tenang menjauh, jangan menepuk. Bila kawanan menyerang: tutup wajah, lari lurus menjauh ke semak rapat / masuk air dangkal. Sengatan banyak (>20) = darurat anafilaktik, segera ke faskes.'],
+            ['Lintah & pacet','bi-droplet-half','secondary',
+              'JANGAN ditarik (kepala bisa tertinggal → infeksi). Taburi garam, tembakau, atau tetesi minyak kayu putih — lintah lepas sendiri. Bersihkan luka dengan antiseptik, tutup plester.'],
+            ['Kalajengking & lipan besar','bi-bug-fill','warning',
+              'Sengatan menyakitkan tapi jarang fatal pada spesies Indonesia. Cuci luka dengan sabun, kompres dingin, minum parasetamol. Awasi gejala alergi (sesak, bengkak wajah) → segera ke faskes.'],
+            ['Anjing hutan / ajak (dhole)','bi-emoji-angry','danger',
+              'Berkelompok 4–10 ekor. Jangan lari. Berdiri tegak, lempar batu/ranting ke arah salah satu, mundur ke pohon/tebing agar punggung terlindung. Nyalakan api bila bisa — anjing liar takut api.'],
+            ['Komodo / biawak besar (Flores, NTT)','bi-emoji-frown-fill','danger',
+              'Jaga jarak minimal 5 m. Jalan mundur perlahan, jangan berlari (lari = mangsa). Bila tergigit: cuci luka dengan air mengalir + antiseptik kuat (air liur penuh bakteri patogen), segera evakuasi ke RS untuk antibiotik IV.'],
+            ['Gajah liar (Sumatera/Kalimantan)','bi-emoji-expressionless','danger',
+              'Hindari posisi antara induk & anak. Bila gajah mengibaskan telinga & menggenjot kaki = peringatan. Mundur menyamping ke balik pohon besar; gajah sulit berbelok cepat. Jangan menatap mata.'],
+            ['Nyamuk Anopheles (malaria) & Aedes (DBD)','bi-droplet','info',
+              'Pakai baju lengan panjang warna terang + repelen DEET 20–30%. Tidur pakai kelambu. Pulang trekking, awasi 14 hari: demam tinggi mendadak → cek darah malaria/DBD di puskesmas terdekat.'],
+          ];
+          foreach ($hewan as $h): ?>
+            <div class="col-md-6">
+              <div class="border rounded p-2 h-100">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <i class="bi <?= $h[1] ?> text-<?= $h[2] ?> fs-5"></i>
+                  <strong class="small"><?= htmlspecialchars($h[0]) ?></strong>
+                </div>
+                <div class="small text-muted"><?= $h[3] ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <div class="alert alert-info small mt-3 mb-0">
+          <i class="bi bi-telephone-fill"></i> <b>Hotline darurat satwa &amp; SAR:</b>
+          Basarnas <b>115</b> · Polisi <b>110</b> · BKSDA setempat (cek nomor lokal sebelum berangkat).
+          Bawa P3K berisi: antiseptik povidon iodin, kasa steril, plester, perban elastis untuk imobilisasi gigitan ular,
+          antihistamin (cetirizine), epinephrine auto-injector bila alergi sengatan.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <div class="col-md-6">
     <div class="card shadow-sm h-100 border-danger">
       <div class="card-header"><i class="bi bi-exclamation-octagon-fill text-danger"></i> <strong>Jika Sudah Tersesat — Lakukan Ini</strong></div>
