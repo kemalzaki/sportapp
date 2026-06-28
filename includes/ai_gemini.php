@@ -240,8 +240,15 @@ function _gemini_call(array $parts, array $opts = []) {
             $isOverloaded = ($code===503) || stripos($msg,'overloaded')!==false
                        || stripos($msg,'high demand')!==false || stripos($msg,'UNAVAILABLE')!==false
                        || stripos($msg,'try again')!==false;
-            // rotasi key bila quota / 401 / 403 / overloaded dan masih ada key cadangan
-            if (($isQuota || $isOverloaded || $code===401 || $code===403) && $keyIdx < count($keys)-1) {
+            // Revisi 27 Juni 2026 — deteksi error region/lokasi tidak didukung
+            // ("User location is not supported for the API use") → rotasi key
+            // (key lain mungkin terdaftar di project region berbeda) dan
+            // tampilkan pesan ramah + saran proxy.
+            $isGeo = (stripos($msg,'User location is not supported')!==false)
+                  || (stripos($msg,'location is not supported')!==false)
+                  || (stripos($msg,'FAILED_PRECONDITION')!==false && stripos($msg,'location')!==false);
+            // rotasi key bila quota / 401 / 403 / overloaded / geo-block dan masih ada key cadangan
+            if (($isQuota || $isOverloaded || $isGeo || $code===401 || $code===403) && $keyIdx < count($keys)-1) {
                 $lastErr = '[key#'.($keyIdx+1).' '.$kind.' gagal: '.substr($msg,0,140).'] — coba key berikutnya';
                 continue; // try next key
             }
@@ -254,6 +261,15 @@ function _gemini_call(array $parts, array $opts = []) {
             if ($isOverloaded) {
                 // Pesan ringkas yang aman ditampilkan ke user.
                 $msg = 'Model AI sedang sibuk (high demand). Coba lagi sebentar, atau tambahkan GEMINI_API_KEY cadangan agar otomatis dirotasi.';
+            }
+            if ($isGeo) {
+                // Pesan ramah + saran setup proxy / API key region didukung.
+                $msg = 'Layanan Gemini AI menolak permintaan karena wilayah/IP server tidak didukung '
+                     . '("User location is not supported"). Solusi: (1) jalankan PHP melalui proxy/VPN ke '
+                     . 'region yang didukung Gemini, (2) set environment GEMINI_API_KEY dari project Google AI '
+                     . 'di region yang diizinkan, atau (3) gunakan Vertex AI endpoint melalui Cloud Run di '
+                     . 'region us-central1. Aplikasi tetap berjalan tanpa AI — fitur sinkron musik akan '
+                     . 'memakai mode fallback (beat-detection lokal).';
             }
             return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
 

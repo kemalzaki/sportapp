@@ -10,6 +10,10 @@ require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle = 'Navigasi Menu (CMS)';
 
+// Revisi 27 Juni 2026 — Pengaturan Paket Member per item menu.
+// Tambah kolom paket (gratis|pro|komunitas|NULL) — NULL/empty berarti "tanpa label".
+try { db_exec("ALTER TABLE nav_menu ADD COLUMN IF NOT EXISTS paket VARCHAR(20)"); } catch (Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -23,15 +27,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $aktif  = !empty($_POST['aktif']);
             $target = in_array($_POST['target'] ?? '_self', ['_self','_blank'], true) ? $_POST['target'] : '_self';
             $posisi = in_array($_POST['posisi'] ?? 'drawer', ['drawer','top','bottom'], true) ? $_POST['posisi'] : 'drawer';
+            $paket  = strtolower(trim($_POST['paket'] ?? ''));
+            if (!in_array($paket, ['gratis','pro','komunitas'], true)) $paket = null;
             if ($label === '') throw new RuntimeException('Label wajib diisi.');
             if ($a === 'add') {
-                db_exec("INSERT INTO nav_menu(label,url,icon,parent_id,urutan,aktif,target,posisi)
-                         VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-                    [$label,$url,$icon?:null,$parent,$urut,$aktif?'t':'f',$target,$posisi]);
+                db_exec("INSERT INTO nav_menu(label,url,icon,parent_id,urutan,aktif,target,posisi,paket)
+                         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+                    [$label,$url,$icon?:null,$parent,$urut,$aktif?'t':'f',$target,$posisi,$paket]);
             } else {
                 $id = (int)$_POST['id'];
-                db_exec("UPDATE nav_menu SET label=$1,url=$2,icon=$3,parent_id=$4,urutan=$5,aktif=$6,target=$7,posisi=$8 WHERE id=$9",
-                    [$label,$url,$icon?:null,$parent,$urut,$aktif?'t':'f',$target,$posisi,$id]);
+                db_exec("UPDATE nav_menu SET label=$1,url=$2,icon=$3,parent_id=$4,urutan=$5,aktif=$6,target=$7,posisi=$8,paket=$9 WHERE id=$10",
+                    [$label,$url,$icon?:null,$parent,$urut,$aktif?'t':'f',$target,$posisi,$paket,$id]);
             }
             $_SESSION['flash'] = 'Menu disimpan.';
         } elseif ($a === 'delete') {
@@ -83,22 +89,59 @@ include __DIR__.'/../includes/header.php';
       </select>
     </div>
     <div class="col-md-1 form-check mt-4 ms-2"><input class="form-check-input" type="checkbox" name="aktif" id="ak" checked><label for="ak" class="small">aktif</label></div>
+    <div class="col-md-2"><label class="small">Paket (label)</label>
+      <select name="paket" class="form-select form-select-sm" title="Label paket member di samping nama menu (opsional)">
+        <option value="">— tanpa label —</option>
+        <option value="gratis">🆓 Gratis</option>
+        <option value="pro">⭐ PRO</option>
+        <option value="komunitas">👥 Komunitas</option>
+      </select>
+    </div>
     <div class="col-12"><button class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Tambah</button></div>
   </form>
 </div>
 
 <div class="table-responsive">
 <table class="table table-sm align-middle">
-  <thead><tr><th>#</th><th>Label</th><th>URL</th><th>Posisi</th><th>Parent</th><th>Urut</th><th>Aktif</th><th></th></tr></thead>
+  <thead><tr><th>#</th><th>Label</th><th>URL</th><th>Posisi</th><th>Parent</th><th>Urut</th><th>Paket</th><th>Aktif</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($rows as $r): ?>
     <tr>
       <td><?= (int)$r['id'] ?></td>
-      <td><?= $r['icon']?'<i class="bi '.htmlspecialchars($r['icon']).'"></i> ':'' ?><?= htmlspecialchars($r['label']) ?></td>
+      <td>
+        <?= $r['icon']?'<i class="bi '.htmlspecialchars($r['icon']).'"></i> ':'' ?><?= htmlspecialchars($r['label']) ?>
+        <?php if (!empty($r['paket'])): $pk=strtolower($r['paket']);
+              $bcls = $pk==='pro'?'warning':($pk==='komunitas'?'success':'secondary');
+              $bico = $pk==='pro'?'⭐ PRO':($pk==='komunitas'?'👥 Komunitas':'🆓 Gratis'); ?>
+          <span class="badge bg-<?= $bcls ?> ms-1"><?= $bico ?></span>
+        <?php endif; ?>
+      </td>
       <td class="small text-muted"><?= htmlspecialchars($r['url']) ?></td>
       <td><span class="badge bg-secondary"><?= htmlspecialchars($r['posisi']) ?></span></td>
       <td class="small"><?= htmlspecialchars($r['parent_label'] ?? '—') ?></td>
       <td><?= (int)$r['urutan'] ?></td>
+      <td>
+        <form method="post" class="d-inline">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="edit">
+          <input type="hidden" name="id"      value="<?= (int)$r['id'] ?>">
+          <input type="hidden" name="label"   value="<?= htmlspecialchars($r['label']) ?>">
+          <input type="hidden" name="url"     value="<?= htmlspecialchars($r['url']) ?>">
+          <input type="hidden" name="icon"    value="<?= htmlspecialchars((string)($r['icon']??'')) ?>">
+          <input type="hidden" name="parent_id" value="<?= (int)($r['parent_id']??0) ?>">
+          <input type="hidden" name="urutan"  value="<?= (int)$r['urutan'] ?>">
+          <input type="hidden" name="target"  value="<?= htmlspecialchars($r['target']??'_self') ?>">
+          <input type="hidden" name="posisi"  value="<?= htmlspecialchars($r['posisi']) ?>">
+          <?php if ($r['aktif']==='t' || $r['aktif']===true): ?><input type="hidden" name="aktif" value="1"><?php endif; ?>
+          <select name="paket" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:120px">
+            <?php $cur = strtolower((string)($r['paket'] ?? '')); ?>
+            <option value=""          <?= $cur===''?'selected':''         ?>>— tanpa —</option>
+            <option value="gratis"    <?= $cur==='gratis'?'selected':''   ?>>🆓 Gratis</option>
+            <option value="pro"       <?= $cur==='pro'?'selected':''      ?>>⭐ PRO</option>
+            <option value="komunitas" <?= $cur==='komunitas'?'selected':''?>>👥 Komunitas</option>
+          </select>
+        </form>
+      </td>
       <td><?= ($r['aktif']==='t'||$r['aktif']===true)?'✅':'⬜' ?></td>
       <td>
         <form method="post" class="d-inline" onsubmit="return confirm('Hapus menu ini?')">

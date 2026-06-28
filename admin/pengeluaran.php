@@ -387,7 +387,7 @@ function strftime_id_my($ts){
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button>
         </div>
       </form>
     </div>
@@ -518,17 +518,31 @@ function strftime_id_my($ts){
   }
   // Intercept EDIT modal form
   if (editForm) {
+    /* Revisi 27 Juni 2026 — Fix "Edit tidak berfungsi":
+       - Pastikan submit form modal dicegat (bukan diteruskan ke form luar).
+       - Tampilkan notifikasi sukses/gagal.
+       - Tunggu response selesai (await text) sebelum reload tabel.
+       - Reset oldHtml tombol bila ada. */
     editForm.addEventListener('submit', function(e){
       e.preventDefault();
+      e.stopPropagation();
       var fd = new FormData(editForm);
-      var btn = editForm.querySelector('button[type=submit]');
-      if (btn) btn.disabled = true;
-      fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin'})
-        .then(function(){
+      var btn = editForm.querySelector('button[type=submit]') || editForm.querySelector('.modal-footer button.btn-primary');
+      var oldH = '';
+      if (btn) { oldH = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
+      fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin', redirect:'follow'})
+        .then(function(r){ return r.text().then(function(){ return r.ok; }); })
+        .then(function(ok){
+          if (!ok) throw new Error('HTTP error');
           if (editModal) editModal.hide();
           loadTable();
         })
-        .finally(function(){ if (btn) btn.disabled = false; });
+        .catch(function(err){
+          alert('Gagal menyimpan perubahan: ' + (err && err.message ? err.message : 'unknown'));
+        })
+        .finally(function(){
+          if (btn) { btn.disabled = false; btn.innerHTML = oldH || '<i class="bi bi-save"></i> Simpan Perubahan'; }
+        });
     });
   }
 })();

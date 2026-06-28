@@ -225,6 +225,16 @@ include __DIR__.'/includes/header.php';
         <?php endforeach; ?>
       </select>
       <button id="btnFindForest" class="btn btn-sm btn-success"><i class="bi bi-search"></i> Cari</button>
+      <!-- Revisi 27 Juni 2026 — cari hutan dari lokasi terkini (radius) -->
+      <button id="btnFindNear" class="btn btn-sm btn-outline-success" title="Cari hutan/kawasan lindung di sekitar lokasi Anda">
+        <i class="bi bi-geo-fill"></i> Cari dari Lokasi Saya
+      </button>
+      <select id="radiusSel" class="form-select form-select-sm" style="width:auto" title="Radius pencarian">
+        <option value="10000">10 km</option>
+        <option value="25000" selected>25 km</option>
+        <option value="50000">50 km</option>
+        <option value="100000">100 km</option>
+      </select>
     </div>
   </div>
   <div class="card-body">
@@ -277,6 +287,85 @@ window.__PROVINCE_FORESTS = <?= json_encode($PROVINCE_FORESTS, JSON_UNESCAPED_UN
     if (bounds.length>1) map.fitBounds(bounds,{padding:[40,40]});
     st.className='alert alert-success small py-2 mb-2';
     st.innerHTML='Ditemukan <b>'+data.length+'</b> lokasi hutan rekomendasi di <b>'+prov+'</b>. Titik hijau = survival makanan tinggi, oranye = sedang, merah = rendah.';
+  });
+
+  /* Revisi 27 Juni 2026 — Hutan terdekat berdasarkan lokasi terkini (Overpass).
+     Mencari natural=wood / landuse=forest / boundary=protected_area di sekitar user. */
+  function distKm(a,b){
+    var R=6371, toRad=function(x){return x*Math.PI/180;};
+    var dLat=toRad(b[0]-a[0]), dLng=toRad(b[1]-a[1]);
+    var s=Math.sin(dLat/2)**2+Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+  document.getElementById('btnFindNear').addEventListener('click', function(){
+    var st   = document.getElementById('forestStatus');
+    var list = document.getElementById('forestList');
+    var rad  = parseInt(document.getElementById('radiusSel').value||'25000',10);
+    if (!navigator.geolocation){ st.className='alert alert-danger small py-2 mb-2'; st.textContent='Browser tidak mendukung Geolocation.'; return; }
+    st.className='alert alert-info small py-2 mb-2';
+    st.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mendeteksi lokasi…';
+    navigator.geolocation.getCurrentPosition(async function(pos){
+      var ulat=pos.coords.latitude, ulng=pos.coords.longitude;
+      init(ulat,ulng);
+      if (layer) layer.clearLayers();
+      L.marker([ulat,ulng]).addTo(layer).bindPopup('📍 Lokasi Anda').openPopup();
+      st.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mencari hutan/kawasan dalam radius '+(rad/1000)+' km…';
+      var q='[out:json][timeout:25];('+
+            'way["natural"="wood"](around:'+rad+','+ulat+','+ulng+');'+
+            'way["landuse"="forest"](around:'+rad+','+ulat+','+ulng+');'+
+            'relation["boundary"="protected_area"](around:'+rad+','+ulat+','+ulng+');'+
+            'relation["boundary"="national_park"](around:'+rad+','+ulat+','+ulng+');'+
+            ');out center 40;';
+      try {
+        var r = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:q});
+        var j = await r.json();
+        var els = (j.elements||[]).map(function(e){
+          var la=e.lat||(e.center&&e.center.lat); var ln=e.lon||(e.center&&e.center.lon);
+          if(!la||!ln) return null;
+          var tg=e.tags||{};
+          var nama = tg.name || (tg.boundary==='national_park'?'Taman Nasional':
+                     tg.boundary==='protected_area'?'Kawasan Lindung':
+                     tg.natural==='wood'?'Hutan':'Hutan/Kawasan');
+          var tipe = tg.boundary || tg.natural || tg.landuse || 'forest';
+          return {nama:nama,lat:la,lng:ln,tipe:tipe};
+        }).filter(Boolean);
+        els.forEach(function(e){ e.km = distKm([ulat,ulng],[e.lat,e.lng]); });
+        els.sort(function(a,b){return a.km-b.km;});
+        els = els.slice(0,25);
+        list.innerHTML='';
+        if (!els.length){
+          st.className='alert alert-warning small py-2 mb-2';
+          st.textContent='Tidak ditemukan hutan/kawasan lindung dalam radius '+(rad/1000)+' km. Coba perbesar radius.';
+          return;
+        }
+        var bnds=[[ulat,ulng]];
+        els.forEach(function(it){
+          var color = it.tipe==='national_park'?'#198754':(it.tipe==='protected_area'?'#0d6efd':'#20c997');
+          L.circleMarker([it.lat,it.lng],{radius:9,color:color,fillColor:color,fillOpacity:0.6})
+            .addTo(layer).bindPopup('<b>'+it.nama+'</b><br>'+it.tipe+'<br>'+it.km.toFixed(2)+' km');
+          bnds.push([it.lat,it.lng]);
+          var btn=document.createElement('div');
+          btn.className='list-group-item d-flex justify-content-between align-items-center';
+          btn.innerHTML='<div><i class="bi bi-tree-fill" style="color:'+color+'"></i> <strong>'+
+            it.nama+'</strong> <span class="badge bg-secondary ms-1">'+it.tipe+'</span><br>'+
+            '<small class="text-muted">'+it.km.toFixed(2)+' km dari Anda</small></div>'+
+            '<a class="btn btn-sm btn-success" target="_blank" rel="noopener" '+
+            'href="https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+
+            ulat+','+ulng+'&destination='+it.lat+','+it.lng+'">'+
+            '<i class="bi bi-google"></i> Rute</a>';
+          list.appendChild(btn);
+        });
+        if (bnds.length>1) map.fitBounds(bnds,{padding:[40,40]});
+        st.className='alert alert-success small py-2 mb-2';
+        st.innerHTML='Ditemukan <b>'+els.length+'</b> lokasi hutan/kawasan lindung di sekitar Anda (radius '+(rad/1000)+' km). Klik <b>Rute</b> untuk arahan via Google Maps.';
+      } catch(e){
+        st.className='alert alert-danger small py-2 mb-2';
+        st.textContent='Gagal mengakses Overpass API: '+e.message;
+      }
+    }, function(err){
+      st.className='alert alert-danger small py-2 mb-2';
+      st.textContent='Gagal mendapatkan lokasi: '+err.message;
+    },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
   });
 })();
 </script>

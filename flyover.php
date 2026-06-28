@@ -1685,7 +1685,29 @@ $('btnRecord').onclick  = ()=> {
       fd.append('audio', new File([blob], 'song.'+ext, { type: blob.type || 'audio/mpeg' }));
       var r = await fetch('/api_ai.php', { method:'POST', body:fd, credentials:'same-origin' });
       var j = await r.json();
-      if (!j.ok){ stat.innerHTML = '<span class="text-danger">Gagal: '+(j.err||'?')+'</span>'; }
+      if (!j.ok){
+        // Revisi 27 Juni 2026 — fallback otomatis ke beat-sync lokal saat Gemini
+        // memblok wilayah ("User location is not supported") atau error region lain.
+        var em = (j.err||'?');
+        if (/location is not supported|FAILED_PRECONDITION/i.test(em)) {
+          stat.innerHTML = '<span class="text-warning">Gemini AI tidak tersedia di wilayah server ini. '
+            + 'Beralih ke <b>beat-sync lokal</b> (tanpa AI)…</span>';
+          try {
+            if (typeof syncLyricsToBeats === 'function') {
+              var ok = await syncLyricsToBeats();
+              if (ok) {
+                stat.innerHTML = '<i class="bi bi-check-circle text-success"></i> Lirik tersinkron via beat-detection lokal (fallback) — '+(LYRICS.lines||[]).length+' baris.';
+              } else {
+                stat.innerHTML = '<span class="text-danger">Fallback beat-sync gagal. Coba paste LRC manual (format [mm:ss.xx]).</span>';
+              }
+            }
+          } catch(e2){
+            stat.innerHTML = '<span class="text-danger">Fallback gagal: '+e2.message+'</span>';
+          }
+        } else {
+          stat.innerHTML = '<span class="text-danger">Gagal: '+em+'</span>';
+        }
+      }
       else if (!j.lrc || j.lrc.length < 5){ stat.innerHTML = '<span class="text-warning">AI tidak menghasilkan LRC.</span>'; }
       else {
         ta.value = j.lrc;

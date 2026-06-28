@@ -367,8 +367,18 @@ include __DIR__.'/includes/ai_qa_widget.php';
         '<div><i class="bi '+icon+'"></i> <strong>'+it.nama+'</strong> '+
         '<span class="badge bg-secondary ms-1">'+it.tipe+'</span><br>'+
         '<small class="text-muted">'+(it.alamat||'Alamat tidak tersedia')+'</small></div>'+
-        '<span class="badge bg-danger rounded-pill">'+it.km.toFixed(2)+' km</span>';
-      item.addEventListener('click', function(){ showRoute(it,m); });
+        '<div class="text-end">'+
+          '<span class="badge bg-danger rounded-pill mb-1 d-block">'+it.km.toFixed(2)+' km</span>'+
+          '<a href="https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+
+              userLatLng[0]+','+userLatLng[1]+'&destination='+it.lat+','+it.lng+
+              '" target="_blank" rel="noopener" class="btn btn-sm btn-success mt-1 gmap-btn">'+
+              '<i class="bi bi-google"></i> Rute Google Maps</a>'+
+        '</div>';
+      // Klik baris (selain tombol Google Maps) → tampilkan rute via OSRM.
+      item.addEventListener('click', function(ev){
+        if (ev.target.closest('.gmap-btn')) return; // biarkan tombol membuka tab baru
+        showRoute(it,m);
+      });
       listEl.appendChild(item);
     });
   }
