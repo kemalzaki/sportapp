@@ -29,6 +29,20 @@ try {
     db_exec("CREATE INDEX IF NOT EXISTS survival_qa_user_idx ON survival_qa_saved(user_id, created_at DESC)");
 } catch (Throwable $e) {}
 
+/* Revisi (28 Juni 2026) — Koleksi foto tambahan utk panel "Hewan Liar".
+   Tabel idempotent menyimpan foto yang diunggah user per slug hewan. */
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS hewan_liar_foto (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        slug TEXT NOT NULL,
+        path TEXT NOT NULL,
+        caption TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS hewan_liar_foto_slug_idx ON hewan_liar_foto(slug, created_at DESC)");
+} catch (Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -47,6 +61,42 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         header('Content-Type: application/json');
         $id = (int)($_POST['id'] ?? 0);
         if ($id>0) db_exec("DELETE FROM survival_qa_saved WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
+        echo json_encode(['ok'=>true]); exit;
+    } elseif ($a === 'hewan_foto_add') {
+        /* Revisi (28 Juni 2026) — Tambah foto hewan liar (upload user). */
+        header('Content-Type: application/json');
+        $slug = preg_replace('/[^a-z0-9_\-]/', '', strtolower((string)($_POST['slug'] ?? '')));
+        $cap  = mb_substr(trim((string)($_POST['caption'] ?? '')), 0, 240);
+        if ($slug==='' || !isset($_FILES['foto'])) { echo json_encode(['ok'=>false,'err'=>'Slug/file kosong']); exit; }
+        $f = $_FILES['foto'];
+        if (($f['error'] ?? 1) !== UPLOAD_ERR_OK) { echo json_encode(['ok'=>false,'err'=>'Upload error']); exit; }
+        if ($f['size'] > 5*1024*1024) { echo json_encode(['ok'=>false,'err'=>'Max 5MB']); exit; }
+        $info = @getimagesize($f['tmp_name']);
+        if (!$info) { echo json_encode(['ok'=>false,'err'=>'Bukan gambar']); exit; }
+        $extMap = [IMAGETYPE_JPEG=>'jpg', IMAGETYPE_PNG=>'png', IMAGETYPE_WEBP=>'webp'];
+        if (!isset($extMap[$info[2]])) { echo json_encode(['ok'=>false,'err'=>'Format harus JPG/PNG/WEBP']); exit; }
+        $dir = __DIR__.'/uploads/hewan';
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        $fname = 'user_'.$slug.'_'.(int)$u['id'].'_'.time().'_'.bin2hex(random_bytes(3)).'.'.$extMap[$info[2]];
+        $dest = $dir.'/'.$fname;
+        if (!move_uploaded_file($f['tmp_name'], $dest)) { echo json_encode(['ok'=>false,'err'=>'Gagal menyimpan']); exit; }
+        $rel = '/uploads/hewan/'.$fname;
+        $r = pg_query_params(db(), "INSERT INTO hewan_liar_foto(user_id,slug,path,caption) VALUES($1,$2,$3,$4) RETURNING id",
+            [(int)$u['id'], $slug, $rel, $cap]);
+        $id = (int)(pg_fetch_row($r)[0] ?? 0);
+        echo json_encode(['ok'=>true,'id'=>$id,'path'=>$rel,'caption'=>$cap]); exit;
+    } elseif ($a === 'hewan_foto_del') {
+        header('Content-Type: application/json');
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id>0) {
+            $r = pg_query_params(db(), "SELECT path FROM hewan_liar_foto WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
+            $row = pg_fetch_assoc($r);
+            if ($row) {
+                $p = __DIR__.$row['path'];
+                if (is_file($p)) @unlink($p);
+                db_exec("DELETE FROM hewan_liar_foto WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
+            }
+        }
         echo json_encode(['ok'=>true]); exit;
     } elseif ($a === 'forest_ai') {
         /* Revisi R25 (28 Juni 2026) — Rekomendasi Hutan via AI (Gemini).
@@ -507,42 +557,118 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
         </div>
         <div class="row g-2">
           <?php
+          /* Revisi (28 Juni 2026) — Tambah kolom slug + foto bawaan (digenerate Lovable, disimpan di /uploads/hewan/<slug>.jpg). */
           $hewan = [
-            ['Ular berbisa (kobra, weling, viper hijau)','bi-virus','danger',
+            ['ular','Ular berbisa (kobra, weling, viper hijau)','bi-virus','danger',
               'Jangan dipukul/dikejar. Diam mematung, biarkan ular menjauh. JANGAN ikat tourniquet atau sayat luka. Imobilisasi anggota tubuh yang digigit (lebih rendah dari jantung), evakuasi ke faskes untuk SABU (Serum Anti Bisa Ular) polivalen Bio Farma. Foto ular bila aman untuk identifikasi.'],
-            ['Babi hutan / celeng','bi-piggy-bank','warning',
+            ['babi_hutan','Babi hutan / celeng','bi-piggy-bank','warning',
               'Sangat agresif jika ada anaknya. Naik pohon/batu setinggi >2 m. Jangan lari lurus — zig-zag. Bila terpaksa konfrontasi, gunakan ranting panjang & teriak keras menjaga jarak.'],
-            ['Beruang madu (sun bear)','bi-emoji-dizzy','danger',
+            ['beruang_madu','Beruang madu (sun bear)','bi-emoji-dizzy','danger',
               'Hindari kontak mata, mundur perlahan sambil bicara tenang. Jangan panjat pohon (beruang madu pandai memanjat). Bila diserang: tiarap meringkuk, lindungi tengkuk dengan tangan, diam — beruang sering pergi setelah merasa "menang".'],
-            ['Harimau / macan tutul','bi-x-octagon-fill','danger',
+            ['harimau','Harimau / macan tutul','bi-x-octagon-fill','danger',
               'Berdiri tegak, angkat tangan/jaket agar terlihat besar. JANGAN berbalik / lari. Pelan-pelan mundur sambil tetap menghadap. Hindari berjongkok (tampak seperti mangsa). Bila menyerang: lawan dengan apa pun — pukul moncong & mata.'],
-            ['Buaya muara (di sungai/rawa)','bi-water','danger',
+            ['buaya','Buaya muara (di sungai/rawa)','bi-water','danger',
               'Jangan mandi/cuci di tepi sungai berlumpur saat senja-malam. Bila bertemu di darat: lari zig-zag menjauh ≥10 m (buaya cepat tapi pendek nafas). Bila diserang di air: serang mata & lubang hidung, sumbat reflek tutup matanya.'],
-            ['Monyet ekor panjang / lutung','bi-emoji-laughing','info',
+            ['monyet','Monyet ekor panjang / lutung','bi-emoji-laughing','info',
               'Jangan menatap mata & jangan tunjukkan makanan/botol. Lepaskan tas/topi bila direbut — jangan tarik ulur. Suara tegas & langkah mantap menjauh; hindari senyum (gigi terlihat = ancaman).'],
-            ['Lebah/tawon liar (vespa, tawon ndas)','bi-bug','warning',
+            ['tawon','Lebah/tawon liar (vespa, tawon ndas)','bi-bug','warning',
               'Bila satu-dua mengikuti: jalan tenang menjauh, jangan menepuk. Bila kawanan menyerang: tutup wajah, lari lurus menjauh ke semak rapat / masuk air dangkal. Sengatan banyak (>20) = darurat anafilaktik, segera ke faskes.'],
-            ['Lintah & pacet','bi-droplet-half','secondary',
+            ['lintah','Lintah & pacet','bi-droplet-half','secondary',
               'JANGAN ditarik (kepala bisa tertinggal → infeksi). Taburi garam, tembakau, atau tetesi minyak kayu putih — lintah lepas sendiri. Bersihkan luka dengan antiseptik, tutup plester.'],
-            ['Kalajengking & lipan besar','bi-bug-fill','warning',
+            ['kalajengking','Kalajengking & lipan besar','bi-bug-fill','warning',
               'Sengatan menyakitkan tapi jarang fatal pada spesies Indonesia. Cuci luka dengan sabun, kompres dingin, minum parasetamol. Awasi gejala alergi (sesak, bengkak wajah) → segera ke faskes.'],
-            ['Anjing hutan / ajak (dhole)','bi-emoji-angry','danger',
+            ['ajak','Anjing hutan / ajak (dhole)','bi-emoji-angry','danger',
               'Berkelompok 4–10 ekor. Jangan lari. Berdiri tegak, lempar batu/ranting ke arah salah satu, mundur ke pohon/tebing agar punggung terlindung. Nyalakan api bila bisa — anjing liar takut api.'],
-            ['Komodo / biawak besar (Flores, NTT)','bi-emoji-frown-fill','danger',
+            ['komodo','Komodo / biawak besar (Flores, NTT)','bi-emoji-frown-fill','danger',
               'Jaga jarak minimal 5 m. Jalan mundur perlahan, jangan berlari (lari = mangsa). Bila tergigit: cuci luka dengan air mengalir + antiseptik kuat (air liur penuh bakteri patogen), segera evakuasi ke RS untuk antibiotik IV.'],
-            ['Gajah liar (Sumatera/Kalimantan)','bi-emoji-expressionless','danger',
+            ['gajah','Gajah liar (Sumatera/Kalimantan)','bi-emoji-expressionless','danger',
               'Hindari posisi antara induk & anak. Bila gajah mengibaskan telinga & menggenjot kaki = peringatan. Mundur menyamping ke balik pohon besar; gajah sulit berbelok cepat. Jangan menatap mata.'],
-            ['Nyamuk Anopheles (malaria) & Aedes (DBD)','bi-droplet','info',
+            ['nyamuk','Nyamuk Anopheles (malaria) & Aedes (DBD)','bi-droplet','info',
               'Pakai baju lengan panjang warna terang + repelen DEET 20–30%. Tidur pakai kelambu. Pulang trekking, awasi 14 hari: demam tinggi mendadak → cek darah malaria/DBD di puskesmas terdekat.'],
           ];
-          foreach ($hewan as $h): ?>
+
+          /* Ambil semua foto user (semua slug sekaligus) agar tidak n+1 query. */
+          $fotoBySlug = [];
+          try {
+              $rs = pg_query(db(), "SELECT id, slug, path, caption, user_id FROM hewan_liar_foto ORDER BY created_at DESC LIMIT 500");
+              while ($rs && ($row = pg_fetch_assoc($rs))) {
+                  $fotoBySlug[$row['slug']][] = $row;
+              }
+          } catch (Throwable $e) {}
+          $myId = (int)($u['id'] ?? 0);
+          $csrf = csrf_token();
+
+          foreach ($hewan as $h):
+            [$slug,$nama,$icon,$warna,$desc] = $h;
+            $imgMain = '/uploads/hewan/'.$slug.'.jpg';
+            $fotos = $fotoBySlug[$slug] ?? [];
+          ?>
             <div class="col-md-6">
-              <div class="border rounded p-2 h-100">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                  <i class="bi <?= $h[1] ?> text-<?= $h[2] ?> fs-5"></i>
-                  <strong class="small"><?= htmlspecialchars($h[0]) ?></strong>
+              <div class="border rounded p-2 h-100 hewan-card" data-slug="<?= htmlspecialchars($slug) ?>">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <i class="bi <?= $icon ?> text-<?= $warna ?> fs-5"></i>
+                  <strong class="small flex-grow-1"><?= htmlspecialchars($nama) ?></strong>
+                  <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 hewan-toggle-add" title="Tambah foto">
+                    <i class="bi bi-plus-circle"></i> Tambah
+                  </button>
                 </div>
-                <div class="small text-muted"><?= $h[3] ?></div>
+                <div class="ratio ratio-4x3 rounded overflow-hidden border mb-2 bg-body-tertiary">
+                  <img src="<?= $imgMain ?>" alt="<?= htmlspecialchars($nama) ?>"
+                       loading="lazy" style="object-fit:cover;width:100%;height:100%"
+                       onerror="this.style.display='none'">
+                </div>
+                <div class="small text-muted mb-2"><?= $desc ?></div>
+
+                <details class="mb-2">
+                  <summary class="small fw-semibold text-primary" style="cursor:pointer">
+                    <i class="bi bi-images"></i> Koleksi Foto
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1 hewan-count"><?= count($fotos) ?></span>
+                  </summary>
+                  <div class="row g-1 mt-2 hewan-gallery">
+                    <?php if (!$fotos): ?>
+                      <div class="col-12 small text-muted fst-italic hewan-empty">Belum ada foto tambahan dari pengguna.</div>
+                    <?php else: foreach ($fotos as $ft): ?>
+                      <div class="col-4" data-foto-id="<?= (int)$ft['id'] ?>">
+                        <div class="ratio ratio-1x1 rounded overflow-hidden border position-relative">
+                          <a href="<?= htmlspecialchars($ft['path']) ?>" target="_blank" rel="noopener">
+                            <img src="<?= htmlspecialchars($ft['path']) ?>" loading="lazy" alt="<?= htmlspecialchars($ft['caption'] ?? '') ?>"
+                                 style="object-fit:cover;width:100%;height:100%">
+                          </a>
+                          <?php if ($myId && (int)$ft['user_id'] === $myId): ?>
+                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 p-0 px-1 hewan-del-btn"
+                                    data-id="<?= (int)$ft['id'] ?>" title="Hapus foto saya">
+                              <i class="bi bi-x"></i>
+                            </button>
+                          <?php endif; ?>
+                        </div>
+                        <?php if (!empty($ft['caption'])): ?>
+                          <div class="small text-muted text-truncate" title="<?= htmlspecialchars($ft['caption']) ?>">
+                            <?= htmlspecialchars($ft['caption']) ?>
+                          </div>
+                        <?php endif; ?>
+                      </div>
+                    <?php endforeach; endif; ?>
+                  </div>
+                </details>
+
+                <form class="hewan-add-form border-top pt-2 mt-1" style="display:none" enctype="multipart/form-data">
+                  <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                  <input type="hidden" name="_action" value="hewan_foto_add">
+                  <input type="hidden" name="slug" value="<?= htmlspecialchars($slug) ?>">
+                  <div class="mb-1">
+                    <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm" required>
+                  </div>
+                  <div class="mb-1">
+                    <input type="text" name="caption" maxlength="240" placeholder="Keterangan singkat (opsional)" class="form-control form-control-sm">
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      <i class="bi bi-upload"></i> Upload
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary hewan-cancel-add">Batal</button>
+                    <span class="small ms-2 hewan-add-stat text-muted align-self-center"></span>
+                  </div>
+                </form>
               </div>
             </div>
           <?php endforeach; ?>
@@ -738,6 +864,88 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
       st.className='alert alert-danger small py-2 mb-2';
       st.textContent='Gagal mencari kota: '+e.message;
     }
+  });
+})();
+</script>
+<script>
+/* Revisi (28 Juni 2026) — Koleksi Foto Hewan Liar: upload & hapus via fetch. */
+(function(){
+  function esc(s){ return String(s||'').replace(/[<>&"']/g,function(c){return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c];});}
+  document.querySelectorAll('.hewan-card').forEach(function(card){
+    var btnAdd  = card.querySelector('.hewan-toggle-add');
+    var btnCcl  = card.querySelector('.hewan-cancel-add');
+    var form    = card.querySelector('.hewan-add-form');
+    var gallery = card.querySelector('.hewan-gallery');
+    var emptyEl = gallery ? gallery.querySelector('.hewan-empty') : null;
+    var countEl = card.querySelector('.hewan-count');
+    var stat    = card.querySelector('.hewan-add-stat');
+
+    if (btnAdd) btnAdd.addEventListener('click', function(){
+      if (!form) return;
+      form.style.display = (form.style.display==='none' || !form.style.display) ? 'block' : 'none';
+    });
+    if (btnCcl) btnCcl.addEventListener('click', function(){
+      form.reset(); form.style.display='none'; if (stat) stat.textContent='';
+    });
+
+    if (form) form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      var fd = new FormData(form);
+      stat.textContent = 'Mengunggah…'; stat.className='small ms-2 hewan-add-stat text-muted align-self-center';
+      var btn = form.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        var r = await fetch('/survival.php',{method:'POST', body:fd, credentials:'same-origin'});
+        var j = await r.json();
+        if (!j.ok) throw new Error(j.err || 'Gagal');
+        if (emptyEl) { emptyEl.remove(); }
+        var col = document.createElement('div');
+        col.className = 'col-4';
+        col.dataset.fotoId = j.id;
+        col.innerHTML = '<div class="ratio ratio-1x1 rounded overflow-hidden border position-relative">'+
+          '<a href="'+esc(j.path)+'" target="_blank" rel="noopener">'+
+            '<img src="'+esc(j.path)+'" loading="lazy" alt="'+esc(j.caption||'')+'" style="object-fit:cover;width:100%;height:100%">'+
+          '</a>'+
+          '<button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 p-0 px-1 hewan-del-btn" data-id="'+j.id+'" title="Hapus foto saya"><i class="bi bi-x"></i></button>'+
+          '</div>' + (j.caption ? '<div class="small text-muted text-truncate" title="'+esc(j.caption)+'">'+esc(j.caption)+'</div>' : '');
+        gallery.prepend(col);
+        bindDel(col.querySelector('.hewan-del-btn'));
+        if (countEl) countEl.textContent = (parseInt(countEl.textContent||'0',10)+1);
+        stat.textContent='Terunggah ✓'; stat.classList.add('text-success');
+        form.reset();
+      } catch(err){
+        stat.textContent='Gagal: '+err.message; stat.classList.add('text-danger');
+      }
+      btn.disabled = false;
+    });
+
+    function bindDel(b){
+      if (!b) return;
+      b.addEventListener('click', async function(){
+        if (!confirm('Hapus foto ini?')) return;
+        var id = b.dataset.id;
+        var fd = new FormData();
+        fd.append('csrf','<?= csrf_token() ?>');
+        fd.append('_action','hewan_foto_del');
+        fd.append('id', id);
+        try {
+          var r = await fetch('/survival.php',{method:'POST', body:fd, credentials:'same-origin'});
+          var j = await r.json();
+          if (j.ok){
+            var col = b.closest('[data-foto-id]');
+            if (col) col.remove();
+            if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent||'1',10)-1);
+            if (gallery && !gallery.querySelector('[data-foto-id]')){
+              var em = document.createElement('div');
+              em.className='col-12 small text-muted fst-italic hewan-empty';
+              em.textContent='Belum ada foto tambahan dari pengguna.';
+              gallery.appendChild(em);
+            }
+          }
+        } catch(e){}
+      });
+    }
+    card.querySelectorAll('.hewan-del-btn').forEach(bindDel);
   });
 })();
 </script>

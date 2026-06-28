@@ -45,7 +45,7 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
-<div class="row g-3">
+<div class="row g-3 jt-spoilers">
   <!-- ========== DISARANKAN ========== -->
   <div class="col-lg-6">
     <div class="card shadow-sm border-success h-100">
@@ -234,5 +234,26 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
+
+<style>
+/* Revisi (28 Juni 2026) — Spoiler/akordeon untuk 4 section utama. */
+.jt-spoilers > [class*="col-"] > .card > .card-header{cursor:pointer; user-select:none;}
+.jt-spoilers > [class*="col-"] > .card > .card-header::after{
+  content:"\25BC"; float:right; transition:transform .25s ease; font-size:.8em; opacity:.7;
+}
+.jt-spoilers > [class*="col-"] > .card.collapsed > .card-header::after{transform:rotate(-90deg);}
+.jt-spoilers > [class*="col-"] > .card.collapsed > .card-body{display:none;}
+</style>
+<script>
+(function(){
+  document.querySelectorAll('.jt-spoilers > [class*="col-"] > .card').forEach(function(c, i){
+    // Default: kartu pertama terbuka, sisanya collapsed
+    if (i > 0) c.classList.add('collapsed');
+    var h = c.querySelector(':scope > .card-header');
+    if (!h) return;
+    h.addEventListener('click', function(){ c.classList.toggle('collapsed'); });
+  });
+})();
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>
