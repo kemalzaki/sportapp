@@ -271,7 +271,7 @@ function _gemini_call(array $parts, array $opts = []) {
                      . 'region us-central1. Aplikasi tetap berjalan tanpa AI — fitur sinkron musik akan '
                      . 'memakai mode fallback (beat-detection lokal).';
             }
-            return ['ok'=>false,'text'=>'','err'=>$msg,'raw'=>$json];
+            return ['ok'=>false,'text'=>'','err'=>$msg,'code'=>($isGeo?'GEO_BLOCK':($isQuota?'QUOTA':($isOverloaded?'OVERLOADED':'ERR'))),'raw'=>$json];
 
         }
         $text = '';

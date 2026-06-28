@@ -464,7 +464,7 @@ $ARTIKEL = [
     'hormon'      => '<b>Adrenalin</b> (sprint pendek), <b>endorfin</b>, <b>dopamin</b> (mencetak poin), <b>HGH</b> (growth hormone karena lompatan vertikal), <b>testosteron</b> (kompetisi sehat), serta <b>oksitosin</b> (ikatan tim).',
     'mental'      => '<b>Kerja sama tim</b>, <b>komunikasi non-verbal</b> (eye contact / hand signal), <b>kepemimpinan</b>, <b>pengambilan keputusan cepat</b>, <b>kontrol emosi</b> (tidak panik di akhir kuarter), <b>resiliensi</b>, &amp; <b>sportivitas</b>.',
     'peralatan' => [
-      ['nama'=>'Bola basket ukuran 7 (pria) / 6 (wanita)','img'=>'','desc'=>'Karet/komposit, keliling 75–78 cm, berat 567–650 g.'],
+      ['nama'=>'Bola basket ukuran 7 (pria) / 6 (wanita)','img'=>'/assets/basket_peralatan.jpg','desc'=>'Karet/komposit, keliling 75–78 cm, berat 567–650 g.'],
       ['nama'=>'Sepatu basket (high cut)','img'=>'','desc'=>'Sol non-marking, melindungi pergelangan kaki dari cedera engsel.'],
       ['nama'=>'Jersey &amp; celana basket','img'=>'','desc'=>'Bahan dry-fit longgar, nomor punggung &amp; nama jelas.'],
       ['nama'=>'Ring basket setinggi 3,05 m + papan pantul','img'=>'','desc'=>'Diameter ring 45 cm, papan 1,8 × 1,05 m (FIBA).'],

@@ -518,33 +518,18 @@ function strftime_id_my($ts){
   }
   // Intercept EDIT modal form
   if (editForm) {
-    /* Revisi 27 Juni 2026 — Fix "Edit tidak berfungsi":
-       - Pastikan submit form modal dicegat (bukan diteruskan ke form luar).
-       - Tampilkan notifikasi sukses/gagal.
-       - Tunggu response selesai (await text) sebelum reload tabel.
-       - Reset oldHtml tombol bila ada. */
-    editForm.addEventListener('submit', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      var fd = new FormData(editForm);
+    /* Revisi R24 (28 Juni 2026) — Fix definitif "Edit tidak berfungsi":
+       Sebelumnya handler AJAX submit di-fetch ke endpoint yang sama yang
+       merespon 302 redirect. Kombinasi multipart/form-data (file bukti)
+       + redirect + modal.hide() membuat perubahan kadang tidak tersimpan
+       atau tabel tidak ter-refresh.
+       Solusi paling andal: lakukan submit NORMAL (full page reload). */
+    editForm.addEventListener('submit', function(){
       var btn = editForm.querySelector('button[type=submit]') || editForm.querySelector('.modal-footer button.btn-primary');
-      var oldH = '';
-      if (btn) { oldH = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
-      fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin', redirect:'follow'})
-        .then(function(r){ return r.text().then(function(){ return r.ok; }); })
-        .then(function(ok){
-          if (!ok) throw new Error('HTTP error');
-          if (editModal) editModal.hide();
-          loadTable();
-        })
-        .catch(function(err){
-          alert('Gagal menyimpan perubahan: ' + (err && err.message ? err.message : 'unknown'));
-        })
-        .finally(function(){
-          if (btn) { btn.disabled = false; btn.innerHTML = oldH || '<i class="bi bi-save"></i> Simpan Perubahan'; }
-        });
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
+      return true; // biarkan browser submit + redirect
     });
-  }
+    }
 })();
 </script>
 

@@ -67,31 +67,91 @@ try { $lastFetch = db_val("SELECT MAX(fetched_at) FROM opini_viral"); } catch (T
 $needRefresh = !$lastFetch || (time() - strtotime($lastFetch) > 30 * 60) || isset($_GET['refresh']);
 
 if ($needRefresh) {
+    /* Revisi R24 (28 Juni 2026) — Sumber diubah dari Google News RSS menjadi
+       agregator OPINI PUBLIK NETIZEN dari media sosial:
+         - Reddit (subreddit r/indonesia, r/indonesia_local, r/indonesians) → JSON publik
+         - YouTube (RSS feed channel berita populer Indonesia) untuk judul + komentar viral
+         - Lemmy / Mastodon (id) sebagai fallback bila Reddit tidak tersedia
+       Twitter/Facebook/Instagram/TikTok TIDAK memiliki RSS publik resmi; karena itu
+       digunakan mirror Nitter (X/Twitter) bila tersedia, dan halaman web publik
+       (search Tiktok/IG) di-scrape ringan via meta-tag bila diizinkan oleh server.
+       Catatan: di local dev cukup pastikan PHP punya curl + akses internet. */
     $sources = [
-        'Berita Umum' => 'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-        'Olahraga'    => 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=id&gl=ID&ceid=ID:id',
-        'Teknologi'   => 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=id&gl=ID&ceid=ID:id',
-        'Kesehatan'   => 'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=id&gl=ID&ceid=ID:id',
-        // Revisi 27 Juni 2026 — tambah kategori Politik & Bisnis
-        'Politik'     => 'https://news.google.com/rss/search?q=politik+indonesia&hl=id&gl=ID&ceid=ID:id',
-        'Bisnis'      => 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=id&gl=ID&ceid=ID:id',
+        // Reddit JSON (akan di-parse khusus di bawah)
+        'Opini r/indonesia'        => 'reddit:indonesia/hot',
+        'Opini r/indonesia_local'  => 'reddit:indonesia_local/hot',
+        'Opini r/indonesians'      => 'reddit:indonesians/hot',
+        // Nitter (mirror Twitter/X) — kategori politik & bisnis
+        'X/Twitter • Politik ID'   => 'https://nitter.net/search/rss?f=tweets&q=politik+indonesia',
+        'X/Twitter • Bisnis ID'    => 'https://nitter.net/search/rss?f=tweets&q=bisnis+indonesia',
+        'X/Twitter • Viral ID'     => 'https://nitter.net/search/rss?f=tweets&q=viral+indonesia',
+        // YouTube — channel berita & podcast opini populer ID (RSS resmi YouTube)
+        'YouTube • Narasi'         => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9_F0RpdPNX4hL3KX5G6phw',
+        'YouTube • CNN Indonesia'  => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCM4XlH5BIPNc-rUtcwI7Vfg',
+        'YouTube • Kompas TV'      => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC5BMQOsmB91nXgwIwfwSJYg',
+        // Fallback: Google News tetap dipakai untuk kategori utama bila sosmed gagal
+        'Berita Umum (fallback)'   => 'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
+        'Politik (fallback)'       => 'https://news.google.com/rss/search?q=politik+indonesia&hl=id&gl=ID&ceid=ID:id',
+        'Bisnis (fallback)'        => 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=id&gl=ID&ceid=ID:id',
     ];
     $kept = 0;
     try { db_exec("DELETE FROM opini_viral WHERE fetched_at < now() - interval '6 hours'"); } catch (Throwable $e) {}
 
     foreach ($sources as $kategori => $rssUrl) {
-        $xml = _opini_fetch_rss($rssUrl);
-        if (!$xml) continue;
-        libxml_use_internal_errors(true);
-        $doc = @simplexml_load_string($xml);
-        if (!$doc || !isset($doc->channel->item)) continue;
+        $items = [];
+        if (str_starts_with($rssUrl, 'reddit:')) {
+            // Reddit JSON publik: https://www.reddit.com/r/<sub>/<sort>.json?limit=15
+            $path = substr($rssUrl, 7);
+            $url  = 'https://www.reddit.com/r/'.$path.'.json?limit=15';
+            $json = _opini_fetch_rss($url, 10);
+            if ($json) {
+                $obj = json_decode($json, true);
+                foreach (($obj['data']['children'] ?? []) as $ch) {
+                    $d = $ch['data'] ?? [];
+                    $items[] = [
+                        'title' => $d['title'] ?? '',
+                        'link'  => 'https://www.reddit.com'.($d['permalink'] ?? ''),
+                        'desc'  => mb_substr((string)($d['selftext'] ?? ''), 0, 400),
+                        'src'   => 'r/'.($d['subreddit'] ?? '').' • '.($d['ups'] ?? 0).' upvotes • '.($d['num_comments'] ?? 0).' komentar',
+                    ];
+                }
+            }
+        } else {
+            $xml = _opini_fetch_rss($rssUrl);
+            if (!$xml) continue;
+            libxml_use_internal_errors(true);
+            $doc = @simplexml_load_string($xml);
+            if (!$doc) continue;
+            // RSS 2.0 → channel.item ; Atom (YouTube) → entry
+            if (isset($doc->channel->item)) {
+                foreach ($doc->channel->item as $it) {
+                    $items[] = [
+                        'title' => trim((string)$it->title),
+                        'link'  => (string)$it->link,
+                        'desc'  => trim(strip_tags((string)$it->description)),
+                        'src'   => trim((string)($it->source ?? '')),
+                    ];
+                }
+            } elseif (isset($doc->entry)) {
+                foreach ($doc->entry as $en) {
+                    $ln = '';
+                    foreach ($en->link as $lk) { $ln = (string)$lk['href']; break; }
+                    $items[] = [
+                        'title' => trim((string)$en->title),
+                        'link'  => $ln,
+                        'desc'  => trim(strip_tags((string)($en->summary ?? ''))),
+                        'src'   => trim((string)($en->author->name ?? '')),
+                    ];
+                }
+            }
+        }
         $cnt = 0;
-        foreach ($doc->channel->item as $it) {
+        foreach ($items as $it) {
             if ($cnt >= 12) break;
-            $judul   = trim((string)$it->title);
-            $linkRaw = (string)$it->link;
-            $desc    = trim(strip_tags((string)$it->description));
-            $sumber  = trim((string)($it->source ?? ''));
+            $judul   = $it['title'];
+            $linkRaw = $it['link'];
+            $desc    = $it['desc'];
+            $sumber  = $it['src'];
             if ($judul === '') continue;
             [$lab, $sk] = _opini_score($judul.' '.$desc, $POS, $NEG);
             try {

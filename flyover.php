@@ -1689,7 +1689,7 @@ $('btnRecord').onclick  = ()=> {
         // Revisi 27 Juni 2026 — fallback otomatis ke beat-sync lokal saat Gemini
         // memblok wilayah ("User location is not supported") atau error region lain.
         var em = (j.err||'?');
-        if (/location is not supported|FAILED_PRECONDITION/i.test(em)) {
+        if (j.code==='GEO_BLOCK' || /location is not supported|FAILED_PRECONDITION|wilayah\/IP server|Gemini AI menolak/i.test(em)) {
           stat.innerHTML = '<span class="text-warning">Gemini AI tidak tersedia di wilayah server ini. '
             + 'Beralih ke <b>beat-sync lokal</b> (tanpa AI)…</span>';
           try {

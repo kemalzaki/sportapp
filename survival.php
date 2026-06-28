@@ -236,6 +236,14 @@ include __DIR__.'/includes/header.php';
         <option value="100000">100 km</option>
       </select>
     </div>
+    <!-- Revisi R24 (28 Juni 2026) — pencarian per kota/kabupaten -->
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 w-100">
+      <input id="forestCity" class="form-control form-control-sm" style="max-width:260px"
+             placeholder="Atau ketik nama kota/kabupaten (cth: Kota Bandung)">
+      <button id="btnFindCity" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-buildings"></i> Cari di Kota Ini
+      </button>
+    </div>
   </div>
   <div class="card-body">
     <div class="small text-muted mb-2">Tingkat survival makanan: ⭐ semakin tinggi semakin mudah menemukan air, buah, ikan, dan tumbuhan dapat dimakan.</div>
@@ -613,4 +621,33 @@ window.__PROVINCE_FORESTS = <?= json_encode($PROVINCE_FORESTS, JSON_UNESCAPED_UN
 })();
 </script>
 
+<script>
+/* Revisi R24 (28 Juni 2026) — Cari hutan/kawasan per KOTA/KABUPATEN via Nominatim. */
+(function(){
+  var btn=document.getElementById('btnFindCity');
+  if(!btn) return;
+  btn.addEventListener('click', async function(){
+    var st=document.getElementById('forestStatus');
+    var q=(document.getElementById('forestCity').value||'').trim();
+    if(!q){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='Ketik nama kota terlebih dulu.'; return; }
+    st.className='alert alert-info small py-2 mb-2';
+    st.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mencari koordinat "'+q+'"…';
+    try{
+      var u='https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=id&q='+encodeURIComponent(q+', Indonesia');
+      var r=await fetch(u,{headers:{'Accept':'application/json'}});
+      var j=await r.json();
+      if(!j||!j.length) throw new Error('Kota tidak ditemukan');
+      var lat=parseFloat(j[0].lat), lng=parseFloat(j[0].lon);
+      // Override geolocation sekali pakai lalu trigger tombol "Cari dari Lokasi Saya".
+      var orig=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
+      navigator.geolocation.getCurrentPosition=function(ok){ ok({coords:{latitude:lat,longitude:lng,accuracy:50}}); };
+      document.getElementById('btnFindNear').click();
+      setTimeout(function(){ navigator.geolocation.getCurrentPosition=orig; }, 1500);
+    }catch(e){
+      st.className='alert alert-danger small py-2 mb-2';
+      st.textContent='Gagal mencari kota: '+e.message;
+    }
+  });
+})();
+</script>
 <?php include __DIR__.'/includes/footer.php'; ?>

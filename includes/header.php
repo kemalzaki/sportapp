@@ -605,6 +605,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
           <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/lacak_faskes.php"><i class="bi bi-hospital-fill text-danger"></i> Lacak Puskesmas / RS Terdekat <span class="badge bg-success ms-1">Baru</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode</a>
         </div>
 
@@ -683,6 +684,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/sistem.php"><i class="bi bi-cpu text-info"></i> Cek Sistem</a>
             <?php /* Revisi 22 Juni 2026 R7 — CRUD kata kunci filter pencarian video (kalistenik & survival) */ ?>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/keywords.php"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Video</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/paket_member.php"><i class="bi bi-stars text-warning"></i> Pengaturan Paket Member <span class="badge bg-success ms-1">Baru</span></a>
           </div>
 
         <?php endif; ?>
