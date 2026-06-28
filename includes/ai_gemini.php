@@ -1,4 +1,5 @@
 <?php
+define('GEMINI_HELPER_VERSION', 'R28-'.date('H:i:s'));
 /**
  * Helper Google Gemini — Revisi 17 Juni 2026 (Part G).
  *
@@ -80,42 +81,9 @@ function _gemini_key() {
  * otomatis mencoba key berikutnya tanpa mengganggu user.
  */
 function _gemini_keys() {
-    $keys = [];
-
-    // helper ambil env var dari getenv / $_ENV / $_SERVER
-    $readEnv = function($name) {
-        $v = getenv($name);
-        if ($v === false || $v === '') $v = $_ENV[$name]    ?? '';
-        if ($v === '')                 $v = $_SERVER[$name] ?? '';
-        return is_string($v) ? trim($v) : '';
-    };
-    $push = function($v) use (&$keys) {
-        if ($v === '' || stripos($v,'GANTI')!==false) return;
-        $keys[] = $v;
-    };
-
-    // 1) Single key (backward compatible)
-    $push($readEnv('GEMINI_API_KEY'));
-
-    // 2) GEMINI_API_KEY_1 .. GEMINI_API_KEY_20 (Revisi 19 Juni 2026)
-    for ($i = 1; $i <= 20; $i++) {
-        $push($readEnv('GEMINI_API_KEY_' . $i));
-    }
-
-    // 3) GEMINI_API_KEYS=key1,key2,... (CSV)
-    $multi = $readEnv('GEMINI_API_KEYS');
-    if ($multi) {
-        foreach (preg_split('/[,\s;]+/', $multi) as $kk) {
-            $push(trim($kk));
-        }
-    }
-
-    if (!$keys && GEMINI_API_KEY_DEFAULT !== '') $keys[] = GEMINI_API_KEY_DEFAULT;
-    if (!$keys) {
-        $tok = $readEnv('GEMINI_ACCESS_TOKEN');
-        if ($tok) $keys[] = $tok;
-    }
-    return array_values(array_unique(array_filter($keys)));
+    return [
+        getenv('GEMINI_API_KEY_1')
+    ];
 }
 
 function _gemini_model() {
