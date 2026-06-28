@@ -16,6 +16,36 @@ $pageTitle = 'Pengaturan Paket Member';
 // Auto-migrasi kolom (idempotent)
 try { db_exec("ALTER TABLE nav_menu ADD COLUMN IF NOT EXISTS paket VARCHAR(20)"); } catch (Throwable $e) {}
 
+/* Revisi R25 (28 Juni 2026) — Seed otomatis dari struktur menu bottom-nav PWA
+   ketika tabel nav_menu masih kosong. Item yang dipakai sesuai includes/bottom_nav.php
+   (Beranda / Aktivitas / Upload / Kalori / Saya) + beberapa item drawer umum. */
+try {
+    $hasAny = (int)db_val("SELECT COUNT(*) FROM nav_menu");
+    if ($hasAny === 0) {
+        $seed = [
+            // posisi 'bottom' = PWA bottom nav
+            ['Beranda',   '/index.php',           'bi-house-door-fill', 'bottom', 1, 'gratis'],
+            ['Aktivitas', '/riwayat.php',         'bi-bar-chart-fill',  'bottom', 2, 'gratis'],
+            ['Upload',    '/upload.php',          'bi-plus-lg',         'bottom', 3, 'gratis'],
+            ['Kalori',    '/kalori_mingguan.php', 'bi-egg-fried',       'bottom', 4, 'pro'],
+            ['Saya',      '/profile.php',         'bi-person-fill',     'bottom', 5, 'gratis'],
+            // posisi 'drawer' = item umum
+            ['Tracking Jalur',  '/live_tracking.php', 'bi-geo-alt',      'drawer', 1, 'pro'],
+            ['Survival Mode',   '/survival.php',      'bi-tree-fill',    'drawer', 2, 'komunitas'],
+            ['Artikel Olahraga','/artikel_olahraga.php','bi-journal-text','drawer', 3, 'gratis'],
+            ['Opini Viral',     '/opini_viral.php',   'bi-megaphone',    'drawer', 4, 'gratis'],
+            ['Flyover Lirik',   '/flyover.php',       'bi-music-note',   'drawer', 5, 'pro'],
+            // posisi 'top'
+            ['Cari Aktivitas',  '/search.php',        'bi-search',       'top',    1, 'gratis'],
+            ['Notifikasi',      '/index.php#notif',   'bi-bell',         'top',    2, 'gratis'],
+        ];
+        foreach ($seed as $r) {
+            db_exec("INSERT INTO nav_menu(label,url,icon,posisi,urutan,paket,aktif,target)
+                     VALUES($1,$2,$3,$4,$5,$6,true,'_self')", $r);
+        }
+    }
+} catch (Throwable $e) { /* abaikan supaya halaman tetap render */ }
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
@@ -95,28 +125,33 @@ include __DIR__.'/../includes/header.php';
   <?php endforeach; ?>
 </div>
 
-<form method="get" class="d-flex flex-wrap gap-2 mb-3">
-  <select name="posisi" class="form-select form-select-sm" style="width:auto">
-    <option value="">— Semua posisi —</option>
-    <?php foreach (['drawer','top','bottom'] as $p): ?>
-      <option value="<?= $p ?>" <?= $fPosisi===$p?'selected':'' ?>><?= $p ?></option>
-    <?php endforeach; ?>
-  </select>
-  <select name="paket" class="form-select form-select-sm" style="width:auto">
-    <option value="">— Semua paket —</option>
-    <option value="-"          <?= (isset($_GET['paket'])&&$_GET['paket']==='-')?'selected':'' ?>>(tanpa label)</option>
-    <option value="gratis"     <?= $fPaket==='gratis'?'selected':'' ?>>🆓 Gratis</option>
-    <option value="pro"        <?= $fPaket==='pro'?'selected':'' ?>>⭐ PRO</option>
-    <option value="komunitas"  <?= $fPaket==='komunitas'?'selected':'' ?>>👥 Komunitas</option>
-  </select>
-  <button class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filter</button>
-  <a href="/admin/paket_member.php" class="btn btn-sm btn-outline-secondary">Reset</a>
-  <form method="post" class="ms-auto" onsubmit="return confirm('Hapus SEMUA label paket?');">
+<!-- Revisi R25 (28 Juni 2026) — FIX: form GET tidak boleh membungkus form POST (nested form invalid HTML).
+     Sebelumnya menyebabkan tombol "Hapus Semua Label" mengirim parameter filter sebagai GET dan
+     muncul warning/inkonsistensi. Sekarang dipisah jadi 2 form sejajar. -->
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <form method="get" class="d-flex flex-wrap gap-2 mb-0">
+    <select name="posisi" class="form-select form-select-sm" style="width:auto">
+      <option value="">— Semua posisi —</option>
+      <?php foreach (['drawer','top','bottom'] as $p): ?>
+        <option value="<?= $p ?>" <?= $fPosisi===$p?'selected':'' ?>><?= $p ?></option>
+      <?php endforeach; ?>
+    </select>
+    <select name="paket" class="form-select form-select-sm" style="width:auto">
+      <option value="">— Semua paket —</option>
+      <option value="-"          <?= (isset($_GET['paket'])&&$_GET['paket']==='-')?'selected':'' ?>>(tanpa label)</option>
+      <option value="gratis"     <?= $fPaket==='gratis'?'selected':'' ?>>🆓 Gratis</option>
+      <option value="pro"        <?= $fPaket==='pro'?'selected':'' ?>>⭐ PRO</option>
+      <option value="komunitas"  <?= $fPaket==='komunitas'?'selected':'' ?>>👥 Komunitas</option>
+    </select>
+    <button class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+    <a href="/admin/paket_member.php" class="btn btn-sm btn-outline-secondary">Reset</a>
+  </form>
+  <form method="post" class="ms-auto mb-0" onsubmit="return confirm('Hapus SEMUA label paket?');">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
     <input type="hidden" name="_action" value="clear_all">
     <button class="btn btn-sm btn-outline-danger"><i class="bi bi-eraser"></i> Hapus Semua Label</button>
   </form>
-</form>
+</div>
 
 <form method="post">
   <input type="hidden" name="csrf" value="<?= csrf_token() ?>">

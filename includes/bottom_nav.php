@@ -23,17 +23,72 @@ if (!function_exists('_gj_active')) {
 ?>
 <link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
 <style>
-/* Revisi 2 Jun 2026: samakan warna ikon navigasi bawah mobile (tidak warna-warni) */
-.gj-nav .gj-item .gj-ico{ color:#0f172a !important; background:transparent !important; }
-.gj-nav .gj-item .gj-ico i{ color:#0f172a !important; }
+/* Revisi 28 Juni 2026 — Rapikan PWA Bottom Nav (mobile):
+   - Tinggi seragam, label tidak terpotong
+   - FAB Upload tidak menutup item lain (label di bawah ikon)
+   - Body diberi padding-bottom agar konten terakhir tidak tertutup */
+.gj-nav{
+  position:fixed; left:0; right:0; bottom:0; z-index:1040;
+  display:flex; align-items:flex-end; justify-content:space-around;
+  background:#fff; border-top:1px solid #e5e7eb;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -4px 16px rgba(15,23,42,.06);
+  min-height:64px;
+}
+.gj-nav .gj-item{
+  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  gap:2px; padding:6px 2px; min-width:0; text-decoration:none; color:#475569; position:relative;
+}
+.gj-nav .gj-item .gj-ico{
+  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+  font-size:1.25rem; color:#0f172a; background:transparent;
+}
+.gj-nav .gj-item .gj-ico i{ color:#0f172a; }
+.gj-nav .gj-item .gj-label{
+  font-size:.7rem; line-height:1.05; color:#475569; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 .gj-nav .gj-item.active .gj-ico,
 .gj-nav .gj-item.active .gj-ico i{ color:#0ea5e9 !important; }
-.gj-nav .gj-item .gj-label{ color:#475569; }
 .gj-nav .gj-item.active .gj-label{ color:#0ea5e9; font-weight:600; }
+.gj-nav .gj-avatar{ width:24px; height:24px; border-radius:50%; object-fit:cover; }
+.gj-nav .gj-avatar-fb{
+  width:24px;height:24px;border-radius:50%;background:#0ea5e9;color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;
+}
+.gj-nav .gj-badge{
+  position:absolute; top:2px; right:18%;
+  background:#ef4444; color:#fff; font-size:.6rem; font-weight:700;
+  padding:1px 5px; border-radius:9px; line-height:1;
+}
+/* FAB Upload — naikkan sedikit, label di bawah ikon, tidak menutup baris lain */
+.gj-nav .gj-fab{
+  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  gap:2px; padding:0 2px 4px; text-decoration:none; color:#0ea5e9; position:relative; top:-14px;
+}
+.gj-nav .gj-fab .gj-fab-inner{
+  width:48px; height:48px; border-radius:50%;
+  background:linear-gradient(135deg,#0ea5e9,#22d3ee); color:#fff;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:1.4rem; box-shadow:0 6px 16px rgba(14,165,233,.45);
+  border:3px solid #fff;
+}
+.gj-nav .gj-fab .gj-fab-label{
+  font-size:.7rem; color:#0ea5e9; font-weight:600; line-height:1.05;
+}
+/* Pastikan konten halaman tidak tertutup nav */
+body{ padding-bottom: calc(4.75rem + env(safe-area-inset-bottom,0px)) !important; }
+
+[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e293b; }
 [data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
 [data-bs-theme=dark] .gj-nav .gj-item .gj-ico i{ color:#e2e8f0 !important; }
+[data-bs-theme=dark] .gj-nav .gj-item .gj-label{ color:#cbd5e1; }
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i{ color:#38bdf8 !important; }
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i,
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color:#38bdf8 !important; }
+
+/* Sembunyikan di desktop besar (≥992px) */
+@media (min-width: 992px){ .gj-nav{ display:none; } body{ padding-bottom:0 !important; } }
 </style>
 <nav class="gj-nav" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">

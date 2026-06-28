@@ -395,38 +395,61 @@ function strftime_id_my($ts){
 </div>
 
 <script>
+/* Revisi R25 (28 Juni 2026) — Perbaikan definitif tombol Edit pengeluaran.
+   Masalah sebelumnya:
+   - Ada DUA IIFE yang sama-sama me-bind handler ke .btn-edit-peng → handler dobel,
+     pada beberapa browser modal hanya "berkedip" lalu tertutup kembali.
+   - Setelah AJAX refresh tabel, handler awal lepas dari DOM baru.
+   Solusi: pakai event delegation di document, satu handler saja, buka modal
+   via getOrCreateInstance. Form edit di-submit normal (full reload) supaya
+   redirect server bekerja & file upload (multipart) konsisten. */
 (function(){
+  if (window.__pengEditBound) return;
+  window.__pengEditBound = true;
+
   var modalEl = document.getElementById('editPengModal');
-  var modal = modalEl ? new bootstrap.Modal(modalEl) : null;
-  document.querySelectorAll('.btn-edit-peng').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      document.getElementById('ep_id').value         = this.dataset.id || '';
-      document.getElementById('ep_jadwal_id').value  = this.dataset.jadwal_id || '0';
-      document.getElementById('ep_tanggal').value    = this.dataset.tanggal || '';
-      document.getElementById('ep_kategori').value   = this.dataset.kategori || '';
-      document.getElementById('ep_judul').value      = this.dataset.judul || '';
-      document.getElementById('ep_jumlah').value     = this.dataset.jumlah || '0';
-      document.getElementById('ep_catatan').value    = this.dataset.catatan || '';
-      document.getElementById('ep_dana_dari').value  = this.dataset.dana_dari || '';
-      document.getElementById('ep_bukti_url').value  = this.dataset.bukti_url || '';
-      if (modal) modal.show();
-    });
+  if (!modalEl || !window.bootstrap) return;
+  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+  function setVal(id, v){ var el = document.getElementById(id); if (el) el.value = (v==null?'':v); }
+
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.btn-edit-peng');
+    if (!btn) return;
+    e.preventDefault();
+    var d = btn.dataset;
+    setVal('ep_id',        d.id);
+    setVal('ep_jadwal_id', d.jadwal_id || '0');
+    setVal('ep_tanggal',   d.tanggal);
+    setVal('ep_kategori',  d.kategori);
+    setVal('ep_judul',     d.judul);
+    setVal('ep_jumlah',    d.jumlah || '0');
+    setVal('ep_catatan',   d.catatan);
+    setVal('ep_dana_dari', d.dana_dari);
+    setVal('ep_bukti_url', d.bukti_url);
+    modal.show();
   });
+
+  // Tombol submit modal — beri feedback "menyimpan" lalu biarkan submit normal.
+  var editForm = modalEl.querySelector('form');
+  if (editForm) {
+    editForm.addEventListener('submit', function(){
+      var btn = editForm.querySelector('button[type=submit]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
+      return true;
+    });
+  }
 })();
 </script>
 
 <script>
-/* Revisi 22 Juni 2026 R12 — AJAX untuk filter, pagination, add, edit, delete
-   sehingga tidak terjadi reload halaman. */
+/* AJAX filter + pagination + add + delete (tetap dari R12, dipangkas — tidak lagi me-bind edit). */
 (function(){
   var wrap = document.getElementById('pengTableWrap');
   if (!wrap) return;
   var selFilter = document.querySelector('select[name="jadwal_id"]');
   var addForm   = document.querySelector('form input[name="_action"][value="add"]');
   addForm = addForm ? addForm.closest('form') : null;
-  var editForm  = document.querySelector('#editPengModal form');
-  var editModalEl = document.getElementById('editPengModal');
-  var editModal = editModalEl ? bootstrap.Modal.getOrCreateInstance(editModalEl) : null;
 
   function getFilterJadwal(){
     var s = document.querySelector('form[method="get"] select[name="jadwal_id"]');
@@ -445,7 +468,6 @@ function strftime_id_my($ts){
       .then(function(html){
         wrap.innerHTML = html;
         wrap.style.opacity = '1';
-        bindRowActions();
         try {
           var u = new URL(location.href);
           if (jid && jid !== '0') u.searchParams.set('jadwal_id', jid); else u.searchParams.delete('jadwal_id');
@@ -456,7 +478,6 @@ function strftime_id_my($ts){
       .catch(function(){ wrap.style.opacity='1'; });
   }
 
-  // Intercept filter dropdown
   if (selFilter) {
     selFilter.removeAttribute('onchange');
     selFilter.addEventListener('change', function(){ loadTable(1); });
@@ -464,24 +485,6 @@ function strftime_id_my($ts){
     if (topForm) topForm.addEventListener('submit', function(e){ e.preventDefault(); loadTable(1); });
   }
 
-  // Intercept pagination + delete inside wrap (delegated)
-  function bindRowActions(){
-    // Edit buttons inside fragment
-    wrap.querySelectorAll('.btn-edit-peng').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        document.getElementById('ep_id').value         = this.dataset.id || '';
-        document.getElementById('ep_jadwal_id').value  = this.dataset.jadwal_id || '0';
-        document.getElementById('ep_tanggal').value    = this.dataset.tanggal || '';
-        document.getElementById('ep_kategori').value   = this.dataset.kategori || '';
-        document.getElementById('ep_judul').value      = this.dataset.judul || '';
-        document.getElementById('ep_jumlah').value     = this.dataset.jumlah || '0';
-        document.getElementById('ep_catatan').value    = this.dataset.catatan || '';
-        document.getElementById('ep_dana_dari').value  = this.dataset.dana_dari || '';
-        document.getElementById('ep_bukti_url').value  = this.dataset.bukti_url || '';
-        if (editModal) editModal.show();
-      });
-    });
-  }
   wrap.addEventListener('click', function(e){
     var a = e.target.closest('a[data-page]');
     if (a) {
@@ -499,9 +502,7 @@ function strftime_id_my($ts){
     fetch('/admin/pengeluaran.php', {method:'POST', body:fd, credentials:'same-origin'})
       .then(function(){ loadTable(1); });
   });
-  bindRowActions();
 
-  // Intercept ADD form
   if (addForm) {
     addForm.addEventListener('submit', function(e){
       e.preventDefault();
@@ -516,20 +517,6 @@ function strftime_id_my($ts){
         .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = oldH; } });
     });
   }
-  // Intercept EDIT modal form
-  if (editForm) {
-    /* Revisi R24 (28 Juni 2026) — Fix definitif "Edit tidak berfungsi":
-       Sebelumnya handler AJAX submit di-fetch ke endpoint yang sama yang
-       merespon 302 redirect. Kombinasi multipart/form-data (file bukti)
-       + redirect + modal.hide() membuat perubahan kadang tidak tersimpan
-       atau tabel tidak ter-refresh.
-       Solusi paling andal: lakukan submit NORMAL (full page reload). */
-    editForm.addEventListener('submit', function(){
-      var btn = editForm.querySelector('button[type=submit]') || editForm.querySelector('.modal-footer button.btn-primary');
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan…'; }
-      return true; // biarkan browser submit + redirect
-    });
-    }
 })();
 </script>
 

@@ -48,6 +48,48 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $id = (int)($_POST['id'] ?? 0);
         if ($id>0) db_exec("DELETE FROM survival_qa_saved WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
         echo json_encode(['ok'=>true]); exit;
+    } elseif ($a === 'forest_ai') {
+        /* Revisi R25 (28 Juni 2026) — Rekomendasi Hutan via AI (Gemini).
+           Input: daftar kota/kabupaten (string dipisah koma). Output JSON:
+           { items: [ {nama, kota, lat, lng, level (1-5), deskripsi} ] }. */
+        header('Content-Type: application/json');
+        require_once __DIR__.'/includes/ai_gemini.php';
+        $citiesRaw = trim((string)($_POST['cities'] ?? ''));
+        if ($citiesRaw==='') { echo json_encode(['ok'=>false,'err'=>'Daftar kota kosong']); exit; }
+        if (mb_strlen($citiesRaw) > 600) $citiesRaw = mb_substr($citiesRaw, 0, 600);
+        $cities = array_values(array_filter(array_map('trim', preg_split('/[,;\n]+/', $citiesRaw))));
+        if (!$cities) { echo json_encode(['ok'=>false,'err'=>'Format kota tidak valid']); exit; }
+
+        $prompt = "Anda adalah ahli survival hutan Indonesia. Untuk SETIAP kota/kabupaten berikut, "
+                . "berikan 1–2 rekomendasi HUTAN atau kawasan lindung TERDEKAT yang relevan untuk latihan "
+                . "survival (taman nasional, hutan lindung, cagar alam, hutan kota besar bila tidak ada hutan asli). "
+                . "Sertakan koordinat GPS (lat,lng) yang akurat (desimal), serta level survival makanan 1–5 "
+                . "(1 = sangat terbatas, 5 = sangat melimpah air/buah/ikan/umbi).\n\n"
+                . "Daftar kota: " . implode(', ', $cities) . "\n\n"
+                . "Balas HANYA dalam JSON valid (tanpa markdown), bentuk:\n"
+                . "{\"items\":[{\"nama\":\"...\",\"kota\":\"...\",\"lat\":-6.7,\"lng\":106.5,"
+                . "\"level\":4,\"deskripsi\":\"singkat (maks 140 char), sebut sumber makanan/air khas\"}]}";
+        try {
+            $txt = gemini_text($prompt, ['temperature'=>0.4, 'max_tokens'=>2048]);
+            $data = gemini_extract_json($txt);
+            $items = [];
+            foreach (($data['items'] ?? []) as $it) {
+                $lat = (float)($it['lat'] ?? 0); $lng = (float)($it['lng'] ?? 0);
+                if ($lat==0 && $lng==0) continue;
+                $items[] = [
+                    'nama'      => (string)($it['nama'] ?? '-'),
+                    'kota'      => (string)($it['kota'] ?? ''),
+                    'lat'       => $lat,
+                    'lng'       => $lng,
+                    'level'     => max(1, min(5, (int)($it['level'] ?? 3))),
+                    'deskripsi' => (string)($it['deskripsi'] ?? ''),
+                ];
+            }
+            if (!$items) { echo json_encode(['ok'=>false,'err'=>'AI tidak mengembalikan lokasi valid']); exit; }
+            echo json_encode(['ok'=>true, 'items'=>$items, 'cities'=>$cities]); exit;
+        } catch (Throwable $e) {
+            echo json_encode(['ok'=>false,'err'=>'Gagal memanggil AI: '.$e->getMessage()]); exit;
+        }
     }
 }
 
@@ -174,58 +216,27 @@ include __DIR__.'/includes/header.php';
 
 
 <!-- ============================================================
-     Revisi R22 — Rekomendasi Hutan per Provinsi (Forest Finder)
+     Revisi R25 (28 Juni 2026) — Rekomendasi Hutan via AI (Gemini)
+     Sebelumnya: pilih provinsi dari array statis.
+     Sekarang: user mengetik daftar kota/kabupaten (string, dipisah koma),
+     AI menghasilkan rekomendasi hutan/kawasan lindung terdekat per kota
+     lengkap dengan koordinat & level survival makanan.
      ============================================================ -->
 <div class="card shadow-sm mb-3 border-success" id="forestFinder">
-  <div class="card-header bg-success-subtle text-success-emphasis d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <span><i class="bi bi-geo-alt-fill"></i> <strong>Rekomendasi Hutan per Provinsi</strong></span>
-    <div class="d-flex align-items-center gap-2">
-      <label class="small mb-0">Provinsi:</label>
-      <select id="provSel" class="form-select form-select-sm" style="min-width:220px">
-        <?php
-        $PROVINCE_FORESTS = [
-          'Aceh'                => [ ['Taman Nasional Gunung Leuser', 3.7333, 97.3833, 5, 'Hutan hujan tropis, sumber air & buah hutan melimpah'] ],
-          'Sumatera Utara'      => [ ['Taman Nasional Batang Gadis', 0.6500, 99.5500, 4, 'Hutan pegunungan, banyak rebung & buah liar'] ],
-          'Sumatera Barat'      => [ ['Taman Nasional Kerinci Seblat (Sumbar)', -1.6500, 101.2667, 5, 'Buah, ikan sungai, pakis muda'] ],
-          'Riau'                => [ ['Taman Nasional Tesso Nilo', -0.0500, 101.9000, 3, 'Hutan dataran rendah, perlu hati-hati gajah liar'] ],
-          'Jambi'               => [ ['Taman Nasional Bukit Tigapuluh', -1.0833, 102.4500, 4, 'Sumber air banyak, buah & umbi-umbian'] ],
-          'Sumatera Selatan'    => [ ['Taman Nasional Sembilang', -2.0167, 104.5333, 3, 'Mangrove, ikan & kepiting bakau'] ],
-          'Bengkulu'            => [ ['Taman Nasional Kerinci Seblat (Bengkulu)', -3.3500, 102.4000, 4, 'Hutan hujan, buah & sayur liar'] ],
-          'Lampung'             => [ ['Taman Nasional Way Kambas', -4.8667, 105.7500, 3, 'Hutan dataran rendah, waspada gajah'] ],
-          'Bangka Belitung'     => [ ['Hutan Lindung Gunung Maras', -1.6833, 105.7167, 2, 'Vegetasi terbatas, sumber air sedikit'] ],
-          'Kepulauan Riau'      => [ ['Hutan Bakau Pulau Bintan', 1.0833, 104.5167, 2, 'Mangrove, ikan & kerang'] ],
-          'DKI Jakarta'         => [ ['Hutan Kota Srengseng', -6.2333, 106.7667, 1, 'Hutan kota — survival sangat terbatas'] ],
-          'Banten'              => [ ['Taman Nasional Ujung Kulon', -6.7500, 105.3333, 4, 'Buah, ikan laut, kelapa pesisir'] ],
-          'Jawa Barat'          => [ ['Taman Nasional Gunung Halimun Salak', -6.7333, 106.5333, 4, 'Air jernih, pakis, bambu muda'] ],
-          'Jawa Tengah'         => [ ['Taman Nasional Gunung Merbabu', -7.4500, 110.4333, 3, 'Vegetasi pegunungan, suhu dingin'] ],
-          'DI Yogyakarta'       => [ ['Hutan Pinus Mangunan', -7.9167, 110.4167, 2, 'Hutan pinus, sumber makanan minim'] ],
-          'Jawa Timur'          => [ ['Taman Nasional Bromo Tengger Semeru', -8.0167, 112.9500, 3, 'Pegunungan, edelweis dilindungi'] ],
-          'Bali'                => [ ['Taman Nasional Bali Barat', -8.1167, 114.4833, 3, 'Hutan musim, buah hutan'] ],
-          'NTB'                 => [ ['Taman Nasional Gunung Rinjani', -8.4111, 116.4575, 3, 'Air panas, buah liar terbatas'] ],
-          'NTT'                 => [ ['Taman Nasional Kelimutu', -8.7667, 121.8167, 2, 'Savana, sumber air terbatas'] ],
-          'Kalimantan Barat'    => [ ['Taman Nasional Gunung Palung', -1.1500, 110.1167, 5, 'Hutan hujan kaya, buah & ikan sungai'] ],
-          'Kalimantan Tengah'   => [ ['Taman Nasional Tanjung Puting', -2.7500, 111.9333, 5, 'Hutan rawa & buah hutan melimpah'] ],
-          'Kalimantan Selatan'  => [ ['Pegunungan Meratus', -2.7333, 115.5833, 4, 'Hutan tropis, buah & ikan sungai'] ],
-          'Kalimantan Timur'    => [ ['Taman Nasional Kutai', 0.4500, 117.4500, 5, 'Hutan hujan kaya, makanan melimpah'] ],
-          'Kalimantan Utara'    => [ ['Taman Nasional Kayan Mentarang', 3.0667, 115.7333, 5, 'Hutan primer, buah, ikan, umbi'] ],
-          'Sulawesi Utara'      => [ ['Taman Nasional Bogani Nani Wartabone', 0.5500, 123.6833, 4, 'Buah, ikan sungai, sagu'] ],
-          'Gorontalo'           => [ ['Cagar Alam Panua', 0.4833, 121.6167, 3, 'Hutan pantai, ikan & kelapa'] ],
-          'Sulawesi Tengah'     => [ ['Taman Nasional Lore Lindu', -1.4667, 120.2167, 4, 'Buah hutan, ikan air tawar'] ],
-          'Sulawesi Barat'      => [ ['Hutan Lindung Mamasa', -2.9500, 119.3500, 3, 'Pegunungan, kopi liar'] ],
-          'Sulawesi Selatan'    => [ ['Taman Nasional Bantimurung-Bulusaraung', -5.0167, 119.6833, 3, 'Hutan karst, buah & madu hutan'] ],
-          'Sulawesi Tenggara'   => [ ['Taman Nasional Rawa Aopa Watumohai', -4.4500, 121.9333, 4, 'Rawa & ikan tawar'] ],
-          'Maluku'              => [ ['Taman Nasional Manusela', -3.0833, 129.5667, 4, 'Sagu, ikan, buah pala liar'] ],
-          'Maluku Utara'        => [ ['Hutan Lindung Aketajawe-Lolobata', 1.0333, 127.9000, 4, 'Sagu & buah hutan'] ],
-          'Papua Barat'         => [ ['Pegunungan Arfak', -1.1000, 133.9333, 4, 'Buah merah, sagu, umbi-umbian'] ],
-          'Papua'               => [ ['Taman Nasional Lorentz', -4.6500, 137.6500, 5, 'Hutan primer terluas, sumber makanan banyak'] ],
-        ];
-        foreach (array_keys($PROVINCE_FORESTS) as $prov):
-        ?>
-          <option value="<?= htmlspecialchars($prov) ?>"><?= htmlspecialchars($prov) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <button id="btnFindForest" class="btn btn-sm btn-success"><i class="bi bi-search"></i> Cari</button>
-      <!-- Revisi 27 Juni 2026 — cari hutan dari lokasi terkini (radius) -->
+  <div class="card-header bg-success-subtle text-success-emphasis">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span><i class="bi bi-stars"></i> <strong>Rekomendasi Hutan (Saran AI)</strong></span>
+      <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+        <i class="bi bi-cpu"></i> Powered by Gemini
+      </span>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 w-100">
+      <input id="forestCities" class="form-control form-control-sm" style="min-width:260px;flex:1 1 280px"
+             placeholder="Ketik daftar kota/kabupaten dipisah koma — cth: Bandung, Bogor, Sukabumi"
+             value="Bandung, Bogor, Sukabumi">
+      <button id="btnForestAI" class="btn btn-sm btn-success">
+        <i class="bi bi-magic"></i> Generate via AI
+      </button>
       <button id="btnFindNear" class="btn btn-sm btn-outline-success" title="Cari hutan/kawasan lindung di sekitar lokasi Anda">
         <i class="bi bi-geo-fill"></i> Cari dari Lokasi Saya
       </button>
@@ -236,18 +247,10 @@ include __DIR__.'/includes/header.php';
         <option value="100000">100 km</option>
       </select>
     </div>
-    <!-- Revisi R24 (28 Juni 2026) — pencarian per kota/kabupaten -->
-    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 w-100">
-      <input id="forestCity" class="form-control form-control-sm" style="max-width:260px"
-             placeholder="Atau ketik nama kota/kabupaten (cth: Kota Bandung)">
-      <button id="btnFindCity" class="btn btn-sm btn-outline-success">
-        <i class="bi bi-buildings"></i> Cari di Kota Ini
-      </button>
-    </div>
   </div>
   <div class="card-body">
-    <div class="small text-muted mb-2">Tingkat survival makanan: ⭐ semakin tinggi semakin mudah menemukan air, buah, ikan, dan tumbuhan dapat dimakan.</div>
-    <div id="forestStatus" class="alert alert-info small py-2 mb-2">Pilih provinsi lalu klik <b>Cari</b>.</div>
+    <div class="small text-muted mb-2">Tingkat survival makanan: ⭐ semakin tinggi semakin mudah menemukan air, buah, ikan, dan tumbuhan dapat dimakan. Hasil AI bersifat saran — selalu verifikasi sebelum berangkat.</div>
+    <div id="forestStatus" class="alert alert-info small py-2 mb-2">Masukkan daftar kota lalu klik <b>Generate via AI</b>.</div>
     <div id="forestMap" style="height:380px;border-radius:8px;overflow:hidden;background:#eef2f7"></div>
     <div id="forestList" class="list-group list-group-flush mt-3"></div>
   </div>
@@ -255,50 +258,69 @@ include __DIR__.'/includes/header.php';
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-window.__PROVINCE_FORESTS = <?= json_encode($PROVINCE_FORESTS, JSON_UNESCAPED_UNICODE) ?>;
+window.__CSRF = <?= json_encode(csrf_token()) ?>;
 (function(){
   var map, layer;
-  function init(lat,lng){
+  function init(lat,lng,zoom){
     if (!map){
-      map = L.map('forestMap').setView([lat,lng],7);
+      map = L.map('forestMap').setView([lat,lng], zoom||7);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
       layer = L.layerGroup().addTo(map);
-    } else { map.setView([lat,lng],7); }
+    } else { map.setView([lat,lng], zoom||7); }
   }
-  document.getElementById('btnFindForest').addEventListener('click', function(){
-    var prov = document.getElementById('provSel').value;
-    var data = (window.__PROVINCE_FORESTS||{})[prov] || [];
+  function renderItems(items, label){
     var st   = document.getElementById('forestStatus');
     var list = document.getElementById('forestList');
     list.innerHTML='';
-    if (!data.length){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='Belum ada data hutan untuk provinsi ini.'; return; }
-    init(data[0][1], data[0][2]);
+    if (!items.length){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='AI tidak mengembalikan lokasi.'; return; }
+    init(items[0].lat, items[0].lng, 7);
     if (layer) layer.clearLayers();
     var bounds = [];
-    data.forEach(function(f){
-      var nama=f[0], lat=f[1], lng=f[2], lvl=f[3], desc=f[4];
+    items.forEach(function(f){
+      var lvl = f.level||3;
       var stars='⭐'.repeat(lvl)+'☆'.repeat(5-lvl);
       var color = lvl>=4?'#198754':(lvl===3?'#fd7e14':'#dc3545');
-      L.circleMarker([lat,lng],{radius:10,color:color,fillColor:color,fillOpacity:0.65})
+      L.circleMarker([f.lat,f.lng],{radius:10,color:color,fillColor:color,fillOpacity:0.65})
         .addTo(layer)
-        .bindPopup('<b>'+nama+'</b><br>'+stars+' (Survival '+lvl+'/5)<br><small>'+desc+'</small>');
-      bounds.push([lat,lng]);
+        .bindPopup('<b>'+f.nama+'</b><br><small>'+(f.kota||'')+'</small><br>'+stars+' (Survival '+lvl+'/5)<br><small>'+(f.deskripsi||'')+'</small>');
+      bounds.push([f.lat,f.lng]);
       var btn=document.createElement('div');
       btn.className='list-group-item';
-      btn.innerHTML='<div class="d-flex justify-content-between align-items-center">'+
-        '<div><i class="bi bi-tree-fill" style="color:'+color+'"></i> <strong>'+nama+'</strong><br>'+
-        '<small class="text-muted">'+desc+'</small></div>'+
-        '<span class="badge bg-success-subtle text-success-emphasis">'+stars+'</span></div>';
+      btn.innerHTML='<div class="d-flex justify-content-between align-items-start gap-2">'+
+        '<div><i class="bi bi-tree-fill" style="color:'+color+'"></i> <strong>'+f.nama+'</strong>'+
+        (f.kota?' <span class="text-muted small">— '+f.kota+'</span>':'')+'<br>'+
+        '<small class="text-muted">'+(f.deskripsi||'')+'</small></div>'+
+        '<span class="badge bg-success-subtle text-success-emphasis flex-shrink-0">'+stars+'</span></div>';
       list.appendChild(btn);
     });
     if (bounds.length>1) map.fitBounds(bounds,{padding:[40,40]});
     st.className='alert alert-success small py-2 mb-2';
-    st.innerHTML='Ditemukan <b>'+data.length+'</b> lokasi hutan rekomendasi di <b>'+prov+'</b>. Titik hijau = survival makanan tinggi, oranye = sedang, merah = rendah.';
+    st.innerHTML='AI menemukan <b>'+items.length+'</b> rekomendasi untuk: <b>'+label+'</b>.';
+  }
+
+  document.getElementById('btnForestAI').addEventListener('click', async function(){
+    var st   = document.getElementById('forestStatus');
+    var btn  = this;
+    var cities = (document.getElementById('forestCities').value||'').trim();
+    if (!cities){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='Isi minimal 1 kota.'; return; }
+    btn.disabled=true; var oldH=btn.innerHTML; btn.innerHTML='<i class="bi bi-hourglass-split"></i> AI sedang menyiapkan…';
+    st.className='alert alert-info small py-2 mb-2'; st.textContent='AI sedang mencari hutan terdekat untuk: '+cities+'…';
+    try {
+      var fd = new FormData();
+      fd.append('_action','forest_ai');
+      fd.append('csrf', window.__CSRF);
+      fd.append('cities', cities);
+      var r = await fetch('/survival.php',{method:'POST',body:fd,credentials:'same-origin'});
+      var j = await r.json();
+      if (!j.ok){ st.className='alert alert-danger small py-2 mb-2'; st.textContent='Gagal: '+(j.err||'unknown'); return; }
+      renderItems(j.items, (j.cities||[]).join(', '));
+    } catch(e){
+      st.className='alert alert-danger small py-2 mb-2'; st.textContent='Kesalahan jaringan: '+e.message;
+    } finally { btn.disabled=false; btn.innerHTML=oldH; }
   });
 
-  /* Revisi 27 Juni 2026 — Hutan terdekat berdasarkan lokasi terkini (Overpass).
-     Mencari natural=wood / landuse=forest / boundary=protected_area di sekitar user. */
+  /* Cari dari lokasi terkini (Overpass) — tetap dipertahankan dari R23. */
   function distKm(a,b){
     var R=6371, toRad=function(x){return x*Math.PI/180;};
     var dLat=toRad(b[0]-a[0]), dLng=toRad(b[1]-a[1]);

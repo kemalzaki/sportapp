@@ -26,24 +26,32 @@ try {
         fetched_at TIMESTAMP NOT NULL DEFAULT now()
     )");
     db_exec("CREATE INDEX IF NOT EXISTS idx_opini_fetched ON opini_viral(fetched_at DESC)");
+    // Revisi R25 (28 Juni 2026) — kolom komentar publik untuk ditampilkan di kartu
+    db_exec("ALTER TABLE opini_viral ADD COLUMN IF NOT EXISTS komentar TEXT");
 } catch (Throwable $e) {}
 
-/* ----- Lexicon sentimen sederhana (kata kunci Bahasa Indonesia) ----- */
-$POS = ['baik','hebat','sukses','meraih','juara','menang','positif','optimis','prestasi','membantu','bangga','damai','sehat','tumbuh','naik','untung','dukungan','solidaritas','berkat','syukur','sembuh','lulus','penghargaan','inovasi','solusi'];
-$NEG = ['buruk','gagal','kalah','protes','demo','rusak','jatuh','turun','krisis','bencana','korupsi','tersangka','meninggal','tewas','ditangkap','kebakaran','banjir','gempa','konflik','kontroversi','mengamuk','sengketa','viral','heboh','marah','kecewa','hoax','penipuan','penyalahgunaan','penganiayaan'];
+/* ----- Lexicon sentimen — diperluas (Revisi R25, 28 Juni 2026).
+   Sebelumnya kata "politik" otomatis masuk daftar NEG sehingga seluruh feed
+   "Politik" otomatis ber-sentimen RENDAH (negatif). Itu sebabnya muncul keluhan
+   "masa politik rendah?". Sekarang:
+   - Kata netral/tematik (politik, viral, demo, dll) DIKELUARKAN dari NEG.
+   - NEG kembali fokus pada kata yang benar-benar bermakna negatif.
+   - POS diperluas. Skor pakai bobot frekuensi (bukan hanya ada/tidak). */
+$POS = ['baik','hebat','sukses','meraih','juara','menang','positif','optimis','prestasi','membantu','bangga','damai','sehat','tumbuh','naik','untung','dukungan','solidaritas','berkat','syukur','sembuh','lulus','penghargaan','inovasi','solusi','keren','mantap','bagus','luar biasa','membanggakan','harapan','sepakat','disetujui','disahkan','memuji','apresiasi','rekor','tercepat','terbaik','meningkat'];
+$NEG = ['buruk','gagal','kalah','rusak','jatuh','turun','krisis','bencana','korupsi','tersangka','meninggal','tewas','ditangkap','kebakaran','banjir','gempa','konflik','kontroversi','mengamuk','sengketa','marah','kecewa','hoax','penipuan','penyalahgunaan','penganiayaan','dibunuh','memprihatinkan','tragis','kabur','melarikan diri','divonis','dipenjara','ditolak','digugat','memburuk','anjlok','merosot','rugi','defisit'];
 
 function _opini_score(string $teks, array $POS, array $NEG): array {
-    $t = mb_strtolower($teks);
+    $t = ' '.mb_strtolower($teks).' ';
     $p = 0; $n = 0;
-    foreach ($POS as $w) { if (mb_strpos($t, $w) !== false) $p++; }
-    foreach ($NEG as $w) { if (mb_strpos($t, $w) !== false) $n++; }
+    foreach ($POS as $w) { $p += substr_count($t, ' '.$w); $p += substr_count($t, ' '.$w.' '); }
+    foreach ($NEG as $w) { $n += substr_count($t, ' '.$w); $n += substr_count($t, ' '.$w.' '); }
     $total = $p + $n;
     if ($total === 0) return ['netral', 0.0];
     $skor = ($p - $n) / max(1,$total); // -1..+1
     $abs  = abs($skor);
     if ($abs < 0.2)         return ['netral', $skor];
-    if ($skor >= 0.2)       return ['tinggi', $skor]; // sentimen tinggi = condong positif
-    return ['rendah', $skor];                          // sentimen rendah = condong negatif
+    if ($skor >= 0.2)       return ['tinggi', $skor];
+    return ['rendah', $skor];
 }
 
 function _opini_fetch_rss(string $url, int $timeout=8): ?string {
@@ -81,10 +89,10 @@ if ($needRefresh) {
         'Opini r/indonesia'        => 'reddit:indonesia/hot',
         'Opini r/indonesia_local'  => 'reddit:indonesia_local/hot',
         'Opini r/indonesians'      => 'reddit:indonesians/hot',
-        // Nitter (mirror Twitter/X) — kategori politik & bisnis
-        'X/Twitter • Politik ID'   => 'https://nitter.net/search/rss?f=tweets&q=politik+indonesia',
-        'X/Twitter • Bisnis ID'    => 'https://nitter.net/search/rss?f=tweets&q=bisnis+indonesia',
-        'X/Twitter • Viral ID'     => 'https://nitter.net/search/rss?f=tweets&q=viral+indonesia',
+        // Nitter (mirror Twitter/X) — Revisi R25: pakai skema `nitter:` + multi-mirror
+        'X/Twitter • Politik ID'   => 'nitter:politik indonesia',
+        'X/Twitter • Bisnis ID'    => 'nitter:bisnis indonesia',
+        'X/Twitter • Viral ID'     => 'nitter:viral indonesia',
         // YouTube — channel berita & podcast opini populer ID (RSS resmi YouTube)
         'YouTube • Narasi'         => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9_F0RpdPNX4hL3KX5G6phw',
         'YouTube • CNN Indonesia'  => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCM4XlH5BIPNc-rUtcwI7Vfg',
@@ -100,21 +108,63 @@ if ($needRefresh) {
     foreach ($sources as $kategori => $rssUrl) {
         $items = [];
         if (str_starts_with($rssUrl, 'reddit:')) {
-            // Reddit JSON publik: https://www.reddit.com/r/<sub>/<sort>.json?limit=15
             $path = substr($rssUrl, 7);
-            $url  = 'https://www.reddit.com/r/'.$path.'.json?limit=15';
+            $url  = 'https://www.reddit.com/r/'.$path.'.json?limit=10';
             $json = _opini_fetch_rss($url, 10);
             if ($json) {
                 $obj = json_decode($json, true);
+                $idx = 0;
                 foreach (($obj['data']['children'] ?? []) as $ch) {
                     $d = $ch['data'] ?? [];
+                    $permalink = $d['permalink'] ?? '';
+                    /* Revisi R25 (28 Juni 2026) — ambil 5 komentar teratas untuk 5 post
+                       pertama tiap subreddit, simpan ke kolom `komentar` agar UI bisa
+                       memunculkan komentar netizen (sesuai permintaan user). */
+                    $comments = [];
+                    if ($idx < 5 && $permalink) {
+                        $cj = _opini_fetch_rss('https://www.reddit.com'.$permalink.'.json?limit=5&depth=1&sort=top', 8);
+                        if ($cj) {
+                            $cobj = json_decode($cj, true);
+                            $kids = $cobj[1]['data']['children'] ?? [];
+                            foreach ($kids as $kc) {
+                                $body = trim((string)($kc['data']['body'] ?? ''));
+                                if ($body==='' || $body==='[deleted]' || $body==='[removed]') continue;
+                                $comments[] = mb_substr($body, 0, 240);
+                                if (count($comments) >= 5) break;
+                            }
+                        }
+                    }
+                    $idx++;
                     $items[] = [
                         'title' => $d['title'] ?? '',
-                        'link'  => 'https://www.reddit.com'.($d['permalink'] ?? ''),
+                        'link'  => 'https://www.reddit.com'.$permalink,
                         'desc'  => mb_substr((string)($d['selftext'] ?? ''), 0, 400),
                         'src'   => 'r/'.($d['subreddit'] ?? '').' • '.($d['ups'] ?? 0).' upvotes • '.($d['num_comments'] ?? 0).' komentar',
+                        'comments' => $comments,
                     ];
                 }
+            }
+        } elseif (str_starts_with($rssUrl, 'nitter:')) {
+            /* Revisi R25 (28 Juni 2026) — Nitter sering down/diblok. Coba beberapa
+               mirror berurutan, pakai yang pertama berhasil. */
+            $q = substr($rssUrl, 7);
+            $mirrors = ['https://nitter.privacydev.net','https://nitter.poast.org','https://nitter.net'];
+            foreach ($mirrors as $base) {
+                $xml = _opini_fetch_rss($base.'/search/rss?f=tweets&q='.urlencode($q), 6);
+                if (!$xml) continue;
+                libxml_use_internal_errors(true);
+                $doc = @simplexml_load_string($xml);
+                if (!$doc || !isset($doc->channel->item)) continue;
+                foreach ($doc->channel->item as $it) {
+                    $items[] = [
+                        'title' => trim((string)$it->title),
+                        'link'  => (string)$it->link,
+                        'desc'  => trim(strip_tags((string)$it->description)),
+                        'src'   => 'Twitter/X • '.parse_url($base, PHP_URL_HOST),
+                        'comments' => [],
+                    ];
+                }
+                if ($items) break;
             }
         } else {
             $xml = _opini_fetch_rss($rssUrl);
@@ -122,7 +172,6 @@ if ($needRefresh) {
             libxml_use_internal_errors(true);
             $doc = @simplexml_load_string($xml);
             if (!$doc) continue;
-            // RSS 2.0 → channel.item ; Atom (YouTube) → entry
             if (isset($doc->channel->item)) {
                 foreach ($doc->channel->item as $it) {
                     $items[] = [
@@ -130,6 +179,7 @@ if ($needRefresh) {
                         'link'  => (string)$it->link,
                         'desc'  => trim(strip_tags((string)$it->description)),
                         'src'   => trim((string)($it->source ?? '')),
+                        'comments' => [],
                     ];
                 }
             } elseif (isset($doc->entry)) {
@@ -141,6 +191,7 @@ if ($needRefresh) {
                         'link'  => $ln,
                         'desc'  => trim(strip_tags((string)($en->summary ?? ''))),
                         'src'   => trim((string)($en->author->name ?? '')),
+                        'comments' => [],
                     ];
                 }
             }
@@ -152,18 +203,22 @@ if ($needRefresh) {
             $linkRaw = $it['link'];
             $desc    = $it['desc'];
             $sumber  = $it['src'];
+            $komen   = $it['comments'] ?? [];
             if ($judul === '') continue;
-            [$lab, $sk] = _opini_score($judul.' '.$desc, $POS, $NEG);
+            // Sentimen pakai judul + ringkasan + komentar (lebih representatif)
+            $teks = $judul.' '.$desc.' '.implode(' ', $komen);
+            [$lab, $sk] = _opini_score($teks, $POS, $NEG);
             try {
-                db_exec("INSERT INTO opini_viral(judul,sumber,url,ringkasan,sentimen,skor,kategori)
-                         VALUES($1,$2,$3,$4,$5,$6,$7)",
+                db_exec("INSERT INTO opini_viral(judul,sumber,url,ringkasan,sentimen,skor,kategori,komentar)
+                         VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
                     [mb_substr($judul,0,500),
                      mb_substr($sumber,0,120),
                      mb_substr($linkRaw,0,500),
                      mb_substr($desc,0,800),
                      $lab,
                      round($sk,3),
-                     $kategori]);
+                     $kategori,
+                     $komen ? json_encode($komen, JSON_UNESCAPED_UNICODE) : null]);
                 $kept++; $cnt++;
             } catch (Throwable $e) { /* skip duplikat / error */ }
         }
@@ -177,7 +232,7 @@ $where = "WHERE fetched_at >= now() - interval '6 hours'"; $args = [];
 if ($fSentimen) { $args[] = $fSentimen; $where .= ' AND sentimen=$'.count($args); }
 if ($fKategori) { $args[] = $fKategori; $where .= ' AND kategori=$'.count($args); }
 
-$rows = db_all("SELECT id,judul,sumber,url,ringkasan,sentimen,skor,kategori,fetched_at
+$rows = db_all("SELECT id,judul,sumber,url,ringkasan,sentimen,skor,kategori,komentar,fetched_at
                 FROM opini_viral $where
                 ORDER BY fetched_at DESC, id DESC LIMIT 80", $args);
 
@@ -197,8 +252,9 @@ include __DIR__.'/includes/header.php'; ?>
 </div>
 
 <div class="alert alert-info small py-2">
-  <i class="bi bi-info-circle"></i> Topik diambil dari sumber publik (Google News Indonesia).
-  Sentimen dianalisis otomatis berdasarkan kamus kata-kunci sederhana — hasilnya merupakan <b>indikator awal</b>, bukan kesimpulan akhir.
+  <i class="bi bi-info-circle"></i> <b>Sumber data:</b> Reddit (r/indonesia, r/indonesia_local, r/indonesians) untuk opini + komentar netizen,
+  Nitter (mirror Twitter/X) untuk topik politik/bisnis/viral, YouTube (Narasi, CNN, Kompas TV), serta Google News RSS sebagai fallback bila salah satu sumber down.
+  Sentimen dianalisis otomatis dari <em>judul + ringkasan + komentar</em> via kamus kata kunci Bahasa Indonesia (Revisi R25: kata "politik/viral/demo" tidak lagi otomatis dianggap negatif).
 </div>
 
 <div class="row g-2 mb-3">
@@ -270,7 +326,25 @@ include __DIR__.'/includes/header.php'; ?>
             <?php if (!empty($r['ringkasan'])): ?>
               <p class="small text-muted mb-2"><?= htmlspecialchars(mb_strimwidth($r['ringkasan'],0,220,'…')) ?></p>
             <?php endif; ?>
-            <div class="small text-muted">
+            <?php
+              /* Revisi R25 (28 Juni 2026) — tampilkan komentar netizen jika ada. */
+              $komenList = [];
+              if (!empty($r['komentar'])) {
+                  $dec = json_decode($r['komentar'], true);
+                  if (is_array($dec)) $komenList = $dec;
+              }
+              if ($komenList):
+            ?>
+              <div class="mt-2 p-2 rounded bg-light border">
+                <div class="small fw-bold text-muted mb-1"><i class="bi bi-chat-quote"></i> Komentar Netizen (<?= count($komenList) ?>):</div>
+                <ul class="small mb-0 ps-3" style="max-height:160px;overflow:auto">
+                  <?php foreach (array_slice($komenList,0,5) as $cmt): ?>
+                    <li class="mb-1"><?= htmlspecialchars(mb_strimwidth($cmt,0,220,'…')) ?></li>
+                  <?php endforeach; ?>
+                </ul>
+              </div>
+            <?php endif; ?>
+            <div class="small text-muted mt-2">
               <i class="bi bi-clock"></i> <?= htmlspecialchars(date('d M Y H:i', strtotime($r['fetched_at']))) ?>
               <?php if (!empty($r['sumber'])): ?> · <?= htmlspecialchars($r['sumber']) ?><?php endif; ?>
             </div>
