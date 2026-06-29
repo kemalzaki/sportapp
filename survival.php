@@ -62,42 +62,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         $id = (int)($_POST['id'] ?? 0);
         if ($id>0) db_exec("DELETE FROM survival_qa_saved WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
         echo json_encode(['ok'=>true]); exit;
-    } elseif ($a === 'hewan_foto_add') {
-        /* Revisi (28 Juni 2026) — Tambah foto hewan liar (upload user). */
-        header('Content-Type: application/json');
-        $slug = preg_replace('/[^a-z0-9_\-]/', '', strtolower((string)($_POST['slug'] ?? '')));
-        $cap  = mb_substr(trim((string)($_POST['caption'] ?? '')), 0, 240);
-        if ($slug==='' || !isset($_FILES['foto'])) { echo json_encode(['ok'=>false,'err'=>'Slug/file kosong']); exit; }
-        $f = $_FILES['foto'];
-        if (($f['error'] ?? 1) !== UPLOAD_ERR_OK) { echo json_encode(['ok'=>false,'err'=>'Upload error']); exit; }
-        if ($f['size'] > 5*1024*1024) { echo json_encode(['ok'=>false,'err'=>'Max 5MB']); exit; }
-        $info = @getimagesize($f['tmp_name']);
-        if (!$info) { echo json_encode(['ok'=>false,'err'=>'Bukan gambar']); exit; }
-        $extMap = [IMAGETYPE_JPEG=>'jpg', IMAGETYPE_PNG=>'png', IMAGETYPE_WEBP=>'webp'];
-        if (!isset($extMap[$info[2]])) { echo json_encode(['ok'=>false,'err'=>'Format harus JPG/PNG/WEBP']); exit; }
-        $dir = __DIR__.'/uploads/hewan';
-        if (!is_dir($dir)) @mkdir($dir, 0775, true);
-        $fname = 'user_'.$slug.'_'.(int)$u['id'].'_'.time().'_'.bin2hex(random_bytes(3)).'.'.$extMap[$info[2]];
-        $dest = $dir.'/'.$fname;
-        if (!move_uploaded_file($f['tmp_name'], $dest)) { echo json_encode(['ok'=>false,'err'=>'Gagal menyimpan']); exit; }
-        $rel = '/uploads/hewan/'.$fname;
-        $r = pg_query_params(db(), "INSERT INTO hewan_liar_foto(user_id,slug,path,caption) VALUES($1,$2,$3,$4) RETURNING id",
-            [(int)$u['id'], $slug, $rel, $cap]);
-        $id = (int)(pg_fetch_row($r)[0] ?? 0);
-        echo json_encode(['ok'=>true,'id'=>$id,'path'=>$rel,'caption'=>$cap]); exit;
-    } elseif ($a === 'hewan_foto_del') {
-        header('Content-Type: application/json');
-        $id = (int)($_POST['id'] ?? 0);
-        if ($id>0) {
-            $r = pg_query_params(db(), "SELECT path FROM hewan_liar_foto WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
-            $row = pg_fetch_assoc($r);
-            if ($row) {
-                $p = __DIR__.$row['path'];
-                if (is_file($p)) @unlink($p);
-                db_exec("DELETE FROM hewan_liar_foto WHERE id=$1 AND user_id=$2",[$id,(int)$u['id']]);
-            }
-        }
-        echo json_encode(['ok'=>true]); exit;
     } elseif ($a === 'forest_ai') {
         /* Revisi R25 (28 Juni 2026) — Rekomendasi Hutan via AI (Gemini).
            Input: daftar kota/kabupaten (string dipisah koma). Output JSON:
@@ -265,190 +229,7 @@ include __DIR__.'/includes/header.php';
 </div>
 
 
-<!-- ============================================================
-     Revisi R25 (28 Juni 2026) — Rekomendasi Hutan via AI (Gemini)
-     Sebelumnya: pilih provinsi dari array statis.
-     Sekarang: user mengetik daftar kota/kabupaten (string, dipisah koma),
-     AI menghasilkan rekomendasi hutan/kawasan lindung terdekat per kota
-     lengkap dengan koordinat & level survival makanan.
-     ============================================================ -->
-<div class="card shadow-sm mb-3 border-success" id="forestFinder">
-  <div class="card-header bg-success-subtle text-success-emphasis">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <span><i class="bi bi-stars"></i> <strong>Rekomendasi Hutan (Saran AI)</strong></span>
-      <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-        <i class="bi bi-cpu"></i> Powered by Gemini
-      </span>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 w-100">
-      <input id="forestCities" class="form-control form-control-sm" style="min-width:260px;flex:1 1 280px"
-             placeholder="Ketik daftar kota/kabupaten dipisah koma — cth: Bandung, Bogor, Sukabumi"
-             value="Bandung, Bogor, Sukabumi">
-      <button id="btnForestAI" class="btn btn-sm btn-success">
-        <i class="bi bi-magic"></i> Generate via AI
-      </button>
-      <button id="btnFindNear" class="btn btn-sm btn-outline-success" title="Cari hutan/kawasan lindung di sekitar lokasi Anda">
-        <i class="bi bi-geo-fill"></i> Cari dari Lokasi Saya
-      </button>
-      <select id="radiusSel" class="form-select form-select-sm" style="width:auto" title="Radius pencarian">
-        <option value="10000">10 km</option>
-        <option value="25000" selected>25 km</option>
-        <option value="50000">50 km</option>
-        <option value="100000">100 km</option>
-      </select>
-    </div>
-  </div>
-  <div class="card-body">
-    <div class="small text-muted mb-2">Tingkat survival makanan: ⭐ semakin tinggi semakin mudah menemukan air, buah, ikan, dan tumbuhan dapat dimakan. Hasil AI bersifat saran — selalu verifikasi sebelum berangkat.</div>
-    <div id="forestStatus" class="alert alert-info small py-2 mb-2">Masukkan daftar kota lalu klik <b>Generate via AI</b>.</div>
-    <div id="forestMap" style="height:380px;border-radius:8px;overflow:hidden;background:#eef2f7"></div>
-    <div id="forestList" class="list-group list-group-flush mt-3"></div>
-  </div>
-</div>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-window.__CSRF = <?= json_encode(csrf_token()) ?>;
-(function(){
-  var map, layer;
-  function init(lat,lng,zoom){
-    if (!map){
-      map = L.map('forestMap').setView([lat,lng], zoom||7);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
-      layer = L.layerGroup().addTo(map);
-    } else { map.setView([lat,lng], zoom||7); }
-  }
-  function renderItems(items, label){
-    var st   = document.getElementById('forestStatus');
-    var list = document.getElementById('forestList');
-    list.innerHTML='';
-    if (!items.length){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='AI tidak mengembalikan lokasi.'; return; }
-    init(items[0].lat, items[0].lng, 7);
-    if (layer) layer.clearLayers();
-    var bounds = [];
-    items.forEach(function(f){
-      var lvl = f.level||3;
-      var stars='⭐'.repeat(lvl)+'☆'.repeat(5-lvl);
-      var color = lvl>=4?'#198754':(lvl===3?'#fd7e14':'#dc3545');
-      L.circleMarker([f.lat,f.lng],{radius:10,color:color,fillColor:color,fillOpacity:0.65})
-        .addTo(layer)
-        .bindPopup('<b>'+f.nama+'</b><br><small>'+(f.kota||'')+'</small><br>'+stars+' (Survival '+lvl+'/5)<br><small>'+(f.deskripsi||'')+'</small>');
-      bounds.push([f.lat,f.lng]);
-      var btn=document.createElement('div');
-      btn.className='list-group-item';
-      btn.innerHTML='<div class="d-flex justify-content-between align-items-start gap-2">'+
-        '<div><i class="bi bi-tree-fill" style="color:'+color+'"></i> <strong>'+f.nama+'</strong>'+
-        (f.kota?' <span class="text-muted small">— '+f.kota+'</span>':'')+'<br>'+
-        '<small class="text-muted">'+(f.deskripsi||'')+'</small></div>'+
-        '<span class="badge bg-success-subtle text-success-emphasis flex-shrink-0">'+stars+'</span></div>';
-      list.appendChild(btn);
-    });
-    if (bounds.length>1) map.fitBounds(bounds,{padding:[40,40]});
-    st.className='alert alert-success small py-2 mb-2';
-    st.innerHTML='AI menemukan <b>'+items.length+'</b> rekomendasi untuk: <b>'+label+'</b>.';
-  }
-
-  document.getElementById('btnForestAI').addEventListener('click', async function(){
-    var st   = document.getElementById('forestStatus');
-    var btn  = this;
-    var cities = (document.getElementById('forestCities').value||'').trim();
-    if (!cities){ st.className='alert alert-warning small py-2 mb-2'; st.textContent='Isi minimal 1 kota.'; return; }
-    btn.disabled=true; var oldH=btn.innerHTML; btn.innerHTML='<i class="bi bi-hourglass-split"></i> AI sedang menyiapkan…';
-    st.className='alert alert-info small py-2 mb-2'; st.textContent='AI sedang mencari hutan terdekat untuk: '+cities+'…';
-    try {
-      var fd = new FormData();
-      fd.append('_action','forest_ai');
-      fd.append('csrf', window.__CSRF);
-      fd.append('cities', cities);
-      var r = await fetch('/survival.php',{method:'POST',body:fd,credentials:'same-origin'});
-      var j = await r.json();
-      if (!j.ok){ st.className='alert alert-danger small py-2 mb-2'; st.textContent='Gagal: '+(j.err||'unknown'); return; }
-      renderItems(j.items, (j.cities||[]).join(', '));
-    } catch(e){
-      st.className='alert alert-danger small py-2 mb-2'; st.textContent='Kesalahan jaringan: '+e.message;
-    } finally { btn.disabled=false; btn.innerHTML=oldH; }
-  });
-
-  /* Cari dari lokasi terkini (Overpass) — tetap dipertahankan dari R23. */
-  function distKm(a,b){
-    var R=6371, toRad=function(x){return x*Math.PI/180;};
-    var dLat=toRad(b[0]-a[0]), dLng=toRad(b[1]-a[1]);
-    var s=Math.sin(dLat/2)**2+Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLng/2)**2;
-    return 2*R*Math.asin(Math.sqrt(s));
-  }
-  document.getElementById('btnFindNear').addEventListener('click', function(){
-    var st   = document.getElementById('forestStatus');
-    var list = document.getElementById('forestList');
-    var rad  = parseInt(document.getElementById('radiusSel').value||'25000',10);
-    if (!navigator.geolocation){ st.className='alert alert-danger small py-2 mb-2'; st.textContent='Browser tidak mendukung Geolocation.'; return; }
-    st.className='alert alert-info small py-2 mb-2';
-    st.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mendeteksi lokasi…';
-    navigator.geolocation.getCurrentPosition(async function(pos){
-      var ulat=pos.coords.latitude, ulng=pos.coords.longitude;
-      init(ulat,ulng);
-      if (layer) layer.clearLayers();
-      L.marker([ulat,ulng]).addTo(layer).bindPopup('📍 Lokasi Anda').openPopup();
-      st.innerHTML='<span class="spinner-border spinner-border-sm"></span> Mencari hutan/kawasan dalam radius '+(rad/1000)+' km…';
-      var q='[out:json][timeout:25];('+
-            'way["natural"="wood"](around:'+rad+','+ulat+','+ulng+');'+
-            'way["landuse"="forest"](around:'+rad+','+ulat+','+ulng+');'+
-            'relation["boundary"="protected_area"](around:'+rad+','+ulat+','+ulng+');'+
-            'relation["boundary"="national_park"](around:'+rad+','+ulat+','+ulng+');'+
-            ');out center 40;';
-      try {
-        var r = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:q});
-        var j = await r.json();
-        var els = (j.elements||[]).map(function(e){
-          var la=e.lat||(e.center&&e.center.lat); var ln=e.lon||(e.center&&e.center.lon);
-          if(!la||!ln) return null;
-          var tg=e.tags||{};
-          var nama = tg.name || (tg.boundary==='national_park'?'Taman Nasional':
-                     tg.boundary==='protected_area'?'Kawasan Lindung':
-                     tg.natural==='wood'?'Hutan':'Hutan/Kawasan');
-          var tipe = tg.boundary || tg.natural || tg.landuse || 'forest';
-          return {nama:nama,lat:la,lng:ln,tipe:tipe};
-        }).filter(Boolean);
-        els.forEach(function(e){ e.km = distKm([ulat,ulng],[e.lat,e.lng]); });
-        els.sort(function(a,b){return a.km-b.km;});
-        els = els.slice(0,25);
-        list.innerHTML='';
-        if (!els.length){
-          st.className='alert alert-warning small py-2 mb-2';
-          st.textContent='Tidak ditemukan hutan/kawasan lindung dalam radius '+(rad/1000)+' km. Coba perbesar radius.';
-          return;
-        }
-        var bnds=[[ulat,ulng]];
-        els.forEach(function(it){
-          var color = it.tipe==='national_park'?'#198754':(it.tipe==='protected_area'?'#0d6efd':'#20c997');
-          L.circleMarker([it.lat,it.lng],{radius:9,color:color,fillColor:color,fillOpacity:0.6})
-            .addTo(layer).bindPopup('<b>'+it.nama+'</b><br>'+it.tipe+'<br>'+it.km.toFixed(2)+' km');
-          bnds.push([it.lat,it.lng]);
-          var btn=document.createElement('div');
-          btn.className='list-group-item d-flex justify-content-between align-items-center';
-          btn.innerHTML='<div><i class="bi bi-tree-fill" style="color:'+color+'"></i> <strong>'+
-            it.nama+'</strong> <span class="badge bg-secondary ms-1">'+it.tipe+'</span><br>'+
-            '<small class="text-muted">'+it.km.toFixed(2)+' km dari Anda</small></div>'+
-            '<a class="btn btn-sm btn-success" target="_blank" rel="noopener" '+
-            'href="https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+
-            ulat+','+ulng+'&destination='+it.lat+','+it.lng+'">'+
-            '<i class="bi bi-google"></i> Rute</a>';
-          list.appendChild(btn);
-        });
-        if (bnds.length>1) map.fitBounds(bnds,{padding:[40,40]});
-        st.className='alert alert-success small py-2 mb-2';
-        st.innerHTML='Ditemukan <b>'+els.length+'</b> lokasi hutan/kawasan lindung di sekitar Anda (radius '+(rad/1000)+' km). Klik <b>Rute</b> untuk arahan via Google Maps.';
-      } catch(e){
-        st.className='alert alert-danger small py-2 mb-2';
-        st.textContent='Gagal mengakses Overpass API: '+e.message;
-      }
-    }, function(err){
-      st.className='alert alert-danger small py-2 mb-2';
-      st.textContent='Gagal mendapatkan lokasi: '+err.message;
-    },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
-  });
-})();
-</script>
+<!-- Revisi (29 Juni 2026) — Bagian 'Rekomendasi Hutan (Saran AI)' dihapus sesuai permintaan user. -->
 
 <!-- Pengetahuan Survival di Hutan (Revisi R22 — spoiler/collapse) -->
 <div class="alert alert-success-subtle small py-2 mb-2"><i class="bi bi-info-circle"></i>
@@ -600,7 +381,7 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
 
           foreach ($hewan as $h):
             [$slug,$nama,$icon,$warna,$desc] = $h;
-            $imgMain = '/uploads/hewan/'.$slug.'.jpg';
+            $imgMain = '/assets/img/hewan/'.$slug.'.jpg';
             $fotos = $fotoBySlug[$slug] ?? [];
           ?>
             <div class="col-md-6">
@@ -608,9 +389,7 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
                 <div class="d-flex align-items-center gap-2 mb-2">
                   <i class="bi <?= $icon ?> text-<?= $warna ?> fs-5"></i>
                   <strong class="small flex-grow-1"><?= htmlspecialchars($nama) ?></strong>
-                  <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 hewan-toggle-add" title="Tambah foto">
-                    <i class="bi bi-plus-circle"></i> Tambah
-                  </button>
+                  
                 </div>
                 <div class="ratio ratio-4x3 rounded overflow-hidden border mb-2 bg-body-tertiary">
                   <img src="<?= $imgMain ?>" alt="<?= htmlspecialchars($nama) ?>"
@@ -619,56 +398,7 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
                 </div>
                 <div class="small text-muted mb-2"><?= $desc ?></div>
 
-                <details class="mb-2">
-                  <summary class="small fw-semibold text-primary" style="cursor:pointer">
-                    <i class="bi bi-images"></i> Koleksi Foto
-                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1 hewan-count"><?= count($fotos) ?></span>
-                  </summary>
-                  <div class="row g-1 mt-2 hewan-gallery">
-                    <?php if (!$fotos): ?>
-                      <div class="col-12 small text-muted fst-italic hewan-empty">Belum ada foto tambahan dari pengguna.</div>
-                    <?php else: foreach ($fotos as $ft): ?>
-                      <div class="col-4" data-foto-id="<?= (int)$ft['id'] ?>">
-                        <div class="ratio ratio-1x1 rounded overflow-hidden border position-relative">
-                          <a href="<?= htmlspecialchars($ft['path']) ?>" target="_blank" rel="noopener">
-                            <img src="<?= htmlspecialchars($ft['path']) ?>" loading="lazy" alt="<?= htmlspecialchars($ft['caption'] ?? '') ?>"
-                                 style="object-fit:cover;width:100%;height:100%">
-                          </a>
-                          <?php if ($myId && (int)$ft['user_id'] === $myId): ?>
-                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 p-0 px-1 hewan-del-btn"
-                                    data-id="<?= (int)$ft['id'] ?>" title="Hapus foto saya">
-                              <i class="bi bi-x"></i>
-                            </button>
-                          <?php endif; ?>
-                        </div>
-                        <?php if (!empty($ft['caption'])): ?>
-                          <div class="small text-muted text-truncate" title="<?= htmlspecialchars($ft['caption']) ?>">
-                            <?= htmlspecialchars($ft['caption']) ?>
-                          </div>
-                        <?php endif; ?>
-                      </div>
-                    <?php endforeach; endif; ?>
-                  </div>
-                </details>
-
-                <form class="hewan-add-form border-top pt-2 mt-1" style="display:none" enctype="multipart/form-data">
-                  <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                  <input type="hidden" name="_action" value="hewan_foto_add">
-                  <input type="hidden" name="slug" value="<?= htmlspecialchars($slug) ?>">
-                  <div class="mb-1">
-                    <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm" required>
-                  </div>
-                  <div class="mb-1">
-                    <input type="text" name="caption" maxlength="240" placeholder="Keterangan singkat (opsional)" class="form-control form-control-sm">
-                  </div>
-                  <div class="d-flex gap-1">
-                    <button type="submit" class="btn btn-sm btn-primary">
-                      <i class="bi bi-upload"></i> Upload
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary hewan-cancel-add">Batal</button>
-                    <span class="small ms-2 hewan-add-stat text-muted align-self-center"></span>
-                  </div>
-                </form>
+                
               </div>
             </div>
           <?php endforeach; ?>
@@ -867,86 +597,5 @@ window.__CSRF = <?= json_encode(csrf_token()) ?>;
   });
 })();
 </script>
-<script>
-/* Revisi (28 Juni 2026) — Koleksi Foto Hewan Liar: upload & hapus via fetch. */
-(function(){
-  function esc(s){ return String(s||'').replace(/[<>&"']/g,function(c){return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c];});}
-  document.querySelectorAll('.hewan-card').forEach(function(card){
-    var btnAdd  = card.querySelector('.hewan-toggle-add');
-    var btnCcl  = card.querySelector('.hewan-cancel-add');
-    var form    = card.querySelector('.hewan-add-form');
-    var gallery = card.querySelector('.hewan-gallery');
-    var emptyEl = gallery ? gallery.querySelector('.hewan-empty') : null;
-    var countEl = card.querySelector('.hewan-count');
-    var stat    = card.querySelector('.hewan-add-stat');
 
-    if (btnAdd) btnAdd.addEventListener('click', function(){
-      if (!form) return;
-      form.style.display = (form.style.display==='none' || !form.style.display) ? 'block' : 'none';
-    });
-    if (btnCcl) btnCcl.addEventListener('click', function(){
-      form.reset(); form.style.display='none'; if (stat) stat.textContent='';
-    });
-
-    if (form) form.addEventListener('submit', async function(e){
-      e.preventDefault();
-      var fd = new FormData(form);
-      stat.textContent = 'Mengunggah…'; stat.className='small ms-2 hewan-add-stat text-muted align-self-center';
-      var btn = form.querySelector('button[type=submit]');
-      btn.disabled = true;
-      try {
-        var r = await fetch('/survival.php',{method:'POST', body:fd, credentials:'same-origin'});
-        var j = await r.json();
-        if (!j.ok) throw new Error(j.err || 'Gagal');
-        if (emptyEl) { emptyEl.remove(); }
-        var col = document.createElement('div');
-        col.className = 'col-4';
-        col.dataset.fotoId = j.id;
-        col.innerHTML = '<div class="ratio ratio-1x1 rounded overflow-hidden border position-relative">'+
-          '<a href="'+esc(j.path)+'" target="_blank" rel="noopener">'+
-            '<img src="'+esc(j.path)+'" loading="lazy" alt="'+esc(j.caption||'')+'" style="object-fit:cover;width:100%;height:100%">'+
-          '</a>'+
-          '<button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 p-0 px-1 hewan-del-btn" data-id="'+j.id+'" title="Hapus foto saya"><i class="bi bi-x"></i></button>'+
-          '</div>' + (j.caption ? '<div class="small text-muted text-truncate" title="'+esc(j.caption)+'">'+esc(j.caption)+'</div>' : '');
-        gallery.prepend(col);
-        bindDel(col.querySelector('.hewan-del-btn'));
-        if (countEl) countEl.textContent = (parseInt(countEl.textContent||'0',10)+1);
-        stat.textContent='Terunggah ✓'; stat.classList.add('text-success');
-        form.reset();
-      } catch(err){
-        stat.textContent='Gagal: '+err.message; stat.classList.add('text-danger');
-      }
-      btn.disabled = false;
-    });
-
-    function bindDel(b){
-      if (!b) return;
-      b.addEventListener('click', async function(){
-        if (!confirm('Hapus foto ini?')) return;
-        var id = b.dataset.id;
-        var fd = new FormData();
-        fd.append('csrf','<?= csrf_token() ?>');
-        fd.append('_action','hewan_foto_del');
-        fd.append('id', id);
-        try {
-          var r = await fetch('/survival.php',{method:'POST', body:fd, credentials:'same-origin'});
-          var j = await r.json();
-          if (j.ok){
-            var col = b.closest('[data-foto-id]');
-            if (col) col.remove();
-            if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent||'1',10)-1);
-            if (gallery && !gallery.querySelector('[data-foto-id]')){
-              var em = document.createElement('div');
-              em.className='col-12 small text-muted fst-italic hewan-empty';
-              em.textContent='Belum ada foto tambahan dari pengguna.';
-              gallery.appendChild(em);
-            }
-          }
-        } catch(e){}
-      });
-    }
-    card.querySelectorAll('.hewan-del-btn').forEach(bindDel);
-  });
-})();
-</script>
 <?php include __DIR__.'/includes/footer.php'; ?>

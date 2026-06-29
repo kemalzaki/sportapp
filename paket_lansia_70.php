@@ -33,5 +33,6 @@ $pa_tips = [
     'Konsumsi protein cukup (1,0–1,2 g/kg BB) untuk cegah sarkopenia.',
     'Hentikan & segera periksa bila ada keluhan nyeri, pusing, atau jatuh.',
 ];
+$pa_aktivitas_img = '/assets/img/paket/lansia_70.jpg';
 include __DIR__.'/includes/paket_age_render.php';
 include __DIR__.'/includes/footer.php';

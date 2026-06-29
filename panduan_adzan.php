@@ -82,6 +82,15 @@ $doaSesudahAdzan = [
 ];
 ?>
 
+<!-- Revisi (29 Juni 2026) — Spoiler / collapse keseluruhan konten. -->
+<div class="d-flex justify-content-end mb-2">
+  <button class="btn btn-sm btn-outline-primary" type="button"
+          data-bs-toggle="collapse" data-bs-target="#spoilerPanduanAdzan"
+          aria-expanded="true" aria-controls="spoilerPanduanAdzan">
+    <i class="bi bi-eye-slash"></i> Sembunyikan / Tampilkan Panduan
+  </button>
+</div>
+<div class="collapse show" id="spoilerPanduanAdzan">
 <div class="row g-3">
   <!-- ===== LAFADZ + JAWABAN ===== -->
   <div class="col-12">
@@ -209,5 +218,6 @@ $doaSesudahAdzan = [
     </div>
   </div>
 </div>
+</div><!-- /#spoilerPanduanAdzan -->
 
 <?php include __DIR__.'/includes/footer.php'; ?>

@@ -30,5 +30,6 @@ $pa_tips = [
     'Pakai sepatu olahraga lunak agar tidak licin.',
     'Berikan pujian positif, hindari kompetisi keras.',
 ];
+$pa_aktivitas_img = '/assets/img/paket/anak_4_6.jpg';
 include __DIR__.'/includes/paket_age_render.php';
 include __DIR__.'/includes/footer.php';

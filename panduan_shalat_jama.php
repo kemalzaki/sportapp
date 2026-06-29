@@ -43,6 +43,15 @@ include __DIR__.'/includes/header.php';
   </div>
 </div>
 
+<!-- Revisi (29 Juni 2026) — Spoiler / collapse keseluruhan konten. -->
+<div class="d-flex justify-content-end mb-2">
+  <button class="btn btn-sm btn-outline-warning" type="button"
+          data-bs-toggle="collapse" data-bs-target="#spoilerShalatJama"
+          aria-expanded="true" aria-controls="spoilerShalatJama">
+    <i class="bi bi-eye-slash"></i> Sembunyikan / Tampilkan Panduan
+  </button>
+</div>
+<div class="collapse show" id="spoilerShalatJama">
 <div class="row g-3">
   <!-- ===== PENGERTIAN ===== -->
   <div class="col-12">
@@ -188,5 +197,6 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
+</div><!-- /#spoilerShalatJama -->
 
 <?php include __DIR__.'/includes/footer.php'; ?>

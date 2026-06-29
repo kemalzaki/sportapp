@@ -32,5 +32,6 @@ $pa_tips = [
     'Minum air sebelum, selama, & setelah latihan (hindari dehidrasi).',
     'Hentikan latihan bila nyeri dada, pusing, atau sesak napas.',
 ];
+$pa_aktivitas_img = '/assets/img/paket/lansia_55_69.jpg';
 include __DIR__.'/includes/paket_age_render.php';
 include __DIR__.'/includes/footer.php';

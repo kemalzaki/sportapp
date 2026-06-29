@@ -30,5 +30,6 @@ $pa_tips = [
     'Pantau tanda kelelahan: napas tersengal lama, nyeri sendi.',
     'Asupan air & camilan sehat sebelum/sesudah latihan.',
 ];
+$pa_aktivitas_img = '/assets/img/paket/anak_7_9.jpg';
 include __DIR__.'/includes/paket_age_render.php';
 include __DIR__.'/includes/footer.php';

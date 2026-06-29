@@ -30,5 +30,6 @@ $pa_tips = [
     'Pastikan tidur 9–10 jam/hari untuk pemulihan optimal.',
     'Konsumsi protein cukup (telur, ayam, tahu/tempe) & sayur-buah.',
 ];
+$pa_aktivitas_img = '/assets/img/paket/anak_10_12.jpg';
 include __DIR__.'/includes/paket_age_render.php';
 include __DIR__.'/includes/footer.php';

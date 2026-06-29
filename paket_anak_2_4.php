@@ -30,5 +30,6 @@ $pa_tips = [
     'Hindari beban berat & gerakan melompat dari ketinggian.',
     'Sediakan air minum dan istirahat tiap 5 menit.',
 ];
+$pa_aktivitas_img = '/assets/img/paket/anak_2_4.jpg';
 include __DIR__.'/includes/paket_age_render.php';
 include __DIR__.'/includes/footer.php';

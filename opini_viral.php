@@ -301,104 +301,140 @@ include __DIR__.'/includes/header.php'; ?>
   <a href="/opini_viral.php" class="btn btn-sm btn-outline-secondary">Reset</a>
 </form>
 
-<?php if (!$rows): ?>
-  <div class="alert alert-warning">Belum ada data. Klik <b>Muat Ulang Data</b> untuk menarik dari sumber publik.</div>
+<?php
+  /* ============================================================
+     Revisi (29 Juni 2026) — Ubah tampilan menjadi list KOMENTAR
+     (positif / netral / negatif) lengkap dengan statistik global.
+     ============================================================ */
+  $posKw = ['bagus','mantap','setuju','keren','hebat','top','suka','baik','dukung','salut','semangat','alhamdulillah','sukses','terima kasih','makasih','cinta','sayang','indah','luar biasa','bangga','optimis','jaya','sehat','damai'];
+  $negKw = ['jelek','buruk','marah','benci','tolol','goblok','bodoh','anjing','bangsat','kecewa','gagal','korup','penipu','sampah','sedih','prihatin','jijik','muak','tipu','hoax','rusak','hancur','tragis','memprihatinkan'];
+
+  function _opini_klasifikasi_komentar(string $teks, array $pos, array $neg): array {
+      $low = ' '.mb_strtolower($teks).' ';
+      $p=0; $n=0;
+      foreach ($pos as $w) { if (strpos($low,' '.$w)!==false) $p++; }
+      foreach ($neg as $w) { if (strpos($low,' '.$w)!==false) $n++; }
+      if ($p===$n) return ['netral', 0];
+      if ($p > $n) return ['positif', $p-$n];
+      return ['negatif', $n-$p];
+  }
+
+  // Flatten semua komentar dari semua topik (dalam 6 jam terakhir) menjadi satu list.
+  $allKomentar = [];
+  foreach ($rows as $r) {
+      if (empty($r['komentar'])) continue;
+      $dec = json_decode($r['komentar'], true);
+      if (!is_array($dec)) continue;
+      foreach ($dec as $cmt) {
+          $cmt = trim((string)$cmt);
+          if ($cmt === '') continue;
+          [$lab, $bobot] = _opini_klasifikasi_komentar($cmt, $posKw, $negKw);
+          $allKomentar[] = [
+              'teks'      => $cmt,
+              'sentimen'  => $lab,
+              'bobot'     => $bobot,
+              'topik'     => $r['judul'],
+              'url'       => $r['url'],
+              'sumber'    => $r['sumber'],
+              'kategori'  => $r['kategori'],
+              'waktu'     => $r['fetched_at'],
+          ];
+      }
+  }
+
+  $kCounts = ['positif'=>0,'netral'=>0,'negatif'=>0];
+  foreach ($allKomentar as $k) { $kCounts[$k['sentimen']]++; }
+  $kTotal = max(1, count($allKomentar));
+  $pPos = round(100*$kCounts['positif']/$kTotal);
+  $pNet = round(100*$kCounts['netral']/$kTotal);
+  $pNeg = max(0, 100 - $pPos - $pNet);
+
+  // Filter komentar via query string ?ks=positif|netral|negatif (opsional).
+  $fKsent = in_array($_GET['ks'] ?? '', ['positif','netral','negatif'], true) ? $_GET['ks'] : '';
+  $komentarTampil = $fKsent
+      ? array_values(array_filter($allKomentar, fn($k)=>$k['sentimen']===$fKsent))
+      : $allKomentar;
+?>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-light">
+    <i class="bi bi-chat-quote-fill text-primary"></i>
+    <strong>Statistik Komentar Netizen</strong>
+    <span class="small text-muted ms-1">(<?= count($allKomentar) ?> komentar dari <?= count($rows) ?> topik, 6 jam terakhir)</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-2 mb-3">
+      <div class="col-4">
+        <div class="border border-success rounded text-center p-2 bg-success-subtle">
+          <div class="small text-success-emphasis"><i class="bi bi-emoji-smile-fill"></i> Positif</div>
+          <div class="h4 mb-0 text-success"><?= $kCounts['positif'] ?></div>
+          <div class="small text-muted"><?= $pPos ?>%</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="border border-secondary rounded text-center p-2 bg-light">
+          <div class="small text-secondary"><i class="bi bi-emoji-neutral-fill"></i> Netral</div>
+          <div class="h4 mb-0 text-secondary"><?= $kCounts['netral'] ?></div>
+          <div class="small text-muted"><?= $pNet ?>%</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="border border-danger rounded text-center p-2 bg-danger-subtle">
+          <div class="small text-danger-emphasis"><i class="bi bi-emoji-frown-fill"></i> Negatif</div>
+          <div class="h4 mb-0 text-danger"><?= $kCounts['negatif'] ?></div>
+          <div class="small text-muted"><?= $pNeg ?>%</div>
+        </div>
+      </div>
+    </div>
+    <div class="progress mb-2" style="height:10px" role="progressbar"
+         aria-label="Distribusi sentimen komentar" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar bg-success" style="width:<?= $pPos ?>%" title="Positif <?= $pPos ?>%"></div>
+      <div class="progress-bar bg-secondary" style="width:<?= $pNet ?>%" title="Netral <?= $pNet ?>%"></div>
+      <div class="progress-bar bg-danger" style="width:<?= $pNeg ?>%" title="Negatif <?= $pNeg ?>%"></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      <a class="btn btn-sm <?= $fKsent===''?'btn-primary':'btn-outline-primary' ?>" href="/opini_viral.php">Semua</a>
+      <a class="btn btn-sm <?= $fKsent==='positif'?'btn-success':'btn-outline-success' ?>" href="?ks=positif"><i class="bi bi-emoji-smile"></i> Positif</a>
+      <a class="btn btn-sm <?= $fKsent==='netral'?'btn-secondary':'btn-outline-secondary' ?>" href="?ks=netral"><i class="bi bi-emoji-neutral"></i> Netral</a>
+      <a class="btn btn-sm <?= $fKsent==='negatif'?'btn-danger':'btn-outline-danger' ?>" href="?ks=negatif"><i class="bi bi-emoji-frown"></i> Negatif</a>
+    </div>
+  </div>
+</div>
+
+<?php if (!$komentarTampil): ?>
+  <div class="alert alert-warning small">Belum ada komentar untuk ditampilkan. Klik <b>Muat Ulang Data</b> di atas untuk menarik komentar terbaru dari sumber publik.</div>
 <?php else: ?>
-  <div class="row g-3">
-    <?php foreach ($rows as $r):
-      $sent = $r['sentimen'];
-      $col  = $sent==='tinggi' ? 'success' : ($sent==='rendah' ? 'danger' : 'secondary');
-      $ico  = $sent==='tinggi' ? 'bi-emoji-smile-fill' : ($sent==='rendah' ? 'bi-emoji-frown-fill' : 'bi-emoji-neutral');
-      $sk   = number_format((float)$r['skor'], 2);
-    ?>
-      <div class="col-md-6">
-        <div class="card h-100 shadow-sm border-<?= $col ?>">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-              <span class="badge bg-<?= $col ?>"><i class="bi <?= $ico ?>"></i> Sentimen <?= htmlspecialchars($sent) ?> (<?= $sk ?>)</span>
-              <span class="badge bg-light text-dark border"><?= htmlspecialchars($r['kategori'] ?? '-') ?></span>
-            </div>
-            <h6 class="fw-bold mb-1">
-              <a href="<?= htmlspecialchars($r['url']) ?>" target="_blank" rel="noopener" class="text-decoration-none">
-                <?= htmlspecialchars($r['judul']) ?>
-              </a>
-            </h6>
-            <?php if (!empty($r['ringkasan'])): ?>
-              <p class="small text-muted mb-2"><?= htmlspecialchars(mb_strimwidth($r['ringkasan'],0,220,'…')) ?></p>
-            <?php endif; ?>
-            <?php
-              /* Revisi R26 (28 Juni 2026) — tampilkan statistik komentar netizen
-                 per berita: total, panjang rata-rata, terpendek/terpanjang,
-                 dan jumlah komentar dengan indikasi sentimen kasar (positif vs
-                 negatif berdasarkan kata kunci). */
-              $komenList = [];
-              if (!empty($r['komentar'])) {
-                  $dec = json_decode($r['komentar'], true);
-                  if (is_array($dec)) $komenList = $dec;
-              }
-              $kStats = null;
-              if ($komenList) {
-                  $lens = array_map(function($c){ return mb_strlen((string)$c); }, $komenList);
-                  $pos = 0; $neg = 0;
-                  $posKw = ['bagus','mantap','setuju','keren','hebat','top','suka','baik','dukung','salut','semangat','alhamdulillah','sukses','terima kasih','makasih'];
-                  $negKw = ['jelek','buruk','marah','benci','tolol','goblok','bodoh','anjing','bangsat','kecewa','gagal','korup','penipu','sampah','sedih','prihatin'];
-                  foreach ($komenList as $cmt) {
-                      $low = mb_strtolower((string)$cmt);
-                      foreach ($posKw as $w) if (strpos($low,$w)!==false) { $pos++; break; }
-                      foreach ($negKw as $w) if (strpos($low,$w)!==false) { $neg++; break; }
-                  }
-                  $kStats = [
-                      'total'  => count($komenList),
-                      'avg'    => $lens ? (int)round(array_sum($lens)/count($lens)) : 0,
-                      'min'    => $lens ? min($lens) : 0,
-                      'max'    => $lens ? max($lens) : 0,
-                      'pos'    => $pos,
-                      'neg'    => $neg,
-                      'netral' => max(0, count($komenList) - $pos - $neg),
-                  ];
-              }
-              if ($komenList):
-            ?>
-              <div class="mt-2 p-2 rounded bg-light border">
-                <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">
-                  <div class="small fw-bold text-muted"><i class="bi bi-chat-quote"></i> Komentar Netizen (<?= (int)$kStats['total'] ?>)</div>
-                  <div class="small">
-                    <span class="badge bg-success-subtle text-success" title="Komentar bernada positif"><i class="bi bi-emoji-smile"></i> <?= (int)$kStats['pos'] ?></span>
-                    <span class="badge bg-secondary-subtle text-secondary" title="Komentar netral"><i class="bi bi-emoji-neutral"></i> <?= (int)$kStats['netral'] ?></span>
-                    <span class="badge bg-danger-subtle text-danger" title="Komentar bernada negatif"><i class="bi bi-emoji-frown"></i> <?= (int)$kStats['neg'] ?></span>
-                  </div>
-                </div>
-                <div class="small text-muted mb-1" style="font-size:.72rem">
-                  <i class="bi bi-bar-chart"></i> Panjang rata-rata <b><?= (int)$kStats['avg'] ?></b> karakter
-                  · terpendek <?= (int)$kStats['min'] ?> · terpanjang <?= (int)$kStats['max'] ?>
-                </div>
-                <?php
-                  // Bar sentimen sederhana
-                  $tot = max(1,(int)$kStats['total']);
-                  $pP = round(100*$kStats['pos']/$tot);
-                  $pN = round(100*$kStats['netral']/$tot);
-                  $pNg = max(0, 100 - $pP - $pN);
-                ?>
-                <div class="progress mb-2" style="height:6px">
-                  <div class="progress-bar bg-success" style="width:<?= $pP ?>%"></div>
-                  <div class="progress-bar bg-secondary" style="width:<?= $pN ?>%"></div>
-                  <div class="progress-bar bg-danger" style="width:<?= $pNg ?>%"></div>
-                </div>
-                <ul class="small mb-0 ps-3" style="max-height:160px;overflow:auto">
-                  <?php foreach (array_slice($komenList,0,5) as $cmt): ?>
-                    <li class="mb-1"><?= htmlspecialchars(mb_strimwidth($cmt,0,220,'…')) ?></li>
-                  <?php endforeach; ?>
-                </ul>
-              </div>
-            <?php endif; ?>
-            <div class="small text-muted mt-2">
-              <i class="bi bi-clock"></i> <?= htmlspecialchars(date('d M Y H:i', strtotime($r['fetched_at']))) ?>
-              <?php if (!empty($r['sumber'])): ?> · <?= htmlspecialchars($r['sumber']) ?><?php endif; ?>
-            </div>
+  <h3 class="h6 mb-2"><i class="bi bi-list-ul"></i> Daftar Komentar
+    <?php if ($fKsent): ?>
+      <span class="badge bg-<?= $fKsent==='positif'?'success':($fKsent==='negatif'?'danger':'secondary') ?>"><?= htmlspecialchars($fKsent) ?></span>
+    <?php endif; ?>
+    <span class="small text-muted">(<?= count($komentarTampil) ?>)</span>
+  </h3>
+  <div class="row g-2">
+  <?php foreach ($komentarTampil as $k):
+      $col = $k['sentimen']==='positif'?'success':($k['sentimen']==='negatif'?'danger':'secondary');
+      $ico = $k['sentimen']==='positif'?'bi-emoji-smile-fill':($k['sentimen']==='negatif'?'bi-emoji-frown-fill':'bi-emoji-neutral-fill');
+  ?>
+    <div class="col-md-6">
+      <div class="card h-100 border-start border-<?= $col ?> border-3 shadow-sm">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="badge bg-<?= $col ?>"><i class="bi <?= $ico ?>"></i> <?= htmlspecialchars($k['sentimen']) ?></span>
+            <span class="badge bg-light text-dark border small"><?= htmlspecialchars($k['kategori'] ?? '-') ?></span>
+          </div>
+          <p class="mb-2 small" style="white-space:pre-wrap"><?= htmlspecialchars(mb_strimwidth($k['teks'],0,400,'…')) ?></p>
+          <div class="small text-muted">
+            <i class="bi bi-newspaper"></i>
+            <a href="<?= htmlspecialchars($k['url']) ?>" target="_blank" rel="noopener" class="text-decoration-none text-muted">
+              <?= htmlspecialchars(mb_strimwidth((string)$k['topik'],0,90,'…')) ?>
+            </a>
+            <?php if (!empty($k['sumber'])): ?> · <?= htmlspecialchars($k['sumber']) ?><?php endif; ?>
+            · <i class="bi bi-clock"></i> <?= htmlspecialchars(date('d M H:i', strtotime($k['waktu']))) ?>
           </div>
         </div>
       </div>
-    <?php endforeach; ?>
+    </div>
+  <?php endforeach; ?>
   </div>
 <?php endif; ?>
 

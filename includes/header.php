@@ -618,6 +618,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun</a>
           <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun</a>
           <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga <span class="badge bg-success ms-1">WA</span></a>
         </div>
 
         <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpPaketLansia" role="button" aria-expanded="false">
@@ -626,6 +627,7 @@ if (empty($pageSkeleton)) {
         <div class="collapse" id="grpPaketLansia">
           <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun</a>
           <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga <span class="badge bg-success ms-1">WA</span></a>
         </div>
 
         <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
@@ -726,6 +728,8 @@ if (empty($pageSkeleton)) {
               <li><a class="dropdown-item" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun</a></li>
               <li><a class="dropdown-item" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun</a></li>
               <li><a class="dropdown-item" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga</a></li>
             </ul>
           </li>
           <li class="nav-item dropdown">
@@ -733,6 +737,8 @@ if (empty($pageSkeleton)) {
             <ul class="dropdown-menu shadow">
               <li><a class="dropdown-item" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun</a></li>
               <li><a class="dropdown-item" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga</a></li>
             </ul>
           </li>
           <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
