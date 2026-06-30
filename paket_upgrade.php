@@ -367,48 +367,44 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   .paket-card.selected{ border-width:3px; }
 </style>
 
-<?php /* Revisi 29 Juni 2026 — Snap.js loader tahan banting:
-       - Skrip async + onerror handler agar bisa diagnosa kegagalan jaringan.
-       - Fallback otomatis re-inject ke URL alternatif (sandbox <-> prod) bila gagal.
-       - Tombol bayar MENUNGGU Snap.js siap (sampai 8 detik) sebelum menampilkan error. */ ?>
-<?php /* Revisi 30 Juni 2026 — Snap.js dimuat via <script> statis dulu (paling reliable),
-   baru dilengkapi loader dinamis sebagai fallback. */ ?>
-<?php if ($MT_CLIENT_KEY): ?>
-<script src="<?= htmlspecialchars($MT_SNAP_JS) ?>" data-client-key="<?= htmlspecialchars($MT_CLIENT_KEY) ?>" async></script>
-<?php endif; ?>
+<?php /* Revisi 30 Juni 2026 — Snap.js loader cepat & tahan banting:
+       - Preconnect ke domain Midtrans untuk DNS+TLS handshake lebih awal.
+       - Inject <script> sinkron (non-async) sehingga sudah ada saat klik Bayar.
+       - Fallback otomatis ke URL alternatif (sandbox <-> prod) bila gagal.
+       - Polling Snap.js lebih agresif (100ms) sampai 15 detik. */ ?>
+<link rel="preconnect" href="<?= htmlspecialchars(parse_url($MT_SNAP_JS, PHP_URL_SCHEME).'://'.parse_url($MT_SNAP_JS, PHP_URL_HOST)) ?>" crossorigin>
+<link rel="dns-prefetch" href="//app.midtrans.com">
+<link rel="dns-prefetch" href="//app.sandbox.midtrans.com">
+<link rel="preload" as="script" href="<?= htmlspecialchars($MT_SNAP_JS) ?>" crossorigin>
+<script src="<?= htmlspecialchars($MT_SNAP_JS) ?>" data-client-key="<?= htmlspecialchars($MT_CLIENT_KEY) ?>" onerror="window.__MT_PRIMARY_FAILED=true"></script>
 <script>
 window.__MT = {
   url: <?= json_encode($MT_SNAP_JS) ?>,
   alt: <?= json_encode($MT_PROD ? 'https://app.sandbox.midtrans.com/snap/snap.js' : 'https://app.midtrans.com/snap/snap.js') ?>,
   key: <?= json_encode($MT_CLIENT_KEY) ?>,
-  loaded: false, loading: null, failed: false
+  loaded: !!window.snap,
+  loading: null,
+  failed: false
 };
 window.__loadSnap = function(url){
   return new Promise(function(resolve, reject){
     if (window.snap) { window.__MT.loaded = true; return resolve(true); }
-    if (!window.__MT.key) { return reject(new Error('MIDTRANS_CLIENT_KEY belum di-set di server (.env).')); }
-    // Hindari double-inject
-    var existing = document.querySelector('script[data-mt-loader="'+url+'"]');
-    if (existing) {
-      existing.addEventListener('load', function(){ resolve(!!window.snap); });
-      existing.addEventListener('error', function(){ reject(new Error('Gagal load: '+url)); });
-      return;
-    }
     var s = document.createElement('script');
-    s.src = url; s.async = true;
-    s.setAttribute('data-client-key', window.__MT.key);
-    s.setAttribute('data-mt-loader', url);
+    s.src = url;
+    s.setAttribute('data-client-key', window.__MT.key || '');
     s.onload  = function(){ window.__MT.loaded = !!window.snap; resolve(window.__MT.loaded); };
     s.onerror = function(){ reject(new Error('Gagal load: '+url)); };
     document.head.appendChild(s);
   });
 };
-// Mulai loading segera bila tag statis belum berhasil
-window.__MT.loading = window.__loadSnap(window.__MT.url).catch(function(){
-  return window.__loadSnap(window.__MT.alt).catch(function(e){
-    window.__MT.failed = true; console.warn('Snap.js gagal dimuat:', e);
-  });
-});
+// Bila script utama gagal, langsung mulai fallback ke URL alternatif.
+if (window.__MT_PRIMARY_FAILED || !window.snap) {
+  window.__MT.loading = (window.snap
+    ? Promise.resolve(true)
+    : window.__loadSnap(window.__MT.alt).catch(function(e){
+        window.__MT.failed = true; console.warn('Snap.js gagal dimuat:', e);
+      }));
+}
 </script>
 <script>
 (function(){
@@ -453,18 +449,13 @@ window.__MT.loading = window.__loadSnap(window.__MT.url).catch(function(){
 
   function waitSnap(){
     if (window.snap) return Promise.resolve(true);
+    // Tunggu loader (max 15 detik) dengan polling cepat.
     return new Promise(function(resolve){
       var t0 = Date.now();
-      var triedAlt = false;
       (function tick(){
         if (window.snap) return resolve(true);
-        var elapsed = Date.now() - t0;
-        if (!triedAlt && elapsed > 4000) {
-          triedAlt = true;
-          try { window.__loadSnap(window.__MT.alt).catch(function(){}); } catch(_) {}
-        }
-        if (elapsed > 12000) return resolve(false);
-        setTimeout(tick, 200);
+        if (Date.now() - t0 > 15000) return resolve(false);
+        setTimeout(tick, 100);
       })();
     });
   }
