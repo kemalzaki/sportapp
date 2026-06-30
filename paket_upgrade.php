@@ -371,29 +371,40 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
        - Skrip async + onerror handler agar bisa diagnosa kegagalan jaringan.
        - Fallback otomatis re-inject ke URL alternatif (sandbox <-> prod) bila gagal.
        - Tombol bayar MENUNGGU Snap.js siap (sampai 8 detik) sebelum menampilkan error. */ ?>
+<?php /* Revisi 30 Juni 2026 — Snap.js dimuat via <script> statis dulu (paling reliable),
+   baru dilengkapi loader dinamis sebagai fallback. */ ?>
+<?php if ($MT_CLIENT_KEY): ?>
+<script src="<?= htmlspecialchars($MT_SNAP_JS) ?>" data-client-key="<?= htmlspecialchars($MT_CLIENT_KEY) ?>" async></script>
+<?php endif; ?>
 <script>
 window.__MT = {
   url: <?= json_encode($MT_SNAP_JS) ?>,
   alt: <?= json_encode($MT_PROD ? 'https://app.sandbox.midtrans.com/snap/snap.js' : 'https://app.midtrans.com/snap/snap.js') ?>,
   key: <?= json_encode($MT_CLIENT_KEY) ?>,
-  loaded: false,
-  loading: null,
-  failed: false
+  loaded: false, loading: null, failed: false
 };
 window.__loadSnap = function(url){
   return new Promise(function(resolve, reject){
     if (window.snap) { window.__MT.loaded = true; return resolve(true); }
+    if (!window.__MT.key) { return reject(new Error('MIDTRANS_CLIENT_KEY belum di-set di server (.env).')); }
+    // Hindari double-inject
+    var existing = document.querySelector('script[data-mt-loader="'+url+'"]');
+    if (existing) {
+      existing.addEventListener('load', function(){ resolve(!!window.snap); });
+      existing.addEventListener('error', function(){ reject(new Error('Gagal load: '+url)); });
+      return;
+    }
     var s = document.createElement('script');
     s.src = url; s.async = true;
-    s.setAttribute('data-client-key', window.__MT.key || '');
+    s.setAttribute('data-client-key', window.__MT.key);
+    s.setAttribute('data-mt-loader', url);
     s.onload  = function(){ window.__MT.loaded = !!window.snap; resolve(window.__MT.loaded); };
     s.onerror = function(){ reject(new Error('Gagal load: '+url)); };
     document.head.appendChild(s);
   });
 };
-// Mulai loading segera (non-blocking)
+// Mulai loading segera bila tag statis belum berhasil
 window.__MT.loading = window.__loadSnap(window.__MT.url).catch(function(){
-  // Fallback ke URL alternatif
   return window.__loadSnap(window.__MT.alt).catch(function(e){
     window.__MT.failed = true; console.warn('Snap.js gagal dimuat:', e);
   });
@@ -442,13 +453,17 @@ window.__MT.loading = window.__loadSnap(window.__MT.url).catch(function(){
 
   function waitSnap(){
     if (window.snap) return Promise.resolve(true);
-    // Tunggu loader yang sudah dimulai pada inject di atas (max 8 detik)
     return new Promise(function(resolve){
-      var done = false;
       var t0 = Date.now();
+      var triedAlt = false;
       (function tick(){
-        if (window.snap) { done=true; return resolve(true); }
-        if (Date.now() - t0 > 8000) return resolve(false);
+        if (window.snap) return resolve(true);
+        var elapsed = Date.now() - t0;
+        if (!triedAlt && elapsed > 4000) {
+          triedAlt = true;
+          try { window.__loadSnap(window.__MT.alt).catch(function(){}); } catch(_) {}
+        }
+        if (elapsed > 12000) return resolve(false);
         setTimeout(tick, 200);
       })();
     });

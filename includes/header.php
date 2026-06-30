@@ -18,16 +18,39 @@ if (!function_exists('nav_feature_paket_map')) {
     function nav_feature_paket_map(): array {
         // pages => required paket(s)
         return [
+            // Komunitas-only (Jogging Progress)
+            'monitoring.php'          => ['komunitas'],
+            'live_tracking.php'       => ['komunitas'],
+            'flyover.php'             => ['komunitas'],
+            'riwayat.php'             => ['komunitas'],
+            // Tempat → Komunitas
+            'tempat.php'              => ['komunitas'],
+            'tempat_list.php'         => ['komunitas'],
             'islami.php'              => ['komunitas'],
+            // Pro + Komunitas
+            'run.php'                 => ['pro','komunitas'],
+            'kalori_badminton.php'    => ['pro','komunitas'],
+            'kalori_renang.php'       => ['pro','komunitas'],
+            'kalori_pingpong.php'     => ['pro','komunitas'],
+            'kalori_futsal.php'       => ['pro','komunitas'],
             'kalori_mingguan.php'     => ['pro','komunitas'],
-            'live_tracking.php'       => ['pro','komunitas'],
-            'flyover.php'             => ['pro','komunitas'],
+            'iptv.php'                => ['pro','komunitas'],
+            'toko_olahraga.php'       => ['pro','komunitas'],
+            'artikel_olahraga.php'    => ['pro','komunitas'],
+            'cedera_olahraga.php'     => ['pro','komunitas'],
+            'lacak_faskes.php'        => ['pro','komunitas'],
+            'survival.php'            => ['pro','komunitas'],
             'kalkulator.php'          => ['pro','komunitas'],
             'kalkulator_jantung.php'  => ['pro','komunitas'],
             'kalkulator_kesehatan.php'=> ['pro','komunitas'],
             'gaya_hidup.php'          => ['pro','komunitas'],
-            'run.php'                 => ['pro','komunitas'],
-            'monitoring.php'          => ['pro','komunitas'],
+            // Pro-only — Paket Anak & Lansia
+            'paket_anak_2_4.php'      => ['pro'],
+            'paket_anak_4_6.php'      => ['pro'],
+            'paket_anak_7_9.php'      => ['pro'],
+            'paket_anak_10_12.php'    => ['pro'],
+            'paket_lansia_55_69.php'  => ['pro'],
+            'paket_lansia_70.php'     => ['pro'],
         ];
     }
 }
@@ -40,15 +63,18 @@ if (!function_exists('nav_lock_badge_for')) {
         $map = nav_feature_paket_map();
         if (!isset($map[$page])) return '';
         $req = $map[$page];
-        $labels = [];
-        if (in_array('pro', $req, true))       $labels[] = 'Pro';
-        if (in_array('komunitas', $req, true)) $labels[] = 'Komunitas';
-        $text = implode(' &amp; ', $labels);
-        $cls  = (count($req) === 1 && $req[0] === 'komunitas')
-                ? 'bg-success-subtle text-success-emphasis border border-success-subtle'
-                : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
-        return ' <span class="badge rounded-pill '.$cls.' ms-1 nav-lock-badge" title="Khusus paket '.$text.'">'
-             . '<i class="bi bi-lock-fill"></i> '.$text.'</span>';
+        $out = '';
+        $defs = [
+            'pro'       => ['Pro',       'bg-warning-subtle text-warning-emphasis border border-warning-subtle'],
+            'komunitas' => ['Komunitas', 'bg-success-subtle text-success-emphasis border border-success-subtle'],
+        ];
+        foreach ($req as $r) {
+            if (!isset($defs[$r])) continue;
+            [$lab,$cls] = $defs[$r];
+            $out .= ' <span class="badge rounded-pill '.$cls.' ms-1 nav-lock-badge" title="Khusus paket '.$lab.'">'
+                  . '<i class="bi bi-lock-fill"></i> '.$lab.'</span>';
+        }
+        return $out;
     }
 }
 
@@ -431,6 +457,25 @@ if (empty($pageSkeleton)) {
         ask(msg).then(function(ok){ if(ok){ f.dataset._gjOk='1'; f.submit(); } });
       });
     });
+    // Revisi — Intercept anchor/button onclick="return confirm('...')" agar pakai Swal (no URL bawaan).
+    document.querySelectorAll('a[onclick*="confirm("], button[onclick*="confirm("]').forEach(function(el){
+      var orig = el.getAttribute('onclick') || '';
+      var m = orig.match(/confirm\(\s*['"]([\s\S]*?)['"]\s*\)/);
+      var msg = m ? m[1] : 'Lanjutkan?';
+      el.removeAttribute('onclick');
+      el.addEventListener('click', function(ev){
+        if (el.dataset._gjOk) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        ask(msg, {title:'Konfirmasi', yes:'Ya', no:'Batal'}).then(function(ok){
+          if (!ok) return;
+          el.dataset._gjOk = '1';
+          var href = el.getAttribute('href');
+          if (href && href !== '#') { window.location.href = href; }
+          else { el.click(); }
+        });
+      });
+    });
     document.querySelectorAll('a[data-confirm], button[data-confirm]').forEach(function(el){
       el.addEventListener('click', function(ev){
         if (el.dataset._gjOk) return;
@@ -534,9 +579,9 @@ if (empty($pageSkeleton)) {
         <?php if ($nUnread): ?><span class="gt-badge-dot" id="gtBellBadge"><?= $nUnread > 9 ? '9+' : (int)$nUnread ?></span><?php endif; ?>
       </button>
       <a href="/logout.php" class="gt-logout" aria-label="Keluar" title="Keluar" data-sfx="tap"
-         onclick="return confirm('Keluar dari akun?')"><i class="bi bi-box-arrow-right"></i></a>
+         onclick="return confirm('Keluar dari akun?')"><i class="bi bi-box-arrow-right"></i><?= nav_lock_badge_for('logout.php') ?></a>
     <?php else: ?>
-      <a href="/login.php" class="gt-bell" aria-label="Masuk" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i></a>
+      <a href="/login.php" class="gt-bell" aria-label="Masuk" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i><?= nav_lock_badge_for('login.php') ?></a>
     <?php endif; ?>
   </div>
 </header>
@@ -560,18 +605,18 @@ if (empty($pageSkeleton)) {
 <nav class="gt-chips" aria-label="Pintasan">
   <a class="gt-chip <?= basename($_SERVER['SCRIPT_NAME'] ?? '')==='index.php'?'active':'' ?>" href="/index.php" data-sfx="tap"><i class="bi bi-house-door-fill"></i>Beranda</a>
   <?php if ($u): ?>
-    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill"></i>Tracking Jalur</a>
-    <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill"></i>Upload</a>
+    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill"></i>Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a>
+    <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill"></i>Upload<?= nav_lock_badge_for('upload.php') ?></a>
     <?php /* Menu Jajan & Kurir dihilangkan dari navigasi pengguna sesuai revisi. */ ?>
-    <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat</a>
-    <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event</a>
+    <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a>
+    <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event<?= nav_lock_badge_for('event.php') ?></a>
     <?php /* Revisi 6 Juni 2026: menu Check-in via barcode dihapus. */ ?>
     <?php /* Revisi 22 Juni 2026 R7 — chip Pesan (dm.php) dihapus dari menu. */ ?>
-    <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami</a>
-    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-calculator-fill"></i>Kalkulator</a>
+    <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami<?= nav_lock_badge_for('islami.php') ?></a>
+    <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-calculator-fill"></i>Kalkulator<?= nav_lock_badge_for('kalkulator.php') ?></a>
   <?php else: ?>
-    <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i>Masuk</a>
-    <a class="gt-chip" href="/register.php" data-sfx="tap"><i class="bi bi-person-plus-fill"></i>Daftar</a>
+    <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i>Masuk<?= nav_lock_badge_for('login.php') ?></a>
+    <a class="gt-chip" href="/register.php" data-sfx="tap"><i class="bi bi-person-plus-fill"></i>Daftar<?= nav_lock_badge_for('register.php') ?></a>
   <?php endif; ?>
 </nav>
 
@@ -587,7 +632,7 @@ if (empty($pageSkeleton)) {
   </div>
   <div class="offcanvas-body p-0">
     <div class="list-group list-group-flush">
-      <a class="list-group-item list-group-item-action" href="/index.php"><i class="bi bi-house-door-fill"></i> Beranda</a>
+      <a class="list-group-item list-group-item-action" href="/index.php"><i class="bi bi-house-door-fill"></i> Beranda<?= nav_lock_badge_for('index.php') ?></a>
       <?php if ($u): ?>
         <?php /* ============================================================
               Revisi 13 Juni 2026:
@@ -603,8 +648,8 @@ if (empty($pageSkeleton)) {
         </a>
         <div class="collapse" id="grpJogging">
           <a class="list-group-item list-group-item-action ps-4" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring<?= nav_lock_badge_for('monitoring.php') ?></a>
-          <a class="list-group-item list-group-item-action ps-4" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload<?= nav_lock_badge_for('upload.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat<?= nav_lock_badge_for('riwayat.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon<?= nav_lock_badge_for('live_tracking.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D<?= nav_lock_badge_for('flyover.php') ?></a>
@@ -617,10 +662,10 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-fire text-danger"></i> Perhitungan Kalori Olahraga</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpKalori">
-          <a class="list-group-item list-group-item-action ps-4" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton<?= nav_lock_badge_for('kalori_badminton.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang<?= nav_lock_badge_for('kalori_renang.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong<?= nav_lock_badge_for('kalori_pingpong.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal<?= nav_lock_badge_for('kalori_futsal.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)<?= nav_lock_badge_for('kalori_mingguan.php') ?></a>
         </div>
 
@@ -629,9 +674,9 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-calendar-week-fill text-primary"></i> Agenda Kita</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpAgenda">
-          <a class="list-group-item list-group-item-action ps-4" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/event.php"><i class="bi bi-trophy-fill"></i> Event</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender<?= nav_lock_badge_for('calendar.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/event.php"><i class="bi bi-trophy-fill"></i> Event<?= nav_lock_badge_for('event.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking<?= nav_lock_badge_for('tempat.php') ?></a>
           <?php if (function_exists('is_admin') ? is_admin() : (($_SESSION['role'] ?? '') === 'admin')): ?>
           <a class="list-group-item list-group-item-action ps-4" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pembuatan Tim</a>
           <?php endif; ?>
@@ -653,18 +698,18 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-compass text-primary"></i> Info dan Wawasan</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpInfoWawasan">
-          <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/opini_viral.php"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini/Viral</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga Terdekat</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span></a>
-          <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/lacak_faskes.php"><i class="bi bi-hospital-fill text-danger"></i> Lacak Puskesmas / RS Terdekat</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini<?= nav_lock_badge_for('berita.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/opini_viral.php"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini/Viral<?= nav_lock_badge_for('opini_viral.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca<?= nav_lock_badge_for('cuaca.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV<?= nav_lock_badge_for('iptv.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga Terdekat<?= nav_lock_badge_for('toko_olahraga.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat<?= nav_lock_badge_for('hidup_sehat.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal<?= nav_lock_badge_for('kesehatan.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik<?= nav_lock_badge_for('kalistenik.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span><?= nav_lock_badge_for('artikel_olahraga.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan<?= nav_lock_badge_for('cedera_olahraga.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/lacak_faskes.php"><i class="bi bi-hospital-fill text-danger"></i> Lacak Puskesmas / RS Terdekat<?= nav_lock_badge_for('lacak_faskes.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode<?= nav_lock_badge_for('survival.php') ?></a>
         </div>
 
         <?php /* Revisi R23 (27 Juni 2026) — Grup Paket Anak & Paket Lansia (di atas menu Tempat) */ ?>
@@ -672,10 +717,10 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-emoji-smile-fill text-success"></i> Paket Anak</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpPaketAnak">
-          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_2_4.php"><i class="bi bi-balloon"></i> Usia 2–4 Tahun</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_2_4.php"><i class="bi bi-balloon"></i> Usia 2–4 Tahun<?= nav_lock_badge_for('paket_anak_2_4.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun<?= nav_lock_badge_for('paket_anak_4_6.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun<?= nav_lock_badge_for('paket_anak_7_9.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun<?= nav_lock_badge_for('paket_anak_10_12.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga <span class="badge bg-success ms-1">WA</span></a>
         </div>
 
@@ -683,15 +728,15 @@ if (empty($pageSkeleton)) {
           <span><i class="bi bi-heart-pulse-fill text-info"></i> Paket Lansia</span><i class="bi bi-chevron-down small"></i>
         </a>
         <div class="collapse" id="grpPaketLansia">
-          <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun<?= nav_lock_badge_for('paket_lansia_55_69.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun<?= nav_lock_badge_for('paket_lansia_70.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga <span class="badge bg-success ms-1">WA</span></a>
         </div>
 
         <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
-        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat</a>
+        <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a>
         <?php /* Revisi 22 Juni 2026 R7 — menu drawer Pesan (dm.php) dihapus. */ ?>
-        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark</a>
+        <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark<?= nav_lock_badge_for('bookmark.php') ?></a>
         <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a>
 
 
@@ -749,12 +794,12 @@ if (empty($pageSkeleton)) {
 
         <?php endif; ?>
 
-        <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar</a>
+        <a class="list-group-item list-group-item-action text-danger" href="/logout.php"><i class="bi bi-box-arrow-right"></i> Keluar<?= nav_lock_badge_for('logout.php') ?></a>
         <?php /* Revisi 13 Juni 2026: menu non-dropdown disimpan PALING BAWAH agar
                grup ber-dropdown selalu berada di paling atas drawer. */ ?>
       <?php else: ?>
-        <a class="list-group-item list-group-item-action" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Masuk</a>
-        <a class="list-group-item list-group-item-action" href="/register.php"><i class="bi bi-person-plus-fill"></i> Daftar</a>
+        <a class="list-group-item list-group-item-action" href="/login.php"><i class="bi bi-box-arrow-in-right"></i> Masuk<?= nav_lock_badge_for('login.php') ?></a>
+        <a class="list-group-item list-group-item-action" href="/register.php"><i class="bi bi-person-plus-fill"></i> Daftar<?= nav_lock_badge_for('register.php') ?></a>
       <?php endif; ?>
     </div>
   </div>
@@ -771,21 +816,21 @@ if (empty($pageSkeleton)) {
     <a class="navbar-brand fw-bold brand-logo-colored d-flex align-items-center gap-2" href="/index.php">
       <img src="/assets/img/hapfam-logo.png" alt="KawanKeringat" height="28" style="height:28px;width:auto;border-radius:6px;background:#fff;padding:2px">
       <span><span class="bl-1">Kawan</span><span class="bl-3">Keringat</span></span>
-    </a>
+    <?= nav_lock_badge_for('index.php') ?></a>
     <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="/index.php"><i class="bi bi-house-door"></i> Beranda</a></li>
+        <li class="nav-item"><a class="nav-link" href="/index.php"><i class="bi bi-house-door"></i> Beranda<?= nav_lock_badge_for('index.php') ?></a></li>
         <?php if ($u): ?>
-          <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender</a></li>
-          <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat</a></li>
+          <li class="nav-item"><a class="nav-link" href="/calendar.php"><i class="bi bi-calendar3"></i> Kalender<?= nav_lock_badge_for('calendar.php') ?></a></li>
+          <li class="nav-item"><a class="nav-link" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat<?= nav_lock_badge_for('riwayat.php') ?></a></li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-emoji-smile-fill"></i> Paket Anak</a>
             <ul class="dropdown-menu shadow">
-              <li><a class="dropdown-item" href="/paket_anak_2_4.php"><i class="bi bi-balloon"></i> Usia 2–4 Tahun</a></li>
-              <li><a class="dropdown-item" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun</a></li>
-              <li><a class="dropdown-item" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun</a></li>
-              <li><a class="dropdown-item" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun</a></li>
+              <li><a class="dropdown-item" href="/paket_anak_2_4.php"><i class="bi bi-balloon"></i> Usia 2–4 Tahun<?= nav_lock_badge_for('paket_anak_2_4.php') ?></a></li>
+              <li><a class="dropdown-item" href="/paket_anak_4_6.php"><i class="bi bi-balloon-heart"></i> Usia 4–6 Tahun<?= nav_lock_badge_for('paket_anak_4_6.php') ?></a></li>
+              <li><a class="dropdown-item" href="/paket_anak_7_9.php"><i class="bi bi-trophy"></i> Usia 7–9 Tahun<?= nav_lock_badge_for('paket_anak_7_9.php') ?></a></li>
+              <li><a class="dropdown-item" href="/paket_anak_10_12.php"><i class="bi bi-stars"></i> Usia 10–12 Tahun<?= nav_lock_badge_for('paket_anak_10_12.php') ?></a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga</a></li>
             </ul>
@@ -793,18 +838,18 @@ if (empty($pageSkeleton)) {
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-heart-pulse-fill"></i> Paket Lansia</a>
             <ul class="dropdown-menu shadow">
-              <li><a class="dropdown-item" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun</a></li>
-              <li><a class="dropdown-item" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun</a></li>
+              <li><a class="dropdown-item" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun<?= nav_lock_badge_for('paket_lansia_55_69.php') ?></a></li>
+              <li><a class="dropdown-item" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun<?= nav_lock_badge_for('paket_lansia_70.php') ?></a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga</a></li>
             </ul>
           </li>
-          <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat</a></li>
+          <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a></li>
           <?php /* Revisi 6 Juni 2026: Check-in via barcode dihapus dari navbar desktop. */ ?>
-          <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload</a></li>
+          <li class="nav-item"><a class="nav-link" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload<?= nav_lock_badge_for('upload.php') ?></a></li>
           <li class="nav-item"><a class="nav-link" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring<?= nav_lock_badge_for('monitoring.php') ?></a></li>
-          <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event</a></li>
-          <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking</a></li>
+          <li class="nav-item"><a class="nav-link" href="/event.php"><i class="bi bi-trophy"></i> Event<?= nav_lock_badge_for('event.php') ?></a></li>
+          <li class="nav-item"><a class="nav-link" href="/tempat.php"><i class="bi bi-calendar2-week"></i> Booking<?= nav_lock_badge_for('tempat.php') ?></a></li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-calculator-fill"></i> Kalkulator</a>
             <ul class="dropdown-menu shadow">
@@ -814,10 +859,10 @@ if (empty($pageSkeleton)) {
               <li><a class="dropdown-item" href="/kalkulator_kesehatan.php"><i class="bi bi-clipboard2-pulse text-primary"></i> Kalkulator Kesehatan<?= nav_lock_badge_for('kalkulator_kesehatan.php') ?></a></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Kalori</h6></li>
-              <li><a class="dropdown-item" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton</a></li>
-              <li><a class="dropdown-item" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang</a></li>
-              <li><a class="dropdown-item" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong</a></li>
-              <li><a class="dropdown-item" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal</a></li>
+              <li><a class="dropdown-item" href="/kalori_badminton.php"><i class="bi bi-stopwatch text-success"></i> Kalori Badminton<?= nav_lock_badge_for('kalori_badminton.php') ?></a></li>
+              <li><a class="dropdown-item" href="/kalori_renang.php"><i class="bi bi-water text-info"></i> Kalori Renang<?= nav_lock_badge_for('kalori_renang.php') ?></a></li>
+              <li><a class="dropdown-item" href="/kalori_pingpong.php"><i class="bi bi-circle-fill text-warning"></i> Kalori Ping Pong<?= nav_lock_badge_for('kalori_pingpong.php') ?></a></li>
+              <li><a class="dropdown-item" href="/kalori_futsal.php"><i class="bi bi-dribbble text-success"></i> Kalori Futsal<?= nav_lock_badge_for('kalori_futsal.php') ?></a></li>
               <li><a class="dropdown-item" href="/kalori_mingguan.php"><i class="bi bi-egg-fried text-warning"></i> Kalori Mingguan (Makanan)<?= nav_lock_badge_for('kalori_mingguan.php') ?></a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup<?= nav_lock_badge_for('gaya_hidup.php') ?></a></li>
@@ -825,7 +870,7 @@ if (empty($pageSkeleton)) {
           </li>
           <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a></li>
           <?php /* Revisi 22 Juni 2026 R7 — nav-link Pesan (dm.php) dihapus dari navbar desktop. */ ?>
-          <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark</a></li>
+          <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark<?= nav_lock_badge_for('bookmark.php') ?></a></li>
           <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a></li>
         <?php endif; ?>
         <?php if ($u && $u['role']==='admin'): ?>
@@ -881,11 +926,11 @@ if (empty($pageSkeleton)) {
           <!-- Avatar = satu-satunya pintu ke Profil Saya di navbar (duplikat dibersihkan) -->
           <li class="nav-item"><a class="nav-link" href="/profile.php" title="Profil saya">
             <?= user_avatar($navFoto, $u['nama'], 28) ?>
-          </a></li>
-          <li class="nav-item"><a class="nav-link" href="/logout.php" title="Keluar"><i class="bi bi-box-arrow-right"></i></a></li>
+          <?= nav_lock_badge_for('profile.php') ?></a></li>
+          <li class="nav-item"><a class="nav-link" href="/logout.php" title="Keluar"><i class="bi bi-box-arrow-right"></i><?= nav_lock_badge_for('logout.php') ?></a></li>
         <?php else: ?>
-          <li class="nav-item"><a class="nav-link" href="/login.php">Login</a></li>
-          <li class="nav-item"><a class="nav-link" href="/register.php">Daftar</a></li>
+          <li class="nav-item"><a class="nav-link" href="/login.php">Login<?= nav_lock_badge_for('login.php') ?></a></li>
+          <li class="nav-item"><a class="nav-link" href="/register.php">Daftar<?= nav_lock_badge_for('register.php') ?></a></li>
         <?php endif; ?>
       </ul>
     </div>

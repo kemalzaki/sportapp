@@ -88,22 +88,34 @@ if ($needRefresh) {
        Reddit/Nitter/YouTube sering diblokir/CORS/rate-limited di hosting Indonesia
        sehingga seluruh feed kosong (cards tidak muncul). Google News RSS jauh
        lebih stabil dan tetap menyediakan judul + sumber + ringkasan. */
+    /* Revisi 30 Juni 2026 — Sumber dibatasi hanya media sosial sesuai permintaan:
+       X (Twitter via Nitter mirror), TikTok (RSSHub), YouTube (RSS resmi),
+       Instagram (RSSHub), Facebook (RSSHub). Google News dihapus.
+       RSSHub instance default: https://rsshub.app  (boleh diganti via env RSSHUB_BASE) */
+    $RSSHUB = rtrim(getenv('RSSHUB_BASE') ?: 'https://rsshub.app', '/');
     $sources = [
-        // PRIMARY — Google News RSS (paling reliable)
-        'Berita Umum'               => 'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-        'Politik'                   => 'https://news.google.com/rss/search?q=politik+indonesia&hl=id&gl=ID&ceid=ID:id',
-        'Bisnis & Ekonomi'          => 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=id&gl=ID&ceid=ID:id',
-        'Olahraga'                  => 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=id&gl=ID&ceid=ID:id',
-        'Teknologi'                 => 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=id&gl=ID&ceid=ID:id',
-        'Hiburan / Viral'           => 'https://news.google.com/rss/search?q=viral+indonesia&hl=id&gl=ID&ceid=ID:id',
-        'Opini Netizen'             => 'https://news.google.com/rss/search?q=opini+netizen+indonesia&hl=id&gl=ID&ceid=ID:id',
-        // SECONDARY — sosial media (best-effort, sering gagal di hosting Indonesia)
-        'Opini r/indonesia'         => 'reddit:indonesia/hot',
-        'Opini r/indonesia_local'   => 'reddit:indonesia_local/hot',
-        // YouTube — RSS resmi (jarang gagal)
+        // === X / Twitter (via Nitter mirror) ===
+        'X • Indonesia'             => 'nitter:indonesia',
+        'X • Politik'               => 'nitter:politik',
+        'X • Viral'                 => 'nitter:viral',
+        'X • Olahraga'              => 'nitter:olahraga',
+        // === YouTube (RSS resmi) ===
         'YouTube • Narasi'          => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9_F0RpdPNX4hL3KX5G6phw',
         'YouTube • CNN Indonesia'   => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCM4XlH5BIPNc-rUtcwI7Vfg',
         'YouTube • Kompas TV'       => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC5BMQOsmB91nXgwIwfwSJYg',
+        'YouTube • tvOneNews'       => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCgM2lH5BIPNc-rUtcwI7Vfg',
+        // === TikTok (via RSSHub) ===
+        'TikTok • CNN Indonesia'    => $RSSHUB.'/tiktok/user/@cnnindonesia',
+        'TikTok • Detikcom'         => $RSSHUB.'/tiktok/user/@detikcom',
+        'TikTok • Kompascom'        => $RSSHUB.'/tiktok/user/@kompascom',
+        // === Instagram (via RSSHub) ===
+        'Instagram • CNN Indonesia' => $RSSHUB.'/instagram/user/cnnindonesia',
+        'Instagram • Detikcom'      => $RSSHUB.'/instagram/user/detikcom',
+        'Instagram • Kompascom'     => $RSSHUB.'/instagram/user/kompascom',
+        // === Facebook (via RSSHub) ===
+        'Facebook • CNN Indonesia'  => $RSSHUB.'/facebook/page/CNNIndonesia',
+        'Facebook • Detikcom'       => $RSSHUB.'/facebook/page/detikcom',
+        'Facebook • Kompascom'      => $RSSHUB.'/facebook/page/KOMPAScom',
     ];
     $kept = 0;
     try { db_exec("DELETE FROM opini_viral WHERE fetched_at < now() - interval '6 hours'"); } catch (Throwable $e) {}
@@ -255,8 +267,7 @@ include __DIR__.'/includes/header.php'; ?>
 </div>
 
 <div class="alert alert-info small py-2">
-  <i class="bi bi-info-circle"></i> <b>Sumber data:</b> Reddit (r/indonesia, r/indonesia_local, r/indonesians) untuk opini + komentar netizen,
-  Nitter (mirror Twitter/X) untuk topik politik/bisnis/viral, YouTube (Narasi, CNN, Kompas TV), serta Google News RSS sebagai fallback bila salah satu sumber down.
+  <i class="bi bi-info-circle"></i> <b>Sumber data:</b> X (via Nitter mirror), TikTok, YouTube, Instagram, dan Facebook (akun media populer Indonesia).
   Sentimen dianalisis otomatis dari <em>judul + ringkasan + komentar</em> via kamus kata kunci Bahasa Indonesia (Revisi R25: kata "politik/viral/demo" tidak lagi otomatis dianggap negatif).
 </div>
 

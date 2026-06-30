@@ -90,7 +90,7 @@ include __DIR__.'/includes/header.php'; ?>
     </div>
     <div class="table-responsive">
       <table class="table table-sm table-bordered align-middle text-center mb-0 ssmonth-table">
-        <thead class="table-light"><tr><th>Tgl</th><th>Tahajud 🌙</th><th>Duha ☀️</th><th class="d-none d-md-table-cell">Catatan</th></tr></thead>
+        <thead class="table-light"><tr><th>Tgl</th><th>Tahajud 🌙</th><th>Duha ☀️</th><th>Catatan</th></tr></thead>
         <tbody>
         <?php for ($d=1; $d<=$ssDays; $d++):
             $tgl = sprintf('%s-%02d', $ssBulan, $d);
@@ -115,7 +115,7 @@ include __DIR__.'/includes/header.php'; ?>
                 <?= $dh ? '<i class="bi bi-check-circle-fill"></i> '.((int)$dh['rakaat']).' rkt' : '<i class="bi bi-sun"></i>' ?>
               </button>
             </td>
-            <td class="d-none d-md-table-cell small text-muted text-start">
+            <td class="small text-muted text-start">
               <?php if($tj && !empty($tj['catatan'])): ?>🌙 <?= htmlspecialchars($tj['catatan']) ?><br><?php endif; ?>
               <?php if($dh && !empty($dh['catatan'])): ?>☀️ <?= htmlspecialchars($dh['catatan']) ?><?php endif; ?>
             </td>

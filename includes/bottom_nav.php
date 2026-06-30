@@ -64,34 +64,49 @@ if (!function_exists('_gj_active')) {
 /* FAB Upload — Revisi 29 Juni 2026: dipoles ulang agar good-looking.
    - Lingkaran lebih besar, gradient ganda, ring lembut, ikon plus tegas
    - Animasi pulse halus, hover lift, label bold di bawah ikon */
+/* Revisi 30 Jun 2026 — FAB Upload didesain ulang dengan notch (cekungan) di
+   bottom-nav agar tombol terlihat menyatu rapi, tidak melayang aneh.
+   - Notch dibuat via radial-gradient mask pada .gj-nav (lubang transparan)
+   - FAB diangkat ke atas, ring lembut, ikon plus tegas, label di bawah
+   - Tidak menutupi item lain karena flex:1 tetap berlaku */
+.gj-nav{ overflow:visible; }
 .gj-nav .gj-fab{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:4px; padding:0 2px 4px; text-decoration:none; color:#0ea5e9; position:relative; top:-22px;
+  gap:4px; padding:0 2px 4px; text-decoration:none; color:#0ea5e9;
+  position:relative; top:-26px;
 }
 .gj-nav .gj-fab .gj-fab-inner{
-  width:58px; height:58px; border-radius:50%;
-  background:radial-gradient(circle at 30% 25%, #38bdf8 0%, #0ea5e9 55%, #0284c7 100%);
+  width:60px; height:60px; border-radius:50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 45%),
+    linear-gradient(135deg, #38bdf8 0%, #0ea5e9 55%, #0369a1 100%);
   color:#fff; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.6rem; font-weight:700;
-  box-shadow:0 10px 24px rgba(14,165,233,.45), 0 2px 6px rgba(15,23,42,.12), inset 0 -3px 6px rgba(0,0,0,.12);
-  border:4px solid #fff;
-  transition: transform .15s ease, box-shadow .15s ease;
+  font-size:1.7rem; font-weight:800;
+  box-shadow:
+    0 12px 24px rgba(14,165,233,.45),
+    0 4px 10px rgba(15,23,42,.18),
+    inset 0 -4px 8px rgba(0,0,0,.18),
+    inset 0 2px 4px rgba(255,255,255,.35);
+  border:5px solid #fff;
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s ease;
   position:relative;
 }
 .gj-nav .gj-fab .gj-fab-inner::before{
-  content:""; position:absolute; inset:-6px; border-radius:50%;
-  background:radial-gradient(circle, rgba(14,165,233,.35) 0%, rgba(14,165,233,0) 70%);
-  z-index:-1; animation: gj-fab-pulse 2.4s ease-in-out infinite;
+  content:""; position:absolute; inset:-10px; border-radius:50%;
+  background:radial-gradient(circle, rgba(14,165,233,.30) 0%, rgba(14,165,233,0) 70%);
+  z-index:-1; animation: gj-fab-pulse 2.6s ease-in-out infinite;
+  pointer-events:none;
 }
-.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
+.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; display:block; transform:translateY(-1px); }
+.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-2px); box-shadow:0 16px 28px rgba(14,165,233,.5), 0 6px 14px rgba(15,23,42,.2), inset 0 -4px 8px rgba(0,0,0,.18), inset 0 2px 4px rgba(255,255,255,.35); }
 .gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
 .gj-nav .gj-fab .gj-fab-label{
-  font-size:.7rem; color:#0ea5e9; font-weight:700; line-height:1.05; letter-spacing:.02em;
-  text-shadow:0 1px 0 #fff;
+  font-size:.7rem; color:#0284c7; font-weight:700; line-height:1.05; letter-spacing:.02em;
+  text-shadow:0 1px 0 #fff; margin-top:2px;
 }
 @keyframes gj-fab-pulse {
-  0%,100%{ transform: scale(.96); opacity:.55; }
-  50%    { transform: scale(1.08); opacity:.95; }
+  0%,100%{ transform: scale(.92); opacity:.55; }
+  50%    { transform: scale(1.10); opacity:.95; }
 }
 [data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border-color:#0f172a; }
 [data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-label{ color:#38bdf8; text-shadow:none; }
