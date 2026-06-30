@@ -30,16 +30,19 @@ if (!function_exists('nav_menu_items')) {
                 $icon  = $it['icon'] ? '<i class="bi '.htmlspecialchars($it['icon']).'"></i> ' : '';
                 $tgt   = ($it['target']==='_blank') ? ' target="_blank" rel="noopener"' : '';
                 // Revisi 27 Juni 2026 — render label paket di samping nama menu (jika di-set di admin/menu.php)
+                // Revisi 29 Juni 2026 — paket dapat berisi multi nilai dipisah koma (mis. "pro,komunitas").
                 $badge = '';
-                $pk = strtolower((string)($it['paket'] ?? ''));
-                if (in_array($pk, ['gratis','pro','komunitas'], true)) {
-                    $map = [
-                        'gratis'    => ['secondary', '🆓 Gratis'],
-                        'pro'       => ['warning',   '⭐ PRO'],
-                        'komunitas' => ['success',   '👥 Komunitas'],
-                    ];
+                $pkRaw = strtolower((string)($it['paket'] ?? ''));
+                $pks   = array_values(array_filter(array_map('trim', explode(',', $pkRaw))));
+                $map = [
+                    'gratis'    => ['secondary', '🆓 Gratis'],
+                    'pro'       => ['warning',   '⭐ PRO'],
+                    'komunitas' => ['success',   '👥 Komunitas'],
+                ];
+                foreach ($pks as $pk) {
+                    if (!isset($map[$pk])) continue;
                     $b = $map[$pk];
-                    $badge = ' <span class="badge bg-'.$b[0].' ms-1 align-middle" style="font-size:.7em">'.$b[1].'</span>';
+                    $badge .= ' <span class="badge bg-'.$b[0].' ms-1 align-middle" style="font-size:.7em">'.$b[1].'</span>';
                 }
                 $h .= '<a class="list-group-item list-group-item-action" href="'.htmlspecialchars($it['url']).'"'.$tgt.'>'.$icon.htmlspecialchars($it['label']).$badge.'</a>';
                 $h .= $render((int)$it['id']);

@@ -367,7 +367,38 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   .paket-card.selected{ border-width:3px; }
 </style>
 
-<script src="<?= htmlspecialchars($MT_SNAP_JS) ?>" data-client-key="<?= htmlspecialchars($MT_CLIENT_KEY) ?>"></script>
+<?php /* Revisi 29 Juni 2026 — Snap.js loader tahan banting:
+       - Skrip async + onerror handler agar bisa diagnosa kegagalan jaringan.
+       - Fallback otomatis re-inject ke URL alternatif (sandbox <-> prod) bila gagal.
+       - Tombol bayar MENUNGGU Snap.js siap (sampai 8 detik) sebelum menampilkan error. */ ?>
+<script>
+window.__MT = {
+  url: <?= json_encode($MT_SNAP_JS) ?>,
+  alt: <?= json_encode($MT_PROD ? 'https://app.sandbox.midtrans.com/snap/snap.js' : 'https://app.midtrans.com/snap/snap.js') ?>,
+  key: <?= json_encode($MT_CLIENT_KEY) ?>,
+  loaded: false,
+  loading: null,
+  failed: false
+};
+window.__loadSnap = function(url){
+  return new Promise(function(resolve, reject){
+    if (window.snap) { window.__MT.loaded = true; return resolve(true); }
+    var s = document.createElement('script');
+    s.src = url; s.async = true;
+    s.setAttribute('data-client-key', window.__MT.key || '');
+    s.onload  = function(){ window.__MT.loaded = !!window.snap; resolve(window.__MT.loaded); };
+    s.onerror = function(){ reject(new Error('Gagal load: '+url)); };
+    document.head.appendChild(s);
+  });
+};
+// Mulai loading segera (non-blocking)
+window.__MT.loading = window.__loadSnap(window.__MT.url).catch(function(){
+  // Fallback ke URL alternatif
+  return window.__loadSnap(window.__MT.alt).catch(function(e){
+    window.__MT.failed = true; console.warn('Snap.js gagal dimuat:', e);
+  });
+});
+</script>
 <script>
 (function(){
   var csrf = <?= json_encode(csrf_token()) ?>;
@@ -409,10 +440,36 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   // Auto-pilih default sesuai ?need=
   if (defaultKey && prices[defaultKey]) selectPaket(defaultKey);
 
-  document.getElementById('btnBayar').addEventListener('click', function(){
+  function waitSnap(){
+    if (window.snap) return Promise.resolve(true);
+    // Tunggu loader yang sudah dimulai pada inject di atas (max 8 detik)
+    return new Promise(function(resolve){
+      var done = false;
+      var t0 = Date.now();
+      (function tick(){
+        if (window.snap) { done=true; return resolve(true); }
+        if (Date.now() - t0 > 8000) return resolve(false);
+        setTimeout(tick, 200);
+      })();
+    });
+  }
+
+  document.getElementById('btnBayar').addEventListener('click', async function(){
     if (!selected) { setMsg('Silakan pilih paket terlebih dahulu.', 'text-danger'); return; }
-    if (typeof window.snap === 'undefined') {
-      setMsg('Snap.js Midtrans belum ter-load. Cek koneksi internet lalu refresh halaman.', 'text-danger');
+    setMsg('Menyiapkan Snap.js Midtrans…', 'text-muted');
+    var ok = await waitSnap();
+    if (!ok) {
+      // Coba sekali lagi via loader (jaga-jaga URL pertama gagal)
+      try { await window.__loadSnap(window.__MT.alt); } catch(e){}
+      ok = !!window.snap;
+    }
+    if (!ok) {
+      var keyMissing = !window.__MT.key;
+      setMsg(
+        (keyMissing ? '<b>MIDTRANS_CLIENT_KEY belum di-set</b> di server (.env).<br>' : '') +
+        'Snap.js Midtrans tidak dapat dimuat. Periksa koneksi internet, lalu refresh halaman.',
+        'text-danger'
+      );
       return;
     }
     var btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses…';

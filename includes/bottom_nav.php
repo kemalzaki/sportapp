@@ -61,21 +61,40 @@ if (!function_exists('_gj_active')) {
   background:#ef4444; color:#fff; font-size:.6rem; font-weight:700;
   padding:1px 5px; border-radius:9px; line-height:1;
 }
-/* FAB Upload — naikkan sedikit, label di bawah ikon, tidak menutup baris lain */
+/* FAB Upload — Revisi 29 Juni 2026: dipoles ulang agar good-looking.
+   - Lingkaran lebih besar, gradient ganda, ring lembut, ikon plus tegas
+   - Animasi pulse halus, hover lift, label bold di bawah ikon */
 .gj-nav .gj-fab{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:2px; padding:0 2px 4px; text-decoration:none; color:#0ea5e9; position:relative; top:-14px;
+  gap:4px; padding:0 2px 4px; text-decoration:none; color:#0ea5e9; position:relative; top:-22px;
 }
 .gj-nav .gj-fab .gj-fab-inner{
-  width:48px; height:48px; border-radius:50%;
-  background:linear-gradient(135deg,#0ea5e9,#22d3ee); color:#fff;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.4rem; box-shadow:0 6px 16px rgba(14,165,233,.45);
-  border:3px solid #fff;
+  width:58px; height:58px; border-radius:50%;
+  background:radial-gradient(circle at 30% 25%, #38bdf8 0%, #0ea5e9 55%, #0284c7 100%);
+  color:#fff; display:inline-flex; align-items:center; justify-content:center;
+  font-size:1.6rem; font-weight:700;
+  box-shadow:0 10px 24px rgba(14,165,233,.45), 0 2px 6px rgba(15,23,42,.12), inset 0 -3px 6px rgba(0,0,0,.12);
+  border:4px solid #fff;
+  transition: transform .15s ease, box-shadow .15s ease;
+  position:relative;
 }
+.gj-nav .gj-fab .gj-fab-inner::before{
+  content:""; position:absolute; inset:-6px; border-radius:50%;
+  background:radial-gradient(circle, rgba(14,165,233,.35) 0%, rgba(14,165,233,0) 70%);
+  z-index:-1; animation: gj-fab-pulse 2.4s ease-in-out infinite;
+}
+.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
+.gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
 .gj-nav .gj-fab .gj-fab-label{
-  font-size:.7rem; color:#0ea5e9; font-weight:600; line-height:1.05;
+  font-size:.7rem; color:#0ea5e9; font-weight:700; line-height:1.05; letter-spacing:.02em;
+  text-shadow:0 1px 0 #fff;
 }
+@keyframes gj-fab-pulse {
+  0%,100%{ transform: scale(.96); opacity:.55; }
+  50%    { transform: scale(1.08); opacity:.95; }
+}
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border-color:#0f172a; }
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-label{ color:#38bdf8; text-shadow:none; }
 /* Pastikan konten halaman tidak tertutup nav */
 body{ padding-bottom: calc(4.75rem + env(safe-area-inset-bottom,0px)) !important; }
 

@@ -3,6 +3,11 @@
  * admin/menu.php
  * CRUD Navigasi Menu gaya CMS WordPress (parent/child 1 level).
  * Posisi: drawer (default), top, bottom.
+ *
+ * Revisi 29 Juni 2026:
+ *  - Kolom `paket` diperbesar (TEXT) agar bisa menampung multi-paket (mis. "pro,komunitas").
+ *  - Form mendukung CHECKBOX paket (pilih ≥1 label) — tidak lagi single dropdown.
+ *  - Auto-seed 42 item drawer default (idempotent) bila tabel drawer masih kosong.
  */
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
@@ -10,9 +15,72 @@ require __DIR__.'/../includes/helpers.php';
 require_role('admin');
 $pageTitle = 'Navigasi Menu (CMS)';
 
-// Revisi 27 Juni 2026 — Pengaturan Paket Member per item menu.
-// Tambah kolom paket (gratis|pro|komunitas|NULL) — NULL/empty berarti "tanpa label".
-try { db_exec("ALTER TABLE nav_menu ADD COLUMN IF NOT EXISTS paket VARCHAR(20)"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE nav_menu ADD COLUMN IF NOT EXISTS paket TEXT"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE nav_menu ALTER COLUMN paket TYPE TEXT"); } catch (Throwable $e) {}
+
+/* ============================================================
+ * Auto-seed drawer default (42 item) sesuai revisi 29 Juni 2026.
+ * Hanya dijalankan bila DRAWER masih kosong, sehingga tidak menimpa
+ * konfigurasi yang sudah ada.
+ * ============================================================ */
+function _menu_seed_default(): void {
+    $count = (int)db_val("SELECT COUNT(*) FROM nav_menu WHERE posisi='drawer'");
+    if ($count > 0) return;
+    // [label, url, icon, paket]
+    $items = [
+        ['Monitoring',                                    '/monitoring.php',           'bi-activity',          'komunitas'],
+        ['Upload Aktivitas',                              '/upload.php',               'bi-cloud-arrow-up',    ''],
+        ['Riwayat Aktivitas',                             '/riwayat.php',              'bi-clock-history',     ''],
+        ['Tracking Jalur',                                '/run.php',                  'bi-geo-alt',           'komunitas'],
+        ['Live Tracking / Beacon',                        '/live_tracking.php',        'bi-broadcast',         'komunitas'],
+        ['Video Flyover 3D',                              '/flyover.php',              'bi-badge-3d',          'komunitas'],
+        ['Eksplorasi Rute & Peta Canggih',                '/run.php',                  'bi-map',               'pro,komunitas'],
+        ['Kalori Badminton',                              '/kalori_badminton.php',     'bi-trophy',            'pro,komunitas'],
+        ['Kalori Renang',                                 '/kalori_renang.php',        'bi-water',             'pro,komunitas'],
+        ['Kalori Pingpong',                               '/kalori_pingpong.php',      'bi-circle',            'pro,komunitas'],
+        ['Kalori Futsal',                                 '/kalori_futsal.php',        'bi-dribbble',          'pro,komunitas'],
+        ['Kalori Mingguan',                               '/kalori_mingguan.php',      'bi-egg-fried',         ''],
+        ['Kalender',                                      '/calendar.php',             'bi-calendar2-week',    ''],
+        ['Event',                                         '/event.php',                'bi-calendar-event',    ''],
+        ['Tempat Olahraga',                               '/tempat.php',               'bi-pin-map',           'komunitas'],
+        ['Kalkulator Olahraga',                           '/kalkulator.php',           'bi-calculator',        ''],
+        ['Kalkulator Jantung',                            '/kalkulator_jantung.php',   'bi-heart-pulse',       ''],
+        ['Kalkulator Kesehatan',                          '/kalkulator_kesehatan.php', 'bi-clipboard2-pulse',  ''],
+        ['Gaya Hidup Sehat',                              '/gaya_hidup.php',           'bi-emoji-smile',       ''],
+        ['Berita Olahraga',                               '/berita.php',               'bi-newspaper',         ''],
+        ['Informasi Opini Terkini / Viral',               '/opini_viral.php',          'bi-megaphone-fill',    ''],
+        ['Perkiraan Cuaca',                               '/cuaca.php',                'bi-cloud-sun-fill',    ''],
+        ['IPTV',                                          '/iptv.php',                 'bi-tv',                'pro,komunitas'],
+        ['Toko Perlengkapan Olahraga Terdekat',           '/toko_olahraga.php',        'bi-shop',              'pro,komunitas'],
+        ['Hidup Sehat',                                   '/hidup_sehat.php',          'bi-heart',             ''],
+        ['Kesehatan',                                     '/kesehatan.php',            'bi-bandaid',           ''],
+        ['Kalistenik',                                    '/kalistenik.php',           'bi-person-arms-up',    ''],
+        ['Artikel Olahraga & Teknik',                     '/artikel_olahraga.php',     'bi-journal-text',      'pro,komunitas'],
+        ['Cedera Olahraga & Penanganan',                  '/cedera_olahraga.php',      'bi-bandaid-fill',      'pro,komunitas'],
+        ['Lacak Puskesmas / RS Terdekat',                 '/lacak_faskes.php',         'bi-hospital-fill',     'pro,komunitas'],
+        ['Survival Mode',                                 '/survival.php',             'bi-compass',           'pro,komunitas'],
+        ['Paket Anak 2-4 Tahun',                          '/paket_anak_2_4.php',       'bi-emoji-laughing',    'pro'],
+        ['Paket Anak 4-6 Tahun',                          '/paket_anak_4_6.php',       'bi-emoji-laughing',    'pro'],
+        ['Paket Anak 7-9 Tahun',                          '/paket_anak_7_9.php',       'bi-emoji-laughing',    'pro'],
+        ['Paket Anak 10-12 Tahun',                        '/paket_anak_10_12.php',     'bi-emoji-laughing',    'pro'],
+        ['Pesan / Pemandu Olahraga (WA) — Paket Anak',    'https://wa.me/?text=Halo%20saya%20butuh%20pemandu%20olahraga%20paket%20anak', 'bi-whatsapp', 'pro'],
+        ['Paket Lansia 55-69 Tahun',                      '/paket_lansia_55_69.php',   'bi-person-walking',    'pro'],
+        ['Paket Lansia 70+ Tahun',                        '/paket_lansia_70.php',      'bi-person-walking',    'pro'],
+        ['Pesan / Pemandu Olahraga (WA) — Paket Lansia',  'https://wa.me/?text=Halo%20saya%20butuh%20pemandu%20olahraga%20paket%20lansia', 'bi-whatsapp', 'pro'],
+        ['Daftar Tempat Olahraga',                        '/tempat_list.php',          'bi-pin-map-fill',      'komunitas'],
+        ['Bookmark',                                      '/bookmark.php',             'bi-bookmark',          ''],
+        ['Hub Islami',                                    '/islami.php',               'bi-moon-stars',        'komunitas'],
+    ];
+    $urut = 1;
+    foreach ($items as $it) {
+        $tgt = str_starts_with($it[1], 'http') ? '_blank' : '_self';
+        db_exec("INSERT INTO nav_menu(label,url,icon,parent_id,urutan,aktif,target,posisi,paket)
+                 VALUES($1,$2,$3,NULL,$4,'t',$5,'drawer',$6)",
+            [$it[0], $it[1], $it[2], $urut, $tgt, $it[3] ?: null]);
+        $urut++;
+    }
+}
+try { _menu_seed_default(); } catch (Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -27,8 +95,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $aktif  = !empty($_POST['aktif']);
             $target = in_array($_POST['target'] ?? '_self', ['_self','_blank'], true) ? $_POST['target'] : '_self';
             $posisi = in_array($_POST['posisi'] ?? 'drawer', ['drawer','top','bottom'], true) ? $_POST['posisi'] : 'drawer';
-            $paket  = strtolower(trim($_POST['paket'] ?? ''));
-            if (!in_array($paket, ['gratis','pro','komunitas'], true)) $paket = null;
+            // Revisi 29 Juni 2026 — paket bisa multi (checkbox). Disimpan sebagai CSV.
+            $paketArr = (array)($_POST['paket'] ?? []);
+            $paketArr = array_values(array_filter($paketArr, fn($v) => in_array($v, ['gratis','pro','komunitas'], true)));
+            $paket = $paketArr ? implode(',', $paketArr) : null;
             if ($label === '') throw new RuntimeException('Label wajib diisi.');
             if ($a === 'add') {
                 db_exec("INSERT INTO nav_menu(label,url,icon,parent_id,urutan,aktif,target,posisi,paket)
@@ -43,11 +113,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         } elseif ($a === 'delete') {
             db_exec("DELETE FROM nav_menu WHERE id=$1",[(int)$_POST['id']]);
             $_SESSION['flash'] = 'Menu dihapus.';
+        } elseif ($a === 'reseed') {
+            db_exec("DELETE FROM nav_menu WHERE posisi='drawer'");
+            _menu_seed_default();
+            $_SESSION['flash'] = 'Drawer di-reset ke 42 menu default.';
         }
     } catch (Throwable $e) {
         $_SESSION['flash_err'] = 'Gagal: '.$e->getMessage();
     }
     header('Location: menu.php'); exit;
+}
+
+function _pkt_chk(string $key, string $cur): string {
+    $arr = array_filter(array_map('trim', explode(',', strtolower($cur))));
+    return in_array($key, $arr, true) ? 'checked' : '';
 }
 
 $rows = db_all("SELECT m.*, p.label AS parent_label
@@ -60,6 +139,14 @@ include __DIR__.'/../includes/header.php';
 <h2 class="mb-3"><i class="bi bi-list-nested text-primary"></i> Navigasi Menu (CMS-style)</h2>
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
+
+<div class="d-flex gap-2 mb-3">
+  <form method="post" onsubmit="return confirm('Reset drawer ke 42 menu default? Semua item drawer akan dihapus dan dibuat ulang.')">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+    <input type="hidden" name="_action" value="reseed">
+    <button class="btn btn-outline-warning btn-sm"><i class="bi bi-arrow-repeat"></i> Reset Drawer ke 42 Menu Default</button>
+  </form>
+</div>
 
 <div class="card mb-3">
   <div class="card-header"><i class="bi bi-plus-circle"></i> Tambah Item Menu</div>
@@ -89,13 +176,10 @@ include __DIR__.'/../includes/header.php';
       </select>
     </div>
     <div class="col-md-1 form-check mt-4 ms-2"><input class="form-check-input" type="checkbox" name="aktif" id="ak" checked><label for="ak" class="small">aktif</label></div>
-    <div class="col-md-2"><label class="small">Paket (label)</label>
-      <select name="paket" class="form-select form-select-sm" title="Label paket member di samping nama menu (opsional)">
-        <option value="">— tanpa label —</option>
-        <option value="gratis">🆓 Gratis</option>
-        <option value="pro">⭐ PRO</option>
-        <option value="komunitas">👥 Komunitas</option>
-      </select>
+    <div class="col-md-12"><label class="small d-block">Paket (label, bisa pilih lebih dari satu)</label>
+      <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="paket[]" value="gratis" id="pk_g"><label class="form-check-label small" for="pk_g">🆓 Gratis</label></div>
+      <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="paket[]" value="pro" id="pk_p"><label class="form-check-label small" for="pk_p">⭐ PRO</label></div>
+      <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="paket[]" value="komunitas" id="pk_k"><label class="form-check-label small" for="pk_k">👥 Komunitas</label></div>
     </div>
     <div class="col-12"><button class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Tambah</button></div>
   </form>
@@ -105,16 +189,16 @@ include __DIR__.'/../includes/header.php';
 <table class="table table-sm align-middle">
   <thead><tr><th>#</th><th>Label</th><th>URL</th><th>Posisi</th><th>Parent</th><th>Urut</th><th>Paket</th><th>Aktif</th><th></th></tr></thead>
   <tbody>
-  <?php foreach ($rows as $r): ?>
+  <?php foreach ($rows as $r): $cur = (string)($r['paket'] ?? ''); ?>
     <tr>
       <td><?= (int)$r['id'] ?></td>
       <td>
         <?= $r['icon']?'<i class="bi '.htmlspecialchars($r['icon']).'"></i> ':'' ?><?= htmlspecialchars($r['label']) ?>
-        <?php if (!empty($r['paket'])): $pk=strtolower($r['paket']);
+        <?php foreach (array_filter(array_map('trim', explode(',', strtolower($cur)))) as $pk):
               $bcls = $pk==='pro'?'warning':($pk==='komunitas'?'success':'secondary');
               $bico = $pk==='pro'?'⭐ PRO':($pk==='komunitas'?'👥 Komunitas':'🆓 Gratis'); ?>
           <span class="badge bg-<?= $bcls ?> ms-1"><?= $bico ?></span>
-        <?php endif; ?>
+        <?php endforeach; ?>
       </td>
       <td class="small text-muted"><?= htmlspecialchars($r['url']) ?></td>
       <td><span class="badge bg-secondary"><?= htmlspecialchars($r['posisi']) ?></span></td>
@@ -133,13 +217,11 @@ include __DIR__.'/../includes/header.php';
           <input type="hidden" name="target"  value="<?= htmlspecialchars($r['target']??'_self') ?>">
           <input type="hidden" name="posisi"  value="<?= htmlspecialchars($r['posisi']) ?>">
           <?php if ($r['aktif']==='t' || $r['aktif']===true): ?><input type="hidden" name="aktif" value="1"><?php endif; ?>
-          <select name="paket" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:120px">
-            <?php $cur = strtolower((string)($r['paket'] ?? '')); ?>
-            <option value=""          <?= $cur===''?'selected':''         ?>>— tanpa —</option>
-            <option value="gratis"    <?= $cur==='gratis'?'selected':''   ?>>🆓 Gratis</option>
-            <option value="pro"       <?= $cur==='pro'?'selected':''      ?>>⭐ PRO</option>
-            <option value="komunitas" <?= $cur==='komunitas'?'selected':''?>>👥 Komunitas</option>
-          </select>
+          <div class="d-flex flex-wrap gap-1">
+            <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="paket[]" value="gratis"    id="pg<?= (int)$r['id'] ?>" <?= _pkt_chk('gratis',$cur) ?> onchange="this.form.submit()"><label class="form-check-label small" for="pg<?= (int)$r['id'] ?>">🆓</label></div>
+            <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="paket[]" value="pro"       id="pp<?= (int)$r['id'] ?>" <?= _pkt_chk('pro',$cur)    ?> onchange="this.form.submit()"><label class="form-check-label small" for="pp<?= (int)$r['id'] ?>">⭐</label></div>
+            <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="paket[]" value="komunitas" id="pk<?= (int)$r['id'] ?>" <?= _pkt_chk('komunitas',$cur)?> onchange="this.form.submit()"><label class="form-check-label small" for="pk<?= (int)$r['id'] ?>">👥</label></div>
+          </div>
         </form>
       </td>
       <td><?= ($r['aktif']==='t'||$r['aktif']===true)?'✅':'⬜' ?></td>

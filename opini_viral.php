@@ -84,23 +84,26 @@ if ($needRefresh) {
        digunakan mirror Nitter (X/Twitter) bila tersedia, dan halaman web publik
        (search Tiktok/IG) di-scrape ringan via meta-tag bila diizinkan oleh server.
        Catatan: di local dev cukup pastikan PHP punya curl + akses internet. */
+    /* Revisi 29 Juni 2026 — Google News RSS dipromosikan menjadi sumber UTAMA.
+       Reddit/Nitter/YouTube sering diblokir/CORS/rate-limited di hosting Indonesia
+       sehingga seluruh feed kosong (cards tidak muncul). Google News RSS jauh
+       lebih stabil dan tetap menyediakan judul + sumber + ringkasan. */
     $sources = [
-        // Reddit JSON (akan di-parse khusus di bawah)
-        'Opini r/indonesia'        => 'reddit:indonesia/hot',
-        'Opini r/indonesia_local'  => 'reddit:indonesia_local/hot',
-        'Opini r/indonesians'      => 'reddit:indonesians/hot',
-        // Nitter (mirror Twitter/X) — Revisi R25: pakai skema `nitter:` + multi-mirror
-        'X/Twitter • Politik ID'   => 'nitter:politik indonesia',
-        'X/Twitter • Bisnis ID'    => 'nitter:bisnis indonesia',
-        'X/Twitter • Viral ID'     => 'nitter:viral indonesia',
-        // YouTube — channel berita & podcast opini populer ID (RSS resmi YouTube)
-        'YouTube • Narasi'         => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9_F0RpdPNX4hL3KX5G6phw',
-        'YouTube • CNN Indonesia'  => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCM4XlH5BIPNc-rUtcwI7Vfg',
-        'YouTube • Kompas TV'      => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC5BMQOsmB91nXgwIwfwSJYg',
-        // Fallback: Google News tetap dipakai untuk kategori utama bila sosmed gagal
-        'Berita Umum (fallback)'   => 'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-        'Politik (fallback)'       => 'https://news.google.com/rss/search?q=politik+indonesia&hl=id&gl=ID&ceid=ID:id',
-        'Bisnis (fallback)'        => 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=id&gl=ID&ceid=ID:id',
+        // PRIMARY — Google News RSS (paling reliable)
+        'Berita Umum'               => 'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
+        'Politik'                   => 'https://news.google.com/rss/search?q=politik+indonesia&hl=id&gl=ID&ceid=ID:id',
+        'Bisnis & Ekonomi'          => 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=id&gl=ID&ceid=ID:id',
+        'Olahraga'                  => 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=id&gl=ID&ceid=ID:id',
+        'Teknologi'                 => 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=id&gl=ID&ceid=ID:id',
+        'Hiburan / Viral'           => 'https://news.google.com/rss/search?q=viral+indonesia&hl=id&gl=ID&ceid=ID:id',
+        'Opini Netizen'             => 'https://news.google.com/rss/search?q=opini+netizen+indonesia&hl=id&gl=ID&ceid=ID:id',
+        // SECONDARY — sosial media (best-effort, sering gagal di hosting Indonesia)
+        'Opini r/indonesia'         => 'reddit:indonesia/hot',
+        'Opini r/indonesia_local'   => 'reddit:indonesia_local/hot',
+        // YouTube — RSS resmi (jarang gagal)
+        'YouTube • Narasi'          => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9_F0RpdPNX4hL3KX5G6phw',
+        'YouTube • CNN Indonesia'   => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCM4XlH5BIPNc-rUtcwI7Vfg',
+        'YouTube • Kompas TV'       => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC5BMQOsmB91nXgwIwfwSJYg',
     ];
     $kept = 0;
     try { db_exec("DELETE FROM opini_viral WHERE fetched_at < now() - interval '6 hours'"); } catch (Throwable $e) {}

@@ -130,21 +130,59 @@ include __DIR__.'/includes/header.php'; ?>
 (function(){
   document.querySelectorAll('.ss-btn').forEach(function(b){
     b.addEventListener('click', async function(){
-      var rakaat = prompt('Berapa rakaat ' + b.dataset.jenis + ' tanggal ' + b.dataset.tgl + '? (kosongkan untuk hapus catatan)', '2');
-      if (rakaat === null) return;
+      // Revisi 29 Juni 2026 — popup cantik (SweetAlert2) dengan kolom Keterangan.
+      var jenisLabel = b.dataset.jenis === 'duha' ? 'Duha' : 'Tahajud';
+      var html =
+        '<div class="text-start">' +
+          '<label class="form-label small mb-1">Rakaat</label>' +
+          '<input id="ss_rakaat" type="number" min="0" max="20" value="2" class="swal2-input" style="margin:.25rem 0">' +
+          '<label class="form-label small mb-1 mt-2">Keterangan (opsional)</label>' +
+          '<textarea id="ss_catatan" class="swal2-textarea" placeholder="mis. di rumah, berjamaah, doa khusus…" style="margin:.25rem 0"></textarea>' +
+          '<div class="form-text small">Kosongkan rakaat = hapus catatan tanggal ini.</div>' +
+        '</div>';
+      var rakaat = '', catatan = '';
+      if (typeof Swal !== 'undefined') {
+        var r = await Swal.fire({
+          title: jenisLabel + ' • ' + b.dataset.tgl,
+          html: html,
+          showCancelButton: true,
+          confirmButtonText: 'Simpan',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#0ea5e9',
+          focusConfirm: false,
+          preConfirm: function(){
+            return {
+              rakaat: document.getElementById('ss_rakaat').value,
+              catatan: document.getElementById('ss_catatan').value
+            };
+          }
+        });
+        if (!r.isConfirmed) return;
+        rakaat  = r.value.rakaat;
+        catatan = r.value.catatan;
+      } else {
+        rakaat = prompt('Berapa rakaat ' + jenisLabel + ' ' + b.dataset.tgl + '? (kosongkan untuk hapus)', '2');
+        if (rakaat === null) return;
+        catatan = prompt('Keterangan (opsional):', '') || '';
+      }
       var fd = new FormData();
       fd.append('csrf','<?= csrf_token() ?>');
       fd.append('_action','ssunnah_toggle');
       fd.append('jenis', b.dataset.jenis);
       fd.append('tanggal', b.dataset.tgl);
       fd.append('rakaat', rakaat || '2');
+      fd.append('catatan', catatan || '');
       b.disabled = true;
       try {
-        var r = await fetch('/monitoring_tahajud.php', {method:'POST', body:fd, credentials:'same-origin'});
-        var j = await r.json();
+        var r2 = await fetch('/monitoring_tahajud.php', {method:'POST', body:fd, credentials:'same-origin'});
+        var j  = await r2.json();
         if (j.ok) location.reload();
+        else if (typeof Swal !== 'undefined') Swal.fire('Gagal', j.err||'?', 'error');
         else alert('Gagal: '+(j.err||'?'));
-      } catch(e){ alert('Error: '+e.message); }
+      } catch(e){
+        if (typeof Swal !== 'undefined') Swal.fire('Error', e.message, 'error');
+        else alert('Error: '+e.message);
+      }
       b.disabled = false;
     });
   });

@@ -53,6 +53,13 @@ if (!function_exists('nav_lock_badge_for')) {
 }
 
 send_security_headers(); enforce_session_timeout();
+/* Revisi 29 Juni 2026 — GLOBAL AUTH GUARD.
+ * Semua halaman yang meng-include header.php otomatis butuh login.
+ * Pengecualian: file publik di bawah ini tidak boleh memicu require_login (mereka
+ * memang tidak meng-include header.php, tapi kita whitelist juga untuk aman). */
+$__pub_pages = ['login.php','register.php','logout.php','splash.php','onboarding.php','manifest.php','health.php','strava_webhook.php','track_view.php','tes.php'];
+$__cur_page  = basename($_SERVER['SCRIPT_NAME'] ?? '');
+if (!in_array($__cur_page, $__pub_pages, true)) { require_login(); }
 $u = current_user();
 if ($u) touch_online();
 $navFoto = null; $nUnread = 0; $darkMode = 0;
@@ -385,6 +392,57 @@ if (empty($pageSkeleton)) {
 
 </style>
 <style id="userTheme"><?= user_theme_css() ?></style>
+<!-- Revisi 29 Juni 2026 — SweetAlert2 untuk popup konfirmasi cantik (mengganti window.confirm bawaan browser) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js" defer></script>
+<script>
+// Override window.confirm agar tidak menampilkan URL bawaan browser & tampil estetik.
+// Karena window.confirm sinkron, kita intercept submit form berbasis [onsubmit="return confirm(...)"]
+// dan klik link berbasis [data-confirm="..."]. Pemanggilan confirm() lainnya tetap sinkron (fallback bawaan).
+(function(){
+  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  function ask(message, opts){
+    opts = opts || {};
+    if (typeof Swal === 'undefined') return Promise.resolve(window.__nativeConfirm ? window.__nativeConfirm(message) : true);
+    return Swal.fire({
+      title: opts.title || 'Konfirmasi',
+      text:  message,
+      icon:  opts.icon || 'question',
+      showCancelButton: true,
+      confirmButtonText: opts.yes || 'Ya',
+      cancelButtonText:  opts.no  || 'Batal',
+      confirmButtonColor: '#0ea5e9',
+      cancelButtonColor:  '#64748b',
+      reverseButtons: true,
+      focusCancel: true,
+    }).then(function(r){ return !!r.isConfirmed; });
+  }
+  window.gjConfirm = ask;
+  // Intercept form submit yang punya onsubmit="return confirm(...)" — override agar pakai Swal.
+  ready(function(){
+    document.querySelectorAll('form[onsubmit*="confirm("]').forEach(function(f){
+      var orig = f.getAttribute('onsubmit') || '';
+      var m = orig.match(/confirm\(\s*['"]([\s\S]*?)['"]\s*\)/);
+      var msg = m ? m[1] : 'Lanjutkan aksi ini?';
+      f.removeAttribute('onsubmit');
+      f.addEventListener('submit', function(ev){
+        if (f.dataset._gjOk) return; // sudah di-konfirmasi
+        ev.preventDefault();
+        ask(msg).then(function(ok){ if(ok){ f.dataset._gjOk='1'; f.submit(); } });
+      });
+    });
+    document.querySelectorAll('a[data-confirm], button[data-confirm]').forEach(function(el){
+      el.addEventListener('click', function(ev){
+        if (el.dataset._gjOk) return;
+        ev.preventDefault();
+        ask(el.dataset.confirm || 'Lanjutkan?').then(function(ok){
+          if(ok){ el.dataset._gjOk='1'; el.click(); }
+        });
+      });
+    });
+  });
+})();
+</script>
 </head>
 <body<?= !empty($pageSkeleton) ? ' data-skeleton="'.htmlspecialchars($pageSkeleton).'"' : '' ?>>
 
@@ -596,16 +654,16 @@ if (empty($pageSkeleton)) {
         </a>
         <div class="collapse" id="grpInfoWawasan">
           <a class="list-group-item list-group-item-action ps-4" href="/berita.php"><i class="bi bi-newspaper text-primary"></i> Berita Terkini</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/opini_viral.php"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini/Viral <span class="badge bg-danger ms-1">Baru</span></a>
-          <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca <span class="badge bg-success ms-1">Baru</span></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/opini_viral.php"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini/Viral</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/cuaca.php"><i class="bi bi-cloud-sun-fill text-info"></i> Perkiraan Cuaca</a>
           <a class="list-group-item list-group-item-action ps-4" href="/iptv.php"><i class="bi bi-tv text-info"></i> IPTV</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga Terdekat <span class="badge bg-success ms-1">Baru</span></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga Terdekat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal</a>
           <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</a>
           <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan</a>
-          <a class="list-group-item list-group-item-action ps-4" href="/lacak_faskes.php"><i class="bi bi-hospital-fill text-danger"></i> Lacak Puskesmas / RS Terdekat <span class="badge bg-success ms-1">Baru</span></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/lacak_faskes.php"><i class="bi bi-hospital-fill text-danger"></i> Lacak Puskesmas / RS Terdekat</a>
           <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode</a>
         </div>
 
@@ -686,7 +744,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/sistem.php"><i class="bi bi-cpu text-info"></i> Cek Sistem</a>
             <?php /* Revisi 22 Juni 2026 R7 — CRUD kata kunci filter pencarian video (kalistenik & survival) */ ?>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/keywords.php"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Video</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/paket_member.php"><i class="bi bi-stars text-warning"></i> Pengaturan Paket Member <span class="badge bg-success ms-1">Baru</span></a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/paket_member.php"><i class="bi bi-stars text-warning"></i> Pengaturan Paket Member</a>
           </div>
 
         <?php endif; ?>
