@@ -766,6 +766,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/pengeluaran.php"><i class="bi bi-cash-stack text-danger"></i> Rekap Pengeluaran Kegiatan</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/tempat.php"><i class="bi bi-geo-alt-fill"></i> CRUD Tempat</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/tempat_survei.php"><i class="bi bi-hourglass-split text-warning"></i> Usulan Tempat (Survei)</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a>
           </div>
 
@@ -788,6 +789,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
             <?php /* Revisi Juli 2026 R3 — Pantau Progress Islami Member */ ?>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/paket_pesanan.php"><i class="bi bi-receipt-cutoff text-success"></i> Pesanan Paket Member</a>
             <a class="list-group-item list-group-item-action ps-4" href="/pantau_progress_member.php"><i class="bi bi-graph-up-arrow text-danger"></i> Pantau Progress Islami</a>
             <?php /* Revisi 15 Juni 2026: menu "Riwayat Login Member" dihapus sesuai permintaan. */ ?>
           </div>

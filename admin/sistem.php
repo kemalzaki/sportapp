@@ -1,202 +1,135 @@
 <?php
 /**
- * admin/sistem.php — Cek Sistem
+ * admin/sistem.php — Revisi 2 Juli 2026 #4
  *
- * Revisi Juli 2026:
- *   Ditambahkan blok "Peringatan Batas / Limit" untuk memantau status kapasitas
- *   pada 3 layer:
- *     1. Server  — disk usage & memory usage host
- *     2. Database (PostgreSQL) — ukuran DB vs limit & connection usage
- *     3. ImageKit — kuota bandwidth & storage bulan berjalan
+ * Halaman "Cek Sistem" milik admin.
+ * Tambahan: menampilkan DETAIL SIZE seluruh tabel yang tersedia di database
+ * (total size, table size, index size, TOAST size, jumlah baris).
  *
- *   Ambang batas default (bisa dioverride lewat ENV):
- *     - SYS_DISK_LIMIT_GB      (default 20)
- *     - SYS_DB_LIMIT_MB        (default 500)
- *     - SYS_IMAGEKIT_LIMIT_GB  (default 20)
- *     - SYS_WARN_PERCENT       (default 80)  → mulai peringatan
- *     - SYS_DANGER_PERCENT     (default 95)  → status kritis
- *
- *   Jika file ini SUDAH ada di project Anda (biasanya berisi info versi PHP,
- *   ekstensi, koneksi DB, dll.), cukup salin BLOK "Peringatan Batas / Limit"
- *   di bawah (bagian antara komentar BEGIN…END) ke akhir file lama Anda.
+ * Data diambil dari katalog PostgreSQL — hanya schema 'public'.
  */
-
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
-send_security_headers(); require_login();
-$u = current_user();
-if (!$u || ($u['role'] ?? '') !== 'admin') {
-    http_response_code(403);
-    exit('403 — hanya admin.');
+send_security_headers();
+require_role('admin');
+
+$pageTitle = 'Cek Sistem';
+
+/* Info umum */
+$info = [];
+try {
+    $info['pg_version']   = db_val("SHOW server_version");
+    $info['db_name']      = db_val("SELECT current_database()");
+    $info['db_size']      = db_val("SELECT pg_size_pretty(pg_database_size(current_database()))");
+    $info['now']          = db_val("SELECT now()");
+    $info['php_version']  = PHP_VERSION;
+    $info['php_sapi']     = PHP_SAPI;
+    $info['memory_used']  = number_format(memory_get_usage()/1048576,2).' MB';
+    $info['upload_max']   = ini_get('upload_max_filesize');
+    $info['post_max']     = ini_get('post_max_size');
+} catch (Throwable $e) {}
+
+/* Detail size per tabel */
+$tables = [];
+try {
+    $tables = db_all("
+        SELECT
+          c.relname                                             AS tabel,
+          pg_size_pretty(pg_total_relation_size(c.oid))         AS total,
+          pg_total_relation_size(c.oid)                         AS total_bytes,
+          pg_size_pretty(pg_relation_size(c.oid))               AS data,
+          pg_size_pretty(pg_indexes_size(c.oid))                AS indeks,
+          pg_size_pretty(COALESCE(pg_total_relation_size(c.reltoastrelid),0)) AS toast,
+          COALESCE(c.reltuples,0)::bigint                       AS baris_estimasi
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+        ORDER BY pg_total_relation_size(c.oid) DESC
+    ");
+} catch (Throwable $e) { $tables = []; }
+
+$sumBytes = 0; foreach ($tables as $t) $sumBytes += (int)$t['total_bytes'];
+function _fmt_bytes(int $b): string {
+    if ($b < 1024) return $b.' B';
+    $u=['KB','MB','GB','TB']; $i=0; $v=$b/1024;
+    while ($v>=1024 && $i<3){ $v/=1024; $i++; }
+    return number_format($v,2).' '.$u[$i];
 }
 
-/* ============================================================
-   Helpers pengukuran
-   ============================================================ */
-function sys_bytes_to_human($b) {
-    if ($b === null || $b === false) return '—';
-    $u = ['B','KB','MB','GB','TB']; $i=0; $b = (float)$b;
-    while ($b >= 1024 && $i < count($u)-1) { $b /= 1024; $i++; }
-    return number_format($b, 2, ',', '.').' '.$u[$i];
-}
-function sys_pct($used, $limit) {
-    if ($limit <= 0) return 0;
-    return min(100, ($used / $limit) * 100);
-}
-function sys_level($pct, $warn, $danger) {
-    if ($pct >= $danger) return ['danger',  'Kritis — segera tindak lanjut'];
-    if ($pct >= $warn)   return ['warning', 'Peringatan — mendekati batas'];
-    return ['success', 'Aman'];
-}
-function sys_bar($pct, $cls) {
-    $pct = max(0, min(100, (float)$pct));
-    return '<div class="progress" style="height:14px">
-              <div class="progress-bar bg-'.$cls.'" role="progressbar" style="width:'.number_format($pct,1,'.','').'%">
-                '.number_format($pct,1,',','.').'%
-              </div>
-            </div>';
-}
-
-$WARN   = (int)(getenv('SYS_WARN_PERCENT')   ?: 80);
-$DANGER = (int)(getenv('SYS_DANGER_PERCENT') ?: 95);
-
-/* ---------- 1) Server ---------- */
-$diskLimitGb = (float)(getenv('SYS_DISK_LIMIT_GB') ?: 20);
-$diskFree    = @disk_free_space(__DIR__) ?: 0;
-$diskTotal   = @disk_total_space(__DIR__) ?: 0;
-$diskUsed    = max(0, $diskTotal - $diskFree);
-// Bila disk_total_space tersedia gunakan itu, jika tidak fallback ke limit ENV.
-$diskLimitB  = $diskTotal > 0 ? $diskTotal : ($diskLimitGb * 1024 * 1024 * 1024);
-$diskPct     = sys_pct($diskUsed, $diskLimitB);
-[$diskCls,$diskLbl] = sys_level($diskPct, $WARN, $DANGER);
-
-$memLimitStr = ini_get('memory_limit');
-$memUsed     = memory_get_usage(true);
-$memLimitB   = 0;
-if (preg_match('/^(\d+)([KMG]?)$/i', trim($memLimitStr), $m)) {
-    $n = (int)$m[1]; $s = strtoupper($m[2] ?? '');
-    $memLimitB = $n * ($s==='G' ? 1073741824 : ($s==='M' ? 1048576 : ($s==='K' ? 1024 : 1)));
-}
-$memPct = $memLimitB > 0 ? sys_pct($memUsed, $memLimitB) : 0;
-[$memCls,$memLbl] = sys_level($memPct, $WARN, $DANGER);
-
-/* ---------- 2) Database ---------- */
-$dbLimitMb = (float)(getenv('SYS_DB_LIMIT_MB') ?: 500);
-$dbSizeB   = 0; $dbConnUsed = 0; $dbConnMax = 0;
-try { $r = db_one("SELECT pg_database_size(current_database()) AS s"); $dbSizeB = (int)($r['s'] ?? 0); } catch (Throwable $e) {}
-try { $r = db_one("SELECT count(*)::int AS c FROM pg_stat_activity WHERE datname = current_database()"); $dbConnUsed = (int)($r['c'] ?? 0); } catch (Throwable $e) {}
-try { $r = db_one("SHOW max_connections"); $dbConnMax = (int)($r['max_connections'] ?? 0); } catch (Throwable $e) {}
-$dbLimitB = $dbLimitMb * 1024 * 1024;
-$dbPct    = sys_pct($dbSizeB, $dbLimitB);
-[$dbCls,$dbLbl] = sys_level($dbPct, $WARN, $DANGER);
-$connPct  = $dbConnMax > 0 ? sys_pct($dbConnUsed, $dbConnMax) : 0;
-[$connCls,$connLbl] = sys_level($connPct, $WARN, $DANGER);
-
-/* ---------- 3) ImageKit ---------- */
-$ikLimitGb  = (float)(getenv('SYS_IMAGEKIT_LIMIT_GB') ?: 20);
-$ikPrivate  = getenv('IMAGEKIT_PRIVATE_KEY') ?: '';
-$ikBw = null; $ikStor = null; $ikErr = null;
-if ($ikPrivate) {
-    // ImageKit usage endpoint (v1). Butuh Basic Auth: privateKey:.
-    $ch = curl_init('https://api.imagekit.io/v1/accounts/usage?startDate='.date('Y-m-01').'&endDate='.date('Y-m-d'));
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => ['Accept: application/json','Authorization: Basic '.base64_encode($ikPrivate.':')],
-        CURLOPT_TIMEOUT => 8,
-    ]);
-    $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($code === 200 && $resp) {
-        $j = json_decode($resp, true) ?: [];
-        // Field bisa berbeda tergantung plan; kita cari yang wajar.
-        $ikBw   = (float)($j['bandwidth']   ?? $j['bandwidthUsage']   ?? 0);
-        $ikStor = (float)($j['mediaLibrarySize'] ?? $j['storage']     ?? 0);
-    } else {
-        $ikErr = 'HTTP '.$code.' — periksa IMAGEKIT_PRIVATE_KEY / kuota API.';
-    }
-} else {
-    $ikErr = 'IMAGEKIT_PRIVATE_KEY belum di-set — nilai limit tidak bisa diambil otomatis.';
-}
-$ikLimitB = $ikLimitGb * 1024 * 1024 * 1024;
-$ikBwPct  = ($ikBw   !== null) ? sys_pct($ikBw,   $ikLimitB) : 0;
-$ikStPct  = ($ikStor !== null) ? sys_pct($ikStor, $ikLimitB) : 0;
-[$ikBwCls,$ikBwLbl] = sys_level($ikBwPct, $WARN, $DANGER);
-[$ikStCls,$ikStLbl] = sys_level($ikStPct, $WARN, $DANGER);
-
-$pageTitle = 'Cek Sistem — Admin';
 include __DIR__.'/../includes/header.php';
 ?>
-<h2 class="mb-3"><i class="bi bi-cpu text-info"></i> Cek Sistem</h2>
+<nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
+  <li class="breadcrumb-item"><a href="/index.php">Beranda</a></li>
+  <li class="breadcrumb-item">Admin</li>
+  <li class="breadcrumb-item active">Cek Sistem</li>
+</ol></nav>
 
-<?php /* =====================================================================
-   BEGIN — Blok "Peringatan Batas / Limit" (Revisi Juli 2026)
-   Bisa dipindah / disalin ke file admin/sistem.php Anda yang lama.
-   ===================================================================== */ ?>
-<div class="card shadow-sm mb-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <strong><i class="bi bi-exclamation-triangle-fill text-warning"></i>
-      Peringatan Batas / Limit</strong>
-    <small class="text-muted">Warn ≥ <?= $WARN ?>% · Danger ≥ <?= $DANGER ?>%</small>
+<h3 class="mb-3"><i class="bi bi-cpu text-info"></i> Cek Sistem</h3>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header"><i class="bi bi-database-fill-check"></i> Database</div>
+      <div class="card-body small">
+        <div class="d-flex justify-content-between border-bottom py-1"><span>PostgreSQL</span><b><?= htmlspecialchars((string)($info['pg_version'] ?? '-')) ?></b></div>
+        <div class="d-flex justify-content-between border-bottom py-1"><span>Nama Database</span><b><?= htmlspecialchars((string)($info['db_name'] ?? '-')) ?></b></div>
+        <div class="d-flex justify-content-between border-bottom py-1"><span>Total Ukuran DB</span><b><?= htmlspecialchars((string)($info['db_size'] ?? '-')) ?></b></div>
+        <div class="d-flex justify-content-between border-bottom py-1"><span>Jumlah Tabel (public)</span><b><?= count($tables) ?></b></div>
+        <div class="d-flex justify-content-between py-1"><span>Waktu Server DB</span><b><?= htmlspecialchars((string)($info['now'] ?? '-')) ?></b></div>
+      </div>
+    </div>
   </div>
-  <div class="card-body">
-    <!-- 1. Server -->
-    <h6 class="fw-bold mb-2"><i class="bi bi-hdd-network text-primary"></i> Server</h6>
-    <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <div class="small mb-1">Disk (<?= sys_bytes_to_human($diskUsed) ?> / <?= sys_bytes_to_human($diskLimitB) ?>)
-          — <span class="text-<?= $diskCls ?> fw-semibold"><?= $diskLbl ?></span></div>
-        <?= sys_bar($diskPct, $diskCls) ?>
-      </div>
-      <div class="col-md-6">
-        <div class="small mb-1">Memory PHP (<?= sys_bytes_to_human($memUsed) ?> / <?= $memLimitB>0?sys_bytes_to_human($memLimitB):($memLimitStr ?: '—') ?>)
-          — <span class="text-<?= $memCls ?> fw-semibold"><?= $memLbl ?></span></div>
-        <?= sys_bar($memPct, $memCls) ?>
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header"><i class="bi bi-filetype-php"></i> PHP Runtime</div>
+      <div class="card-body small">
+        <div class="d-flex justify-content-between border-bottom py-1"><span>Versi PHP</span><b><?= htmlspecialchars((string)$info['php_version']) ?></b></div>
+        <div class="d-flex justify-content-between border-bottom py-1"><span>SAPI</span><b><?= htmlspecialchars((string)$info['php_sapi']) ?></b></div>
+        <div class="d-flex justify-content-between border-bottom py-1"><span>Memory Terpakai</span><b><?= htmlspecialchars((string)$info['memory_used']) ?></b></div>
+        <div class="d-flex justify-content-between border-bottom py-1"><span>upload_max_filesize</span><b><?= htmlspecialchars((string)$info['upload_max']) ?></b></div>
+        <div class="d-flex justify-content-between py-1"><span>post_max_size</span><b><?= htmlspecialchars((string)$info['post_max']) ?></b></div>
       </div>
     </div>
-
-    <!-- 2. Database -->
-    <h6 class="fw-bold mb-2"><i class="bi bi-database-fill-check text-success"></i> Database (PostgreSQL)</h6>
-    <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <div class="small mb-1">Ukuran DB (<?= sys_bytes_to_human($dbSizeB) ?> / <?= sys_bytes_to_human($dbLimitB) ?>)
-          — <span class="text-<?= $dbCls ?> fw-semibold"><?= $dbLbl ?></span></div>
-        <?= sys_bar($dbPct, $dbCls) ?>
-      </div>
-      <div class="col-md-6">
-        <div class="small mb-1">Koneksi aktif (<?= $dbConnUsed ?> / <?= $dbConnMax ?: '—' ?>)
-          — <span class="text-<?= $connCls ?> fw-semibold"><?= $connLbl ?></span></div>
-        <?= sys_bar($connPct, $connCls) ?>
-      </div>
-    </div>
-
-    <!-- 3. ImageKit -->
-    <h6 class="fw-bold mb-2"><i class="bi bi-images text-info"></i> ImageKit (bulan berjalan)</h6>
-    <?php if ($ikErr): ?>
-      <div class="alert alert-warning small mb-2"><i class="bi bi-info-circle"></i> <?= htmlspecialchars($ikErr) ?></div>
-    <?php endif; ?>
-    <div class="row g-3">
-      <div class="col-md-6">
-        <div class="small mb-1">Bandwidth (<?= $ikBw!==null?sys_bytes_to_human($ikBw):'—' ?> / <?= sys_bytes_to_human($ikLimitB) ?>)
-          — <span class="text-<?= $ikBwCls ?> fw-semibold"><?= $ikBw!==null?$ikBwLbl:'Data tidak tersedia' ?></span></div>
-        <?= sys_bar($ikBwPct, $ikBwCls) ?>
-      </div>
-      <div class="col-md-6">
-        <div class="small mb-1">Storage Media (<?= $ikStor!==null?sys_bytes_to_human($ikStor):'—' ?> / <?= sys_bytes_to_human($ikLimitB) ?>)
-          — <span class="text-<?= $ikStCls ?> fw-semibold"><?= $ikStor!==null?$ikStLbl:'Data tidak tersedia' ?></span></div>
-        <?= sys_bar($ikStPct, $ikStCls) ?>
-      </div>
-    </div>
-
-    <hr class="my-3">
-    <p class="small text-muted mb-0">
-      Anda bisa mengubah ambang &amp; limit lewat environment variable:
-      <code>SYS_DISK_LIMIT_GB</code>, <code>SYS_DB_LIMIT_MB</code>,
-      <code>SYS_IMAGEKIT_LIMIT_GB</code>, <code>SYS_WARN_PERCENT</code>,
-      <code>SYS_DANGER_PERCENT</code>. ImageKit dibaca via API bila
-      <code>IMAGEKIT_PRIVATE_KEY</code> tersedia.
-    </p>
   </div>
 </div>
-<?php /* END — Blok "Peringatan Batas / Limit" */ ?>
+
+<!-- Revisi 2 Juli 2026 #4: Detail size setiap tabel -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div><i class="bi bi-hdd-stack text-primary"></i> <strong>Detail Size Semua Tabel Database</strong></div>
+    <div class="small text-muted">Total (semua tabel): <b><?= _fmt_bytes($sumBytes) ?></b></div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0" style="min-width:820px">
+      <thead class="table-light">
+        <tr>
+          <th style="width:36px" class="text-end">#</th>
+          <th>Tabel</th>
+          <th class="text-end">Total Size</th>
+          <th class="text-end">Data</th>
+          <th class="text-end">Indeks</th>
+          <th class="text-end">TOAST</th>
+          <th class="text-end">Baris (est.)</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php if (!$tables): ?>
+        <tr><td colspan="7" class="text-center text-muted py-3">Tidak dapat membaca katalog tabel.</td></tr>
+      <?php else: foreach ($tables as $i=>$t): ?>
+        <tr>
+          <td class="text-end text-muted small"><?= $i+1 ?></td>
+          <td class="font-monospace small"><?= htmlspecialchars($t['tabel']) ?></td>
+          <td class="text-end fw-semibold"><?= htmlspecialchars($t['total']) ?></td>
+          <td class="text-end small"><?= htmlspecialchars($t['data']) ?></td>
+          <td class="text-end small"><?= htmlspecialchars($t['indeks']) ?></td>
+          <td class="text-end small text-muted"><?= htmlspecialchars($t['toast']) ?></td>
+          <td class="text-end small"><?= number_format((int)$t['baris_estimasi']) ?></td>
+        </tr>
+      <?php endforeach; endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

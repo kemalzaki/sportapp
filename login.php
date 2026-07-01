@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 [$a,$b] = captcha_new();
 $userList = [];
-try { $userList = db_all("SELECT id, nama, role FROM users ORDER BY nama ASC"); } catch(Throwable $e) {}
+try { $userList = db_all("SELECT id, nama, role FROM users WHERE COALESCE(aktif,1) <> 0 OR role='admin' ORDER BY nama ASC"); } catch(Throwable $e) {}
 $csrf = csrf_token();
 ?>
 <!doctype html>
@@ -238,7 +238,7 @@ body{
         <input type="checkbox" class="form-check-input" id="pdp" required>
         <label class="form-check-label small" for="pdp">
           Saya telah membaca &amp; menyetujui
-          <a href="/privasi.php" target="_blank" class="text-decoration-underline">Kebijakan Privasi (UU PDP)</a>.
+          <a href="#" class="text-decoration-underline" data-privasi-open>Kebijakan Privasi &amp; UU PDP</a>.
         </label>
       </div>
       <button type="submit" class="btn-lg-primary" id="btnSubmit">
@@ -321,5 +321,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
+<!-- Revisi 2 Juli 2026 #6: Popup Kebijakan Privasi & UU PDP -->
+<div class="modal fade" id="privasiModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content" style="border-radius:18px;overflow:hidden">
+      <div class="modal-header" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border:0">
+        <h5 class="modal-title"><i class="bi bi-shield-check"></i> Kebijakan Privasi &amp; UU PDP</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" style="min-height:60vh">
+        <iframe id="privasiFrame" src="about:blank" style="width:100%;height:65vh;border:0;background:#fff"></iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal"><i class="bi bi-check2"></i> Saya Mengerti</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function(){
+  var modalEl=document.getElementById('privasiModal');
+  var frame=document.getElementById('privasiFrame');
+  var modal=new bootstrap.Modal(modalEl);
+  document.querySelectorAll('[data-privasi-open]').forEach(function(a){
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      frame.src='/privasi.php?embed=1&t='+Date.now();
+      modal.show();
+    });
+  });
+})();
+</script>
+
 </body>
 </html>

@@ -317,50 +317,6 @@ include __DIR__.'/includes/header.php';
 <h2 class="mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Daftar Tempat Olahraga</h2>
 <p class="text-muted small">Tempat-tempat olahraga yang dikelola admin komunitas. Klik untuk melihat detail & arah lokasi.</p>
 
-<div class="card shadow-sm mb-3"><div class="card-body">
-  <!-- Revisi 22 Juni 2026 R12 — filter via AJAX (tidak reload halaman) -->
-  <form class="row g-2" id="tempatFilterForm" onsubmit="return false">
-    <div class="col-md-6"><input class="form-control form-control-sm" name="q" id="fQ" value="<?= htmlspecialchars($q) ?>" placeholder="🔍 Cari nama / alamat..."></div>
-    <div class="col-md-6"><select class="form-select form-select-sm" name="jenis" id="fJenis">
-      <option value="0">Semua Jenis</option>
-      <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
-    </select></div>
-    <!-- Revisi 30 Jun 2026 — Rentang KM dihapus. Diganti Sort (khusus Hiking). -->
-    <div class="col-md-12" id="fSortWrap" style="<?= $isHikingFilter?'':'display:none' ?>">
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="small text-success fw-semibold"><i class="bi bi-sort-down"></i> Urutkan (Hiking):</span>
-        <select id="fSort" class="form-select form-select-sm" style="max-width:240px">
-          <option value="nama_asc"  <?= $sort===''||$sort==='nama_asc'?'selected':'' ?>>Nama Tempat (A → Z)</option>
-          <option value="nama_desc" <?= $sort==='nama_desc'?'selected':'' ?>>Nama Tempat (Z → A)</option>
-          <option value="km_asc"    <?= $sort==='km_asc'?'selected':'' ?>>Kiloan Terdekat (Kecil → Besar)</option>
-          <option value="km_desc"   <?= $sort==='km_desc'?'selected':'' ?>>Kiloan Terjauh (Besar → Kecil)</option>
-        </select>
-        <small class="text-muted">Pengurutan ini hanya aktif untuk jenis Hiking.</small>
-      </div>
-    </div>
-    <input type="hidden" id="fHikingId" value="<?= (int)$hikingId ?>">
-    <!-- Revisi 23 Juni 2026 — tombol Filter dihapus karena filter sudah otomatis via AJAX (change/Enter). -->
-  </form>
-</div></div>
-
-<div id="tempatListWrap">
-<?php tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total); ?>
-</div>
-
-<!-- Revisi 24 Juni 2026 — Peta di tempat_list.php sekarang memakai MapBox (sama dgn run.php).
-     Rendering tetap memakai Leaflet sebagai layer engine, namun tile source memakai MapBox. -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script>
-  window.MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
-  window.MAPBOX_TILE_URL = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + window.MAPBOX_TOKEN_JS;
-  window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-</script>
-
-<!-- ============================================================
-     Revisi Juli 2026 — CRUD "Coming Soon: Survei Tempat"
-     Member mengusulkan tempat baru untuk disurvei / dimasukkan admin.
-     ============================================================ -->
 <section id="surveiTempat" class="card shadow-sm mt-4 mb-4">
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
@@ -368,7 +324,7 @@ include __DIR__.'/includes/header.php';
       <strong>Coming Soon — Survei Tempat</strong>
       <span class="badge bg-warning-subtle text-warning-emphasis ms-1">Beta</span>
     </div>
-    <button class="btn btn-sm btn-outline-primary" type="button"
+    <button class="btn  btn-outline-primary" type="button"
             data-bs-toggle="collapse" data-bs-target="#formSurveiWrap">
       <i class="bi bi-plus-circle"></i> Usulkan Tempat Baru
     </button>
@@ -383,20 +339,21 @@ include __DIR__.'/includes/header.php';
       <form method="post" class="row g-2 border rounded p-3 bg-light-subtle">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_survei_action" value="add">
-        <div class="col-md-6"><input class="form-control form-control-sm" name="nama" maxlength="180" placeholder="Nama tempat *" required></div>
-        <div class="col-md-6"><input class="form-control form-control-sm" name="jenis" maxlength="80" placeholder="Jenis olahraga (mis. Futsal, Hiking)"></div>
-        <div class="col-md-12"><input class="form-control form-control-sm" name="alamat" maxlength="500" placeholder="Alamat / lokasi"></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="lat" placeholder="Latitude (opsional)"></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="lng" placeholder="Longitude (opsional)"></div>
-        <div class="col-md-6"><input class="form-control form-control-sm" name="catatan" maxlength="1000" placeholder="Catatan tambahan"></div>
+        <div class="col-md-6"><input class="form-control form-control" name="nama" maxlength="180" placeholder="Nama tempat *" required></div>
+        <div class="col-md-6"><input class="form-control form-control" name="jenis" maxlength="80" placeholder="Jenis olahraga (mis. Futsal, Hiking)"></div>
+        <div class="col-md-12"><input class="form-control form-control" name="alamat" maxlength="500" placeholder="Alamat / lokasi"></div>
+        <div class="col-md-3"><input class="form-control form-control" name="lat" placeholder="Latitude (opsional)"></div>
+        <div class="col-md-3"><input class="form-control form-control" name="lng" placeholder="Longitude (opsional)"></div>
+        <div class="col-md-6"><input class="form-control form-control" name="catatan" maxlength="1000" placeholder="Catatan tambahan"></div>
         <div class="col-12">
-          <button class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Kirim Usulan</button>
+          <button class="btn btn-primary "><i class="bi bi-send"></i> Kirim Usulan</button>
         </div>
       </form>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-sm align-middle mb-0">
+    <div class="table-responsive" style="min-width:100%">
+      <table class="table align-middle mb-0" style="min-width:900px">
+            <colgroup><col style="min-width:220px"><col style="min-width:140px"><col style="min-width:260px"><col style="min-width:140px"><col style="min-width:110px"><col style="min-width:160px"><col style="min-width:200px"></colgroup>
         <thead class="table-light">
           <tr>
             <th>Nama</th><th>Jenis</th><th>Alamat</th>
@@ -423,13 +380,13 @@ include __DIR__.'/includes/header.php';
               <td class="small text-muted"><?= htmlspecialchars((string)$s['created_at']) ?></td>
               <td class="text-end">
                 <?php if ($canEdit): ?>
-                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                  <button class="btn  btn-outline-secondary" type="button"
                           data-bs-toggle="collapse" data-bs-target="#svEdit<?= (int)$s['id'] ?>"><i class="bi bi-pencil"></i></button>
                   <form method="post" class="d-inline" onsubmit="return confirm('Hapus usulan ini?');">
                     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                     <input type="hidden" name="_survei_action" value="delete">
                     <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    <button class="btn  btn-outline-danger"><i class="bi bi-trash"></i></button>
                   </form>
                 <?php endif; ?>
                 <?php if ($isAdmin): ?>
@@ -437,7 +394,7 @@ include __DIR__.'/includes/header.php';
                     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                     <input type="hidden" name="_survei_action" value="set_status">
                     <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-                    <select name="status" class="form-select form-select-sm d-inline-block" style="width:auto"
+                    <select name="status" class="form-select form-select d-inline-block" style="width:auto"
                             onchange="this.form.submit()">
                       <?php foreach (['baru','disetujui','ditolak'] as $opt): ?>
                         <option value="<?= $opt ?>" <?= $stat===$opt?'selected':'' ?>><?= $opt ?></option>
@@ -454,13 +411,13 @@ include __DIR__.'/includes/header.php';
                   <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                   <input type="hidden" name="_survei_action" value="update">
                   <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-                  <div class="col-md-4"><input class="form-control form-control-sm" name="nama" value="<?= htmlspecialchars($s['nama']) ?>" required></div>
-                  <div class="col-md-3"><input class="form-control form-control-sm" name="jenis" value="<?= htmlspecialchars($s['jenis'] ?? '') ?>" placeholder="Jenis"></div>
-                  <div class="col-md-5"><input class="form-control form-control-sm" name="alamat" value="<?= htmlspecialchars($s['alamat'] ?? '') ?>" placeholder="Alamat"></div>
-                  <div class="col-md-3"><input class="form-control form-control-sm" name="lat" value="<?= htmlspecialchars((string)($s['lat'] ?? '')) ?>" placeholder="Lat"></div>
-                  <div class="col-md-3"><input class="form-control form-control-sm" name="lng" value="<?= htmlspecialchars((string)($s['lng'] ?? '')) ?>" placeholder="Lng"></div>
-                  <div class="col-md-6"><input class="form-control form-control-sm" name="catatan" value="<?= htmlspecialchars($s['catatan'] ?? '') ?>" placeholder="Catatan"></div>
-                  <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button></div>
+                  <div class="col-md-4"><input class="form-control form-control" name="nama" value="<?= htmlspecialchars($s['nama']) ?>" required></div>
+                  <div class="col-md-3"><input class="form-control form-control" name="jenis" value="<?= htmlspecialchars($s['jenis'] ?? '') ?>" placeholder="Jenis"></div>
+                  <div class="col-md-5"><input class="form-control form-control" name="alamat" value="<?= htmlspecialchars($s['alamat'] ?? '') ?>" placeholder="Alamat"></div>
+                  <div class="col-md-3"><input class="form-control form-control" name="lat" value="<?= htmlspecialchars((string)($s['lat'] ?? '')) ?>" placeholder="Lat"></div>
+                  <div class="col-md-3"><input class="form-control form-control" name="lng" value="<?= htmlspecialchars((string)($s['lng'] ?? '')) ?>" placeholder="Lng"></div>
+                  <div class="col-md-6"><input class="form-control form-control" name="catatan" value="<?= htmlspecialchars($s['catatan'] ?? '') ?>" placeholder="Catatan"></div>
+                  <div class="col-12"><button class="btn  btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button></div>
                 </form>
               </td>
             </tr>
@@ -471,6 +428,54 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </section>
+
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <!-- Revisi 22 Juni 2026 R12 — filter via AJAX (tidak reload halaman) -->
+  <form class="row g-2" id="tempatFilterForm" onsubmit="return false">
+    <div class="col-md-6"><input class="form-control form-control-sm" name="q" id="fQ" value="<?= htmlspecialchars($q) ?>" placeholder="🔍 Cari nama / alamat..."></div>
+    <div class="col-md-6"><select class="form-select form-select-sm" name="jenis" id="fJenis">
+      <option value="0">Semua Jenis</option>
+      <?php foreach($jenisList as $jn): ?><option value="<?= (int)$jn['id'] ?>" <?= $fJenis===(int)$jn['id']?'selected':'' ?>><?= htmlspecialchars($jn['nama']) ?></option><?php endforeach; ?>
+    </select></div>
+    <!-- Revisi 30 Jun 2026 — Rentang KM dihapus. Diganti Sort (khusus Hiking). -->
+    <div class="col-md-12" id="fSortWrap" style="<?= $isHikingFilter?'':'display:none' ?>">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="small text-success fw-semibold"><i class="bi bi-sort-down"></i> Urutkan (Hiking):</span>
+        <select id="fSort" class="form-select form-select-sm" style="max-width:240px">
+          <option value="nama_asc"  <?= $sort===''||$sort==='nama_asc'?'selected':'' ?>>Nama Tempat (A → Z)</option>
+          <option value="nama_desc" <?= $sort==='nama_desc'?'selected':'' ?>>Nama Tempat (Z → A)</option>
+          <option value="km_asc"    <?= $sort==='km_asc'?'selected':'' ?>>Kiloan Terdekat (Kecil → Besar)</option>
+          <option value="km_desc"   <?= $sort==='km_desc'?'selected':'' ?>>Kiloan Terjauh (Besar → Kecil)</option>
+        </select>
+        <small class="text-muted">Pengurutan ini hanya aktif untuk jenis Hiking.</small>
+      </div>
+    </div>
+    <input type="hidden" id="fHikingId" value="<?= (int)$hikingId ?>">
+    <!-- Revisi 23 Juni 2026 — tombol Filter dihapus karena filter sudah otomatis via AJAX (change/Enter). -->
+  </form>
+</div></div>
+
+<!-- ============================================================
+     Revisi Juli 2026 — CRUD "Coming Soon: Survei Tempat"
+     Member mengusulkan tempat baru untuk disurvei / dimasukkan admin.
+     ============================================================ -->
+
+
+<div id="tempatListWrap">
+<?php tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total); ?>
+</div>
+
+<!-- Revisi 24 Juni 2026 — Peta di tempat_list.php sekarang memakai MapBox (sama dgn run.php).
+     Rendering tetap memakai Leaflet sebagai layer engine, namun tile source memakai MapBox. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  window.MAPBOX_TOKEN_JS = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
+  window.MAPBOX_TILE_URL = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + window.MAPBOX_TOKEN_JS;
+  window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+</script>
+
+
 
 <!-- Popup detail Tempat -->
 <div class="modal fade" id="tempatModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable">
