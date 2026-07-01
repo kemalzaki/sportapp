@@ -62,6 +62,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $t = $_POST['tema_warna'] ?? 'sky';
         if (!in_array($t, $valid, true)) $t = 'sky';
         db_exec("UPDATE users SET tema_warna=$1 WHERE id=$2", [$t, (int)$u['id']]);
+        // Revisi Juli 2026 — auto refresh setelah simpan tema (tidak perlu manual).
+        // Untuk request AJAX (data-ajax) balas JSON berisi flag reload; untuk POST
+        // biasa langsung redirect ke #temaWarna supaya halaman refresh sendiri.
+        $isAjax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')
+                || (stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok'=>true, 'reload'=>true, 'tema'=>$t]);
+            exit;
+        }
+        header('Location: /profile.php?tema_ok=1#temaWarna'); exit;
     } elseif ($a==='delete_wa') {
         db_exec("UPDATE users SET nomor_wa=NULL WHERE id=$1", [(int)$u['id']]);
     } elseif ($a==='update_strava') {
@@ -1058,5 +1069,39 @@ if ($waSelf && !$cntPerl) {
     </form>
   </div>
 </section>
+
+<?php /* Revisi Juli 2026 — Auto reload setelah menyimpan Tema Warna.
+       - Jika form disubmit via AJAX (data-ajax), server balas JSON {reload:true} dan
+         script di bawah akan reload halaman.
+       - Jika data-ajax handler global mendahului (dan reload gagal terpicu), fallback
+         intercept submit → fetch → reload. */ ?>
+<script>
+(function(){
+  var form = document.querySelector('#temaWarna form');
+  if (!form) return;
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var fd = new FormData(form);
+    fetch(location.pathname, {
+      method:'POST', body: fd, credentials:'same-origin',
+      headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}
+    }).then(function(){ location.reload(); })
+      .catch(function(){ location.reload(); });
+  }, true);
+  // Notifikasi kecil bila datang dari redirect ?tema_ok=1
+  if (/[?&]tema_ok=1/.test(location.search)) {
+    try {
+      var wrap = document.getElementById('temaWarna');
+      if (wrap) {
+        var a = document.createElement('div');
+        a.className = 'alert alert-success mt-2 py-2 small';
+        a.textContent = 'Tema warna disimpan dan diterapkan.';
+        wrap.querySelector('.card-body').prepend(a);
+        setTimeout(function(){ a.remove(); }, 3500);
+      }
+    } catch(e) {}
+  }
+})();
+</script>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

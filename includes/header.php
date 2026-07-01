@@ -23,12 +23,13 @@ if (!function_exists('nav_feature_paket_map')) {
             'live_tracking.php'       => ['komunitas'],
             'flyover.php'             => ['komunitas'],
             'riwayat.php'             => ['komunitas'],
+            // Revisi Juli 2026 — Tracking Jalur (run.php) dipindah ke KOMUNITAS
+            'run.php'                 => ['komunitas'],
             // Tempat → Komunitas
             'tempat.php'              => ['komunitas'],
             'tempat_list.php'         => ['komunitas'],
             'islami.php'              => ['komunitas'],
             // Pro + Komunitas
-            'run.php'                 => ['pro','komunitas'],
             'kalori_badminton.php'    => ['pro','komunitas'],
             'kalori_renang.php'       => ['pro','komunitas'],
             'kalori_pingpong.php'     => ['pro','komunitas'],
@@ -55,19 +56,31 @@ if (!function_exists('nav_feature_paket_map')) {
     }
 }
 if (!function_exists('nav_lock_badge_for')) {
-    /** Return HTML lock badge for a given page filename (no leading slash). Empty if free. */
+    /** Revisi Juli 2026 — Aturan tampil badge:
+     *   - GRATIS   : tampilkan semua badge (Pro & Komunitas)
+     *   - PRO      : hanya tampilkan badge KOMUNITAS
+     *   - KOMUNITAS: tidak tampilkan badge apa pun (fitur full)
+     */
     function nav_lock_badge_for(string $page): string {
         $page = ltrim($page, '/');
-        // Strip query / hash
         $page = preg_replace('/[?#].*$/', '', $page);
         $map = nav_feature_paket_map();
         if (!isset($map[$page])) return '';
         $req = $map[$page];
-        $out = '';
+
+        $curPk = 'gratis';
+        if (function_exists('paket_user')) {
+            try { $curPk = paket_user(function_exists('current_user') ? current_user() : null); } catch (Throwable $e) {}
+        }
+        if ($curPk === 'komunitas') return '';
+        if ($curPk === 'pro')       $req = array_values(array_intersect($req, ['komunitas']));
+        if (!$req) return '';
+
         $defs = [
             'pro'       => ['Pro',       'bg-warning-subtle text-warning-emphasis border border-warning-subtle'],
             'komunitas' => ['Komunitas', 'bg-success-subtle text-success-emphasis border border-success-subtle'],
         ];
+        $out = '';
         foreach ($req as $r) {
             if (!isset($defs[$r])) continue;
             [$lab,$cls] = $defs[$r];
@@ -789,7 +802,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/sistem.php"><i class="bi bi-cpu text-info"></i> Cek Sistem</a>
             <?php /* Revisi 22 Juni 2026 R7 — CRUD kata kunci filter pencarian video (kalistenik & survival) */ ?>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/keywords.php"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Video</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/paket_member.php"><i class="bi bi-stars text-warning"></i> Pengaturan Paket Member</a>
+            <?php /* Revisi Juli 2026 — Menu "Pengaturan Paket Member" (admin/paket_member.php) dan "Navigasi Menu" (admin/menu.php) DIHAPUS dari drawer. */ ?>
           </div>
 
         <?php endif; ?>

@@ -1,21 +1,19 @@
 <?php
 /**
- * paket_upgrade.php — Revisi R21 (1 Juli 2026)
+ * paket_upgrade.php — Revisi Juli 2026 (bayar via WhatsApp)
  *
- * Halaman pemilihan & pembayaran paket member.
+ * Sebelumnya: pembayaran memakai Midtrans Snap (VA/QRIS/GoPay/ShopeePay) dan
+ * status paket otomatis aktif setelah settlement.
  *
- * Alur:
- *   1. User datang dari banner "Lihat Paket & Upgrade" (?need=pro / komunitas).
- *   2. Memilih salah satu paket → muncul ringkasan + tombol "Bayar via Midtrans".
- *   3. Tombol bayar memanggil endpoint AJAX (ajax=create_snap) yang membuat
- *      Snap token Midtrans, lalu Snap.js dibuka inline (popup).
- *   4. Setelah pembayaran sukses (callback Snap onSuccess / settlement), endpoint
- *      AJAX (ajax=confirm_payment) memverifikasi status ke Midtrans, lalu
- *      meng-UPDATE users.paket otomatis — TANPA perlu admin mengubah manual.
+ * Revisi Juli 2026:
+ *   - Mekanisme pembayaran Midtrans DIHAPUS dari halaman ini.
+ *   - Tombol "Pilih Paket" me-redirect user ke WhatsApp admin dengan pesan
+ *     berisi seluruh data pemesanan (nama, email, WA, paket, harga, kode order).
+ *   - Kode order tetap disimpan di tabel paket_pesanan dengan status='menunggu_wa'
+ *     supaya admin bisa melacak & meng-approve manual dari sisi admin.
  *
- * Catatan SQL:
- *   - Tabel baru: paket_pesanan (lihat migrations_r21_1jul2026.sql).
- *   - Migrasi idempotent juga dijalankan dari halaman ini sebagai safety net.
+ * Konfigurasi nomor WA admin: set ENV WA_ADMIN_NUMBER (format 62xxxxxxxxxx).
+ * Default: 6281386369207 (sama seperti tombol Pemandu Olahraga di menu).
  */
 
 require __DIR__.'/config/db.php';
@@ -48,59 +46,15 @@ try {
     db_exec("CREATE INDEX IF NOT EXISTS paket_pesanan_user_idx ON paket_pesanan(user_id, created_at DESC)");
 } catch (Throwable $e) {}
 
-/* ---------- Midtrans config ---------- */
-$MT_SERVER_KEY = getenv('MIDTRANS_SERVER_KEY') ?: '';
-$MT_CLIENT_KEY = getenv('MIDTRANS_CLIENT_KEY') ?: '';
-$MT_PROD       = (bool) (getenv('MIDTRANS_PROD') ?: false);
-$MT_BASE       = $MT_PROD ? 'https://app.midtrans.com'      : 'https://app.sandbox.midtrans.com';
-$MT_API_BASE   = $MT_PROD ? 'https://api.midtrans.com'      : 'https://api.sandbox.midtrans.com';
-$MT_SNAP_JS    = $MT_PROD ? 'https://app.midtrans.com/snap/snap.js'
-                          : 'https://app.sandbox.midtrans.com/snap/snap.js';
-
 $PRICES   = paket_prices();
 $curPaket = paket_user($u);
 
-/* ---------- Helpers ---------- */
-function pu_snap_request(array $payload, string $serverKey, string $base): array {
-    $ch = curl_init(rtrim($base,'/').'/snap/v1/transactions');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Accept: application/json',
-            'Authorization: Basic '.base64_encode($serverKey.':'),
-        ],
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_TIMEOUT => 20,
-    ]);
-    $resp = curl_exec($ch);
-    if ($resp === false) { $err = curl_error($ch); curl_close($ch); throw new RuntimeException('Midtrans cURL: '.$err); }
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    $j = json_decode($resp, true);
-    if ($code >= 400 || empty($j['token'])) {
-        throw new RuntimeException('Midtrans error: '.($j['error_messages'][0] ?? $resp));
-    }
-    return $j;
-}
-function pu_status_request(string $orderId, string $serverKey, string $apiBase): array {
-    $ch = curl_init(rtrim($apiBase,'/').'/v2/'.rawurlencode($orderId).'/status');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Accept: application/json',
-            'Authorization: Basic '.base64_encode($serverKey.':'),
-        ],
-        CURLOPT_TIMEOUT => 15,
-    ]);
-    $resp = curl_exec($ch); curl_close($ch);
-    return json_decode($resp, true) ?: [];
-}
+$WA_ADMIN = getenv('WA_ADMIN_NUMBER') ?: '6281386369207';
+$WA_ADMIN = preg_replace('/\D+/', '', $WA_ADMIN);
 
-/* ---------- AJAX endpoints ---------- */
+/* ---------- AJAX: buat kode pesanan (pending WA) & kembalikan URL WA ---------- */
 $ajax = $_GET['ajax'] ?? '';
-
-if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($ajax === 'create_wa' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     try {
         csrf_check();
@@ -114,103 +68,38 @@ if ($ajax === 'create_snap' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($curPaket === 'pro' && $pilih === 'pro') {
             throw new RuntimeException('Akun Anda sudah berpaket PRO. Anda dapat upgrade ke Komunitas.');
         }
-        if ($MT_SERVER_KEY === '') {
-            throw new RuntimeException('Midtrans belum dikonfigurasi (MIDTRANS_SERVER_KEY kosong).');
-        }
         $harga = (int) ($PRICES[$pilih] ?? 0);
         if ($harga <= 0) throw new RuntimeException('Harga paket tidak valid.');
 
         $kode = 'PKT-'.strtoupper($pilih[0]).'-'.date('ymdHis').'-'.strtoupper(bin2hex(random_bytes(2)));
-        db_exec("INSERT INTO paket_pesanan(kode,user_id,paket,harga,status) VALUES($1,$2,$3,$4,'pending')",
+        db_exec("INSERT INTO paket_pesanan(kode,user_id,paket,harga,status) VALUES($1,$2,$3,$4,'menunggu_wa')",
             [$kode, (int)$u['id'], $pilih, $harga]);
 
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off') ? 'https' : 'http';
-        $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $finish = $scheme.'://'.$host.'/paket_upgrade.php?berhasil='.urlencode($kode);
+        $nama  = trim((string)($u['nama']    ?? '-'));
+        $email = trim((string)($u['email']   ?? '-'));
+        $wa    = trim((string)($u['nomor_wa']?? '-'));
+        $hargaRp = 'Rp ' . number_format($harga, 0, ',', '.');
 
-        $payload = [
-            'transaction_details' => ['order_id' => $kode, 'gross_amount' => $harga],
-            'item_details'        => [[
-                'id'       => 'PAKET-'.strtoupper($pilih),
-                'price'    => $harga,
-                'quantity' => 1,
-                'name'     => 'Paket '.strtoupper($pilih).' KawanKeringat (1 bulan)',
-            ]],
-            'customer_details'    => [
-                'first_name' => substr((string)($u['nama'] ?? 'User'), 0, 60),
-                'email'      => (string)($u['email'] ?? ''),
-                'phone'      => (string)($u['nomor_wa'] ?? ''),
-            ],
-            'enabled_payments'    => ['bca_va','bni_va','bri_va','mandiri_va','permata_va','gopay','shopeepay','qris','other_va','bank_transfer'],
-            'callbacks'           => ['finish' => $finish],
-        ];
-        $resp = pu_snap_request($payload, $MT_SERVER_KEY, $MT_BASE);
-        db_exec("UPDATE paket_pesanan SET snap_token=$1, snap_redirect=$2 WHERE kode=$3",
-            [$resp['token'], $resp['redirect_url'] ?? null, $kode]);
+        $pesan  = "Halo Admin KawanKeringat 👋\n";
+        $pesan .= "Saya ingin membeli paket member berikut:\n\n";
+        $pesan .= "• Kode Order  : {$kode}\n";
+        $pesan .= "• Paket       : ".strtoupper($pilih)." (1 bulan)\n";
+        $pesan .= "• Harga       : {$hargaRp}\n\n";
+        $pesan .= "Data Saya:\n";
+        $pesan .= "• Nama        : {$nama}\n";
+        $pesan .= "• Email       : {$email}\n";
+        $pesan .= "• Nomor WA    : {$wa}\n";
+        $pesan .= "• User ID     : #".(int)$u['id']."\n\n";
+        $pesan .= "Mohon informasi cara pembayaran & aktivasi paket. Terima kasih 🙏";
 
-        echo json_encode(['ok'=>true,'token'=>$resp['token'],'kode'=>$kode,'redirect'=>$resp['redirect_url'] ?? null]);
+        $waUrl = 'https://wa.me/'.$WA_ADMIN.'?text='.rawurlencode($pesan);
+
+        echo json_encode(['ok'=>true,'kode'=>$kode,'wa_url'=>$waUrl]);
     } catch (Throwable $e) {
         http_response_code(400);
         echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
     }
     exit;
-}
-
-if ($ajax === 'confirm_payment' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json');
-    try {
-        csrf_check();
-        $kode  = trim($_POST['kode'] ?? '');
-        $order = $kode ? db_one("SELECT * FROM paket_pesanan WHERE kode=$1 AND user_id=$2",
-                                [$kode, (int)$u['id']]) : null;
-        if (!$order) throw new RuntimeException('Pesanan paket tidak ditemukan.');
-        if ($MT_SERVER_KEY === '') throw new RuntimeException('Midtrans belum dikonfigurasi.');
-
-        $status = pu_status_request($kode, $MT_SERVER_KEY, $MT_API_BASE);
-        $ts     = $status['transaction_status'] ?? '';
-        $fraud  = $status['fraud_status'] ?? 'accept';
-        $paid   = in_array($ts, ['capture','settlement'], true) && $fraud === 'accept';
-
-        db_exec("UPDATE paket_pesanan
-                 SET midtrans_status=$1, midtrans_raw=$2,
-                     status=CASE WHEN $3 THEN 'paid' ELSE status END,
-                     paid_at=CASE WHEN $3 THEN now() ELSE paid_at END
-                 WHERE id=$4",
-            [$ts, json_encode($status, JSON_UNESCAPED_UNICODE), $paid, (int)$order['id']]);
-
-        if ($paid) {
-            /* Auto-upgrade paket user — TANPA perlu admin */
-            db_exec("UPDATE users SET paket=$1 WHERE id=$2",
-                [$order['paket'], (int)$order['user_id']]);
-        }
-        echo json_encode(['ok'=>true,'paid'=>$paid,'status'=>$ts]);
-    } catch (Throwable $e) {
-        http_response_code(400);
-        echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
-    }
-    exit;
-}
-
-/* ---------- Auto-confirm bila datang dari finish redirect ---------- */
-$justPaidKode = trim($_GET['berhasil'] ?? '');
-if ($justPaidKode !== '' && $MT_SERVER_KEY !== '') {
-    try {
-        $order = db_one("SELECT * FROM paket_pesanan WHERE kode=$1 AND user_id=$2", [$justPaidKode, (int)$u['id']]);
-        if ($order && $order['status'] !== 'paid') {
-            $st = pu_status_request($justPaidKode, $MT_SERVER_KEY, $MT_API_BASE);
-            $ts = $st['transaction_status'] ?? '';
-            $fr = $st['fraud_status'] ?? 'accept';
-            if (in_array($ts, ['capture','settlement'], true) && $fr === 'accept') {
-                db_exec("UPDATE paket_pesanan SET status='paid', midtrans_status=$1,
-                         midtrans_raw=$2, paid_at=now() WHERE id=$3",
-                    [$ts, json_encode($st, JSON_UNESCAPED_UNICODE), (int)$order['id']]);
-                db_exec("UPDATE users SET paket=$1 WHERE id=$2",
-                    [$order['paket'], (int)$order['user_id']]);
-                $curPaket = $order['paket'];
-                $_SESSION['flash'] = 'Pembayaran berhasil. Paket Anda kini: '.strtoupper($curPaket).'.';
-            }
-        }
-    } catch (Throwable $e) {}
 }
 
 $pageTitle = 'Upgrade Paket Member';
@@ -237,8 +126,9 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
       <div class="small">Paket saat ini: <?= paket_badge($curPaket) ?></div>
     </div>
     <p class="text-muted small mb-0">
-      Pilih paket di bawah lalu klik <strong>Bayar via Midtrans</strong>. Setelah pembayaran
-      lunas, status paket Anda akan <strong>otomatis aktif</strong> — tanpa perlu menunggu admin.
+      Pilih paket lalu klik <strong>Bayar via WhatsApp</strong>. Anda akan diarahkan ke chat
+      admin dengan data pesanan sudah terisi otomatis — cukup kirim untuk mendapat instruksi
+      pembayaran &amp; aktivasi paket.
     </p>
     <?php if (!empty($_SESSION['flash'])): ?>
       <div class="alert alert-success mt-2 mb-0 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
@@ -257,23 +147,23 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
       'desc'    => 'Akses fitur premium olahraga & kesehatan.',
       'fitur'   => [
         'Kalori Mingguan + estimasi AI dari foto makanan',
-        'Live Tracking / Beacon (berbagi lokasi real-time)',
-        'Flyover & Run Heatmap',
         'Kalkulator Kesehatan, Jantung, Gaya Hidup',
-        'Monitoring lanjutan',
+        'Artikel &amp; Cedera Olahraga',
+        'Toko Perlengkapan Olahraga',
+        'Paket Anak &amp; Lansia',
       ],
     ],
     'komunitas' => [
       'title'   => '👥 Paket KOMUNITAS',
       'color'   => 'success',
       'harga'   => $PRICES['komunitas'],
-      'desc'    => 'Semua fitur PRO + Hub Islami lengkap.',
+      'desc'    => 'Semua fitur PRO + Jogging Progress + Hub Islami.',
       'fitur'   => [
         'Semua yang ada di paket PRO',
+        'Tracking Jalur, Live Tracking &amp; Flyover',
+        'Direktori Tempat Komunitas',
         'Hub Islami lengkap (Qur’an, Sholat, Doa, Hadist)',
         'Tanya Jawab Islami berbasis AI',
-        'Tata Cara Wudhu &amp; Shalat (ilustrasi)',
-        'Kajian Literatur Buku Islami',
       ],
     ],
   ];
@@ -313,10 +203,10 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   <?php endforeach; ?>
 </div>
 
-<!-- Ringkasan + tombol bayar (muncul setelah salah satu paket dipilih) -->
+<!-- Ringkasan + tombol Bayar via WhatsApp -->
 <div class="card shadow-sm mb-4 d-none" id="paySummary">
   <div class="card-body">
-    <h5 class="mb-2"><i class="bi bi-credit-card-2-front text-primary"></i> Ringkasan Pembayaran</h5>
+    <h5 class="mb-2"><i class="bi bi-whatsapp text-success"></i> Ringkasan Pembayaran</h5>
     <div class="d-flex justify-content-between border-bottom py-1">
       <span>Paket dipilih</span><strong id="sumPaket">—</strong>
     </div>
@@ -324,13 +214,14 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
       <span>Harga</span><strong id="sumHarga">Rp 0</strong>
     </div>
     <div class="d-flex justify-content-between py-1">
-      <span>Metode</span><strong>Midtrans (VA / QRIS / GoPay / ShopeePay)</strong>
+      <span>Metode</span><strong>WhatsApp Admin (Manual)</strong>
     </div>
-    <button type="button" id="btnBayar" class="btn btn-primary btn-lg w-100 mt-2">
-      <i class="bi bi-shield-check"></i> Bayar via Midtrans
+    <button type="button" id="btnBayar" class="btn btn-success btn-lg w-100 mt-2">
+      <i class="bi bi-whatsapp"></i> Bayar via WhatsApp
     </button>
     <div id="payMsg" class="small mt-2 text-muted">
-      Setelah pembayaran berhasil, status paket Anda otomatis aktif tanpa perlu menunggu admin.
+      Setelah tombol diklik, Anda akan diarahkan ke chat WhatsApp admin dengan data
+      pesanan sudah terisi. Admin akan meng-aktifkan paket setelah pembayaran diterima.
     </div>
   </div>
 </div>
@@ -348,7 +239,12 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
           <td><?= paket_badge($r['paket']) ?></td>
           <td>Rp <?= number_format((int)$r['harga'], 0, ',', '.') ?></td>
           <td>
-            <?php $st = $r['status']; $cls = $st==='paid'?'success':($st==='pending'?'secondary':'danger'); ?>
+            <?php
+              $st = $r['status'];
+              $cls = $st==='paid' ? 'success'
+                   : ($st==='menunggu_wa' ? 'info'
+                   : ($st==='pending' ? 'secondary' : 'danger'));
+            ?>
             <span class="badge bg-<?= $cls ?>"><?= htmlspecialchars($st) ?></span>
           </td>
           <td class="small"><?= htmlspecialchars((string)$r['created_at']) ?></td>
@@ -367,45 +263,6 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   .paket-card.selected{ border-width:3px; }
 </style>
 
-<?php /* Revisi 30 Juni 2026 — Snap.js loader cepat & tahan banting:
-       - Preconnect ke domain Midtrans untuk DNS+TLS handshake lebih awal.
-       - Inject <script> sinkron (non-async) sehingga sudah ada saat klik Bayar.
-       - Fallback otomatis ke URL alternatif (sandbox <-> prod) bila gagal.
-       - Polling Snap.js lebih agresif (100ms) sampai 15 detik. */ ?>
-<link rel="preconnect" href="<?= htmlspecialchars(parse_url($MT_SNAP_JS, PHP_URL_SCHEME).'://'.parse_url($MT_SNAP_JS, PHP_URL_HOST)) ?>" crossorigin>
-<link rel="dns-prefetch" href="//app.midtrans.com">
-<link rel="dns-prefetch" href="//app.sandbox.midtrans.com">
-<link rel="preload" as="script" href="<?= htmlspecialchars($MT_SNAP_JS) ?>" crossorigin>
-<script src="<?= htmlspecialchars($MT_SNAP_JS) ?>" data-client-key="<?= htmlspecialchars($MT_CLIENT_KEY) ?>" onerror="window.__MT_PRIMARY_FAILED=true"></script>
-<script>
-window.__MT = {
-  url: <?= json_encode($MT_SNAP_JS) ?>,
-  alt: <?= json_encode($MT_PROD ? 'https://app.sandbox.midtrans.com/snap/snap.js' : 'https://app.midtrans.com/snap/snap.js') ?>,
-  key: <?= json_encode($MT_CLIENT_KEY) ?>,
-  loaded: !!window.snap,
-  loading: null,
-  failed: false
-};
-window.__loadSnap = function(url){
-  return new Promise(function(resolve, reject){
-    if (window.snap) { window.__MT.loaded = true; return resolve(true); }
-    var s = document.createElement('script');
-    s.src = url;
-    s.setAttribute('data-client-key', window.__MT.key || '');
-    s.onload  = function(){ window.__MT.loaded = !!window.snap; resolve(window.__MT.loaded); };
-    s.onerror = function(){ reject(new Error('Gagal load: '+url)); };
-    document.head.appendChild(s);
-  });
-};
-// Bila script utama gagal, langsung mulai fallback ke URL alternatif.
-if (window.__MT_PRIMARY_FAILED || !window.snap) {
-  window.__MT.loading = (window.snap
-    ? Promise.resolve(true)
-    : window.__loadSnap(window.__MT.alt).catch(function(e){
-        window.__MT.failed = true; console.warn('Snap.js gagal dimuat:', e);
-      }));
-}
-</script>
 <script>
 (function(){
   var csrf = <?= json_encode(csrf_token()) ?>;
@@ -433,7 +290,6 @@ if (window.__MT_PRIMARY_FAILED || !window.snap) {
     document.getElementById('paySummary').classList.remove('d-none');
     document.getElementById('paySummary').scrollIntoView({behavior:'smooth', block:'nearest'});
   }
-
   document.querySelectorAll('.btn-pilih').forEach(function(b){
     b.addEventListener('click', function(e){ e.stopPropagation(); selectPaket(b.dataset.paket); });
   });
@@ -443,85 +299,31 @@ if (window.__MT_PRIMARY_FAILED || !window.snap) {
       selectPaket(c.dataset.paket);
     });
   });
-
-  // Auto-pilih default sesuai ?need=
   if (defaultKey && prices[defaultKey]) selectPaket(defaultKey);
 
-  function waitSnap(){
-    if (window.snap) return Promise.resolve(true);
-    // Tunggu loader (max 15 detik) dengan polling cepat.
-    return new Promise(function(resolve){
-      var t0 = Date.now();
-      (function tick(){
-        if (window.snap) return resolve(true);
-        if (Date.now() - t0 > 15000) return resolve(false);
-        setTimeout(tick, 100);
-      })();
-    });
-  }
-
-  document.getElementById('btnBayar').addEventListener('click', async function(){
+  document.getElementById('btnBayar').addEventListener('click', function(){
     if (!selected) { setMsg('Silakan pilih paket terlebih dahulu.', 'text-danger'); return; }
-    setMsg('Menyiapkan Snap.js Midtrans…', 'text-muted');
-    var ok = await waitSnap();
-    if (!ok) {
-      // Coba sekali lagi via loader (jaga-jaga URL pertama gagal)
-      try { await window.__loadSnap(window.__MT.alt); } catch(e){}
-      ok = !!window.snap;
-    }
-    if (!ok) {
-      var keyMissing = !window.__MT.key;
-      setMsg(
-        (keyMissing ? '<b>MIDTRANS_CLIENT_KEY belum di-set</b> di server (.env).<br>' : '') +
-        'Snap.js Midtrans tidak dapat dimuat. Periksa koneksi internet, lalu refresh halaman.',
-        'text-danger'
-      );
-      return;
-    }
-    var btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses…';
-    setMsg('Menyiapkan transaksi…', 'text-muted');
+    var btn = this; btn.disabled = true;
+    var oldHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyiapkan pesan WhatsApp…';
+    setMsg('Membuat kode order & menyusun pesan WhatsApp…', 'text-muted');
 
     var fd = new FormData();
     fd.append('csrf', csrf);
     fd.append('paket', selected);
 
-    fetch('/paket_upgrade.php?ajax=create_snap', { method:'POST', body: fd, credentials:'same-origin' })
+    fetch('/paket_upgrade.php?ajax=create_wa', { method:'POST', body: fd, credentials:'same-origin' })
       .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
       .then(function(res){
-        if (!res.ok || !res.j.ok) throw new Error(res.j.error || 'Gagal membuat transaksi.');
-        var kode = res.j.kode, token = res.j.token;
-        setMsg('Membuka jendela pembayaran Midtrans…', 'text-muted');
-        window.snap.pay(token, {
-          onSuccess: function(){ confirm(kode, 'Pembayaran berhasil! Mengaktifkan paket…'); },
-          onPending: function(){ confirm(kode, 'Pembayaran tertunda. Selesaikan pembayaran untuk mengaktifkan paket.'); },
-          onError:   function(){ setMsg('Pembayaran gagal / dibatalkan.', 'text-danger'); resetBtn(); },
-          onClose:   function(){ confirm(kode, 'Jendela ditutup. Memeriksa status…'); }
-        });
+        if (!res.ok || !res.j.ok) throw new Error(res.j.error || 'Gagal membuat pesanan.');
+        setMsg('Membuka WhatsApp untuk kode <b>'+res.j.kode+'</b> …', 'text-success');
+        // Redirect ke WhatsApp
+        window.location.href = res.j.wa_url;
       })
       .catch(function(err){
-        setMsg('Gagal: ' + err.message, 'text-danger'); resetBtn();
+        setMsg('Gagal: ' + err.message, 'text-danger');
+        btn.disabled = false; btn.innerHTML = oldHtml;
       });
-
-    function resetBtn(){ btn.disabled=false; btn.innerHTML='<i class="bi bi-shield-check"></i> Bayar via Midtrans'; }
-
-    function confirm(kode, infoMsg){
-      setMsg(infoMsg, 'text-muted');
-      var cf = new FormData();
-      cf.append('csrf', csrf);
-      cf.append('kode', kode);
-      fetch('/paket_upgrade.php?ajax=confirm_payment', { method:'POST', body: cf, credentials:'same-origin' })
-        .then(function(r){ return r.json(); })
-        .then(function(j){
-          if (j && j.ok && j.paid) {
-            setMsg('Paket Anda telah aktif. Halaman akan dimuat ulang…', 'text-success');
-            setTimeout(function(){ location.href = '/paket_upgrade.php?berhasil='+encodeURIComponent(kode); }, 1200);
-          } else {
-            setMsg('Status terakhir: <strong>' + ((j && j.status) || 'unknown') + '</strong>. Jika sudah membayar, refresh dalam beberapa detik.', 'text-warning');
-            resetBtn();
-          }
-        })
-        .catch(function(){ setMsg('Tidak dapat memverifikasi status. Coba refresh halaman.', 'text-danger'); resetBtn(); });
-    }
   });
 })();
 </script>

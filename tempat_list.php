@@ -13,6 +13,95 @@ paket_require_or_lock('komunitas', $u, 'Daftar Tempat / Lapangan',
     'Direktori tempat & lapangan komunitas tersedia untuk paket Komunitas.');
 $isAdmin = $u && $u['role']==='admin';
 
+/* ============================================================
+ * Revisi Juli 2026 — Fitur "Coming Soon: Survei Tempat".
+ * Member (siapa pun paket Komunitas) bisa mengusulkan tempat baru
+ * yang belum ada di direktori. Admin akan meninjau, lalu memasukkan
+ * ke tabel `tempat`. Data usulan disimpan di tabel `tempat_survei`.
+ * CRUD di halaman ini: user boleh Add / Edit / Delete usulannya sendiri
+ * (selama status masih 'baru'). Admin bisa lihat/hapus semua usulan.
+ * ============================================================ */
+try {
+    db_exec("CREATE TABLE IF NOT EXISTS tempat_survei (
+        id            BIGSERIAL PRIMARY KEY,
+        user_id       BIGINT NOT NULL,
+        nama          VARCHAR(180) NOT NULL,
+        alamat        TEXT,
+        jenis         VARCHAR(80),
+        lat           DOUBLE PRECISION,
+        lng           DOUBLE PRECISION,
+        catatan       TEXT,
+        status        VARCHAR(20) NOT NULL DEFAULT 'baru',
+        created_at    TIMESTAMP NOT NULL DEFAULT now(),
+        updated_at    TIMESTAMP
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS tempat_survei_user_idx ON tempat_survei(user_id, created_at DESC)");
+} catch (Throwable $e) {}
+
+/* --------- Handler CRUD survei --------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_survei_action'])) {
+    csrf_check();
+    $act = $_POST['_survei_action'];
+    try {
+        if ($act === 'add') {
+            $nama    = trim(substr($_POST['nama']    ?? '', 0, 180));
+            $alamat  = trim(substr($_POST['alamat']  ?? '', 0, 500));
+            $jenis   = trim(substr($_POST['jenis']   ?? '', 0, 80));
+            $lat     = is_numeric($_POST['lat'] ?? null) ? (float)$_POST['lat'] : null;
+            $lng     = is_numeric($_POST['lng'] ?? null) ? (float)$_POST['lng'] : null;
+            $catatan = trim(substr($_POST['catatan'] ?? '', 0, 1000));
+            if ($nama !== '') {
+                db_exec("INSERT INTO tempat_survei(user_id,nama,alamat,jenis,lat,lng,catatan)
+                         VALUES($1,$2,NULLIF($3,''),NULLIF($4,''),$5,$6,NULLIF($7,''))",
+                    [(int)$u['id'], $nama, $alamat, $jenis, $lat, $lng, $catatan]);
+            }
+        } elseif ($act === 'update') {
+            $id      = (int)($_POST['id'] ?? 0);
+            $nama    = trim(substr($_POST['nama']    ?? '', 0, 180));
+            $alamat  = trim(substr($_POST['alamat']  ?? '', 0, 500));
+            $jenis   = trim(substr($_POST['jenis']   ?? '', 0, 80));
+            $lat     = is_numeric($_POST['lat'] ?? null) ? (float)$_POST['lat'] : null;
+            $lng     = is_numeric($_POST['lng'] ?? null) ? (float)$_POST['lng'] : null;
+            $catatan = trim(substr($_POST['catatan'] ?? '', 0, 1000));
+            if ($id > 0 && $nama !== '') {
+                if ($isAdmin) {
+                    db_exec("UPDATE tempat_survei SET nama=$1,alamat=NULLIF($2,''),jenis=NULLIF($3,''),
+                             lat=$4,lng=$5,catatan=NULLIF($6,''),updated_at=now() WHERE id=$7",
+                        [$nama,$alamat,$jenis,$lat,$lng,$catatan,$id]);
+                } else {
+                    db_exec("UPDATE tempat_survei SET nama=$1,alamat=NULLIF($2,''),jenis=NULLIF($3,''),
+                             lat=$4,lng=$5,catatan=NULLIF($6,''),updated_at=now()
+                             WHERE id=$7 AND user_id=$8 AND status='baru'",
+                        [$nama,$alamat,$jenis,$lat,$lng,$catatan,$id,(int)$u['id']]);
+                }
+            }
+        } elseif ($act === 'delete') {
+            $id = (int)($_POST['id'] ?? 0);
+            if ($id > 0) {
+                if ($isAdmin) db_exec("DELETE FROM tempat_survei WHERE id=$1", [$id]);
+                else          db_exec("DELETE FROM tempat_survei WHERE id=$1 AND user_id=$2 AND status='baru'", [$id,(int)$u['id']]);
+            }
+        } elseif ($act === 'set_status' && $isAdmin) {
+            $id   = (int)($_POST['id']     ?? 0);
+            $stat = trim($_POST['status'] ?? '');
+            if ($id > 0 && in_array($stat, ['baru','disetujui','ditolak'], true)) {
+                db_exec("UPDATE tempat_survei SET status=$1, updated_at=now() WHERE id=$2", [$stat,$id]);
+            }
+        }
+    } catch (Throwable $e) {}
+    header('Location: /tempat_list.php#surveiTempat'); exit;
+}
+
+/* Ambil daftar survei tempat milik user (atau semua bila admin) */
+try {
+    $surveiRows = $isAdmin
+        ? db_all("SELECT s.*, u.nama AS pengusul FROM tempat_survei s
+                  LEFT JOIN users u ON u.id=s.user_id
+                  ORDER BY s.id DESC LIMIT 200")
+        : db_all("SELECT * FROM tempat_survei WHERE user_id=$1 ORDER BY id DESC LIMIT 100", [(int)$u['id']]);
+} catch (Throwable $e) { $surveiRows = []; }
+
+
 /* ====== Revisi 22 Juni 2026 R12 ======
  * - Pagination 9 kartu per halaman (3x3 grid) supaya tidak memanjang ke bawah.
  * - Filter pakai AJAX (fetch ?ajax=list=1) — tidak reload halaman.
@@ -267,6 +356,121 @@ include __DIR__.'/includes/header.php';
   window.MAPBOX_TILE_URL = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + window.MAPBOX_TOKEN_JS;
   window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 </script>
+
+<!-- ============================================================
+     Revisi Juli 2026 — CRUD "Coming Soon: Survei Tempat"
+     Member mengusulkan tempat baru untuk disurvei / dimasukkan admin.
+     ============================================================ -->
+<section id="surveiTempat" class="card shadow-sm mt-4 mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <i class="bi bi-hourglass-split text-warning"></i>
+      <strong>Coming Soon — Survei Tempat</strong>
+      <span class="badge bg-warning-subtle text-warning-emphasis ms-1">Beta</span>
+    </div>
+    <button class="btn btn-sm btn-outline-primary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#formSurveiWrap">
+      <i class="bi bi-plus-circle"></i> Usulkan Tempat Baru
+    </button>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted mb-3">
+      Punya usulan tempat / lapangan / jalur hiking baru yang belum ada di direktori?
+      Kirim usulannya di sini. Admin akan meninjau &amp; menambahkannya bila layak.
+    </p>
+
+    <div class="collapse mb-3" id="formSurveiWrap">
+      <form method="post" class="row g-2 border rounded p-3 bg-light-subtle">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_survei_action" value="add">
+        <div class="col-md-6"><input class="form-control form-control-sm" name="nama" maxlength="180" placeholder="Nama tempat *" required></div>
+        <div class="col-md-6"><input class="form-control form-control-sm" name="jenis" maxlength="80" placeholder="Jenis olahraga (mis. Futsal, Hiking)"></div>
+        <div class="col-md-12"><input class="form-control form-control-sm" name="alamat" maxlength="500" placeholder="Alamat / lokasi"></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="lat" placeholder="Latitude (opsional)"></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="lng" placeholder="Longitude (opsional)"></div>
+        <div class="col-md-6"><input class="form-control form-control-sm" name="catatan" maxlength="1000" placeholder="Catatan tambahan"></div>
+        <div class="col-12">
+          <button class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Kirim Usulan</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Nama</th><th>Jenis</th><th>Alamat</th>
+            <?php if ($isAdmin): ?><th>Pengusul</th><?php endif; ?>
+            <th>Status</th><th>Dibuat</th><th class="text-end">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (!$surveiRows): ?>
+            <tr><td colspan="<?= $isAdmin?7:6 ?>" class="text-center text-muted small py-3">
+              Belum ada usulan tempat. Jadilah yang pertama mengusulkan!
+            </td></tr>
+          <?php else: foreach ($surveiRows as $s):
+            $stat = $s['status'] ?? 'baru';
+            $cls  = $stat==='disetujui' ? 'success' : ($stat==='ditolak' ? 'danger' : 'secondary');
+            $canEdit = $isAdmin || ($stat==='baru' && (int)$s['user_id']===(int)$u['id']);
+          ?>
+            <tr>
+              <td><?= htmlspecialchars($s['nama']) ?></td>
+              <td class="small"><?= htmlspecialchars($s['jenis'] ?? '—') ?></td>
+              <td class="small text-muted"><?= htmlspecialchars($s['alamat'] ?? '—') ?></td>
+              <?php if ($isAdmin): ?><td class="small"><?= htmlspecialchars($s['pengusul'] ?? '') ?></td><?php endif; ?>
+              <td><span class="badge bg-<?= $cls ?>"><?= htmlspecialchars($stat) ?></span></td>
+              <td class="small text-muted"><?= htmlspecialchars((string)$s['created_at']) ?></td>
+              <td class="text-end">
+                <?php if ($canEdit): ?>
+                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#svEdit<?= (int)$s['id'] ?>"><i class="bi bi-pencil"></i></button>
+                  <form method="post" class="d-inline" onsubmit="return confirm('Hapus usulan ini?');">
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="_survei_action" value="delete">
+                    <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  </form>
+                <?php endif; ?>
+                <?php if ($isAdmin): ?>
+                  <form method="post" class="d-inline">
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="_survei_action" value="set_status">
+                    <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                    <select name="status" class="form-select form-select-sm d-inline-block" style="width:auto"
+                            onchange="this.form.submit()">
+                      <?php foreach (['baru','disetujui','ditolak'] as $opt): ?>
+                        <option value="<?= $opt ?>" <?= $stat===$opt?'selected':'' ?>><?= $opt ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </form>
+                <?php endif; ?>
+              </td>
+            </tr>
+            <?php if ($canEdit): ?>
+            <tr class="collapse" id="svEdit<?= (int)$s['id'] ?>">
+              <td colspan="<?= $isAdmin?7:6 ?>" class="bg-light-subtle">
+                <form method="post" class="row g-2">
+                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="_survei_action" value="update">
+                  <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                  <div class="col-md-4"><input class="form-control form-control-sm" name="nama" value="<?= htmlspecialchars($s['nama']) ?>" required></div>
+                  <div class="col-md-3"><input class="form-control form-control-sm" name="jenis" value="<?= htmlspecialchars($s['jenis'] ?? '') ?>" placeholder="Jenis"></div>
+                  <div class="col-md-5"><input class="form-control form-control-sm" name="alamat" value="<?= htmlspecialchars($s['alamat'] ?? '') ?>" placeholder="Alamat"></div>
+                  <div class="col-md-3"><input class="form-control form-control-sm" name="lat" value="<?= htmlspecialchars((string)($s['lat'] ?? '')) ?>" placeholder="Lat"></div>
+                  <div class="col-md-3"><input class="form-control form-control-sm" name="lng" value="<?= htmlspecialchars((string)($s['lng'] ?? '')) ?>" placeholder="Lng"></div>
+                  <div class="col-md-6"><input class="form-control form-control-sm" name="catatan" value="<?= htmlspecialchars($s['catatan'] ?? '') ?>" placeholder="Catatan"></div>
+                  <div class="col-12"><button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button></div>
+                </form>
+              </td>
+            </tr>
+            <?php endif; ?>
+          <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
 <!-- Popup detail Tempat -->
 <div class="modal fade" id="tempatModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable">

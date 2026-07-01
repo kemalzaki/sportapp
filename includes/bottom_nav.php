@@ -199,3 +199,23 @@ body{ padding-bottom: calc(4.75rem + env(safe-area-inset-bottom,0px)) !important
   });
 })();
 </script>
+
+<?php /* ================================================================
+   Revisi Juli 2026 — Bottom nav "tetap tampil" saat pindah halaman (mobile).
+   Menggunakan MPA View Transitions API sehingga elemen dengan
+   view-transition-name yang sama (bottom nav) di-morph antar halaman —
+   secara visual nav tidak ikut ter-refresh / berkedip.
+
+   Fallback: browser lama tetap berjalan normal (nav re-render seperti biasa).
+   ================================================================ */ ?>
+<style>
+@view-transition { navigation: auto; }
+@media (max-width: 991.98px){
+  .gj-nav { view-transition-name: gj-bottom-nav; }
+  .gj-topbar { view-transition-name: gj-topbar; }
+}
+::view-transition-old(gj-bottom-nav),
+::view-transition-new(gj-bottom-nav){
+  animation: none !important; mix-blend-mode: normal;
+}
+</style>
