@@ -369,6 +369,14 @@ $pageSkeleton = 'feed';
   <!-- Revisi R26 (28 Juni 2026) — Menu BARU: Jam Tidur yang Disarankan & Dilarang (sunnah Rasul). -->
   <div class="col-md-3"><a href="/jam_tidur_islami.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-moon-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Jam Tidur Disarankan &amp; Dilarang</div><div class="small text-muted">Sunnah tidur Rasulullah ﷺ</div></div></a></div>
 
+  <!-- Revisi Juli 2026 — Monitoring Tilawah Harian & Silat Lidah. -->
+  <div class="col-md-3"><a href="/tilawah_harian.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Monitoring Tilawah Harian</div><div class="small text-muted">Diri sendiri / keluarga</div></div></a></div>
+  <div class="col-md-3"><a href="/silat_lidah.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-chat-square-quote-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Monitoring Silat Lidah</div><div class="small text-muted">Latih komunikasi ke teman sebaya</div></div></a></div>
+
+  <?php if (!empty($u) && in_array(strtolower($u['role'] ?? ''), ['admin','koordinator','pic'], true)): ?>
+  <div class="col-md-3"><a href="/pantau_progress_member.php" class="card text-decoration-none h-100 border-danger"><div class="card-body text-center"><i class="bi bi-graph-up-arrow fs-2 text-danger"></i><div class="fw-semibold mt-1">Pantau Progress Islami Member</div><div class="small text-muted">Admin · Tahajud, Doa, Hafalan, Buku</div></div></a></div>
+  <?php endif; ?>
+
   <?php if (!empty($u) && ($u['role'] ?? '') === 'admin'): ?>
   <div class="col-md-3"><a href="/admin/challenge.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-trophy-fill fs-2 text-warning"></i><div class="fw-semibold mt-1">Kelola Challenge Islami</div><div class="small text-muted">Admin · CRUD Challenge</div></div></a></div>
   <?php endif; ?>

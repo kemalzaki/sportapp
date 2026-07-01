@@ -76,6 +76,35 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("UPDATE users SET nickname=NULLIF($1,'') WHERE id=$2", [$nk, (int)$u['id']]);
     } elseif ($a==='delete_nickname') {
         db_exec("UPDATE users SET nickname=NULL WHERE id=$1", [(int)$u['id']]);
+    } elseif ($a==='pertemanan_add') {
+        // Revisi Juli 2026 — Fitur Pertemananku
+        $nm  = mb_substr(trim($_POST['nama'] ?? ''), 0, 120);
+        $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal_kenalan'] ?? '') ? $_POST['tanggal_kenalan'] : null;
+        $kd  = max(0, min(5, (int)($_POST['kedekatan'] ?? 0)));
+        $ct  = mb_substr(trim($_POST['catatan'] ?? ''), 0, 500);
+        if ($nm !== '') {
+            try {
+                db_exec("INSERT INTO pertemanan(user_id,nama,tanggal_kenalan,kedekatan,catatan)
+                         VALUES($1,$2,$3,NULLIF($4,0),NULLIF($5,''))",
+                    [(int)$u['id'], $nm, $tgl, $kd, $ct]);
+            } catch (Throwable $e) {}
+        }
+    } elseif ($a==='pertemanan_update') {
+        $id  = (int)($_POST['id'] ?? 0);
+        $nm  = mb_substr(trim($_POST['nama'] ?? ''), 0, 120);
+        $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal_kenalan'] ?? '') ? $_POST['tanggal_kenalan'] : null;
+        $kd  = max(0, min(5, (int)($_POST['kedekatan'] ?? 0)));
+        $ct  = mb_substr(trim($_POST['catatan'] ?? ''), 0, 500);
+        if ($id && $nm !== '') {
+            try {
+                db_exec("UPDATE pertemanan SET nama=$1, tanggal_kenalan=$2, kedekatan=NULLIF($3,0), catatan=NULLIF($4,'')
+                         WHERE id=$5 AND user_id=$6",
+                    [$nm, $tgl, $kd, $ct, $id, (int)$u['id']]);
+            } catch (Throwable $e) {}
+        }
+    } elseif ($a==='pertemanan_delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) { try { db_exec("DELETE FROM pertemanan WHERE id=$1 AND user_id=$2", [$id, (int)$u['id']]); } catch (Throwable $e) {} }
     } elseif ($a==='mark_notif') {
         db_exec("UPDATE notifications SET dibaca=1 WHERE user_id=$1", [(int)$u['id']]);
     } elseif ($a==='fav_add') {
@@ -370,6 +399,108 @@ include __DIR__.'/includes/header.php';
           </div>
         <?php endif; ?>
       </form>
+    </div></div>
+
+    <!-- Revisi Juli 2026 — Fitur "Pertemananku" (CRUD), diletakkan DI ATAS Akun Strava.
+         SQL tambahan:
+           CREATE TABLE IF NOT EXISTS pertemanan (
+             id SERIAL PRIMARY KEY,
+             user_id INT NOT NULL,
+             nama VARCHAR(120) NOT NULL,
+             tanggal_kenalan DATE,
+             kedekatan SMALLINT,
+             catatan TEXT,
+             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+           );
+           CREATE INDEX IF NOT EXISTS ix_pertemanan_user ON pertemanan(user_id);
+    -->
+    <?php
+    $ptRows = [];
+    try {
+      $ptRows = db_all("SELECT * FROM pertemanan WHERE user_id=$1 ORDER BY COALESCE(kedekatan,0) DESC, nama ASC",
+                       [(int)$u['id']]);
+    } catch (Throwable $e) { $ptRows = []; }
+    ?>
+    <div class="card shadow-sm mt-3" data-live="profile-pertemanan"><div class="card-body">
+      <h6 class="fw-semibold mb-2"><i class="bi bi-people-fill text-info"></i> Pertemananku
+        <span class="badge bg-info-subtle text-info-emphasis ms-1"><?= count($ptRows) ?></span>
+      </h6>
+      <p class="small text-muted mb-2">Catat teman-teman Anda: nama, tanggal kenalan, dan level kedekatan (1 = sekilas, 5 = sahabat karib).</p>
+
+      <form method="post" class="row g-1 mb-2">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="pertemanan_add">
+        <div class="col-md-4"><input class="form-control form-control-sm" name="nama" maxlength="120" placeholder="Nama teman *" required></div>
+        <div class="col-md-3"><input type="date" class="form-control form-control-sm" name="tanggal_kenalan"></div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" name="kedekatan">
+            <option value="0">Level –</option>
+            <option value="1">1 · Kenal sekilas</option>
+            <option value="2">2 · Sesekali ngobrol</option>
+            <option value="3">3 · Teman biasa</option>
+            <option value="4">4 · Teman dekat</option>
+            <option value="5">5 · Sahabat karib</option>
+          </select>
+        </div>
+        <div class="col-md-2"><input class="form-control form-control-sm" name="catatan" maxlength="500" placeholder="Catatan (opsional)"></div>
+        <div class="col-md-1"><button class="btn btn-sm btn-info text-white w-100" title="Tambah"><i class="bi bi-plus-lg"></i></button></div>
+      </form>
+
+      <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light" style="position:sticky;top:0;z-index:2;">
+            <tr>
+              <th>Nama</th>
+              <th style="width:110px">Kenal Sejak</th>
+              <th style="width:110px">Kedekatan</th>
+              <th>Catatan</th>
+              <th style="width:100px" class="text-end"></th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php if (!$ptRows): ?>
+            <tr><td colspan="5" class="text-center text-muted small py-3">Belum ada teman tercatat.</td></tr>
+          <?php else: foreach ($ptRows as $p): ?>
+            <tr>
+              <td class="fw-semibold"><?= htmlspecialchars($p['nama']) ?></td>
+              <td class="small"><?= htmlspecialchars($p['tanggal_kenalan'] ?? '-') ?></td>
+              <td class="small"><?= $p['kedekatan'] ? str_repeat('★', (int)$p['kedekatan']) : '-' ?></td>
+              <td class="small text-muted"><?= htmlspecialchars($p['catatan'] ?? '') ?></td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#ptEdit<?= (int)$p['id'] ?>"><i class="bi bi-pencil"></i></button>
+                <form method="post" class="d-inline" onsubmit="return confirm('Hapus teman ini?');">
+                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="_action" value="pertemanan_delete">
+                  <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            <tr class="collapse" id="ptEdit<?= (int)$p['id'] ?>">
+              <td colspan="5">
+                <form method="post" class="row g-1">
+                  <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="_action" value="pertemanan_update">
+                  <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                  <div class="col-md-4"><input class="form-control form-control-sm" name="nama" maxlength="120" value="<?= htmlspecialchars($p['nama']) ?>" required></div>
+                  <div class="col-md-3"><input type="date" class="form-control form-control-sm" name="tanggal_kenalan" value="<?= htmlspecialchars($p['tanggal_kenalan'] ?? '') ?>"></div>
+                  <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="kedekatan">
+                      <?php for($k=0;$k<=5;$k++): ?>
+                        <option value="<?= $k ?>" <?= ((int)($p['kedekatan']??0))===$k?'selected':'' ?>><?= $k===0?'Level –':$k ?></option>
+                      <?php endfor; ?>
+                    </select>
+                  </div>
+                  <div class="col-md-2"><input class="form-control form-control-sm" name="catatan" maxlength="500" value="<?= htmlspecialchars($p['catatan'] ?? '') ?>"></div>
+                  <div class="col-md-1"><button class="btn btn-sm btn-primary w-100"><i class="bi bi-save"></i></button></div>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; endif; ?>
+          </tbody>
+        </table>
+      </div>
     </div></div>
 
     <!-- Revisi 19 Juni 2026 Part Q — Akun Strava & Nickname -->

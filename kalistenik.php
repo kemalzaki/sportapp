@@ -187,6 +187,60 @@ $level = $_GET['lvl'] ?? 'pemula';
 if (!isset($PAKET[$level])) $level = 'pemula';
 $cur = $PAKET[$level];
 
+/* =========================================================================
+ * Revisi Juli 2026 — Monitoring Paket Bugar Kalistenik.
+ * Catat sesi latihan yang sudah dilakukan per hari, per level, dengan
+ * catatan singkat. Rekap 30 hari terakhir ditampilkan di bawah paket.
+ *
+ * SQL tambahan (PostgreSQL):
+ *   CREATE TABLE IF NOT EXISTS kalistenik_log (
+ *     user_id  INT  NOT NULL,
+ *     tanggal  DATE NOT NULL,
+ *     level    VARCHAR(20) NOT NULL,
+ *     catatan  TEXT,
+ *     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ *     PRIMARY KEY (user_id, tanggal, level)
+ *   );
+ * ========================================================================= */
+if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action'] ?? '')==='kal_log_toggle') {
+    csrf_check();
+    header('Content-Type: application/json');
+    $lv  = in_array($_POST['level'] ?? '', array_keys($PAKET), true) ? $_POST['level'] : 'pemula';
+    $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal'] ?? '') ? $_POST['tanggal'] : date('Y-m-d');
+    $cat = mb_substr(trim($_POST['catatan'] ?? ''), 0, 300);
+    try {
+        $has = (int)db_val("SELECT COUNT(*) FROM kalistenik_log WHERE user_id=$1 AND tanggal=$2 AND level=$3",
+            [(int)$u['id'], $tgl, $lv]);
+        if ($has) {
+            db_exec("DELETE FROM kalistenik_log WHERE user_id=$1 AND tanggal=$2 AND level=$3",
+                [(int)$u['id'], $tgl, $lv]);
+            echo json_encode(['ok'=>true,'state'=>'off']); exit;
+        }
+        db_exec("INSERT INTO kalistenik_log(user_id,tanggal,level,catatan) VALUES($1,$2,$3,$4)",
+            [(int)$u['id'], $tgl, $lv, $cat ?: null]);
+        echo json_encode(['ok'=>true,'state'=>'on']); exit;
+    } catch (Throwable $e) {
+        echo json_encode(['ok'=>false,'err'=>'db']); exit;
+    }
+}
+
+$kalStart = date('Y-m-d', strtotime('-29 days'));
+$kalToday = date('Y-m-d');
+$kalLogs  = [];
+try {
+    $kalLogs = db_all("SELECT tanggal::text AS tanggal, level, catatan
+                       FROM kalistenik_log
+                       WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3
+                       ORDER BY tanggal DESC, level",
+                      [(int)$u['id'], $kalStart, $kalToday]);
+} catch (Throwable $e) { $kalLogs = []; }
+$kalDoneToday = [];
+foreach ($kalLogs as $r) {
+    if ($r['tanggal'] === $kalToday) $kalDoneToday[$r['level']] = $r['catatan'];
+}
+$kalCountLevel = ['pemula'=>0,'menengah'=>0,'lanjutan'=>0];
+foreach ($kalLogs as $r) { if(isset($kalCountLevel[$r['level']])) $kalCountLevel[$r['level']]++; }
+
 include __DIR__.'/includes/header.php'; ?>
 
 <link rel="stylesheet" href="assets/css/sport-islami.css">
@@ -305,6 +359,99 @@ include __DIR__.'/includes/header.php'; ?>
     </div>
   </div>
 </div>
+
+<!-- Revisi Juli 2026 — Monitoring Latihan Kalistenik -->
+<div class="card shadow-sm mb-3 border-success" id="kalMonitor">
+  <div class="card-header bg-success-subtle text-success-emphasis d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-clipboard2-check-fill"></i> <strong>Monitoring Latihan (30 Hari Terakhir)</strong></span>
+    <small class="text-muted">Tandai sesi paket yang sudah Anda selesaikan hari ini.</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-2 mb-3">
+      <?php foreach ($PAKET as $lk => $pv):
+        $doneToday = array_key_exists($lk, $kalDoneToday);
+      ?>
+        <div class="col-12 col-md-4">
+          <div class="border rounded p-2 h-100">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">Paket <?= htmlspecialchars($pv['label']) ?></div>
+                <div class="small text-muted"><?= (int)$kalCountLevel[$lk] ?> sesi / 30 hari</div>
+              </div>
+              <button type="button"
+                      class="btn btn-sm <?= $doneToday?'btn-success':'btn-outline-success' ?> kal-log-btn"
+                      data-level="<?= $lk ?>" data-tgl="<?= $kalToday ?>"
+                      title="<?= $doneToday?'Sudah dicatat hari ini (klik untuk hapus)':'Tandai selesai hari ini' ?>">
+                <?= $doneToday ? '<i class="bi bi-check-circle-fill"></i> Selesai' : '<i class="bi bi-plus-circle"></i> Selesai hari ini' ?>
+              </button>
+            </div>
+            <?php if ($doneToday && !empty($kalDoneToday[$lk])): ?>
+              <div class="small text-muted mt-1"><i class="bi bi-chat-left-text"></i> <?= htmlspecialchars($kalDoneToday[$lk]) ?></div>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+      <table class="table table-sm table-bordered align-middle mb-0">
+        <thead class="table-light" style="position:sticky;top:0;z-index:2;">
+          <tr><th style="width:130px">Tanggal</th><th style="width:120px">Level</th><th>Catatan</th></tr>
+        </thead>
+        <tbody>
+        <?php if (!$kalLogs): ?>
+          <tr><td colspan="3" class="text-center text-muted small">Belum ada catatan latihan. Mulai hari ini!</td></tr>
+        <?php else: foreach ($kalLogs as $r): ?>
+          <tr>
+            <td><?= htmlspecialchars($r['tanggal']) ?></td>
+            <td><span class="badge bg-<?= $PAKET[$r['level']]['badge'] ?? 'secondary' ?>"><?= htmlspecialchars($PAKET[$r['level']]['label'] ?? $r['level']) ?></span></td>
+            <td class="small"><?= htmlspecialchars($r['catatan'] ?? '') ?: '<span class="text-muted">–</span>' ?></td>
+          </tr>
+        <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var CSRF = '<?= csrf_token() ?>';
+  document.querySelectorAll('.kal-log-btn').forEach(function(b){
+    b.addEventListener('click', async function(){
+      var cat = '';
+      if (typeof Swal !== 'undefined') {
+        var r = await Swal.fire({
+          title: 'Selesai Latihan ' + b.dataset.level.toUpperCase(),
+          input: 'textarea',
+          inputLabel: 'Catatan (opsional)',
+          inputPlaceholder: 'mis. push-up 3x12 selesai, plank 45 dtk, sedikit pegal…',
+          showCancelButton: true, confirmButtonText: 'Simpan',
+          cancelButtonText: 'Batal', confirmButtonColor: '#198754'
+        });
+        if (!r.isConfirmed) return;
+        cat = r.value || '';
+      } else {
+        cat = prompt('Catatan latihan (opsional):','') || '';
+      }
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('_action', 'kal_log_toggle');
+      fd.append('level', b.dataset.level);
+      fd.append('tanggal', b.dataset.tgl);
+      fd.append('catatan', cat);
+      b.disabled = true;
+      try {
+        var r2 = await fetch('/kalistenik.php?lvl=' + encodeURIComponent(b.dataset.level),
+          { method:'POST', body:fd, credentials:'same-origin' });
+        var j  = await r2.json();
+        if (j.ok) location.reload();
+        else alert('Gagal: ' + (j.err || '?'));
+      } catch(e){ alert('Error: ' + e.message); }
+      b.disabled = false;
+    });
+  });
+})();
+</script>
 
 <!-- Panduan tiap gerakan (kartu dengan gambar) -->
 <div class="card shadow-sm mb-3">

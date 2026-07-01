@@ -87,33 +87,52 @@ include __DIR__.'/includes/header.php'; ?>
 </ul>
 
 <?php if ($tab === 'kaum'): ?>
-  <p class="text-muted small">Ringkasan kaum-kaum yang dibinasakan / diazab, nabi yang diutus, kondisi sosial, jenis azab, pemimpin zalim (musuh), serta peninggalan azabnya. Sumber: Al-Qur\'an & Tafsir Ibnu Katsir.</p>
+  <p class="text-muted small">Ringkasan kaum-kaum yang dibinasakan / diazab, nabi yang diutus, kondisi sosial, jenis azab, pemimpin zalim (musuh), serta peninggalan azabnya. Kolom <b>Paham?</b> tersimpan di perangkat Anda (localStorage). Sumber: Al-Qur\'an & Tafsir Ibnu Katsir.</p>
   <div class="table-responsive">
-    <table class="table table-bordered table-hover align-top small">
+    <table class="table table-bordered table-hover align-top small" id="tblKaum">
       <thead class="table-warning">
         <tr>
-          <th style="width:14%">Kaum</th>
-          <th style="width:12%">Nabi</th>
-          <th style="width:18%">Kondisi Sosial</th>
-          <th style="width:16%">Jenis Azab</th>
-          <th style="width:18%">Pemimpin Zalim / Musuh</th>
-          <th style="width:22%">Peninggalan Azab</th>
+          <th style="width:40px">No</th>
+          <th style="width:13%">Kaum</th>
+          <th style="width:11%">Nabi</th>
+          <th style="width:16%">Kondisi Sosial</th>
+          <th style="width:14%">Jenis Azab</th>
+          <th style="width:16%">Pemimpin Zalim / Musuh</th>
+          <th style="width:20%">Peninggalan Azab</th>
+          <th style="width:80px" class="text-center">Paham?</th>
         </tr>
       </thead>
       <tbody>
-      <?php foreach($KAUM as $k): ?>
+      <?php foreach($KAUM as $i=>$k): $no = $i+1; ?>
         <tr>
+          <td class="fw-semibold text-center"><?= $no ?></td>
           <td><strong><?= htmlspecialchars($k['kaum']) ?></strong></td>
           <td><?= htmlspecialchars($k['nabi']) ?></td>
           <td><?= htmlspecialchars($k['sosial']) ?></td>
           <td><?= htmlspecialchars($k['azab']) ?></td>
           <td><?= htmlspecialchars($k['musuh']) ?></td>
           <td><?= htmlspecialchars($k['peninggalan']) ?></td>
+          <td class="text-center">
+            <div class="form-check d-inline-block">
+              <input class="form-check-input kaum-paham" type="checkbox" data-key="kaum_paham_<?= $no ?>" id="kaumPaham<?= $no ?>">
+              <label class="form-check-label small" for="kaumPaham<?= $no ?>">Sudah</label>
+            </div>
+          </td>
         </tr>
       <?php endforeach; ?>
       </tbody>
     </table>
   </div>
+  <script>
+    (function(){
+      document.querySelectorAll('.kaum-paham').forEach(function(cb){
+        try { cb.checked = localStorage.getItem(cb.dataset.key) === '1'; } catch(e){}
+        cb.addEventListener('change', function(){
+          try { localStorage.setItem(cb.dataset.key, cb.checked ? '1' : '0'); } catch(e){}
+        });
+      });
+    })();
+  </script>
 <?php elseif ($sel):
   $r = $RASUL[$sel-1]; ?>
   <a href="?tab=rasul" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Daftar 25 Rasul</a>

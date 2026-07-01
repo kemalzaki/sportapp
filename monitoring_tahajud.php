@@ -1,9 +1,17 @@
 <?php
 /**
- * monitoring_tahajud.php — Revisi 27 Juni 2026
- * Halaman terpisah untuk Monitoring Tahajud & Duha Bulanan.
- * Dipindah dari panel inline islami.php agar islami.php tetap ringkas
- * dan menu monitoring menjadi 1 entry (di bawah "Shalat Duha & Tahajud").
+ * monitoring_tahajud.php — Revisi (Juli 2026)
+ * - Tambah kolom "Evaluasi" (catatan harian bebas) per tanggal.
+ * - Tabel bulan dibungkus wrapper scroll (max-height) agar tidak terlalu panjang.
+ *
+ * SQL tambahan yang diperlukan (PostgreSQL):
+ *   CREATE TABLE IF NOT EXISTS shalat_evaluasi_harian (
+ *     user_id  INT NOT NULL,
+ *     tanggal  DATE NOT NULL,
+ *     evaluasi TEXT,
+ *     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ *     PRIMARY KEY (user_id, tanggal)
+ *   );
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
@@ -35,6 +43,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u && ($_POST['_action'] ?? '')==='ss
     } catch (Throwable $e) { echo json_encode(['ok'=>false,'err'=>'db']); exit; }
 }
 
+// Revisi Juli 2026 — simpan evaluasi harian.
+if ($_SERVER['REQUEST_METHOD']==='POST' && $u && ($_POST['_action'] ?? '')==='save_evaluasi') {
+    csrf_check();
+    header('Content-Type: application/json');
+    $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal'] ?? '') ? $_POST['tanggal'] : date('Y-m-d');
+    $ev  = mb_substr(trim($_POST['evaluasi'] ?? ''), 0, 1000);
+    try {
+        if ($ev === '') {
+            db_exec("DELETE FROM shalat_evaluasi_harian WHERE user_id=$1 AND tanggal=$2",
+                [(int)$u['id'], $tgl]);
+        } else {
+            db_exec("INSERT INTO shalat_evaluasi_harian(user_id,tanggal,evaluasi) VALUES($1,$2,$3)
+                     ON CONFLICT (user_id,tanggal) DO UPDATE SET evaluasi=EXCLUDED.evaluasi, updated_at=NOW()",
+                [(int)$u['id'], $tgl, $ev]);
+        }
+        echo json_encode(['ok'=>true]); exit;
+    } catch (Throwable $e) { echo json_encode(['ok'=>false,'err'=>'db']); exit; }
+}
+
 $ssBulan = isset($_GET['ssbulan']) && preg_match('/^\d{4}-\d{2}$/', $_GET['ssbulan']) ? $_GET['ssbulan'] : date('Y-m');
 $ssStart = $ssBulan.'-01';
 $ssEnd   = date('Y-m-t', strtotime($ssStart));
@@ -49,6 +76,17 @@ $ssToday = date('Y-m-d');
 $ssPrev  = date('Y-m', strtotime($ssStart.' -1 month'));
 $ssNext  = date('Y-m', strtotime($ssStart.' +1 month'));
 
+// Revisi Juli 2026 — muat evaluasi bulan berjalan.
+$evalMap = [];
+if ($u) {
+    try {
+        $rows = db_all("SELECT tanggal, evaluasi FROM shalat_evaluasi_harian
+                        WHERE user_id=$1 AND tanggal BETWEEN $2 AND $3",
+                       [(int)$u['id'], $ssStart, $ssEnd]);
+        foreach ($rows as $r) { $evalMap[$r['tanggal']] = $r['evaluasi']; }
+    } catch (Throwable $e) { /* tabel belum dibuat — abaikan */ }
+}
+
 include __DIR__.'/includes/header.php'; ?>
 
 <nav aria-label="breadcrumb" class="mb-2">
@@ -59,7 +97,7 @@ include __DIR__.'/includes/header.php'; ?>
 </nav>
 
 <h2 class="mb-3"><i class="bi bi-calendar2-check-fill text-info"></i> Monitoring Tahajud &amp; Duha Bulanan</h2>
-<p class="text-muted small">Catat shalat sunnah harian Anda — Tahajud dan Duha — agar terlihat ringkasannya per bulan.</p>
+<p class="text-muted small">Catat shalat sunnah harian Anda — Tahajud dan Duha — beserta evaluasi singkat agar terlihat progressnya per bulan.</p>
 
 <div class="card shadow-sm mb-3 border-info" id="ssMonitor">
   <div class="card-header bg-info-subtle text-info-emphasis d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -85,12 +123,22 @@ include __DIR__.'/includes/header.php'; ?>
         </div>
       </div>
       <div class="col-12 col-md-6 small text-muted align-self-center">
-        Klik 🌙 untuk <b>Tahajud</b>, ☀️ untuk <b>Duha</b>. Klik ulang untuk hapus catatan.
+        Klik 🌙 untuk <b>Tahajud</b>, ☀️ untuk <b>Duha</b>. Isi kolom <b>Evaluasi</b> lalu keluar dari kotak untuk menyimpan otomatis.
       </div>
     </div>
-    <div class="table-responsive">
+
+    <!-- Revisi Juli 2026 — wrapper tabel scroll. -->
+    <div class="table-responsive ssmonth-scroll" style="max-height:520px; overflow-y:auto;">
       <table class="table table-sm table-bordered align-middle text-center mb-0 ssmonth-table">
-        <thead class="table-light"><tr><th>Tgl</th><th>Tahajud 🌙</th><th>Duha ☀️</th><th>Catatan</th></tr></thead>
+        <thead class="table-light" style="position:sticky; top:0; z-index:2;">
+          <tr>
+            <th style="width:70px">Tgl</th>
+            <th style="width:100px">Tahajud 🌙</th>
+            <th style="width:100px">Duha ☀️</th>
+            <th>Catatan</th>
+            <th style="min-width:220px">Evaluasi</th>
+          </tr>
+        </thead>
         <tbody>
         <?php for ($d=1; $d<=$ssDays; $d++):
             $tgl = sprintf('%s-%02d', $ssBulan, $d);
@@ -98,9 +146,10 @@ include __DIR__.'/includes/header.php'; ?>
             $dh  = $ssMap['duha'][$tgl] ?? null;
             $isToday = $tgl === $ssToday;
             $isFuture= $tgl > $ssToday;
+            $ev  = $evalMap[$tgl] ?? '';
         ?>
           <tr class="<?= $isToday?'table-warning':'' ?>">
-            <td class="fw-semibold"><?= $d ?><?php if($isToday): ?> <small class="badge bg-warning text-dark">Hari ini</small><?php endif; ?></td>
+            <td class="fw-semibold"><?= $d ?><?php if($isToday): ?><br><small class="badge bg-warning text-dark">Hari ini</small><?php endif; ?></td>
             <td>
               <button type="button" class="btn btn-sm <?= $tj?'btn-primary':'btn-outline-secondary' ?> ss-btn"
                       data-jenis="tahajud" data-tgl="<?= $tgl ?>" <?= $isFuture?'disabled':'' ?>
@@ -119,6 +168,12 @@ include __DIR__.'/includes/header.php'; ?>
               <?php if($tj && !empty($tj['catatan'])): ?>🌙 <?= htmlspecialchars($tj['catatan']) ?><br><?php endif; ?>
               <?php if($dh && !empty($dh['catatan'])): ?>☀️ <?= htmlspecialchars($dh['catatan']) ?><?php endif; ?>
             </td>
+            <td class="text-start">
+              <textarea class="form-control form-control-sm ss-eval" rows="1"
+                        data-tgl="<?= $tgl ?>" <?= $isFuture?'disabled':'' ?>
+                        placeholder="Evaluasi hari ini (khusyuk? sempat qiyamul lail?)"><?= htmlspecialchars($ev) ?></textarea>
+              <div class="small text-success ss-eval-status" data-for="<?= $tgl ?>" style="min-height:1em"></div>
+            </td>
           </tr>
         <?php endfor; ?>
         </tbody>
@@ -130,7 +185,6 @@ include __DIR__.'/includes/header.php'; ?>
 (function(){
   document.querySelectorAll('.ss-btn').forEach(function(b){
     b.addEventListener('click', async function(){
-      // Revisi 29 Juni 2026 — popup cantik (SweetAlert2) dengan kolom Keterangan.
       var jenisLabel = b.dataset.jenis === 'duha' ? 'Duha' : 'Tahajud';
       var html =
         '<div class="text-start">' +
@@ -144,22 +198,16 @@ include __DIR__.'/includes/header.php'; ?>
       if (typeof Swal !== 'undefined') {
         var r = await Swal.fire({
           title: jenisLabel + ' • ' + b.dataset.tgl,
-          html: html,
-          showCancelButton: true,
-          confirmButtonText: 'Simpan',
-          cancelButtonText: 'Batal',
-          confirmButtonColor: '#0ea5e9',
-          focusConfirm: false,
+          html: html, showCancelButton: true,
+          confirmButtonText: 'Simpan', cancelButtonText: 'Batal',
+          confirmButtonColor: '#0ea5e9', focusConfirm: false,
           preConfirm: function(){
-            return {
-              rakaat: document.getElementById('ss_rakaat').value,
-              catatan: document.getElementById('ss_catatan').value
-            };
+            return { rakaat: document.getElementById('ss_rakaat').value,
+                     catatan: document.getElementById('ss_catatan').value };
           }
         });
         if (!r.isConfirmed) return;
-        rakaat  = r.value.rakaat;
-        catatan = r.value.catatan;
+        rakaat  = r.value.rakaat; catatan = r.value.catatan;
       } else {
         rakaat = prompt('Berapa rakaat ' + jenisLabel + ' ' + b.dataset.tgl + '? (kosongkan untuk hapus)', '2');
         if (rakaat === null) return;
@@ -185,6 +233,35 @@ include __DIR__.'/includes/header.php'; ?>
       }
       b.disabled = false;
     });
+  });
+
+  // Revisi Juli 2026 — auto-save Evaluasi saat blur / debounce ketik.
+  var CSRF = '<?= csrf_token() ?>';
+  document.querySelectorAll('.ss-eval').forEach(function(ta){
+    var tgl = ta.dataset.tgl;
+    var stat = document.querySelector('.ss-eval-status[data-for="'+tgl+'"]');
+    var last = ta.value;
+    var t = null;
+    function save(){
+      if (ta.value === last) return;
+      last = ta.value;
+      stat.textContent = 'menyimpan…'; stat.className = 'small text-muted ss-eval-status';
+      var fd = new FormData();
+      fd.append('csrf', CSRF);
+      fd.append('_action', 'save_evaluasi');
+      fd.append('tanggal', tgl);
+      fd.append('evaluasi', ta.value);
+      fetch('/monitoring_tahajud.php', {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (j && j.ok) { stat.textContent = 'tersimpan ✓'; stat.className='small text-success ss-eval-status'; }
+          else { stat.textContent = 'gagal simpan'; stat.className='small text-danger ss-eval-status'; }
+          setTimeout(function(){ stat.textContent=''; }, 1500);
+        })
+        .catch(function(){ stat.textContent = 'gagal simpan'; stat.className='small text-danger ss-eval-status'; });
+    }
+    ta.addEventListener('blur', save);
+    ta.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(save, 900); });
   });
 })();
 </script>

@@ -199,4 +199,33 @@ include __DIR__.'/includes/header.php';
 </div>
 </div><!-- /#spoilerShalatJama -->
 
+<!-- Revisi Juli 2026 — spoiler individual per section (Apa itu, Syarat, Tata Cara, Tabel, Catatan). -->
+<script>
+(function(){
+  var root = document.getElementById('spoilerShalatJama');
+  if (!root) return;
+  var cards = root.querySelectorAll('.card');
+  cards.forEach(function(card, i){
+    var head = card.querySelector('.card-header');
+    var body = card.querySelector('.card-body, .card-body.small, .card-body.p-0');
+    if (!head || !body) return;
+    var id = 'sjSec_' + i;
+    body.id = id;
+    body.classList.add('collapse','show');
+    head.style.cursor = 'pointer';
+    head.setAttribute('role','button');
+    head.setAttribute('data-bs-toggle','collapse');
+    head.setAttribute('data-bs-target','#'+id);
+    head.setAttribute('aria-expanded','true');
+    head.setAttribute('aria-controls', id);
+    var chev = document.createElement('i');
+    chev.className = 'bi bi-chevron-down float-end';
+    head.appendChild(chev);
+    body.addEventListener('hidden.bs.collapse', function(){ chev.className='bi bi-chevron-right float-end'; });
+    body.addEventListener('shown.bs.collapse',  function(){ chev.className='bi bi-chevron-down float-end';  });
+  });
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>
+
