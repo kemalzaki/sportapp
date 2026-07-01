@@ -109,16 +109,16 @@ include __DIR__.'/includes/header.php'; ?>
 <div class="card shadow-sm">
   <div class="card-header"><i class="bi bi-list-ul text-primary"></i> <strong>Riwayat Tilawah</strong></div>
   <div class="card-body p-0">
-    <div class="table-responsive" style="max-height:520px; overflow-y:auto;">
-      <table class="table table-sm mb-0 align-middle">
+    <div class="table-responsive" style="max-height:520px; overflow:auto;">
+      <table class="table table-sm mb-0 align-middle" style="min-width:880px;">
         <thead class="table-light" style="position:sticky;top:0;z-index:2;">
           <tr>
-            <th style="width:110px">Tanggal</th>
-            <th style="width:120px">Sasaran</th>
-            <th>Surah</th>
-            <th style="width:100px">Ayat</th>
-            <th style="width:90px">Durasi</th>
-            <th>Catatan</th>
+            <th style="min-width:110px">Tanggal</th>
+            <th style="min-width:110px">Sasaran</th>
+            <th style="min-width:150px">Surah</th>
+            <th style="min-width:90px">Ayat</th>
+            <th style="min-width:90px">Durasi</th>
+            <th style="min-width:220px">Catatan</th>
             <th style="width:60px"></th>
           </tr>
         </thead>

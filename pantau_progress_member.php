@@ -37,11 +37,11 @@ try {
         $like = '%'.$q.'%';
         $members = db_all("SELECT id,nama,email,username FROM users
                            WHERE (nama ILIKE $1 OR email ILIKE $1 OR username ILIKE $1)
-                             AND COALESCE(aktif,true)=true
+                             AND COALESCE(aktif::int,1)<>0
                            ORDER BY nama LIMIT 100", [$like]);
     } else {
         $members = db_all("SELECT id,nama,email,username FROM users
-                           WHERE COALESCE(aktif,true)=true
+                           WHERE COALESCE(aktif::int,1)<>0
                            ORDER BY nama LIMIT 100");
     }
 } catch (Throwable $e) { $members = []; }

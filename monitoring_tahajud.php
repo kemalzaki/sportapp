@@ -127,16 +127,16 @@ include __DIR__.'/includes/header.php'; ?>
       </div>
     </div>
 
-    <!-- Revisi Juli 2026 — wrapper tabel scroll. -->
-    <div class="table-responsive ssmonth-scroll" style="max-height:520px; overflow-y:auto;">
-      <table class="table table-sm table-bordered align-middle text-center mb-0 ssmonth-table">
+    <!-- Revisi Juli 2026 (R2) — wrapper tabel scroll horizontal & vertikal, kolom evaluasi diperlebar. -->
+    <div class="table-responsive ssmonth-scroll" style="max-height:600px; overflow:auto;">
+      <table class="table table-sm table-bordered align-middle text-center mb-0 ssmonth-table" style="min-width:900px;">
         <thead class="table-light" style="position:sticky; top:0; z-index:2;">
           <tr>
-            <th style="width:70px">Tgl</th>
-            <th style="width:100px">Tahajud 🌙</th>
-            <th style="width:100px">Duha ☀️</th>
-            <th>Catatan</th>
-            <th style="min-width:220px">Evaluasi</th>
+            <th style="width:60px">Tgl</th>
+            <th style="width:110px">Tahajud 🌙</th>
+            <th style="width:90px">Duha ☀️</th>
+            <th style="min-width:160px">Catatan</th>
+            <th style="min-width:380px">Evaluasi</th>
           </tr>
         </thead>
         <tbody>
@@ -169,7 +169,7 @@ include __DIR__.'/includes/header.php'; ?>
               <?php if($dh && !empty($dh['catatan'])): ?>☀️ <?= htmlspecialchars($dh['catatan']) ?><?php endif; ?>
             </td>
             <td class="text-start">
-              <textarea class="form-control form-control-sm ss-eval" rows="1"
+              <textarea class="form-control form-control-sm ss-eval" rows="2" style="min-width:340px;"
                         data-tgl="<?= $tgl ?>" <?= $isFuture?'disabled':'' ?>
                         placeholder="Evaluasi hari ini (khusyuk? sempat qiyamul lail?)"><?= htmlspecialchars($ev) ?></textarea>
               <div class="small text-success ss-eval-status" data-for="<?= $tgl ?>" style="min-height:1em"></div>

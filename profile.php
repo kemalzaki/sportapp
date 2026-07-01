@@ -457,15 +457,15 @@ include __DIR__.'/includes/header.php';
         <div class="col-md-1"><button class="btn btn-sm btn-info text-white w-100" title="Tambah"><i class="bi bi-plus-lg"></i></button></div>
       </form>
 
-      <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
-        <table class="table table-sm mb-0 align-middle">
+      <div class="table-responsive" style="max-height:360px; overflow:auto;">
+        <table class="table table-sm mb-0 align-middle" style="min-width:760px;">
           <thead class="table-light" style="position:sticky;top:0;z-index:2;">
             <tr>
-              <th>Nama</th>
-              <th style="width:110px">Kenal Sejak</th>
-              <th style="width:110px">Kedekatan</th>
-              <th>Catatan</th>
-              <th style="width:100px" class="text-end"></th>
+              <th style="min-width:180px">Nama</th>
+              <th style="min-width:120px">Kenal Sejak</th>
+              <th style="min-width:120px">Kedekatan</th>
+              <th style="min-width:220px">Catatan</th>
+              <th style="width:110px" class="text-end"></th>
             </tr>
           </thead>
           <tbody>
