@@ -309,8 +309,14 @@ include __DIR__.'/includes/header.php';
       <div class="mt-2"><span class="pill">Level <?= $level ?></span>
         <span class="pill" data-bs-toggle="tooltip" title="Streak (mgg) = jumlah minggu berturut-turut Anda upload aktivitas atau hadir di sesi. Reset jika 1 minggu kosong.">🔥 <?= (int)$me['streak_minggu'] ?> minggu</span>
         <span class="pill">⭐ <?= $xp ?> XP</span></div>
-      <?php /* Revisi — Status Paket Member (sinkron dengan admin/members.php / paket_helpers.php) */ ?>
+      <?php /* Revisi R4 (Juli 2026) — Paket Member + Masa Aktif (auto downgrade jika expired) */ ?>
       <div class="mt-2"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($me)) ?></div>
+      <div class="mt-1"><?= paket_expiry_label($me) ?></div>
+      <?php if (paket_user($me) !== 'komunitas'): ?>
+        <div class="mt-1"><a class="btn btn-sm btn-outline-primary" href="/paket_upgrade.php"><i class="bi bi-stars"></i> Upgrade / Perpanjang</a></div>
+      <?php else: ?>
+        <div class="mt-1"><a class="btn btn-sm btn-outline-success" href="/paket_upgrade.php"><i class="bi bi-arrow-repeat"></i> Perpanjang Paket</a></div>
+      <?php endif; ?>
       <div class="xp-bar mt-2"><div style="width:<?= min(100,$xpInLevel/2) ?>%"></div></div>
       <small class="text-muted">Butuh <?= $xpToNext ?> XP lagi ke Level <?= $level+1 ?></small>
 

@@ -1,32 +1,85 @@
 <?php
 /**
- * includes/paket_helpers.php — Revisi R21 (1 Juli 2026)
+ * includes/paket_helpers.php — Revisi R24 (Juli 2026 R4)
  *
  * Paket:
  *   - gratis     : akses fitur dasar
  *   - pro        : akses fitur premium
  *   - komunitas  : akses fitur premium + Hub Islami
  *
- * Revisi R21:
- *   - Banner kunci PRO / KOMUNITAS dihapus tombol WhatsApp-nya.
- *     Diganti SATU tombol "Lihat Paket & Upgrade" → /paket_upgrade.php
- *     yang membuka halaman pemilihan paket + pembayaran Midtrans.
- *   - Helper baru: paket_lock_banner($needed, $fiturNama, $deskripsi)
- *     untuk PRO maupun KOMUNITAS.
- *   - paket_pro_lock_banner() tetap ada (backward-compatible) tapi
- *     sekarang men-render varian baru.
+ * Revisi R24 (Juli 2026 R4):
+ *   - Tambah masa berlaku paket (paket_expires_at).
+ *   - paket_user() otomatis downgrade ke 'gratis' bila expired.
+ *   - Helper baru: paket_expires_at($u), paket_expiry_label($u).
+ *
+ * Revisi R21..R23 (lama) tetap berlaku:
+ *   - Banner kunci PRO / KOMUNITAS ber-tombol "Lihat Paket & Upgrade"
+ *     mengarah ke /paket_upgrade.php.
  */
+
+if (!function_exists('paket_row')) {
+    /** Ambil baris paket user (paket + expiry) dari DB, sekali per user. */
+    function paket_row(?array $u): array {
+        static $cache = [];
+        if (!$u) return ['paket'=>'gratis','paket_expires_at'=>null];
+        $id = (int)($u['id'] ?? 0);
+        if ($id <= 0) return ['paket'=>'gratis','paket_expires_at'=>null];
+        if (isset($cache[$id])) return $cache[$id];
+        try {
+            $row = db_one(
+                "SELECT COALESCE(paket,'gratis') AS paket, paket_expires_at
+                   FROM users WHERE id=$1", [$id]);
+        } catch (Throwable $e) { $row = null; }
+        if (!$row) $row = ['paket'=>'gratis','paket_expires_at'=>null];
+        $p = strtolower(trim((string)$row['paket']));
+        if (!in_array($p, ['gratis','pro','komunitas'], true)) $p = 'gratis';
+        // Auto-downgrade jika sudah lewat masa aktif
+        if ($p !== 'gratis' && !empty($row['paket_expires_at'])) {
+            $exp = strtotime((string)$row['paket_expires_at']);
+            if ($exp !== false && $exp < time()) {
+                try {
+                    db_exec("UPDATE users SET paket='gratis' WHERE id=$1", [$id]);
+                } catch (Throwable $e) {}
+                $p = 'gratis';
+            }
+        }
+        $row['paket'] = $p;
+        $cache[$id] = $row;
+        return $row;
+    }
+}
 
 if (!function_exists('paket_user')) {
     function paket_user(?array $u): string {
         if (!$u) return 'gratis';
         if (($u['role'] ?? '') === 'admin') return 'komunitas';
-        try {
-            $p = (string) db_val("SELECT paket FROM users WHERE id=$1", [(int)$u['id']]);
-        } catch (Throwable $e) { $p = ''; }
-        $p = strtolower(trim($p));
-        if (!in_array($p, ['gratis','pro','komunitas'], true)) $p = 'gratis';
-        return $p;
+        return paket_row($u)['paket'];
+    }
+}
+
+if (!function_exists('paket_expires_at')) {
+    /** Kembalikan timestamp expire (string) atau null jika tidak ada. */
+    function paket_expires_at(?array $u): ?string {
+        if (!$u) return null;
+        $r = paket_row($u);
+        return $r['paket_expires_at'] ?? null;
+    }
+}
+
+if (!function_exists('paket_expiry_label')) {
+    /** Label HTML tanggal expire + sisa hari (untuk profile.php / members.php). */
+    function paket_expiry_label(?array $u): string {
+        $p = paket_user($u);
+        if ($p === 'gratis') return '<span class="small text-muted">Tanpa masa aktif (paket gratis)</span>';
+        if (($u['role'] ?? '') === 'admin') return '<span class="small text-success">Admin — tidak dibatasi</span>';
+        $exp = paket_expires_at($u);
+        if (!$exp) return '<span class="small text-muted">Masa aktif belum diatur</span>';
+        $ts   = strtotime($exp);
+        $days = (int) ceil(($ts - time())/86400);
+        $tgl  = date('d M Y', $ts);
+        if ($days < 0)   return '<span class="small text-danger"><i class="bi bi-x-octagon"></i> Expired '.$tgl.' (otomatis ke Gratis)</span>';
+        if ($days <= 7)  return '<span class="small text-warning"><i class="bi bi-clock-history"></i> Aktif s/d <b>'.$tgl.'</b> · sisa '.$days.' hari — segera perpanjang</span>';
+        return '<span class="small text-success"><i class="bi bi-check2-circle"></i> Aktif s/d <b>'.$tgl.'</b> · sisa '.$days.' hari</span>';
     }
 }
 
@@ -50,7 +103,6 @@ if (!function_exists('paket_badge')) {
 }
 
 if (!function_exists('paket_wa_pro_url')) {
-    /* Backward-compat: masih dipakai di beberapa halaman lama. */
     function paket_wa_pro_url(string $fiturNama = 'Fitur PRO'): string {
         $msg = "Assalamu'alaikum, saya ingin memesan ".$fiturNama." di aplikasi KawanKeringat. Mohon informasinya. Terima kasih.";
         return 'https://wa.me/6281386369207?text='.rawurlencode($msg);
@@ -58,45 +110,30 @@ if (!function_exists('paket_wa_pro_url')) {
 }
 
 if (!function_exists('paket_lock_banner')) {
-    /**
-     * Banner kunci baru — SATU tombol saja yang membuka halaman pilihan paket.
-     *
-     * @param string $needed     'pro' atau 'komunitas' (paket minimum yg dibutuhkan)
-     * @param string $fiturNama  Nama fitur (mis. "Hub Islami")
-     * @param string $deskripsi  Deskripsi opsional
-     */
     function paket_lock_banner(string $needed, string $fiturNama, string $deskripsi = ''): string {
         $needed = strtolower($needed) === 'komunitas' ? 'komunitas' : 'pro';
         $isKom  = $needed === 'komunitas';
         $cls    = $isKom ? 'success' : 'warning';
-        $icon   = $isKom ? '🔒👥' : '🔒⭐';
-        $label  = $isKom ? 'KOMUNITAS' : 'PRO';
-        $desc   = $deskripsi ?: ($isKom
+        $ico    = $isKom ? 'people-fill' : 'stars';
+        $label  = $isKom ? '👥 Paket KOMUNITAS' : '⭐ Paket PRO';
+        $desc   = $deskripsi !== '' ? $deskripsi : ($isKom
             ? 'Fitur ini hanya tersedia untuk paket KOMUNITAS. Upgrade paket Anda untuk mengaksesnya.'
             : 'Fitur ini terkunci. Upgrade ke paket PRO atau KOMUNITAS untuk mengaksesnya.');
         $href = '/paket_upgrade.php?need=' . urlencode($needed);
-        return '
-<div class="card shadow-sm border-'.$cls.' mb-3">
-  <div class="card-body text-center py-4">
-    <div class="display-4 mb-2">'.$icon.'</div>
-    <h4 class="fw-bold text-'.$cls.'-emphasis">'.htmlspecialchars($fiturNama).' <small class="badge bg-'.$cls.' text-dark">'.$label.'</small></h4>
-    <p class="text-muted mb-3">'.htmlspecialchars($desc).'</p>
-    <a href="'.htmlspecialchars($href).'" class="btn btn-'.$cls.' btn-lg">
-      <i class="bi bi-stars"></i> Lihat Paket &amp; Upgrade
-    </a>
-    <div class="small text-muted mt-2">Pembayaran aman via Midtrans · status paket otomatis aktif setelah lunas.</div>
-  </div>
-</div>';
+        return '<div class="alert alert-'.$cls.' shadow-sm">'
+            .'<h5 class="mb-1"><i class="bi bi-'.$ico.'"></i> '.htmlspecialchars($fiturNama).' — '.$label.'</h5>'
+            .'<div class="small">'.$desc.'</div>'
+            .'<a href="'.$href.'" class="btn btn-'.$cls.' mt-2"><i class="bi bi-stars"></i> Lihat Paket &amp; Upgrade</a>'
+            .'<div class="small text-muted mt-2">Aktivasi manual via WhatsApp admin.</div>'
+            .'</div>';
     }
 }
 
 if (!function_exists('paket_pro_lock_banner')) {
-    /* Wrapper backward-compatible — sekarang memanggil paket_lock_banner('pro', ...). */
     function paket_pro_lock_banner(string $fiturNama, string $deskripsi = ''): string {
         return paket_lock_banner('pro', $fiturNama, $deskripsi);
     }
 }
-
 if (!function_exists('paket_komunitas_lock_banner')) {
     function paket_komunitas_lock_banner(string $fiturNama, string $deskripsi = ''): string {
         return paket_lock_banner('komunitas', $fiturNama, $deskripsi);
@@ -104,12 +141,8 @@ if (!function_exists('paket_komunitas_lock_banner')) {
 }
 
 if (!function_exists('paket_prices')) {
-    /** Harga paket (Rupiah / bulan). Bisa di-override via tabel app_settings:
-     *   skey='paket_price_pro'        → harga PRO
-     *   skey='paket_price_komunitas'  → harga KOMUNITAS
-     */
     function paket_prices(): array {
-        $pro = 25000; $kom = 50000;
+        $pro = 49000; $kom = 99000;
         if (function_exists('app_setting_int')) {
             $pro = app_setting_int('paket_price_pro', $pro);
             $kom = app_setting_int('paket_price_komunitas', $kom);
@@ -119,31 +152,20 @@ if (!function_exists('paket_prices')) {
 }
 
 if (!function_exists('paket_require_or_lock')) {
-    /**
-     * Revisi R22 — Gate halaman berdasarkan paket.
-     *   $needed : 'pro' | 'komunitas'
-     *   $u      : current_user()
-     *   $fitur  : nama fitur (untuk banner)
-     *   $desc   : deskripsi opsional
-     * Jika user belum memenuhi paket, render header + lock banner + footer lalu exit().
-     */
     function paket_require_or_lock(string $needed, ?array $u, string $fitur, string $desc=''): void {
         $needed = strtolower($needed) === 'komunitas' ? 'komunitas' : 'pro';
         $paket  = paket_user($u);
-        $ok = ($needed === 'pro')
+        $ok = $needed === 'pro'
             ? in_array($paket, ['pro','komunitas'], true)
             : ($paket === 'komunitas');
-        if ($ok) return;
-
-        global $pageTitle;
-        if (empty($pageTitle)) $pageTitle = $fitur;
-        // header & footer mungkin sudah di-include; cek dulu via flag konstan.
-        if (!defined('PAKET_GATE_RENDERED')) {
-            define('PAKET_GATE_RENDERED', true);
+        if (!$ok) {
+            $pageTitle = 'Upgrade Paket — '.$fitur;
             include __DIR__.'/header.php';
+            echo '<div class="container my-3">';
             echo paket_lock_banner($needed, $fitur, $desc);
+            echo '</div>';
             include __DIR__.'/footer.php';
+            exit;
         }
-        exit;
     }
 }

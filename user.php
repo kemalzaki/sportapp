@@ -158,8 +158,11 @@ include __DIR__.'/includes/header.php';
       <span class="badge bg-light text-dark">Lv <?= (int)$user['level'] ?></span>
     </h4>
     <div class="text-muted small"><?= htmlspecialchars($user['role']) ?> · ⭐ <?= (int)$user['xp'] ?> XP · 🔥 <?= (int)$user['streak_minggu'] ?> minggu</div>
-    <?php /* Revisi — Status Paket Member (sinkron dengan admin/members.php / paket_helpers.php) */ ?>
-    <div class="mt-1"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($user)) ?></div>
+    <?php /* Revisi R4 (Juli 2026) — Status Paket + masa aktif */ ?>
+    <div class="mt-1">
+      <span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($user)) ?>
+      <span class="ms-2"><?= paket_expiry_label($user) ?></span>
+    </div>
     <?php if(!empty($user['strava_account'])):
       $sv = trim($user['strava_account']);
       // Revisi 19 Juni 2026 (R2) — selalu arahkan ke domain strava.com (jangan ke Google).

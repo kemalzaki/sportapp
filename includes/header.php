@@ -794,6 +794,15 @@ if (empty($pageSkeleton)) {
             <?php /* Revisi 15 Juni 2026: menu "Riwayat Login Member" dihapus sesuai permintaan. */ ?>
           </div>
 
+          <?php /* Revisi R4 (Juli 2026) — Admin > Komunitas Organize */ ?>
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpKomunitas" role="button" aria-expanded="false">
+            <span><i class="bi bi-people-fill text-success"></i> Komunitas Organize</span><i class="bi bi-chevron-down small"></i>
+          </a>
+          <div class="collapse" id="grpKomunitas">
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas.php"><i class="bi bi-people"></i> Komunitas</a>
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas_data.php"><i class="bi bi-collection"></i> Data Komunitas</a>
+          </div>
+
           <?php /* Admin > Pengaturan Lainnya */ ?>
           <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpLainnya" role="button" aria-expanded="false">
             <span><i class="bi bi-gear-fill text-secondary"></i> Pengaturan Lainnya</span><i class="bi bi-chevron-down small"></i>

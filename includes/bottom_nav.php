@@ -23,17 +23,19 @@ if (!function_exists('_gj_active')) {
 ?>
 <link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
 <style>
-/* Revisi 28 Juni 2026 — Rapikan PWA Bottom Nav (mobile):
+/* Revisi 28 Juni 2026 + R4 (Juli 2026) — Rapikan PWA Bottom Nav (mobile):
    - Tinggi seragam, label tidak terpotong
-   - FAB Upload tidak menutup item lain (label di bawah ikon)
-   - Body diberi padding-bottom agar konten terakhir tidak tertutup */
+   - FAB Upload SELALU tampil di atas seluruh konten (z-index tinggi) & tidak terpotong
+   - Body diberi padding-bottom lebih besar agar FAB yang naik ke atas tidak menutup
+     konten terakhir halaman. */
 .gj-nav{
-  position:fixed; left:0; right:0; bottom:0; z-index:1040;
+  position:fixed; left:0; right:0; bottom:0; z-index:1080;
   display:flex; align-items:flex-end; justify-content:space-around;
   background:#fff; border-top:1px solid #e5e7eb;
   padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
   box-shadow:0 -4px 16px rgba(15,23,42,.06);
-  min-height:64px;
+  min-height:68px;
+  overflow:visible;
 }
 .gj-nav .gj-item{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
@@ -67,7 +69,8 @@ if (!function_exists('_gj_active')) {
    - Label "Upload" sejajar dengan label tab lain (baseline sama) */
 .gj-nav .gj-fab{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:4px; padding:0 2px 6px; text-decoration:none; color:#0ea5e9; position:relative;
+  gap:6px; padding:0 2px 6px; text-decoration:none; color:#0ea5e9; position:relative;
+  z-index:1090;
 }
 .gj-nav .gj-fab .gj-fab-inner{
   width:56px; height:56px; border-radius:50%;
@@ -80,7 +83,7 @@ if (!function_exists('_gj_active')) {
     inset 0 1px 0 rgba(255,255,255,.45),
     inset 0 -3px 6px rgba(2,132,199,.25);
   border:3px solid #fff;
-  margin-top:-22px;
+  margin-top:-28px;
   transition: transform .15s ease, box-shadow .15s ease;
   position:relative;
 }
@@ -106,7 +109,7 @@ if (!function_exists('_gj_active')) {
 [data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border-color:#0f172a; }
 [data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-label{ color:#38bdf8; }
 /* Pastikan konten halaman tidak tertutup nav */
-body{ padding-bottom: calc(4.75rem + env(safe-area-inset-bottom,0px)) !important; }
+body{ padding-bottom: calc(6rem + env(safe-area-inset-bottom,0px)) !important; }
 
 [data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e293b; }
 [data-bs-theme=dark] .gj-nav .gj-item .gj-ico,

@@ -119,19 +119,21 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   <li class="breadcrumb-item active">Upgrade Paket</li>
 </ol></nav>
 
-<div class="card shadow-sm mb-3">
-  <div class="card-body">
+<div class="paket-hero shadow-sm mb-3">
+  <img src="/assets/img/paket_hero.jpg" alt="" class="paket-hero-bg">
+  <div class="paket-hero-overlay"></div>
+  <div class="paket-hero-body">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-      <h3 class="mb-0"><i class="bi bi-stars text-warning"></i> Upgrade Paket Member</h3>
-      <div class="small">Paket saat ini: <?= paket_badge($curPaket) ?></div>
+      <h3 class="mb-0 text-white"><i class="bi bi-stars"></i> Upgrade Paket Member</h3>
+      <div class="small text-white-50">Paket saat ini: <?= paket_badge($curPaket) ?></div>
     </div>
-    <p class="text-muted small mb-0">
-      Pilih paket lalu klik <strong>Bayar via WhatsApp</strong>. Anda akan diarahkan ke chat
+    <p class="text-white-50 small mb-0">
+      Pilih paket lalu klik <strong class="text-white">Bayar via WhatsApp</strong>. Anda akan diarahkan ke chat
       admin dengan data pesanan sudah terisi otomatis — cukup kirim untuk mendapat instruksi
       pembayaran &amp; aktivasi paket.
     </p>
     <?php if (!empty($_SESSION['flash'])): ?>
-      <div class="alert alert-success mt-2 mb-0 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
+      <div class="alert alert-light mt-2 mb-0 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
       <?php unset($_SESSION['flash']); ?>
     <?php endif; ?>
   </div>
@@ -258,9 +260,27 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
 <?php endif; ?>
 
 <style>
-  .paket-card{ transition:transform .15s ease, box-shadow .15s ease, border-width .15s ease; border-width:1px; }
-  .paket-card:hover{ transform:translateY(-2px); box-shadow:0 .5rem 1rem rgba(0,0,0,.08); }
-  .paket-card.selected{ border-width:3px; }
+  /* Revisi R4 (Juli 2026) — tampilan paket_upgrade.php dibuat sesuai tema (teal/cyan). */
+  :root{ --pk-teal:#0ea5e9; --pk-teal-dark:#0369a1; --pk-ink:#0f172a; --pk-soft:#f1f5f9; }
+  .paket-hero{ position:relative; border-radius:1rem; overflow:hidden; background:var(--pk-ink); min-height:170px; }
+  .paket-hero-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.85; }
+  .paket-hero-overlay{ position:absolute; inset:0; background:linear-gradient(120deg, rgba(3,105,161,.85) 0%, rgba(15,23,42,.55) 60%, rgba(15,23,42,.15) 100%); }
+  .paket-hero-body{ position:relative; padding:1.5rem 1.25rem; z-index:2; }
+  .paket-card{
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    border:1px solid #e2e8f0 !important; border-radius:1rem; background:#fff;
+  }
+  .paket-card:hover{ transform:translateY(-3px); box-shadow:0 .75rem 1.5rem rgba(14,165,233,.15); }
+  .paket-card.selected{ border-color:var(--pk-teal) !important; box-shadow:0 0 0 3px rgba(14,165,233,.18); }
+  .paket-card .card-title{ color:var(--pk-teal-dark) !important; }
+  .paket-card .badge.bg-warning, .paket-card .badge.bg-success{ background:var(--pk-teal) !important; color:#fff; }
+  .paket-card .btn-warning, .paket-card .btn-success{
+    background:linear-gradient(135deg, var(--pk-teal), var(--pk-teal-dark)) !important;
+    border:0 !important; color:#fff !important;
+  }
+  .paket-card .btn-warning:hover, .paket-card .btn-success:hover{ filter:brightness(1.05); }
+  .paket-card ul{ padding-left:1.1rem; }
+  .paket-card ul li{ margin-bottom:.2rem; }
 </style>
 
 <script>
