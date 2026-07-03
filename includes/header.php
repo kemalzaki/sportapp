@@ -22,36 +22,22 @@ if (!function_exists('nav_feature_paket_map')) {
             'monitoring.php'          => ['komunitas'],
             'live_tracking.php'       => ['komunitas'],
             'flyover.php'             => ['komunitas'],
-            'riwayat.php'             => ['komunitas'],
-            // Revisi Juli 2026 — Tracking Jalur (run.php) dipindah ke KOMUNITAS
+            // Revisi R5 (Juli 2026) — 'riwayat.php' dihapus dari mapping (tidak pakai label Komunitas)
             'run.php'                 => ['komunitas'],
-            // Tempat → Komunitas
             'tempat.php'              => ['komunitas'],
             'tempat_list.php'         => ['komunitas'],
             'islami.php'              => ['komunitas'],
-            // Pro + Komunitas
-            'kalori_badminton.php'    => ['pro','komunitas'],
-            'kalori_renang.php'       => ['pro','komunitas'],
-            'kalori_pingpong.php'     => ['pro','komunitas'],
-            'kalori_futsal.php'       => ['pro','komunitas'],
+            // Pro + Komunitas (halaman kalori/toko/faskes DIHAPUS dari mapping — bebas akses)
             'kalori_mingguan.php'     => ['pro','komunitas'],
             'iptv.php'                => ['pro','komunitas'],
-            'toko_olahraga.php'       => ['pro','komunitas'],
             'artikel_olahraga.php'    => ['pro','komunitas'],
             'cedera_olahraga.php'     => ['pro','komunitas'],
-            'lacak_faskes.php'        => ['pro','komunitas'],
             'survival.php'            => ['pro','komunitas'],
             'kalkulator.php'          => ['pro','komunitas'],
             'kalkulator_jantung.php'  => ['pro','komunitas'],
             'kalkulator_kesehatan.php'=> ['pro','komunitas'],
             'gaya_hidup.php'          => ['pro','komunitas'],
-            // Pro-only — Paket Anak & Lansia
-            'paket_anak_2_4.php'      => ['pro'],
-            'paket_anak_4_6.php'      => ['pro'],
-            'paket_anak_7_9.php'      => ['pro'],
-            'paket_anak_10_12.php'    => ['pro'],
-            'paket_lansia_55_69.php'  => ['pro'],
-            'paket_lansia_70.php'     => ['pro'],
+            // Revisi R5 — Paket Anak & Lansia DIHAPUS dari mapping (bebas akses)
         ];
     }
 }
@@ -800,7 +786,7 @@ if (empty($pageSkeleton)) {
           </a>
           <div class="collapse" id="grpKomunitas">
             <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas.php"><i class="bi bi-people"></i> Komunitas</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas_data.php"><i class="bi bi-collection"></i> Data Komunitas</a>
+            <?php /* Revisi R5 (Juli 2026) — Menu "Data Komunitas" dihapus dari drawer. */ ?>
           </div>
 
           <?php /* Admin > Pengaturan Lainnya */ ?>

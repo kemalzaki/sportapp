@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && empty($_COOKIE['hf_onboarded']) && 
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
-    $uid   = (int)($_POST['user_id'] ?? 0);
+    // Revisi R5 (Juli 2026) — Login pakai USERNAME (bukan lagi dropdown user_id)
+    $uname = trim((string)($_POST['username'] ?? ''));
     $pass  = trim((string)($_POST['password'] ?? ''));
     $cap   = trim((string)($_POST['captcha'] ?? ''));
     $ip    = $_SERVER['REMOTE_ADDR'] ?? '0';
@@ -24,9 +25,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $err = 'Terlalu banyak percobaan. Coba lagi sebentar.';
     } elseif (!captcha_check($cap)) {
         $err = 'Captcha salah.';
+    } elseif ($uname === '') {
+        $err = 'Username wajib diisi.';
     } else {
-        $u = $uid ? db_one("SELECT * FROM users WHERE id=$1", [$uid]) : null;
-        $emailKey = strtolower((string)($u['email'] ?? ('user-'.$uid)));
+        // Cari via username (case-insensitive); fallback ke email agar akun lama tetap bisa masuk.
+        $u = db_one("SELECT * FROM users WHERE LOWER(username)=LOWER($1) LIMIT 1", [$uname]);
+        if (!$u) {
+            $u = db_one("SELECT * FROM users WHERE LOWER(email)=LOWER($1) LIMIT 1", [$uname]);
+        }
+        $emailKey = strtolower((string)($u['email'] ?? ('u-'.$uname)));
 
         if (too_many_failed_logins($emailKey)) {
             $err = 'Akun sementara dikunci karena terlalu banyak login gagal. Coba lagi 10 menit.';
@@ -46,7 +53,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
             log_login_attempt($emailKey, $ok);
             if ($ok) {
-                // === R14 #6: Member yang tidak aktif tidak boleh login ===
                 $aktifRaw = $u['aktif'] ?? null;
                 $aktifBool = ($aktifRaw === null) ? true
                     : in_array(strtolower((string)$aktifRaw), ['1','t','true','y','yes'], true);
@@ -65,15 +71,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     header('Location: /index.php'); exit;
                 }
             } else {
-                $err = 'Nama atau password salah.';
+                $err = 'Username atau password salah.';
             }
         }
     }
 }
 
 [$a,$b] = captcha_new();
-$userList = [];
-try { $userList = db_all("SELECT id, nama, role FROM users WHERE COALESCE(aktif,1) <> 0 OR role='admin' ORDER BY nama ASC"); } catch(Throwable $e) {}
 $csrf = csrf_token();
 ?>
 <!doctype html>
@@ -202,15 +206,11 @@ body{
       <input type="hidden" name="csrf" value="<?= $csrf ?>">
 
       <div class="mb-3">
-        <label class="form-label">Nama</label>
-        <select class="lg-select" name="user_id" required>
-          <option value="">-- Pilih nama --</option>
-          <?php foreach($userList as $uu): ?>
-            <option value="<?= (int)$uu['id'] ?>" <?= (isset($_POST['user_id']) && (int)$_POST['user_id']===(int)$uu['id'])?'selected':'' ?>>
-              <?= htmlspecialchars($uu['nama']) ?><?= $uu['role']==='admin'?' (admin)':'' ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+        <label class="form-label">Username</label>
+        <input class="lg-input" name="username" type="text" required autocomplete="username"
+               placeholder="Masukkan username"
+               value="<?= htmlspecialchars((string)($_POST['username'] ?? '')) ?>">
+        <div class="form-text small">Gunakan <b>username</b> akun kamu (bukan lagi memilih dari daftar nama).</div>
       </div>
 
       <div class="mb-3">
