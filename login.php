@@ -210,7 +210,7 @@ body{
         <input class="lg-input" name="username" type="text" required autocomplete="username"
                placeholder="Masukkan username"
                value="<?= htmlspecialchars((string)($_POST['username'] ?? '')) ?>">
-        <div class="form-text small">Gunakan <b>username</b> akun kamu (bukan lagi memilih dari daftar nama).</div>
+        <div class="form-text small">Gunakan <b>username</b> akun kamu.</div>
       </div>
 
       <div class="mb-3">
@@ -250,10 +250,6 @@ body{
 
     <a href="/register.php" class="btn-lg-outline text-decoration-none d-block text-center mb-2">
       <i class="bi bi-person-plus"></i> Daftar Akun Baru
-    </a>
-
-    <a href="/index.php?guest=1" class="btn-lg-ghost text-decoration-none" id="btnGuest">
-      <i class="bi bi-arrow-right-circle"></i> Lanjut ke Dashboard tanpa Login
     </a>
 
     <!-- Revisi: Tombol Pintasan ke HP (PWA install) di halaman login -->

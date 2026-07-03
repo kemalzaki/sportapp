@@ -22,7 +22,8 @@ if (!function_exists('nav_feature_paket_map')) {
             'monitoring.php'          => ['komunitas'],
             'live_tracking.php'       => ['komunitas'],
             'flyover.php'             => ['komunitas'],
-            'riwayat.php'             => ['komunitas'],
+            // Revisi R6 (Juli 2026) — badge Paket Komunitas untuk Riwayat dihapus.
+            // 'riwayat.php'             => ['komunitas'],
             // Revisi Juli 2026 — Tracking Jalur (run.php) dipindah ke KOMUNITAS
             'run.php'                 => ['komunitas'],
             // Tempat → Komunitas

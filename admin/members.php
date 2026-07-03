@@ -6,8 +6,12 @@ require_role('admin');
 $pageTitle='Manajemen Member';
 // Revisi 6 Juni 2026 — idempotent migration kolom koordinator_id
 // Revisi 14 Juni 2026 — kolom aktif (BOOLEAN) untuk status member aktif/nonaktif
+// Revisi R6 (Juli 2026) — kolom username, komunitas_id, paket untuk CRUD di admin.
 try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT TRUE"); } catch (Throwable $e) {}
 try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nonaktif_catatan TEXT"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(40)"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS komunitas_id INTEGER"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS paket VARCHAR(20) DEFAULT 'gratis'"); } catch (Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -44,8 +48,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $pwd = $_POST['password'] ?: 'changeme';
         $jk = in_array(($_POST['jenis_kelamin'] ?? ''), ['L','P'], true) ? $_POST['jenis_kelamin'] : null;
         $wa = trim($_POST['wa'] ?? '') ?: null;
-        db_exec("INSERT INTO users(nama,email,password_hash,role,jenis_kelamin,wa) VALUES($1,$2,$3,$4,$5,$6)",
-                [$_POST['nama'], $_POST['email'], password_hash($pwd, PASSWORD_BCRYPT), $_POST['role'], $jk, $wa]);
+        // Revisi R6 (Juli 2026) — Tambah username, komunitas_id, paket.
+        $username = trim($_POST['username'] ?? '') ?: null;
+        $komId = ($_POST['komunitas_id'] ?? '') !== '' ? (int)$_POST['komunitas_id'] : null;
+        $paket = in_array(($_POST['paket'] ?? 'gratis'), ['gratis','pro','komunitas'], true) ? $_POST['paket'] : 'gratis';
+        try {
+            db_exec("INSERT INTO users(nama,email,password_hash,role,jenis_kelamin,wa,username,komunitas_id,paket)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+                    [$_POST['nama'], $_POST['email'], password_hash($pwd, PASSWORD_BCRYPT), $_POST['role'], $jk, $wa, $username, $komId, $paket]);
+            $_SESSION['flash'] = 'Member baru ditambahkan.';
+        } catch (Throwable $e) {
+            $_SESSION['flash_err'] = 'Gagal menambah member: '.$e->getMessage();
+        }
     } elseif ($a==='reset_pwd') {
         $new = $_POST['new_password'] ?? '';
         if (strlen($new) >= 6) {
@@ -56,8 +70,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     } elseif ($a==='edit') {
         $jk = in_array(($_POST['jenis_kelamin'] ?? ''), ['L','P'], true) ? $_POST['jenis_kelamin'] : null;
         $wa = trim($_POST['wa'] ?? '') ?: null;
-        db_exec("UPDATE users SET nama=$1, email=$2, jenis_kelamin=$3, wa=$4 WHERE id=$5",
-                [$_POST['nama'], $_POST['email'], $jk, $wa, (int)$_POST['id']]);
+        // Revisi R6 (Juli 2026) — Edit username, komunitas_id, paket.
+        $username = trim($_POST['username'] ?? '') ?: null;
+        $komId = ($_POST['komunitas_id'] ?? '') !== '' ? (int)$_POST['komunitas_id'] : null;
+        $paket = in_array(($_POST['paket'] ?? 'gratis'), ['gratis','pro','komunitas'], true) ? $_POST['paket'] : 'gratis';
+        db_exec("UPDATE users SET nama=$1, email=$2, jenis_kelamin=$3, wa=$4, username=$5, komunitas_id=$6, paket=$7 WHERE id=$8",
+                [$_POST['nama'], $_POST['email'], $jk, $wa, $username, $komId, $paket, (int)$_POST['id']]);
+        $_SESSION['flash'] = 'Data member diperbarui.';
     } elseif ($a==='upload_foto') {
         $id = (int)$_POST['id'];
         $target = db_one("SELECT * FROM users WHERE id=$1", [$id]);
@@ -104,11 +123,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     header('Location: members.php'); exit;
 }
 
-$users = db_all("SELECT u.*, p.nama AS pic_nama
+$users = db_all("SELECT u.*, p.nama AS pic_nama, k.nama AS komunitas_nama
                  FROM users u
                  LEFT JOIN users p ON p.id = u.pic_admin_id
+                 LEFT JOIN komunitas k ON k.id = u.komunitas_id
                  ORDER BY u.role, u.nama");
 $admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
+// Revisi R6 (Juli 2026) — daftar komunitas untuk dropdown CRUD member.
+$komList = [];
+try { $komList = db_all("SELECT id, nama FROM komunitas WHERE aktif=1 ORDER BY nama"); } catch (Throwable $e) {}
+$paketOpts = ['gratis'=>'🆓 Gratis','pro'=>'⭐ Pro','komunitas'=>'👥 Komunitas'];
 // Revisi 14 Juni 2026 — kolom Koordinator Penghubung dihapus, auto-create akun dummy dihapus.
 $flash = $_SESSION['flash'] ?? null; $flashE = $_SESSION['flash_err'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_err']);
@@ -119,20 +143,51 @@ include __DIR__.'/../includes/header.php'; ?>
 <?php if($flash): ?><div class="alert alert-success py-2"><?= htmlspecialchars($flash) ?></div><?php endif; ?>
 <?php if($flashE): ?><div class="alert alert-danger py-2"><?= htmlspecialchars($flashE) ?></div><?php endif; ?>
 
-<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-person-plus me-1 text-primary"></i> Tambah Member</div>
-<div class="card-body">
-  <form method="post" class="row g-2">
-    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-    <input type="hidden" name="_action" value="create">
-    <div class="col-md-3"><input class="form-control" name="nama" placeholder="Nama lengkap" required></div>
-    <div class="col-md-3"><input class="form-control" type="email" name="email" placeholder="Email" required></div>
-    <div class="col-md-2"><input class="form-control" name="password" placeholder="Password (default: changeme)"></div>
-    <div class="col-md-2"><input class="form-control" name="wa" placeholder="No. WhatsApp"></div>
-    <div class="col-md-1"><select class="form-select" name="jenis_kelamin"><option value="">JK</option><option value="L">L</option><option value="P">P</option></select></div>
-    <div class="col-md-1"><select class="form-select" name="role"><option value="member">member</option><option value="admin">admin</option></select></div>
-    <div class="col-12"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah Member</button></div>
-  </form>
-</div></div>
+<?php /* Revisi R6 (Juli 2026) — Tambah Member sebagai spoiler (collapse) + field Komunitas & Paket Member. */ ?>
+<div class="card shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-person-plus me-1 text-primary"></i> Tambah Member</span>
+    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addMemberSpoiler" aria-expanded="false" aria-controls="addMemberSpoiler">
+      <i class="bi bi-plus-lg"></i> Buka Form
+    </button>
+  </div>
+  <div id="addMemberSpoiler" class="collapse">
+    <div class="card-body">
+      <form method="post" class="row g-2">
+        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+        <input type="hidden" name="_action" value="create">
+        <div class="col-md-3"><label class="form-label small mb-0">Nama Lengkap *</label>
+          <input class="form-control form-control-sm" name="nama" required></div>
+        <div class="col-md-3"><label class="form-label small mb-0">Email *</label>
+          <input class="form-control form-control-sm" type="email" name="email" required></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Username</label>
+          <input class="form-control form-control-sm" name="username" placeholder="mis. budi_88"></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Password</label>
+          <input class="form-control form-control-sm" name="password" placeholder="default: changeme"></div>
+        <div class="col-md-2"><label class="form-label small mb-0">No. WhatsApp</label>
+          <input class="form-control form-control-sm" name="wa" placeholder="08xxxxxxxxxx"></div>
+        <div class="col-md-1"><label class="form-label small mb-0">JK</label>
+          <select class="form-select form-select-sm" name="jenis_kelamin"><option value="">—</option><option value="L">L</option><option value="P">P</option></select></div>
+        <div class="col-md-2"><label class="form-label small mb-0">Role</label>
+          <select class="form-select form-select-sm" name="role"><option value="member">member</option><option value="admin">admin</option></select></div>
+        <div class="col-md-4"><label class="form-label small mb-0"><i class="bi bi-people-fill text-success"></i> Komunitas</label>
+          <select class="form-select form-select-sm" name="komunitas_id">
+            <option value="">— Tidak berkomunitas —</option>
+            <?php foreach($komList as $k): ?>
+              <option value="<?= (int)$k['id'] ?>"><?= htmlspecialchars($k['nama']) ?></option>
+            <?php endforeach; ?>
+          </select></div>
+        <div class="col-md-3"><label class="form-label small mb-0"><i class="bi bi-award text-warning"></i> Paket Member</label>
+          <select class="form-select form-select-sm" name="paket">
+            <?php foreach($paketOpts as $pk=>$pl): ?>
+              <option value="<?= $pk ?>" <?= $pk==='gratis'?'selected':'' ?>><?= htmlspecialchars($pl) ?></option>
+            <?php endforeach; ?>
+          </select></div>
+        <div class="col-12"><button class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Simpan Member Baru</button></div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <div class="card shadow-sm">
   <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
@@ -148,17 +203,21 @@ include __DIR__.'/../includes/header.php'; ?>
     </div>
   </div>
   <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable" data-paginate="10">
-  <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>WA</th><th>JK</th><th>PIC Admin</th><th>Role</th><th>Aktif</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
+  <thead><tr><th>#</th><th>Nama</th><th>Username</th><th>Email</th><th>WA</th><th>JK</th><th>Komunitas</th><th>Paket</th><th>PIC Admin</th><th>Role</th><th>Aktif</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null);
     $waDigits = preg_replace('/\D+/', '', $u['wa'] ?? '');
     if ($waDigits && str_starts_with($waDigits, '0')) $waDigits = '62'.substr($waDigits,1);
   ?>
-    <tr data-search="<?= htmlspecialchars(strtolower(($u['nama'] ?? '').' '.($u['email'] ?? ''))) ?>">
+    <tr data-search="<?= htmlspecialchars(strtolower(($u['nama'] ?? '').' '.($u['email'] ?? '').' '.($u['username'] ?? ''))) ?>">
       <td class="text-muted row-num"><?= $i+1 ?></td>
       <td class="fw-semibold"><?= user_name_with_avatar($u['foto_url'] ?? null, $u['nama'], $on, 32) ?></td>
+      <td class="small"><?= $u['username'] ? '<span class="badge bg-light text-dark border">@'.htmlspecialchars($u['username']).'</span>' : '<span class="text-muted">—</span>' ?></td>
       <td class="text-muted small"><?= htmlspecialchars($u['email']) ?></td>
       <td><?= $u['wa'] ? '<span class="small">'.htmlspecialchars($u['wa']).'</span>' : '<span class="text-muted small">—</span>' ?></td>
       <td><?php $jk=$u['jenis_kelamin']??null; echo $jk==='L'?'<span class="pill">L</span>':($jk==='P'?'<span class="pill">P</span>':'<span class="text-muted small">—</span>'); ?></td>
+      <td class="small"><?= !empty($u['komunitas_nama']) ? '<span class="badge bg-success-subtle text-success"><i class="bi bi-people-fill"></i> '.htmlspecialchars($u['komunitas_nama']).'</span>' : '<span class="text-muted">—</span>' ?></td>
+      <td><?php $pk = strtolower((string)($u['paket'] ?? 'gratis')); $pmap=['gratis'=>['secondary','🆓'],'pro'=>['warning','⭐ Pro'],'komunitas'=>['success','👥 Kom']]; $pb=$pmap[$pk]??$pmap['gratis']; ?>
+        <span class="badge bg-<?= $pb[0] ?>"><?= $pb[1] ?></span></td>
       <td>
         <form method="post" class="d-flex">
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
@@ -274,6 +333,7 @@ include __DIR__.'/../includes/header.php'; ?>
   <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Member</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
     <div class="mb-2"><label class="form-label small fw-semibold">Nama</label><input name="nama" class="form-control" value="<?= htmlspecialchars($u['nama']) ?>" required></div>
+    <div class="mb-2"><label class="form-label small fw-semibold">Username</label><input name="username" class="form-control" value="<?= htmlspecialchars($u['username'] ?? '') ?>" placeholder="mis. budi_88"></div>
     <div class="mb-2"><label class="form-label small fw-semibold">Email</label><input name="email" type="email" class="form-control" value="<?= htmlspecialchars($u['email']) ?>" required></div>
     <div class="mb-2"><label class="form-label small fw-semibold"><i class="bi bi-whatsapp text-success"></i> No. WhatsApp</label><input name="wa" class="form-control" value="<?= htmlspecialchars($u['wa'] ?? '') ?>" placeholder="08xxxxxxxxxx"></div>
     <div class="mb-2"><label class="form-label small fw-semibold">Jenis Kelamin</label>
@@ -281,6 +341,19 @@ include __DIR__.'/../includes/header.php'; ?>
         <option value="" <?= empty($u['jenis_kelamin'])?'selected':'' ?>>— Tidak diisi —</option>
         <option value="L" <?= ($u['jenis_kelamin']??'')==='L'?'selected':'' ?>>Laki-laki</option>
         <option value="P" <?= ($u['jenis_kelamin']??'')==='P'?'selected':'' ?>>Perempuan</option>
+      </select></div>
+    <div class="mb-2"><label class="form-label small fw-semibold"><i class="bi bi-people-fill text-success"></i> Komunitas</label>
+      <select class="form-select" name="komunitas_id">
+        <option value="">— Tidak berkomunitas —</option>
+        <?php foreach($komList as $k): ?>
+          <option value="<?= (int)$k['id'] ?>" <?= ((int)($u['komunitas_id']??0)===(int)$k['id'])?'selected':'' ?>><?= htmlspecialchars($k['nama']) ?></option>
+        <?php endforeach; ?>
+      </select></div>
+    <div class="mb-2"><label class="form-label small fw-semibold"><i class="bi bi-award text-warning"></i> Paket Member</label>
+      <select class="form-select" name="paket">
+        <?php $cur = strtolower((string)($u['paket'] ?? 'gratis')); foreach($paketOpts as $pk=>$pl): ?>
+          <option value="<?= $pk ?>" <?= $cur===$pk?'selected':'' ?>><?= htmlspecialchars($pl) ?></option>
+        <?php endforeach; ?>
       </select></div>
   </div>
   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button></div>

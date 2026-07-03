@@ -10,6 +10,10 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
+require_once __DIR__.'/includes/paket_helpers.php';
+require_login();
+// Revisi R6 (Juli 2026) — Halaman ini dikunci untuk paket Pro & Komunitas.
+paket_require_or_lock('pro', current_user(), 'Toko Perlengkapan Olahraga');
 $pageTitle = 'Lacak Toko Perlengkapan Olahraga Terdekat';
 include __DIR__.'/includes/header.php';
 ?>

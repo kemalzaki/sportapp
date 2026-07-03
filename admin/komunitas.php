@@ -68,7 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-$rows = db_all("SELECT k.*, (SELECT COUNT(*) FROM komunitas_data d WHERE d.komunitas_id=k.id) AS n_data,
+// Revisi R6 (Juli 2026) — kolom "Data" diganti "Total Member" (hitung users.komunitas_id).
+try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS komunitas_id INTEGER"); } catch (Throwable $e) {}
+$rows = db_all("SELECT k.*, (SELECT COUNT(*) FROM users u WHERE u.komunitas_id=k.id) AS n_member,
                         (SELECT COUNT(*) FROM jadwal j WHERE j.komunitas_id=k.id) AS n_jadwal
                  FROM komunitas k ORDER BY k.aktif DESC, k.nama ASC");
 
@@ -132,7 +134,7 @@ include __DIR__.'/../includes/header.php';
           <span><i class="bi bi-list-ul"></i> Daftar Komunitas (<?= count($rows) ?>)</span>
         </div>
         <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
-          <thead class="table-light"><tr><th>Nama</th><th>Kota</th><th>Data</th><th>Jadwal</th><th>Status</th><th></th></tr></thead>
+          <thead class="table-light"><tr><th>Nama</th><th>Kota</th><th>Total Member</th><th>Jadwal</th><th>Status</th><th></th></tr></thead>
           <tbody>
           <?php foreach ($rows as $r): ?>
             <tr>
@@ -142,7 +144,7 @@ include __DIR__.'/../includes/header.php';
                 <?php if(!empty($r['slug'])): ?><div class="small text-muted">/<?= htmlspecialchars($r['slug']) ?></div><?php endif; ?>
               </td>
               <td class="small"><?= htmlspecialchars($r['kota'] ?? '—') ?></td>
-              <td><span class="badge bg-info-subtle text-info"><?= (int)$r['n_data'] ?></span></td>
+              <td><span class="badge bg-info-subtle text-info"><i class="bi bi-people-fill"></i> <?= (int)$r['n_member'] ?></span></td>
               <td><span class="badge bg-primary-subtle text-primary"><?= (int)$r['n_jadwal'] ?></span></td>
               <td>
                 <?php if ((int)$r['aktif']===1): ?><span class="badge bg-success">Aktif</span>
@@ -150,7 +152,7 @@ include __DIR__.'/../includes/header.php';
               </td>
               <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" href="/admin/komunitas.php?edit=<?= (int)$r['id'] ?>"><i class="bi bi-pencil"></i></a>
-                <a class="btn btn-sm btn-outline-info" href="/admin/komunitas_data.php?komunitas_id=<?= (int)$r['id'] ?>"><i class="bi bi-collection"></i></a>
+                <?php /* Revisi R6 — link ke Data Komunitas (komunitas_data.php) dihilangkan dari drawer aksi. */ ?>
                 <form method="post" class="d-inline" onsubmit="return confirm('Hapus komunitas ini beserta seluruh datanya?')">
                   <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                   <input type="hidden" name="_action" value="delete">
