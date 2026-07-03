@@ -795,13 +795,14 @@ if (empty($pageSkeleton)) {
             <?php /* Revisi 15 Juni 2026: menu "Riwayat Login Member" dihapus sesuai permintaan. */ ?>
           </div>
 
-	  <?php /* Admin > Komunitas Organize */ ?>
-          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpMember" role="button" aria-expanded="false">
-            <span><i class="bi bi-people-fill text-info"></i> Member Organize</span><i class="bi bi-chevron-down small"></i>
+          <?php /* Admin > Komunitas Organize (Revisi Jul 2026) */ ?>
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpKomunitas" role="button" aria-expanded="false">
+            <span><i class="bi bi-people text-success"></i> Komunitas Organize</span><i class="bi bi-chevron-down small"></i>
           </a>
-          <div class="collapse" id="grpMember">
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas.php"><i class="bi bi-people"></i> Komunitas</a>
+          <div class="collapse" id="grpKomunitas">
+            <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas.php"><i class="bi bi-people-fill text-success"></i> Komunitas</a>
           </div>
+
 
           <?php /* Admin > Pengaturan Lainnya */ ?>
           <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpLainnya" role="button" aria-expanded="false">
