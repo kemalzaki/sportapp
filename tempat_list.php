@@ -93,12 +93,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_survei_action'])) {
 }
 
 /* Ambil daftar survei tempat milik user (atau semua bila admin) */
+/* Revisi R7 #8 — tambahkan nama komunitas pengusul di samping nama pengusul.
+   Revisi R7 #5 — admin biasa hanya lihat usulan dari komunitasnya sendiri. */
+require_once __DIR__ . '/includes/scope.php';
+$__vids = scope_user_ids_sql_array();
 try {
-    $surveiRows = $isAdmin
-        ? db_all("SELECT s.*, u.nama AS pengusul FROM tempat_survei s
-                  LEFT JOIN users u ON u.id=s.user_id
-                  ORDER BY s.id DESC LIMIT 200")
-        : db_all("SELECT * FROM tempat_survei WHERE user_id=$1 ORDER BY id DESC LIMIT 100", [(int)$u['id']]);
+    if ($isAdmin) {
+        if (scope_is_super()) {
+            $surveiRows = db_all(
+                "SELECT s.*, u.nama AS pengusul,
+                        COALESCE((SELECT string_agg(k.nama, ', ' ORDER BY k.nama)
+                                  FROM user_komunitas uk JOIN komunitas k ON k.id=uk.komunitas_id
+                                  WHERE uk.user_id=s.user_id), '') AS pengusul_komunitas
+                 FROM tempat_survei s LEFT JOIN users u ON u.id=s.user_id
+                 ORDER BY s.id DESC LIMIT 200");
+        } else {
+            $surveiRows = db_all(
+                "SELECT s.*, u.nama AS pengusul,
+                        COALESCE((SELECT string_agg(k.nama, ', ' ORDER BY k.nama)
+                                  FROM user_komunitas uk JOIN komunitas k ON k.id=uk.komunitas_id
+                                  WHERE uk.user_id=s.user_id), '') AS pengusul_komunitas
+                 FROM tempat_survei s LEFT JOIN users u ON u.id=s.user_id
+                 WHERE s.user_id = ANY($1::int[])
+                 ORDER BY s.id DESC LIMIT 200", [$__vids]);
+        }
+    } else {
+        $surveiRows = db_all("SELECT * FROM tempat_survei WHERE user_id=$1 ORDER BY id DESC LIMIT 100", [(int)$u['id']]);
+    }
 } catch (Throwable $e) { $surveiRows = []; }
 
 
@@ -367,13 +388,13 @@ include __DIR__.'/includes/header.php';
         <thead class="table-light">
           <tr>
             <th>Nama</th><th>Jenis</th><th>Alamat</th>
-            <?php if ($isAdmin): ?><th>Pengusul</th><?php endif; ?>
+            <?php if ($isAdmin): ?><th>Pengusul</th><th>Komunitas Pengusul</th><?php endif; ?>
             <th>Status</th><th>Dibuat</th><th class="text-end">Aksi</th>
           </tr>
         </thead>
         <tbody>
           <?php if (!$surveiRows): ?>
-            <tr><td colspan="<?= $isAdmin?7:6 ?>" class="text-center text-muted small py-3">
+            <tr><td colspan="<?= $isAdmin?8:6 ?>" class="text-center text-muted small py-3">
               Belum ada usulan tempat. Jadilah yang pertama mengusulkan!
             </td></tr>
           <?php else: foreach ($surveiRows as $s):
@@ -385,7 +406,11 @@ include __DIR__.'/includes/header.php';
               <td><?= htmlspecialchars($s['nama']) ?></td>
               <td class="small"><?= htmlspecialchars($s['jenis'] ?? '—') ?></td>
               <td class="small text-muted"><?= htmlspecialchars($s['alamat'] ?? '—') ?></td>
-              <?php if ($isAdmin): ?><td class="small"><?= htmlspecialchars($s['pengusul'] ?? '') ?></td><?php endif; ?>
+              <?php if ($isAdmin): ?>
+                <td class="small"><?= htmlspecialchars($s['pengusul'] ?? '') ?></td>
+                <?php /* Revisi R7 #8 — kolom Komunitas Pengusul */ ?>
+                <td class="small"><?= !empty($s['pengusul_komunitas']) ? '<span class="badge bg-success-subtle text-success border"><i class="bi bi-people-fill"></i> '.htmlspecialchars($s['pengusul_komunitas']).'</span>' : '<span class="text-muted">—</span>' ?></td>
+              <?php endif; ?>
               <td><span class="badge bg-<?= $cls ?>"><?= htmlspecialchars($stat) ?></span></td>
               <td class="small text-muted"><?= htmlspecialchars((string)$s['created_at']) ?></td>
               <td class="text-end">
@@ -416,7 +441,7 @@ include __DIR__.'/includes/header.php';
             </tr>
             <?php if ($canEdit): ?>
             <tr class="collapse" id="svEdit<?= (int)$s['id'] ?>">
-              <td colspan="<?= $isAdmin?7:6 ?>" class="bg-light-subtle">
+              <td colspan="<?= $isAdmin?8:6 ?>" class="bg-light-subtle">
                 <form method="post" class="row g-2">
                   <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                   <input type="hidden" name="_survei_action" value="update">

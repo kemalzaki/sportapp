@@ -26,13 +26,15 @@ CREATE TABLE IF NOT EXISTS "absensi" (
 	"telat_menit" INTEGER NULL DEFAULT '0',
 	"status" VARCHAR(20) NOT NULL DEFAULT 'hadir',
 	"keterangan" TEXT NULL DEFAULT NULL,
-	INDEX "idx_absensi_jadwal_user" ("jadwal_id", "user_id"),
-	UNIQUE INDEX "absensi_unique_ju" ("jadwal_id", "user_id"),
+	UNIQUE INDEX "absensi_jadwal_id_user_id_key" ("jadwal_id", "user_id"),
+	PRIMARY KEY ("id"),
+	CONSTRAINT "absensi_jadwal_id_fkey" FOREIGN KEY ("jadwal_id") REFERENCES "jadwal" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "absensi_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
 	CONSTRAINT "absensi_hadir_check" CHECK ((hadir = ANY (ARRAY[0, 1]))),
 	CONSTRAINT "absensi_status_check" CHECK (((status)::text = ANY (ARRAY[('hadir'::character varying)::text, ('izin'::character varying)::text, ('sakit'::character varying)::text, ('telat'::character varying)::text, ('absen'::character varying)::text])))
 );
 
--- Dumping data for table public.absensi: 202 rows
+-- Dumping data for table public.absensi: 317 rows
 /*!40000 ALTER TABLE "absensi" DISABLE KEYS */;
 INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin_at", "lat", "lng", "telat_menit", "status", "keterangan") VALUES
 	(183, 1, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
@@ -236,7 +238,172 @@ INSERT INTO "absensi" ("id", "jadwal_id", "user_id", "hadir", "metode", "checkin
 	(841, 11, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
 	(842, 11, 17, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Reuni Alumni + wisudaan di pondoknya di Subang'),
 	(843, 11, 5, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
-	(1, 1, 16, 1, 'quick', '2026-06-22 12:16:19.071959', NULL, NULL, 0, 'hadir', '');
+	(1145, 15, 16, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1146, 15, 13, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1147, 15, 4, 1, 'manual', NULL, NULL, NULL, 0, 'telat', 'Nyusul setelah matkul'),
+	(1148, 15, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1149, 15, 6, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Pelatihan PKS'),
+	(1316, 25, 16, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1317, 25, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1150, 15, 7, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Ngerjain / Persiapan UAS'),
+	(1151, 15, 20, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Kerja'),
+	(1152, 15, 14, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1153, 15, 21, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Penyesuaian Fisik'),
+	(1154, 15, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1155, 15, 15, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'TO Ujian Dokter'),
+	(1156, 15, 39, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1157, 15, 38, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1158, 15, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1159, 15, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1160, 15, 11, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1161, 15, 3, 1, 'manual', NULL, NULL, NULL, 0, 'telat', 'Nyusul beres matkul'),
+	(1162, 15, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1163, 15, 5, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1006, 16, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1007, 16, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1008, 16, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1009, 16, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1010, 16, 7, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1011, 16, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1012, 16, 14, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1013, 16, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1014, 16, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1015, 16, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1016, 16, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1017, 16, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1018, 16, 11, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1019, 16, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1020, 16, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1021, 16, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1022, 16, 16, 0, 'quick', '2026-06-23 20:29:11.193386', NULL, NULL, 0, 'izin', ''),
+	(1165, 22, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1166, 22, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1167, 22, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1168, 22, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1169, 22, 7, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1170, 22, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1171, 22, 14, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1172, 22, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1173, 22, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1174, 22, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1175, 22, 39, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1177, 22, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1178, 22, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1179, 22, 11, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1180, 22, 3, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1181, 22, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1182, 22, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1183, 22, 16, 1, 'quick', '2026-06-28 18:15:22.556061', NULL, NULL, 0, 'hadir', ''),
+	(1184, 22, 38, 0, 'quick', '2026-06-28 18:20:23.730666', NULL, NULL, 0, 'izin', ''),
+	(1062, 17, 16, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1063, 17, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1064, 17, 4, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1065, 17, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1066, 17, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1067, 17, 7, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1068, 17, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1069, 17, 14, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1070, 17, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1071, 17, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1072, 17, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1073, 17, 38, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1074, 17, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1075, 17, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1076, 17, 11, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1077, 17, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1078, 17, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1079, 17, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1264, 23, 16, 1, 'manual', NULL, NULL, NULL, 0, 'telat', 'Nyusul'),
+	(1265, 23, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1267, 23, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1268, 23, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1269, 23, 7, 1, 'manual', NULL, NULL, NULL, 0, 'telat', 'Nyusul'),
+	(1270, 23, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1271, 23, 14, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1272, 23, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1273, 23, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1274, 23, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1275, 23, 39, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1276, 23, 38, 0, 'manual', NULL, NULL, NULL, 0, 'izin', 'Lagi bersama temannya'),
+	(1277, 23, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1278, 23, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1279, 23, 11, 1, 'manual', NULL, NULL, NULL, 0, 'telat', 'Nyusul'),
+	(1280, 23, 3, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1281, 23, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1282, 23, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1283, 23, 4, 1, 'quick', '2026-06-29 23:50:32.233846', NULL, NULL, 0, 'hadir', ''),
+	(1284, 24, 2, 1, 'quick', '2026-06-30 13:19:56.381273', NULL, NULL, 0, 'hadir', ''),
+	(1285, 24, 16, 0, 'quick', '2026-06-30 16:59:29.270549', NULL, NULL, 0, 'izin', ''),
+	(1286, 24, 4, 1, 'quick', '2026-06-30 17:48:42.781776', NULL, NULL, 0, 'hadir', ''),
+	(1289, 26, 16, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1290, 26, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1291, 26, 4, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1292, 26, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1293, 26, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1294, 26, 7, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1295, 26, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1296, 26, 14, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1297, 26, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1298, 26, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1299, 26, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1300, 26, 39, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1301, 26, 38, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1302, 26, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1303, 26, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1304, 26, 11, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1305, 26, 3, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1306, 26, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1307, 26, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1318, 25, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1319, 25, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1320, 25, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1321, 25, 7, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1322, 25, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1323, 25, 14, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1324, 25, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1325, 25, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1326, 25, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1327, 25, 39, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1328, 25, 38, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1329, 25, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1330, 25, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1331, 25, 11, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1332, 25, 3, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1333, 25, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1334, 25, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1337, 27, 45, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1338, 27, 16, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1339, 27, 52, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1340, 27, 13, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1341, 27, 4, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1342, 27, 50, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1343, 27, 8, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1344, 27, 6, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1345, 27, 40, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1346, 27, 42, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1347, 27, 7, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1348, 27, 20, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1349, 27, 14, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1350, 27, 21, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1351, 27, 2, 1, 'manual', NULL, NULL, NULL, 0, 'hadir', NULL),
+	(1352, 27, 15, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1353, 27, 49, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1354, 27, 39, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1355, 27, 38, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1356, 27, 46, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1357, 27, 48, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1358, 27, 9, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1359, 27, 43, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1360, 27, 10, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1362, 27, 41, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1363, 27, 3, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1364, 27, 17, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1365, 27, 47, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1366, 27, 5, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1367, 27, 44, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1368, 27, 53, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1369, 27, 51, 0, 'manual', NULL, NULL, NULL, 0, 'absen', NULL),
+	(1372, 27, 11, 1, 'quick', '2026-07-04 04:06:06.271506', NULL, NULL, 0, 'hadir', '');
 /*!40000 ALTER TABLE "absensi" ENABLE KEYS */;
 
 -- Dumping structure for table public.app_settings
@@ -244,10 +411,11 @@ CREATE TABLE IF NOT EXISTS "app_settings" (
 	"skey" VARCHAR(80) NOT NULL,
 	"sval" TEXT NOT NULL DEFAULT '',
 	"keterangan" TEXT NULL DEFAULT NULL,
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("skey")
 );
 
--- Dumping data for table public.app_settings: -1 rows
+-- Dumping data for table public.app_settings: 6 rows
 /*!40000 ALTER TABLE "app_settings" DISABLE KEYS */;
 INSERT INTO "app_settings" ("skey", "sval", "keterangan", "updated_at") VALUES
 	('biaya_admin_fixed', '4000', 'Biaya admin Midtrans fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
@@ -255,13 +423,8 @@ INSERT INTO "app_settings" ("skey", "sval", "keterangan", "updated_at") VALUES
 	('biaya_aplikasi_fixed', '1000', 'Biaya aplikasi fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
 	('biaya_aplikasi_pct', '0', 'Biaya aplikasi persen', '2026-06-02 07:20:16.747266'),
 	('invoice_email_from', 'no-reply@hapfam.local', 'Alamat email pengirim invoice', '2026-06-02 07:20:16.747266'),
-	('invoice_email_nama', 'KawanKeringat', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266'),
-	('biaya_admin_fixed', '4000', 'Biaya admin Midtrans fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
-	('biaya_admin_pct', '0.007', 'Biaya admin Midtrans persen (0.007 = 0.7%)', '2026-06-02 07:20:16.747266'),
-	('biaya_aplikasi_fixed', '1000', 'Biaya aplikasi fixed (Rp) per transaksi', '2026-06-02 07:20:16.747266'),
-	('biaya_aplikasi_pct', '0', 'Biaya aplikasi persen', '2026-06-02 07:20:16.747266'),
-	('invoice_email_from', 'no-reply@hapfam.local', 'Alamat email pengirim invoice', '2026-06-02 07:20:16.747266'),
-	('invoice_email_nama', 'KawanKeringat', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266');
+	('invoice_email_nama', 'KawanKeringat App', 'Nama pengirim invoice', '2026-06-02 07:20:16.747266'),
+	('wa_grup_link', 'https://chat.whatsapp.com/', NULL, '2026-06-27 14:08:06.558997');
 /*!40000 ALTER TABLE "app_settings" ENABLE KEYS */;
 
 -- Dumping structure for table public.badges
@@ -273,7 +436,8 @@ CREATE TABLE IF NOT EXISTS "badges" (
 	"icon" VARCHAR(50) NULL DEFAULT 'bi-award',
 	"warna" VARCHAR(20) NULL DEFAULT 'primary',
 	"xp" INTEGER NULL DEFAULT '50',
-	UNIQUE INDEX "badges_unique_kode" ("kode")
+	UNIQUE INDEX "badges_kode_key" ("kode"),
+	PRIMARY KEY ("id")
 );
 
 -- Dumping data for table public.badges: 10 rows
@@ -298,13 +462,13 @@ CREATE TABLE IF NOT EXISTS "berita" (
 	"isi" TEXT NULL DEFAULT NULL,
 	"gambar_url" VARCHAR(255) NULL DEFAULT NULL,
 	"gambar_file_id" VARCHAR(120) NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.berita: -1 rows
+-- Dumping data for table public.berita: 1 rows
 /*!40000 ALTER TABLE "berita" DISABLE KEYS */;
 INSERT INTO "berita" ("id", "judul", "isi", "gambar_url", "gambar_file_id", "created_at") VALUES
-	(1, 'Putri KW dengan Senang Hati Terima Tongkat Estafet dari Gregoria Mercy Raya', '<p><span style="color: rgb(0, 0, 0);">Jakarta - Putri Kusuma Wardani dengan senang hati menerima tongkat estafet dari Gregoria Mariska Tunjung sebagai tulang punggung tunggal putri PBSI.</span></p><p><span style="color: rgb(0, 0, 0);">Gregoria memutuskan mundur dari Pelatnas PBSI pekan lalu. Dia mengundurkan diri karena kondisi kesehatannya yang belum pulih sepenuhnya dari vertigo.</span></p><p><br></p><p><span style="color: rgb(0, 0, 0);">Mundurnya Gregoria membuat Putri KW jadi andalan utama PBSI di nomor tunggal putri. Pebulutangkis berusia 23 tahun itu pun optimis bisa melanjutkan langkah seniornya tersebut.</span></p>', 'https://ik.imagekit.io/ahsansur/sportapp/berita/berita-1779362347_WO6ceqhnq.jpeg', '6a0eea2d5c7cd75eb8cb5ec7', '2026-05-21 10:44:13.957308'),
 	(1, 'Putri KW dengan Senang Hati Terima Tongkat Estafet dari Gregoria Mercy Raya', '<p><span style="color: rgb(0, 0, 0);">Jakarta - Putri Kusuma Wardani dengan senang hati menerima tongkat estafet dari Gregoria Mariska Tunjung sebagai tulang punggung tunggal putri PBSI.</span></p><p><span style="color: rgb(0, 0, 0);">Gregoria memutuskan mundur dari Pelatnas PBSI pekan lalu. Dia mengundurkan diri karena kondisi kesehatannya yang belum pulih sepenuhnya dari vertigo.</span></p><p><br></p><p><span style="color: rgb(0, 0, 0);">Mundurnya Gregoria membuat Putri KW jadi andalan utama PBSI di nomor tunggal putri. Pebulutangkis berusia 23 tahun itu pun optimis bisa melanjutkan langkah seniornya tersebut.</span></p>', 'https://ik.imagekit.io/ahsansur/sportapp/berita/berita-1779362347_WO6ceqhnq.jpeg', '6a0eea2d5c7cd75eb8cb5ec7', '2026-05-21 10:44:13.957308');
 /*!40000 ALTER TABLE "berita" ENABLE KEYS */;
 
@@ -321,15 +485,43 @@ CREATE TABLE IF NOT EXISTS "booking" (
 	"recurring" VARCHAR(20) NULL DEFAULT NULL,
 	"recurring_until" DATE NULL DEFAULT NULL,
 	"catatan" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "booking_idx" ("tempat_id", "tanggal"),
+	CONSTRAINT "booking_tempat_id_fkey" FOREIGN KEY ("tempat_id") REFERENCES "tempat" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "booking_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.booking: -1 rows
+-- Dumping data for table public.booking: 1 rows
 /*!40000 ALTER TABLE "booking" DISABLE KEYS */;
 INSERT INTO "booking" ("id", "tempat_id", "user_id", "tanggal", "jam_mulai", "jam_selesai", "status", "dp_status", "recurring", "recurring_until", "catatan", "created_at") VALUES
-	(1, 3, 2, '2026-05-23', '16:00:00', '18:00:00', 'canceled', 'unpaid', NULL, NULL, 'DP', '2026-05-22 00:45:14.355745'),
 	(1, 3, 2, '2026-05-23', '16:00:00', '18:00:00', 'canceled', 'unpaid', NULL, NULL, 'DP', '2026-05-22 00:45:14.355745');
 /*!40000 ALTER TABLE "booking" ENABLE KEYS */;
+
+-- Dumping structure for table public.catatan_baca_buku
+CREATE TABLE IF NOT EXISTS "catatan_baca_buku" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''catatan_baca_buku_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"kajian_id" INTEGER NULL DEFAULT NULL,
+	"judul_buku" VARCHAR(200) NOT NULL,
+	"penulis" VARCHAR(150) NULL DEFAULT 'NULL::character varying',
+	"halaman_total" INTEGER NULL DEFAULT '0',
+	"halaman_dibaca" INTEGER NULL DEFAULT '0',
+	"status" VARCHAR(20) NOT NULL DEFAULT 'baca',
+	"rating" SMALLINT NULL DEFAULT '0',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"last_read" DATE NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "catatan_baca_buku_user_idx" ("user_id")
+);
+
+-- Dumping data for table public.catatan_baca_buku: -1 rows
+/*!40000 ALTER TABLE "catatan_baca_buku" DISABLE KEYS */;
+INSERT INTO "catatan_baca_buku" ("id", "user_id", "kajian_id", "judul_buku", "penulis", "halaman_total", "halaman_dibaca", "status", "rating", "catatan", "last_read", "created_at", "updated_at") VALUES
+	(1, 2, NULL, 'Moslem on the Lizard Hole', 'Muslim Abdul Mukmin', 209, 9, 'baca', 5, 'Muantap', '2026-06-25', '2026-06-25 23:20:50.797662', '2026-06-25 23:20:50.797662');
+/*!40000 ALTER TABLE "catatan_baca_buku" ENABLE KEYS */;
 
 -- Dumping structure for table public.catatan_hafalan
 CREATE TABLE IF NOT EXISTS "catatan_hafalan" (
@@ -345,36 +537,45 @@ CREATE TABLE IF NOT EXISTS "catatan_hafalan" (
 	"last_review" DATE NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "catatan_hafalan_user_idx" ("user_id")
 );
 
--- Dumping data for table public.catatan_hafalan: 2 rows
+-- Dumping data for table public.catatan_hafalan: 31 rows
 /*!40000 ALTER TABLE "catatan_hafalan" DISABLE KEYS */;
 INSERT INTO "catatan_hafalan" ("id", "user_id", "jenis", "judul", "referensi", "target_ayat", "sudah_ayat", "status", "catatan", "last_review", "created_at", "updated_at") VALUES
-	(1, 2, 'Quran', 'MI Pokok', '76:1-2', 1, 1, 'selesai', '', NULL, '2026-06-11 17:31:13.443017', '2026-06-11 17:32:01.99662'),
-	(1, 2, 'Quran', 'MI Pokok', '76:1-2', 1, 1, 'selesai', '', NULL, '2026-06-11 17:31:13.443017', '2026-06-11 17:32:01.99662');
+	(20, 2, 'Quran', 'Surat Ar-Rum', '30:30', 1, 0, 'belum', 'Penghadapan lurus kpd islam (fitrah)', NULL, '2026-06-25 06:20:27.885051', '2026-06-28 11:15:45.720664'),
+	(22, 2, 'Quran', 'Surat Al-Baqarah', '9:111', 1, 0, 'belum', 'Bergembira dengan jual beli', NULL, '2026-06-25 06:27:32.842858', '2026-06-28 11:15:59.754193'),
+	(21, 2, 'Quran', 'Surat At-Taubah', '9:24', 1, 0, 'belum', 'Manajemen Prioritas (Allah)', NULL, '2026-06-25 06:23:30.336371', '2026-06-28 11:16:05.675695'),
+	(19, 2, 'Quran', 'Surat Al-Baqarah', '2:247', 1, 0, 'belum', 'Ilmu &Fisik', NULL, '2026-06-25 06:18:29.984264', '2026-06-28 11:16:12.52025'),
+	(7, 2, 'Quran', 'Al-Baqarah', '2:186', 1, 0, 'belum', 'Allah kabulkan doa', NULL, '2026-06-25 05:51:03.385211', '2026-06-25 05:51:03.385211'),
+	(3, 2, 'Quran', 'Surat Al-Baqarah', '2:255', 1, 0, 'belum', 'Tentang Allah', NULL, '2026-06-25 05:37:07.399587', '2026-06-25 05:51:19.368221'),
+	(2, 2, 'Quran', 'Surat Al-Baqarah', '2:260', 1, 0, 'belum', 'Tentang ketidakyakinan Nabi Ibrahim dalam berjuang', NULL, '2026-06-25 05:31:35.60071', '2026-06-25 05:51:26.977776'),
+	(4, 2, 'Quran', 'Surat Al-A''raf', '7:54', 1, 0, 'belum', 'Siap diatur Allah', NULL, '2026-06-25 05:39:17.844503', '2026-06-25 05:51:34.927618'),
+	(5, 2, 'Quran', 'Surat Ali-Imran', '3:144', 1, 0, 'belum', 'Telah berlalu beberapa rasul', NULL, '2026-06-25 05:43:36.489874', '2026-06-25 05:51:43.185778'),
+	(6, 2, 'Quran', 'Surat Al-Ahzab', '33:21', 1, 0, 'belum', 'Rasulullah adalah suri teladan', NULL, '2026-06-25 05:46:02.739619', '2026-06-25 05:51:52.538061'),
+	(8, 2, 'Quran', 'Surat Al-Baqarah', '2:185', 1, 0, 'belum', 'Apa itu AlQuran?', '2026-06-25', '2026-06-25 05:53:01.518323', '2026-06-25 05:53:49.549421'),
+	(18, 2, 'Quran', 'Surat Al-Isra', '17:32,36-37', 3, 0, 'belum', 'Jangan Zina, Tidak ada Ilmu dan Berjalan dengan Sombong (lihat 38 sbg Kejahatan)', NULL, '2026-06-25 06:10:50.472478', '2026-06-28 11:16:31.136572'),
+	(30, 2, 'Quran', 'Surat Al-Mu''Minun', '23:3', 1, 0, 'belum', 'Perkataan sia-sia', NULL, '2026-06-25 22:33:32.468971', '2026-06-28 11:14:23.417792'),
+	(29, 2, 'Quran', 'Surat At Taubah', '9:103', 1, 0, 'belum', 'Arti shalat adalah Doa', NULL, '2026-06-25 06:37:25.893715', '2026-06-28 11:14:32.802049'),
+	(28, 2, 'Quran', 'Surat Taha', '20:14', 1, 0, 'belum', 'Shalat untuk ingat kepada Allah', NULL, '2026-06-25 06:36:06.330658', '2026-06-28 11:14:42.296183'),
+	(27, 2, 'Quran', 'Surat Al-Bayyinah', '98:5', 1, 0, 'belum', 'Ibadah ikhlas', NULL, '2026-06-25 06:33:56.846587', '2026-06-28 11:14:48.632328'),
+	(26, 2, 'Quran', 'Surat Adz-Dzariyat', '51:56', 1, 0, 'belum', 'Tujuan hidup', NULL, '2026-06-25 06:33:22.074019', '2026-06-28 11:14:55.017485'),
+	(25, 2, 'Quran', 'Surat Ar-Rad', '13:28', 1, 0, 'belum', 'Meningat Allah hati Tentram', NULL, '2026-06-25 06:32:37.353203', '2026-06-28 11:15:06.116462'),
+	(9, 2, 'Quran', 'Surat Yusuf', '12:76', 1, 0, 'belum', 'Apa itu Din?', NULL, '2026-06-25 05:55:11.750882', '2026-06-28 11:15:31.709386'),
+	(24, 2, 'Quran', 'Surat Ali-Imran', '3:14', 1, 0, 'belum', 'Wanita, Harta, Tahta', NULL, '2026-06-25 06:30:51.872497', '2026-06-28 11:15:38.577813'),
+	(14, 2, 'Quran', 'Surat Al-Baqarah', '2:165', 1, 0, 'belum', 'Tentang Hub/Kecintaan', NULL, '2026-06-25 06:04:21.662664', '2026-06-28 11:16:41.778143'),
+	(17, 2, 'Quran', 'Surat Ali-Imran', '3:85', 1, 0, 'belum', 'Memeluk Din selain Islam', NULL, '2026-06-25 06:08:44.212654', '2026-06-28 11:16:49.375013'),
+	(16, 2, 'Quran', 'Surat Ali-Imran', '3:19', 1, 0, 'belum', 'Din yang Di Ridoi', NULL, '2026-06-25 06:07:02.750468', '2026-06-28 11:16:56.34098'),
+	(10, 2, 'Quran', 'Surat Taha', '20:24', 1, 0, 'belum', 'Seruan Allah kepada Musa pergi ke Firaun', NULL, '2026-06-25 05:56:51.798465', '2026-06-28 11:17:03.257453'),
+	(11, 2, 'Quran', 'Surat An-Nisa', '4:100', 1, 0, 'belum', 'Makna Yuhajir', NULL, '2026-06-25 05:59:04.719088', '2026-06-28 11:17:09.854933'),
+	(15, 2, 'Quran', 'Surat Al-Araf', '7:179', 1, 0, 'belum', 'Gambaran Hewan Ternak', NULL, '2026-06-25 06:06:13.640778', '2026-06-28 11:17:15.87548'),
+	(13, 2, 'Quran', 'Surat Al-Mumtahanah', '60:12', 1, 0, 'belum', 'Ujian Keimanan', NULL, '2026-06-25 06:01:18.293041', '2026-06-28 11:17:26.769936'),
+	(1, 2, 'Quran', 'Surat Al-Insan', '76:1-2', 1, 1, 'belum', 'Prinsip penciptaan', NULL, '2026-06-11 17:31:13.443017', '2026-06-28 11:18:01.145704'),
+	(31, 11, 'Quran', 'Surat Alwaqiah', 'Alquran', 96, 96, 'selesai', 'Alhamdulillah rutinitas murojaah alwaqiah setiap ba''da subuh 📝', '2026-06-28', '2026-06-28 11:50:27.617666', '2026-06-28 11:50:27.617666'),
+	(32, 2, 'Quran', 'Al-Ankabut', '29:2-3', 2, 0, 'progress', '', '2026-07-03', '2026-07-03 16:42:40.18219', '2026-07-03 16:42:40.18219'),
+	(12, 2, 'Quran', 'Surat Ash-Shaf', '61:10-13', 4, 0, 'belum', 'Jual Beli', NULL, '2026-06-25 06:00:37.430899', '2026-07-03 16:42:52.398828');
 /*!40000 ALTER TABLE "catatan_hafalan" ENABLE KEYS */;
-
--- Revisi 25 Juni 2026 — tabel baru: Catatan Progress Baca Buku
--- (juga dibuat otomatis oleh catatan_baca_buku.php bila belum ada)
-CREATE TABLE IF NOT EXISTS "catatan_baca_buku" (
-	"id" SERIAL PRIMARY KEY,
-	"user_id" INTEGER NOT NULL,
-	"kajian_id" INTEGER NULL DEFAULT NULL,
-	"judul_buku" VARCHAR(200) NOT NULL,
-	"penulis" VARCHAR(150) NULL DEFAULT NULL,
-	"halaman_total" INTEGER NULL DEFAULT 0,
-	"halaman_dibaca" INTEGER NULL DEFAULT 0,
-	"status" VARCHAR(20) NOT NULL DEFAULT 'baca',
-	"rating" SMALLINT NULL DEFAULT 0,
-	"catatan" TEXT NULL DEFAULT NULL,
-	"last_read" DATE NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT now(),
-	"updated_at" TIMESTAMP NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS "catatan_baca_buku_user_idx" ON "catatan_baca_buku" ("user_id");
-
-
 
 -- Dumping structure for table public.challenge_log
 CREATE TABLE IF NOT EXISTS "challenge_log" (
@@ -383,10 +584,13 @@ CREATE TABLE IF NOT EXISTS "challenge_log" (
 	"challenge_key" VARCHAR(40) NOT NULL,
 	"tanggal" DATE NOT NULL,
 	"catatan" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "challenge_log_user_id_challenge_key_tanggal_key" ("user_id", "challenge_key", "tanggal"),
+	CONSTRAINT "challenge_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.challenge_log: -1 rows
+-- Dumping data for table public.challenge_log: 13 rows
 /*!40000 ALTER TABLE "challenge_log" DISABLE KEYS */;
 INSERT INTO "challenge_log" ("id", "user_id", "challenge_key", "tanggal", "catatan", "created_at") VALUES
 	(1, 2, 'dzikir_pagi', '2026-05-24', NULL, '2026-05-24 06:27:37.380155'),
@@ -402,19 +606,10 @@ INSERT INTO "challenge_log" ("id", "user_id", "challenge_key", "tanggal", "catat
 	(18, 3, 'ayat_harian', '2026-05-31', NULL, '2026-05-31 16:40:08.47246'),
 	(51, 16, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 15:08:27.24533'),
 	(52, 6, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 22:14:46.78882'),
-	(1, 2, 'dzikir_pagi', '2026-05-24', NULL, '2026-05-24 06:27:37.380155'),
-	(3, 2, 'subuh_walk', '2026-05-24', NULL, '2026-05-24 06:31:17.872226'),
-	(5, 2, 'ayat_harian', '2026-05-24', NULL, '2026-05-24 06:31:30.814959'),
-	(7, 4, 'puasa_tasua_asyura', '2026-05-24', NULL, '2026-05-24 13:59:49.864411'),
-	(11, 14, 'ayat_harian', '2026-05-24', NULL, '2026-05-24 15:09:15.284908'),
-	(12, 3, 'ayat_harian', '2026-05-26', NULL, '2026-05-26 11:31:32.277207'),
-	(14, 16, 'ayat_harian', '2026-05-29', NULL, '2026-05-29 10:01:14.497521'),
-	(15, 20, 'ayat_harian', '2026-05-29', NULL, '2026-05-29 13:03:20.644834'),
-	(16, 14, 'ayat_harian', '2026-05-29', NULL, '2026-05-29 17:24:49.678454'),
-	(17, 2, 'ayat_harian', '2026-05-30', NULL, '2026-05-30 10:21:32.107295'),
-	(18, 3, 'ayat_harian', '2026-05-31', NULL, '2026-05-31 16:40:08.47246'),
-	(51, 16, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 15:08:27.24533'),
-	(52, 6, 'ayat_harian', '2026-06-01', NULL, '2026-06-01 22:14:46.78882');
+	(53, 15, 'puasa_tasua_asyura', '2026-06-25', NULL, '2026-06-25 06:31:53.78365'),
+	(54, 2, 'puasa_tasua_asyura', '2026-06-25', NULL, '2026-06-25 06:40:15.564731'),
+	(55, 2, 'puasa_nisfu_syaban', '2026-06-25', NULL, '2026-06-25 06:40:28.536438'),
+	(56, 11, 'dzikir_pagi', '2026-06-28', NULL, '2026-06-28 11:47:06.484172');
 /*!40000 ALTER TABLE "challenge_log" ENABLE KEYS */;
 
 -- Dumping structure for table public.challenge_master
@@ -426,24 +621,14 @@ CREATE TABLE IF NOT EXISTS "challenge_master" (
 	"icon" VARCHAR(40) NOT NULL DEFAULT 'bi-trophy',
 	"warna" VARCHAR(20) NOT NULL DEFAULT 'success',
 	"aktif" SMALLINT NOT NULL DEFAULT '1',
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "challenge_master_kunci_key" ("kunci"),
+	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.challenge_master: -1 rows
+-- Dumping data for table public.challenge_master: 12 rows
 /*!40000 ALTER TABLE "challenge_master" DISABLE KEYS */;
 INSERT INTO "challenge_master" ("id", "kunci", "judul", "deskripsi", "icon", "warna", "aktif", "created_at") VALUES
-	(1, 'ayat_harian', '1 Hari 1 Ayat', 'Baca minimal 1 ayat Al-Qur''an setiap hari.', 'bi-book', 'success', 1, '2026-05-24 08:39:45.801252'),
-	(2, 'subuh_walk', 'Subuh Walk Challenge', 'Jalan kaki ≥10 menit setelah sholat Subuh.', 'bi-sunrise', 'warning', 1, '2026-05-24 08:39:45.841177'),
-	(3, 'puasa_seninkamis', 'Puasa Senin-Kamis', 'Catat puasa sunnah Senin/Kamis hari ini.', 'bi-droplet-half', 'info', 1, '2026-05-24 08:39:45.887727'),
-	(4, 'dzikir_pagi', 'Dzikir Pagi', 'Selesaikan rangkaian dzikir pagi.', 'bi-brightness-high', 'primary', 1, '2026-05-24 08:39:45.927186'),
-	(5, 'dzikir_petang', 'Dzikir Petang', 'Selesaikan rangkaian dzikir petang.', 'bi-moon-stars', 'dark', 1, '2026-05-24 08:39:45.966648'),
-	(11, 'puasa_ayyamul_bidh', 'Puasa Ayyamul Bidh', 'Puasa 13, 14, 15 Hijriyah (hari putih).', 'bi-moon', 'info', 1, '2026-05-24 09:12:01.835257'),
-	(12, 'puasa_daud', 'Puasa Daud', 'Puasa selang-seling: sehari puasa, sehari berbuka.', 'bi-droplet', 'primary', 1, '2026-05-24 09:12:01.875835'),
-	(13, 'puasa_syawal', 'Puasa 6 Hari Syawal', 'Puasa 6 hari di bulan Syawal setelah Ramadhan.', 'bi-stars', 'success', 1, '2026-05-24 09:12:01.915993'),
-	(14, 'puasa_arafah', 'Puasa Arafah', 'Puasa 9 Dzulhijjah, menghapus dosa 2 tahun.', 'bi-sun', 'warning', 1, '2026-05-24 09:12:01.956198'),
-	(15, 'puasa_tasua_asyura', 'Puasa Tasu''a & Asyura', 'Puasa 9 & 10 Muharram.', 'bi-droplet-half', 'dark', 1, '2026-05-24 09:12:01.996228'),
-	(16, 'puasa_nisfu_syaban', 'Puasa Nisfu Sya''ban', 'Puasa di pertengahan bulan Sya''ban.', 'bi-moon-stars', 'secondary', 1, '2026-05-24 09:12:02.036358'),
-	(17, 'puasa_ramadhan', 'Puasa Ramadhan', 'Puasa wajib di bulan Ramadhan.', 'bi-moon', 'success', 1, '2026-05-24 09:12:02.076612'),
 	(1, 'ayat_harian', '1 Hari 1 Ayat', 'Baca minimal 1 ayat Al-Qur''an setiap hari.', 'bi-book', 'success', 1, '2026-05-24 08:39:45.801252'),
 	(2, 'subuh_walk', 'Subuh Walk Challenge', 'Jalan kaki ≥10 menit setelah sholat Subuh.', 'bi-sunrise', 'warning', 1, '2026-05-24 08:39:45.841177'),
 	(3, 'puasa_seninkamis', 'Puasa Senin-Kamis', 'Catat puasa sunnah Senin/Kamis hari ini.', 'bi-droplet-half', 'info', 1, '2026-05-24 08:39:45.887727'),
@@ -465,10 +650,13 @@ CREATE TABLE IF NOT EXISTS "chat_forum" (
 	"pesan" TEXT NOT NULL,
 	"created_at" TIMESTAMP NULL DEFAULT 'now()',
 	"parent_id" INTEGER NULL DEFAULT NULL,
-	"updated_at" TIMESTAMP NULL DEFAULT NULL
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "chat_forum_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "chat_forum" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "chat_forum_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.chat_forum: -1 rows
+-- Dumping data for table public.chat_forum: 13 rows
 /*!40000 ALTER TABLE "chat_forum" DISABLE KEYS */;
 INSERT INTO "chat_forum" ("id", "user_id", "pesan", "created_at", "parent_id", "updated_at") VALUES
 	(4, 3, 'wa''alikumussalam', '2026-05-21 15:47:46.367728', NULL, NULL),
@@ -483,21 +671,7 @@ INSERT INTO "chat_forum" ("id", "user_id", "pesan", "created_at", "parent_id", "
 	(15, 3, 'wa''alikumussalam broo', '2026-06-01 22:18:32.284391', 14, NULL),
 	(16, 2, 'Walaikumsalam', '2026-06-02 00:06:07.527515', 14, '2026-06-02 00:06:28.40659'),
 	(17, 3, 'info yang sudah di gor gess', '2026-06-02 16:10:53.192261', NULL, NULL),
-	(18, 2, 'Perlengkapan Olahraga dan Pengalaman Hiking Camping tidak lupa di isi ya guys', '2026-06-03 05:39:14.331787', NULL, NULL),
-	(4, 3, 'wa''alikumussalam', '2026-05-21 15:47:46.367728', NULL, NULL),
-	(6, 2, 'Semangat malam. Untuk absen, dilakukan di area sekitar lapang, karena radius absen 150 meter dari lokasi. Terimakasih.', '2026-05-22 16:36:35.671593', NULL, '2026-05-23 05:52:06.486691'),
-	(8, 4, 'Semangat pagi. Siapp laksanakan', '2026-05-23 06:18:22.527654', 6, NULL),
-	(5, 2, 'siap kawans', '2026-05-22 00:37:27.733498', 4, '2026-05-23 06:42:22.877495'),
-	(9, 2, 'Pengumuman, sudah ada kalkulator sehat, bisa dicoba', '2026-05-23 07:05:27.882099', NULL, NULL),
-	(10, 4, 'Mantappp', '2026-05-23 16:24:57.427956', 9, NULL),
-	(12, 2, 'ada fitur Kalender Hijriyah & Puasa Sunnah , boleh dicek', '2026-05-24 08:48:22.594551', NULL, NULL),
-	(13, 2, 'Jadwal olahraga jogging pagi ini di rescheduke ke selaaa 2 juni 2026 sorean..', '2026-06-01 13:11:04.649424', NULL, NULL),
-	(14, 6, 'Assalamualaikum sadayana☺️', '2026-06-01 22:16:47.249183', NULL, NULL),
-	(15, 3, 'wa''alikumussalam broo', '2026-06-01 22:18:32.284391', 14, NULL),
-	(16, 2, 'Walaikumsalam', '2026-06-02 00:06:07.527515', 14, '2026-06-02 00:06:28.40659'),
-	(17, 3, 'info yang sudah di gor gess', '2026-06-02 16:10:53.192261', NULL, NULL),
-	(18, 2, 'Perlengkapan Olahraga dan Pengalaman Hiking Camping tidak lupa di isi ya guys', '2026-06-03 05:39:14.331787', NULL, NULL),
-	(1, 2, 'Sip', '2026-06-22 10:56:40.268243', 18, NULL);
+	(18, 2, 'Perlengkapan Olahraga dan Pengalaman Hiking Camping tidak lupa di isi ya guys', '2026-06-03 05:39:14.331787', NULL, NULL);
 /*!40000 ALTER TABLE "chat_forum" ENABLE KEYS */;
 
 -- Dumping structure for table public.chat_reactions
@@ -505,10 +679,13 @@ CREATE TABLE IF NOT EXISTS "chat_reactions" (
 	"chat_id" INTEGER NOT NULL,
 	"user_id" INTEGER NOT NULL,
 	"val" SMALLINT NOT NULL,
+	PRIMARY KEY ("chat_id", "user_id"),
+	CONSTRAINT "chat_reactions_chat_id_fkey" FOREIGN KEY ("chat_id") REFERENCES "chat_forum" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "chat_reactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
 	CONSTRAINT "chat_reactions_val_check" CHECK ((val = ANY (ARRAY['-1'::integer, 1])))
 );
 
--- Dumping data for table public.chat_reactions: 14 rows
+-- Dumping data for table public.chat_reactions: 13 rows
 /*!40000 ALTER TABLE "chat_reactions" DISABLE KEYS */;
 INSERT INTO "chat_reactions" ("chat_id", "user_id", "val") VALUES
 	(4, 2, 1),
@@ -523,8 +700,7 @@ INSERT INTO "chat_reactions" ("chat_id", "user_id", "val") VALUES
 	(17, 2, 1),
 	(15, 2, -1),
 	(18, 3, 1),
-	(18, 2, 1),
-	(1, 2, 1);
+	(18, 2, 1);
 /*!40000 ALTER TABLE "chat_reactions" ENABLE KEYS */;
 
 -- Dumping structure for table public.device_locations
@@ -534,20 +710,31 @@ CREATE TABLE IF NOT EXISTS "device_locations" (
 	"lng" NUMERIC(10,6) NOT NULL,
 	"accuracy_m" NUMERIC(8,2) NULL DEFAULT NULL,
 	"device_label" VARCHAR(120) NULL DEFAULT NULL,
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "device_locations_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.device_locations: -1 rows
+-- Dumping data for table public.device_locations: 17 rows
 /*!40000 ALTER TABLE "device_locations" DISABLE KEYS */;
 INSERT INTO "device_locations" ("user_id", "lat", "lng", "accuracy_m", "device_label", "updated_at") VALUES
-	(6, -6.926498, 107.717051, 52.40, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-20 01:42:04.236173'),
-	(13, -6.890229, 107.608901, 11.38, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36', '2026-06-08 14:21:27.484395'),
-	(3, -6.928896, 107.714625, 100.00, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Sa', '2026-06-20 08:02:44.685647'),
 	(14, -6.292972, 107.302198, 20.00, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36', '2026-06-01 09:16:06.165449'),
 	(21, -6.246796, 107.071909, 28.10, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-10 21:24:09.895067'),
-	(4, -6.931919, 107.713750, 100.00, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Sa', '2026-06-21 15:38:35.410294'),
-	(2, -6.925473, 107.729439, 187.00, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '2026-06-21 17:27:06.279353'),
-	(11, -6.939458, 107.707466, 13.45, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-18 06:48:42.901152');
+	(11, -6.939462, 107.707471, 16.63, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-04 04:06:03.873552'),
+	(16, -6.928857, 107.716023, 34.40, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-03 06:28:39.315492'),
+	(53, -6.940581, 107.714576, 26.48, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15', '2026-07-03 21:55:09.037708'),
+	(2, -6.925489, 107.729466, 23.60, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-03 22:27:36.468439'),
+	(15, -6.925510, 107.729405, 6.70, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-24 23:33:44.47657'),
+	(7, -6.925539, 107.729412, 151.00, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '2026-06-30 06:22:45.886175'),
+	(39, -6.934833, 107.723223, 17.83, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-03 08:49:12.990846'),
+	(48, -6.876148, 107.612897, 3.00, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-03 19:22:46.942908'),
+	(13, -6.945591, 107.705657, 13.68, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-03 19:26:51.534747'),
+	(51, -7.023216, 107.543527, 15.09, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-03 22:00:45.789548'),
+	(8, -6.925505, 107.729464, 98.40, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-25 08:54:32.764967'),
+	(3, -6.940810, 107.714563, 54.98, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Sa', '2026-07-03 11:08:46.652591'),
+	(6, -6.925515, 107.729466, 8.20, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-06-26 09:41:32.478744'),
+	(38, -6.922428, 107.678820, 2.84, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '2026-07-02 05:47:44.390474'),
+	(4, -6.931805, 107.713742, 100.00, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Sa', '2026-07-03 23:22:25.237127');
 /*!40000 ALTER TABLE "device_locations" ENABLE KEYS */;
 
 -- Dumping structure for table public.device_location_history
@@ -557,10 +744,13 @@ CREATE TABLE IF NOT EXISTS "device_location_history" (
 	"lat" NUMERIC(10,6) NOT NULL,
 	"lng" NUMERIC(10,6) NOT NULL,
 	"accuracy_m" NUMERIC(8,2) NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "device_loc_hist_user_idx" ("user_id", "created_at"),
+	CONSTRAINT "device_location_history_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.device_location_history: 605 rows
+-- Dumping data for table public.device_location_history: 932 rows
 /*!40000 ALTER TABLE "device_location_history" DISABLE KEYS */;
 INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_m", "created_at") VALUES
 	(431, 6, -6.914244, 107.697168, 14.93, '2026-06-01 22:12:19.118774'),
@@ -586,34 +776,34 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(825, 11, -6.955146, 107.693491, 3.07, '2026-06-05 07:57:21.913639'),
 	(834, 11, -6.939466, 107.707478, 18.77, '2026-06-05 15:12:25.612628'),
 	(837, 11, -6.939403, 107.707492, 22.41, '2026-06-05 15:14:02.009853'),
-	(1454, 2, -6.926711, 107.729387, 100.00, '2026-06-18 06:23:05.869066'),
-	(1460, 2, -6.925491, 107.729501, 24.90, '2026-06-18 06:30:24.07156'),
+	(3248, 16, -6.928843, 107.715695, 100.00, '2026-07-01 14:05:42.929654'),
+	(2668, 39, -6.925396, 107.729358, 14.80, '2026-06-26 15:06:49.05778'),
 	(946, 3, -6.928952, 107.714696, 98.40, '2026-06-06 13:21:44.167489'),
 	(950, 3, -6.930757, 107.712949, 100.00, '2026-06-06 14:33:08.199913'),
 	(954, 11, -6.940840, 107.714570, 14.22, '2026-06-06 14:46:15.4874'),
 	(958, 11, -6.940838, 107.714572, 14.27, '2026-06-06 14:47:57.908546'),
 	(1466, 11, -6.939458, 107.707466, 13.45, '2026-06-18 06:48:42.955067'),
-	(1472, 2, -6.925501, 107.729495, 56.10, '2026-06-18 07:56:03.252435'),
-	(1478, 2, -6.925480, 107.729376, 60.00, '2026-06-18 08:04:33.508007'),
+	(1934, 4, -6.931898, 107.713788, 56.10, '2026-06-23 14:11:30.466125'),
+	(2676, 39, -6.925488, 107.729482, 14.86, '2026-06-26 15:20:56.372901'),
 	(1384, 11, -6.939071, 107.713659, 15.25, '2026-06-16 15:58:16.939787'),
-	(1419, 2, -6.859061, 107.733088, 100.00, '2026-06-17 09:03:08.544776'),
-	(1423, 2, -6.856940, 107.732579, 26.78, '2026-06-17 09:13:02.960942'),
-	(1427, 2, -6.856903, 107.732462, 20.00, '2026-06-17 09:17:52.609677'),
-	(1431, 2, -6.895819, 107.640634, 14.76, '2026-06-17 12:37:11.566089'),
-	(1435, 2, -6.895680, 107.640702, 26.40, '2026-06-17 12:48:52.604527'),
-	(1439, 2, -6.895781, 107.640644, 12.73, '2026-06-17 12:53:28.272798'),
-	(1443, 2, -6.895807, 107.640678, 3.30, '2026-06-17 12:59:23.1328'),
-	(1447, 2, -6.925493, 107.729500, 28.10, '2026-06-17 23:18:52.355138'),
-	(1451, 2, -6.926422, 107.730753, 15.10, '2026-06-18 06:18:52.205262'),
-	(1484, 2, -6.925473, 107.729439, 187.00, '2026-06-18 08:56:53.613052'),
-	(1490, 2, -6.925485, 107.729488, 9.00, '2026-06-18 09:41:09.922513'),
-	(1496, 2, -6.925497, 107.729494, 39.60, '2026-06-18 09:49:35.391984'),
-	(1502, 2, -6.925507, 107.729479, 24.90, '2026-06-18 10:30:28.854263'),
-	(1508, 2, -6.925468, 107.729508, 4.50, '2026-06-18 10:34:39.864202'),
-	(1514, 2, -6.925511, 107.729485, 15.96, '2026-06-18 10:45:11.647687'),
+	(2243, 4, -6.952813, 107.455967, 100.00, '2026-06-25 08:37:22.501019'),
+	(3249, 2, -6.925480, 107.729453, 34.40, '2026-07-01 14:30:40.118592'),
+	(3258, 2, -6.906219, 107.629700, 500.00, '2026-07-01 14:55:48.61069'),
+	(1963, 11, -6.939451, 107.707463, 20.00, '2026-06-23 22:01:26.329523'),
+	(3267, 2, -6.925539, 107.729412, 151.00, '2026-07-01 15:24:48.380549'),
+	(3276, 39, -6.925489, 107.729454, 45.60, '2026-07-01 15:58:04.771821'),
+	(3285, 39, -6.925497, 107.729462, 12.40, '2026-07-01 16:00:39.645746'),
+	(3294, 2, -6.925492, 107.729449, 20.45, '2026-07-01 16:28:33.990505'),
+	(3296, 16, -6.928829, 107.716065, 100.00, '2026-07-01 17:18:39.113791'),
+	(3305, 16, -6.929487, 107.715695, 100.00, '2026-07-01 18:20:59.405236'),
+	(3307, 2, -6.941217, 107.714273, 11.83, '2026-07-01 19:04:34.357898'),
+	(2015, 38, -6.938433, 107.715869, 31.98, '2026-06-24 17:21:46.96876'),
+	(2021, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:24:16.005875'),
+	(3315, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:54:32.184338'),
+	(2033, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:30:14.300524'),
 	(1520, 3, -6.928962, 107.714614, 100.00, '2026-06-18 10:56:31.149128'),
-	(1526, 2, -6.925507, 107.729507, 9.40, '2026-06-18 11:25:12.840315'),
-	(1532, 2, -6.925490, 107.729499, 36.90, '2026-06-18 11:30:35.311774'),
+	(3323, 2, -6.925491, 107.729432, 187.00, '2026-07-02 05:00:40.243044'),
+	(3339, 38, -6.922428, 107.678820, 2.84, '2026-07-02 05:47:44.397123'),
 	(78, 3, -6.906189, 107.657360, 128.37, '2026-05-31 16:06:17.643089'),
 	(79, 3, -6.907269, 107.657232, 100.00, '2026-05-31 16:08:14.281336'),
 	(80, 3, -6.907269, 107.657232, 100.00, '2026-05-31 16:09:33.818083'),
@@ -644,19 +834,19 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(560, 4, -6.931886, 107.713719, 100.00, '2026-06-02 11:24:44.999247'),
 	(561, 4, -6.931886, 107.713719, 100.00, '2026-06-02 11:25:23.319291'),
 	(562, 4, -6.931886, 107.713719, 100.00, '2026-06-02 11:25:51.495763'),
-	(1538, 2, -6.925494, 107.729500, 26.40, '2026-06-18 11:39:22.317382'),
-	(1544, 2, -6.925491, 107.729498, 34.40, '2026-06-18 12:28:57.066071'),
-	(1550, 2, -6.925498, 107.729496, 34.40, '2026-06-18 12:32:10.07252'),
-	(1556, 2, -6.925330, 107.729543, 9.60, '2026-06-18 13:01:04.02861'),
-	(1562, 2, -6.925495, 107.729490, 16.21, '2026-06-18 13:17:53.92505'),
-	(1568, 2, -6.931796, 107.714604, 20.00, '2026-06-18 14:55:35.531039'),
-	(1574, 2, -6.925493, 107.729502, 20.90, '2026-06-18 17:39:52.829135'),
-	(1580, 2, -6.925488, 107.729432, 183.00, '2026-06-19 10:14:18.465664'),
-	(1586, 2, -6.924975, 107.729567, 8.40, '2026-06-19 11:46:19.164579'),
-	(1592, 2, -6.925118, 107.729328, 13.40, '2026-06-19 11:53:48.547196'),
-	(1598, 2, -6.925848, 107.729367, 51.81, '2026-06-19 12:01:14.94086'),
-	(1604, 2, -6.925349, 107.729366, 11.40, '2026-06-19 12:08:56.831905'),
-	(1610, 2, -6.925475, 107.729431, 7.90, '2026-06-19 12:13:50.087798'),
+	(3351, 2, -6.925481, 107.729454, 64.10, '2026-07-03 06:09:00.776984'),
+	(3359, 2, -6.925487, 107.729448, 87.60, '2026-07-03 06:13:15.994863'),
+	(3367, 39, -6.925495, 107.729468, 72.90, '2026-07-03 06:17:45.434329'),
+	(3375, 39, -6.925485, 107.729454, 68.40, '2026-07-03 06:21:03.263926'),
+	(2076, 3, -6.928896, 107.714630, 20.00, '2026-06-24 23:06:10.803569'),
+	(3387, 2, -6.925478, 107.729448, 39.60, '2026-07-03 07:59:36.097112'),
+	(2086, 6, -6.925460, 107.729463, 7.20, '2026-06-24 23:31:10.289863'),
+	(3395, 4, -6.931784, 107.713745, 110.00, '2026-07-03 08:29:31.516943'),
+	(3403, 2, -6.934785, 107.723202, 18.09, '2026-07-03 08:44:24.093294'),
+	(3410, 2, -6.934742, 107.723252, 19.00, '2026-07-03 08:46:59.266038'),
+	(2805, 11, -6.939460, 107.707465, 16.16, '2026-06-28 03:55:22.445863'),
+	(2812, 11, -6.939461, 107.707471, 27.85, '2026-06-28 03:59:42.901328'),
+	(2818, 11, -6.939461, 107.707469, 15.95, '2026-06-28 04:04:35.877395'),
 	(1616, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:09:09.589322'),
 	(1622, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:16:16.149666'),
 	(1628, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:22:43.412822'),
@@ -665,7 +855,7 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1646, 4, -6.952656, 107.456177, 100.00, '2026-06-20 04:47:51.284106'),
 	(1652, 3, -6.928896, 107.714625, 100.00, '2026-06-20 08:00:48.993678'),
 	(1658, 4, -6.920841, 107.657616, 100.00, '2026-06-20 16:39:38.202873'),
-	(1664, 2, -6.925502, 107.729426, 183.00, '2026-06-21 17:15:39.897446'),
+	(2120, 38, -6.922455, 107.678744, 92.90, '2026-06-25 05:25:23.70331'),
 	(429, 6, -6.914253, 107.697169, 34.40, '2026-06-01 22:11:36.709962'),
 	(432, 6, -6.914240, 107.697164, 26.40, '2026-06-01 22:12:31.127865'),
 	(435, 6, -6.914244, 107.697145, 22.84, '2026-06-01 22:13:27.885783'),
@@ -674,37 +864,22 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(444, 4, -6.914464, 107.697124, 84.38, '2026-06-01 22:17:57.638881'),
 	(447, 6, -6.914247, 107.697168, 14.26, '2026-06-01 22:18:30.304242'),
 	(117, 3, -6.914253, 107.697175, 100.00, '2026-05-31 23:50:56.179853'),
-	(118, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:51:03.649937'),
 	(450, 3, -6.914249, 107.697170, 100.00, '2026-06-01 22:20:17.540101'),
 	(453, 6, -6.914248, 107.697172, 15.19, '2026-06-01 22:20:58.536196'),
 	(121, 3, -6.914253, 107.697175, 100.00, '2026-05-31 23:51:36.47147'),
-	(122, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:51:55.996465'),
 	(123, 3, -6.914253, 107.697175, 100.00, '2026-05-31 23:52:05.567464'),
 	(456, 4, -6.914464, 107.697124, 100.00, '2026-06-01 22:21:26.983415'),
 	(125, 3, -6.914454, 107.697301, 49.14, '2026-05-31 23:52:58.320067'),
-	(126, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:53:12.025083'),
-	(127, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:53:44.840796'),
 	(459, 6, -6.914244, 107.697171, 14.54, '2026-06-01 22:21:56.47828'),
-	(129, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:54:13.52953'),
 	(462, 4, -6.914464, 107.697124, 100.00, '2026-06-01 22:22:31.329956'),
 	(465, 6, -6.914242, 107.697167, 14.49, '2026-06-01 22:23:37.300186'),
 	(132, 3, -6.914454, 107.697301, 100.00, '2026-05-31 23:55:50.14471'),
-	(133, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:56:13.409657'),
 	(468, 4, -6.914464, 107.697124, 100.00, '2026-06-01 22:24:34.663227'),
-	(135, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:56:45.836936'),
 	(471, 4, -6.914464, 107.697124, 100.00, '2026-06-01 22:25:04.550666'),
 	(138, 3, -6.914454, 107.697301, 100.00, '2026-05-31 23:57:22.670545'),
-	(139, 4, -6.914251, 107.697157, 100.00, '2026-05-31 23:58:10.502113'),
 	(140, 3, -6.914454, 107.697301, 100.00, '2026-05-31 23:58:31.611731'),
-	(141, 4, -6.914162, 107.697178, 99.64, '2026-06-01 00:00:03.881515'),
-	(143, 4, -6.914162, 107.697178, 100.00, '2026-06-01 00:02:10.510743'),
-	(145, 4, -6.914162, 107.697178, 100.00, '2026-06-01 00:08:41.815307'),
-	(147, 4, -6.914259, 107.697167, 14.51, '2026-06-01 00:09:03.732252'),
 	(801, 3, -6.928900, 107.714215, 100.00, '2026-06-04 15:33:39.918187'),
-	(149, 4, -6.914255, 107.697156, 14.29, '2026-06-01 00:10:05.120751'),
-	(151, 4, -6.914257, 107.697163, 72.22, '2026-06-01 00:11:10.530311'),
 	(947, 3, -6.928905, 107.714582, 53.08, '2026-06-06 13:23:26.373689'),
-	(154, 4, -6.914255, 107.697171, 15.02, '2026-06-01 00:13:02.765293'),
 	(951, 11, -6.940841, 107.714578, 14.02, '2026-06-06 14:45:02.774256'),
 	(955, 11, -6.940840, 107.714576, 13.64, '2026-06-06 14:47:16.982329'),
 	(959, 11, -6.940832, 107.714570, 16.62, '2026-06-06 14:48:06.001653'),
@@ -732,12 +907,10 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1025, 21, -6.246797, 107.071908, 22.50, '2026-06-10 21:21:14.851175'),
 	(734, 3, -6.930821, 107.718245, 100.00, '2026-06-03 13:37:17.858033'),
 	(737, 11, -6.940841, 107.714567, 18.17, '2026-06-03 14:23:54.522728'),
-	(230, 4, -6.925610, 107.729378, 500.00, '2026-06-01 12:38:13.507923'),
-	(231, 4, -6.925610, 107.729378, 500.00, '2026-06-01 12:38:32.061847'),
 	(1385, 11, -6.939148, 107.713637, 19.60, '2026-06-16 15:59:24.335835'),
 	(760, 3, -6.928900, 107.714215, 100.00, '2026-06-03 19:13:00.259043'),
 	(762, 3, -6.928900, 107.714215, 100.00, '2026-06-03 19:16:56.485958'),
-	(1415, 2, -6.856905, 107.732461, 20.00, '2026-06-17 08:54:57.828094'),
+	(2661, 7, -6.925489, 107.729506, 8.90, '2026-06-26 14:57:58.188255'),
 	(1028, 21, -6.246796, 107.071909, 28.10, '2026-06-10 21:24:09.935823'),
 	(1031, 3, -6.932093, 107.715132, 4.39, '2026-06-11 06:43:17.525237'),
 	(1034, 3, -6.928856, 107.714667, 100.00, '2026-06-11 07:04:00.539286'),
@@ -751,19 +924,18 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(639, 3, -6.928797, 107.714451, 128.90, '2026-06-03 06:01:36.707764'),
 	(1381, 3, -6.940672, 107.679086, 100.00, '2026-06-16 15:50:21.917016'),
 	(1386, 11, -6.939064, 107.713672, 14.38, '2026-06-16 16:00:15.118985'),
-	(1416, 2, -6.856915, 107.732590, 32.66, '2026-06-17 08:59:25.434392'),
-	(1420, 2, -6.859089, 107.732348, 100.00, '2026-06-17 09:05:08.548029'),
-	(270, 4, -6.955900, 107.649900, 20000.00, '2026-06-01 13:15:09.568561'),
+	(2669, 39, -6.925396, 107.729358, 14.80, '2026-06-26 15:08:44.23071'),
+	(1935, 11, -6.940812, 107.714566, 15.46, '2026-06-23 14:23:42.283984'),
 	(271, 4, -6.955900, 107.649900, 20000.00, '2026-06-01 13:15:16.771537'),
 	(272, 4, -6.955900, 107.649900, 20000.00, '2026-06-01 13:15:32.686506'),
 	(273, 4, -6.955900, 107.649900, 20000.00, '2026-06-01 13:15:58.72261'),
-	(1424, 2, -6.856908, 107.732459, 16.78, '2026-06-17 09:13:14.726572'),
-	(1428, 2, -6.895833, 107.640631, 14.60, '2026-06-17 12:32:53.215593'),
-	(1432, 2, -6.895791, 107.640658, 13.90, '2026-06-17 12:40:00.685306'),
+	(2677, 39, -6.925489, 107.729464, 30.00, '2026-06-26 15:21:36.894503'),
+	(2244, 4, -6.952813, 107.455967, 100.00, '2026-06-25 08:41:54.418011'),
+	(3250, 2, -6.925478, 107.729453, 39.60, '2026-07-01 14:32:12.211942'),
 	(277, 4, -6.925610, 107.729378, 500.00, '2026-06-01 13:17:53.586953'),
-	(1436, 2, -6.895680, 107.640702, 26.40, '2026-06-17 12:49:17.888144'),
+	(3259, 2, -6.925462, 107.729388, 5.90, '2026-07-01 15:17:45.250342'),
 	(735, 3, -6.930821, 107.718245, 100.00, '2026-06-03 13:38:28.694685'),
-	(1440, 2, -6.895778, 107.640656, 12.45, '2026-06-17 12:55:26.515372'),
+	(3268, 2, -6.925539, 107.729412, 151.00, '2026-07-01 15:25:04.070518'),
 	(281, 4, -6.925610, 107.729378, 500.00, '2026-06-01 13:25:54.696475'),
 	(282, 4, -6.925610, 107.729378, 381.00, '2026-06-01 13:27:55.225595'),
 	(283, 4, -6.925610, 107.729378, 381.00, '2026-06-01 13:29:57.442825'),
@@ -772,13 +944,13 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(286, 4, -6.925610, 107.729378, 381.00, '2026-06-01 13:35:57.783616'),
 	(287, 4, -6.925610, 107.729378, 381.00, '2026-06-01 13:37:57.750906'),
 	(1444, 11, -6.938622, 107.712364, 100.00, '2026-06-17 15:51:18.57951'),
-	(1448, 2, -6.925488, 107.729501, 36.90, '2026-06-17 23:19:20.561794'),
-	(1452, 2, -6.927369, 107.729017, 300.00, '2026-06-18 06:20:53.17437'),
-	(1455, 2, -6.925494, 107.729495, 48.90, '2026-06-18 06:24:58.029549'),
-	(1461, 2, -6.925492, 107.729501, 34.40, '2026-06-18 06:31:05.011357'),
-	(1467, 2, -6.925494, 107.729500, 23.60, '2026-06-18 07:49:02.339791'),
-	(1473, 2, -6.925517, 107.729538, 91.20, '2026-06-18 08:00:03.896625'),
-	(1479, 2, -6.925504, 107.729461, 42.50, '2026-06-18 08:05:07.959091'),
+	(3277, 39, -6.925478, 107.729472, 10.10, '2026-07-01 15:58:21.222368'),
+	(3286, 39, -6.925482, 107.729454, 32.10, '2026-07-01 16:07:18.820653'),
+	(3295, 2, -6.925463, 107.729460, 8.10, '2026-07-01 16:29:50.144247'),
+	(3297, 2, -6.925348, 107.729465, 11.50, '2026-07-01 17:21:19.835106'),
+	(3306, 16, -6.928843, 107.715695, 100.00, '2026-07-01 18:57:23.945384'),
+	(2662, 7, -6.925481, 107.729454, 24.90, '2026-06-26 14:59:05.005988'),
+	(2670, 39, -6.925499, 107.729468, 82.50, '2026-06-26 15:11:45.512273'),
 	(296, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:09:09.292807'),
 	(297, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:09:28.764134'),
 	(298, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:09:35.910165'),
@@ -786,41 +958,41 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(759, 3, -6.928886, 107.714585, 200.00, '2026-06-03 17:40:23.156695'),
 	(301, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:12:49.638134'),
 	(761, 3, -6.928900, 107.714215, 100.00, '2026-06-03 19:15:47.818704'),
-	(1485, 2, -6.925438, 107.729323, 11.40, '2026-06-18 09:34:48.333116'),
-	(1491, 2, -6.925490, 107.729500, 36.90, '2026-06-18 09:42:02.639695'),
+	(1936, 11, -6.940799, 107.714560, 16.89, '2026-06-23 14:25:33.778889'),
+	(3251, 2, -6.925482, 107.729454, 45.60, '2026-07-01 14:34:07.862775'),
 	(305, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:14:41.398264'),
 	(306, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:15:44.367443'),
-	(1497, 2, -6.925493, 107.729501, 64.10, '2026-06-18 09:55:22.813199'),
-	(1503, 2, -6.925484, 107.729480, 9.60, '2026-06-18 10:30:34.365141'),
-	(1509, 2, -6.925338, 107.729518, 3.60, '2026-06-18 10:38:16.053282'),
-	(1515, 2, -6.925510, 107.729490, 5.80, '2026-06-18 10:45:31.163196'),
-	(1521, 2, -6.925505, 107.729484, 14.61, '2026-06-18 11:19:30.079461'),
+	(2245, 4, -6.952813, 107.455967, 100.00, '2026-06-25 08:42:23.704603'),
+	(3260, 2, -6.925290, 107.729433, 6.20, '2026-07-01 15:17:55.069771'),
+	(3269, 2, -6.925539, 107.729412, 151.00, '2026-07-01 15:25:19.772033'),
+	(3278, 2, -6.925513, 107.729470, 8.90, '2026-07-01 15:59:00.252353'),
+	(3287, 39, -6.925486, 107.729451, 17.26, '2026-07-01 16:16:55.271884'),
 	(312, 4, -6.925610, 107.729378, 500.00, '2026-06-01 14:17:36.962247'),
-	(1527, 2, -6.925457, 107.729553, 8.80, '2026-06-18 11:27:14.195826'),
-	(1533, 2, -6.925490, 107.729500, 34.40, '2026-06-18 11:32:35.856076'),
+	(3298, 2, -6.925486, 107.729463, 30.00, '2026-07-01 17:21:30.643189'),
+	(3308, 2, -6.941208, 107.714268, 11.51, '2026-07-01 19:04:45.027198'),
 	(315, 4, -6.925610, 107.729378, 381.00, '2026-06-01 14:19:37.54986'),
 	(316, 4, -6.925610, 107.729378, 500.00, '2026-06-01 14:21:36.964166'),
-	(1539, 2, -6.925463, 107.729430, 94.20, '2026-06-18 12:19:34.004566'),
-	(1545, 2, -6.925498, 107.729493, 34.40, '2026-06-18 12:29:12.526487'),
-	(1551, 2, -6.925498, 107.729496, 34.40, '2026-06-18 12:33:55.381773'),
-	(1557, 2, -6.925492, 107.729501, 23.60, '2026-06-18 13:02:12.202848'),
+	(2423, 11, -6.939264, 107.707501, 16.41, '2026-06-26 06:19:10.451736'),
+	(3316, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:54:57.225723'),
+	(3324, 2, -6.925603, 107.729386, 202.00, '2026-07-02 05:02:39.488956'),
+	(3340, 39, -6.925603, 107.729386, 202.00, '2026-07-02 05:49:17.850743'),
 	(802, 3, -6.928900, 107.714215, 100.00, '2026-06-04 15:34:10.170921'),
 	(805, 3, -6.928564, 107.714585, 100.00, '2026-06-04 15:35:34.102806'),
 	(808, 3, -6.928564, 107.714585, 100.00, '2026-06-04 15:36:50.46907'),
 	(811, 3, -6.914257, 107.697173, 100.00, '2026-06-04 21:25:17.026417'),
-	(1563, 2, -6.925499, 107.729497, 24.90, '2026-06-18 13:18:55.347691'),
-	(1569, 2, -6.931797, 107.714602, 20.00, '2026-06-18 14:55:54.665992'),
+	(2028, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:27:39.650513'),
+	(3352, 2, -6.925481, 107.729450, 64.10, '2026-07-03 06:09:14.144775'),
 	(820, 4, -6.955308, 107.696204, 96.25, '2026-06-05 07:29:23.780802'),
 	(823, 4, -6.955424, 107.696330, 104.10, '2026-06-05 07:34:49.503086'),
-	(1575, 2, -6.925494, 107.729499, 28.10, '2026-06-18 17:41:03.428509'),
-	(1581, 2, -6.925542, 107.729409, 381.00, '2026-06-19 10:27:46.36861'),
-	(1587, 2, -6.925197, 107.729720, 12.70, '2026-06-19 11:46:48.210718'),
+	(3360, 39, -6.925495, 107.729467, 77.60, '2026-07-03 06:14:05.041657'),
+	(3368, 39, -6.925495, 107.729466, 82.50, '2026-07-03 06:18:07.222577'),
+	(3376, 2, -6.925487, 107.729456, 77.60, '2026-07-03 06:22:01.994028'),
 	(835, 11, -6.939366, 107.707300, 7.65, '2026-06-05 15:12:40.982845'),
 	(838, 11, -6.939409, 107.707487, 6.43, '2026-06-05 15:14:10.64582'),
-	(1593, 2, -6.925118, 107.729328, 13.40, '2026-06-19 11:56:40.854537'),
-	(1599, 2, -6.925848, 107.729367, 98.03, '2026-06-19 12:01:45.837182'),
-	(1605, 2, -6.925348, 107.729367, 59.94, '2026-06-19 12:09:28.711172'),
-	(1611, 2, -6.925632, 107.726534, 13.50, '2026-06-19 12:14:29.092184'),
+	(3388, 11, -6.940796, 107.714563, 14.98, '2026-07-03 08:22:19.483361'),
+	(3396, 4, -6.931821, 107.713743, 100.00, '2026-07-03 08:31:31.044899'),
+	(3404, 2, -6.934855, 107.723217, 16.72, '2026-07-03 08:44:47.913133'),
+	(3411, 2, -6.934763, 107.723242, 18.29, '2026-07-03 08:47:54.519581'),
 	(1617, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:09:46.718154'),
 	(1623, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:17:40.694033'),
 	(1629, 4, -6.930496, 107.711744, 46.31, '2026-06-19 13:58:04.808947'),
@@ -829,7 +1001,7 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1647, 4, -6.952656, 107.456177, 100.00, '2026-06-20 04:49:05.912606'),
 	(1653, 3, -6.928896, 107.714625, 100.00, '2026-06-20 08:02:44.731024'),
 	(1659, 4, -6.920841, 107.657616, 100.00, '2026-06-20 16:41:31.704025'),
-	(1665, 2, -6.925473, 107.729439, 187.00, '2026-06-21 17:27:06.531021'),
+	(3417, 2, -6.934793, 107.723240, 15.44, '2026-07-03 08:52:09.89323'),
 	(904, 21, -6.925515, 107.729540, 36.90, '2026-06-06 09:52:29.698239'),
 	(347, 4, -6.931890, 107.713711, 100.00, '2026-06-01 16:32:38.313528'),
 	(348, 4, -6.931890, 107.713711, 100.00, '2026-06-01 16:34:50.787229'),
@@ -849,41 +1021,39 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(839, 11, -6.939473, 107.707468, 18.73, '2026-06-05 15:14:34.901844'),
 	(1382, 11, -6.939100, 107.713670, 14.73, '2026-06-16 15:55:35.89853'),
 	(1387, 4, -6.940586, 107.679071, 100.00, '2026-06-16 16:19:16.841624'),
-	(1417, 2, -6.856915, 107.732590, 32.66, '2026-06-17 09:00:01.014048'),
-	(1421, 2, -6.856905, 107.732461, 20.00, '2026-06-17 09:07:46.066508'),
-	(1425, 2, -6.856877, 107.732507, 2.20, '2026-06-17 09:15:13.002529'),
-	(1429, 2, -6.895774, 107.640653, 17.98, '2026-06-17 12:33:17.415986'),
-	(1433, 2, -6.895774, 107.640665, 12.55, '2026-06-17 12:41:20.067605'),
-	(1437, 2, -6.895781, 107.640658, 12.04, '2026-06-17 12:51:20.156496'),
-	(1441, 2, -6.895785, 107.640652, 20.00, '2026-06-17 12:55:33.067596'),
-	(1445, 2, -6.925493, 107.729501, 22.50, '2026-06-17 23:18:09.51678'),
-	(1449, 2, -6.925493, 107.729501, 26.40, '2026-06-17 23:19:55.559691'),
-	(1453, 2, -6.928348, 107.728647, 100.00, '2026-06-18 06:21:11.665669'),
-	(1456, 2, -6.925504, 107.729486, 34.40, '2026-06-18 06:26:58.106974'),
-	(1462, 2, -6.925509, 107.729479, 47.25, '2026-06-18 06:32:45.688783'),
-	(1468, 2, -6.925493, 107.729499, 32.10, '2026-06-18 07:49:43.642971'),
-	(1474, 2, -6.925372, 107.729565, 11.10, '2026-06-18 08:00:24.410558'),
-	(1480, 2, -6.925509, 107.729478, 48.90, '2026-06-18 08:06:16.925263'),
-	(1486, 2, -6.925487, 107.729462, 15.84, '2026-06-18 09:34:56.085392'),
-	(1492, 2, -6.925501, 107.729489, 48.90, '2026-06-18 09:42:30.798735'),
-	(1498, 2, -6.925491, 107.729499, 67.50, '2026-06-18 10:21:39.258371'),
-	(1504, 2, -6.925507, 107.729481, 23.60, '2026-06-18 10:31:24.249875'),
+	(3423, 2, -6.934806, 107.723216, 16.99, '2026-07-03 09:11:41.680405'),
+	(2092, 15, -6.925510, 107.729405, 6.70, '2026-06-24 23:33:44.479372'),
+	(3429, 2, -6.940803, 107.714563, 13.15, '2026-07-03 10:47:58.452627'),
+	(3435, 4, -6.940659, 107.714613, 100.00, '2026-07-03 11:03:47.008015'),
+	(3441, 4, -6.940803, 107.714563, 54.91, '2026-07-03 11:06:09.61266'),
+	(3447, 4, -6.940803, 107.714563, 100.00, '2026-07-03 11:09:16.38911'),
+	(3453, 2, -6.925460, 107.729401, 143.00, '2026-07-03 12:00:04.966044'),
+	(3459, 48, -6.913339, 107.658342, 100.00, '2026-07-03 18:23:21.645352'),
+	(2129, 38, -6.922428, 107.678696, 36.90, '2026-06-25 05:31:22.150548'),
+	(2133, 38, -6.922435, 107.678704, 18.40, '2026-06-25 05:33:21.718964'),
+	(3464, 2, -6.925491, 107.729464, 30.00, '2026-07-03 18:40:54.054234'),
+	(2524, 6, -6.925479, 107.729457, 28.10, '2026-06-26 09:39:33.749475'),
+	(2528, 6, -6.925488, 107.729457, 10.60, '2026-06-26 09:41:07.72163'),
+	(3469, 48, -6.876148, 107.612897, 3.00, '2026-07-03 19:22:46.945683'),
+	(3475, 2, -6.933459, 107.723010, 14.99, '2026-07-03 21:40:02.783077'),
+	(3480, 2, -6.933459, 107.723002, 14.78, '2026-07-03 21:46:45.714149'),
+	(3485, 53, -6.940581, 107.714576, 26.48, '2026-07-03 21:53:26.526733'),
 	(952, 11, -6.940842, 107.714576, 13.65, '2026-06-06 14:45:49.625579'),
 	(956, 11, -6.940836, 107.714573, 15.18, '2026-06-06 14:47:31.06138'),
-	(1510, 2, -6.925500, 107.729480, 7.22, '2026-06-18 10:40:12.922503'),
 	(964, 3, -6.930735, 107.712931, 20.40, '2026-06-06 15:45:03.434862'),
 	(968, 3, -6.930724, 107.712922, 21.60, '2026-06-06 16:41:15.009297'),
-	(1516, 2, -6.925507, 107.729485, 6.10, '2026-06-18 10:45:43.749014'),
-	(1522, 2, -6.925505, 107.729484, 14.61, '2026-06-18 11:20:00.102399'),
-	(1528, 2, -6.925437, 107.729533, 7.80, '2026-06-18 11:27:31.799064'),
 	(981, 3, -6.928831, 107.714617, 130.78, '2026-06-09 11:23:21.191659'),
 	(984, 3, -6.930860, 107.718375, 82.11, '2026-06-09 13:14:49.178085'),
-	(1534, 2, -6.925494, 107.729499, 30.00, '2026-06-18 11:35:05.432982'),
-	(1540, 2, -6.925492, 107.729501, 23.60, '2026-06-18 12:21:31.540173'),
-	(1546, 2, -6.925487, 107.729493, 9.80, '2026-06-18 12:29:32.687674'),
-	(1552, 2, -6.925498, 107.729491, 26.40, '2026-06-18 12:57:43.247148'),
-	(1558, 2, -6.925492, 107.729501, 23.60, '2026-06-18 13:04:03.523929'),
-	(1564, 2, -6.925498, 107.729487, 28.10, '2026-06-18 13:26:36.933991'),
+	(2592, 11, -6.942765, 107.714171, 21.36, '2026-06-26 11:34:38.632071'),
+	(2806, 11, -6.939458, 107.707472, 28.82, '2026-06-28 03:55:29.047964'),
+	(2813, 11, -6.939467, 107.707464, 22.26, '2026-06-28 04:00:32.593069'),
+	(2819, 11, -6.939464, 107.707461, 19.25, '2026-06-28 04:05:14.129977'),
+	(2824, 11, -6.939441, 107.707468, 18.93, '2026-06-28 04:08:48.405011'),
+	(2829, 11, -6.939455, 107.707471, 17.39, '2026-06-28 04:14:13.35213'),
+	(2834, 11, -6.939464, 107.707467, 14.43, '2026-06-28 04:16:45.712271'),
+	(2839, 11, -6.939471, 107.707459, 20.00, '2026-06-28 04:22:24.412734'),
+	(2882, 11, -6.954020, 107.695952, 98.40, '2026-06-28 06:52:35.752975'),
+	(2888, 11, -6.955483, 107.694057, 54.89, '2026-06-28 06:57:26.997893'),
 	(430, 6, -6.914254, 107.697171, 34.40, '2026-06-01 22:11:49.775814'),
 	(433, 6, -6.914231, 107.697158, 18.01, '2026-06-01 22:12:43.562276'),
 	(436, 6, -6.914251, 107.697172, 56.10, '2026-06-01 22:13:44.968173'),
@@ -899,7 +1069,7 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(466, 6, -6.914244, 107.697175, 14.68, '2026-06-01 22:24:07.658729'),
 	(469, 6, -6.914244, 107.697175, 14.68, '2026-06-01 22:24:55.371336'),
 	(472, 3, -6.914249, 107.697170, 100.00, '2026-06-01 22:25:08.00126'),
-	(1570, 2, -6.931830, 107.714602, 20.00, '2026-06-18 14:56:56.56058'),
+	(3252, 39, -6.925603, 107.729386, 202.00, '2026-07-01 14:47:36.066002'),
 	(1011, 21, -6.246797, 107.071909, 20.10, '2026-06-10 21:10:18.136369'),
 	(1014, 21, -6.246800, 107.071926, 64.10, '2026-06-10 21:10:47.214771'),
 	(1017, 21, -6.246803, 107.071908, 24.90, '2026-06-10 21:12:14.200778'),
@@ -914,13 +1084,13 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1044, 3, -6.928856, 107.714667, 100.00, '2026-06-11 07:13:56.719096'),
 	(1047, 3, -6.928856, 107.714667, 100.00, '2026-06-11 07:15:27.09479'),
 	(1050, 3, -6.928856, 107.714667, 100.00, '2026-06-11 07:18:34.131698'),
-	(1576, 2, -6.925490, 107.729501, 14.59, '2026-06-18 17:41:27.907612'),
-	(1582, 2, -6.925542, 107.729409, 381.00, '2026-06-19 10:28:34.466999'),
-	(1588, 2, -6.925060, 107.729613, 12.00, '2026-06-19 11:47:08.500921'),
-	(1594, 2, -6.925146, 107.729353, 13.60, '2026-06-19 11:58:45.614135'),
-	(1600, 2, -6.928362, 107.728277, 100.00, '2026-06-19 12:02:42.695805'),
-	(1606, 2, -6.925368, 107.729653, 9.60, '2026-06-19 12:11:02.32615'),
-	(1612, 2, -6.925917, 107.727091, 10.70, '2026-06-19 12:14:43.77355'),
+	(2671, 39, -6.925484, 107.729460, 20.40, '2026-06-26 15:13:41.115492'),
+	(1937, 11, -6.940809, 107.714556, 15.87, '2026-06-23 14:26:56.085552'),
+	(3261, 2, -6.924930, 107.728970, 7.80, '2026-07-01 15:18:10.8544'),
+	(3270, 2, -6.925483, 107.729457, 39.60, '2026-07-01 15:54:51.475113'),
+	(2254, 8, -6.925503, 107.729469, 92.90, '2026-06-25 08:54:24.856123'),
+	(3279, 2, -6.925447, 107.729430, 8.20, '2026-07-01 15:59:08.718343'),
+	(2712, 11, -6.939379, 107.707492, 20.57, '2026-06-27 05:13:41.250427'),
 	(1618, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:12:03.451092'),
 	(1624, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:18:58.346172'),
 	(1630, 4, -6.930496, 107.711744, 100.00, '2026-06-19 13:59:07.337975'),
@@ -936,12 +1106,12 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(567, 4, -6.931820, 107.713744, 100.00, '2026-06-02 11:32:47.128974'),
 	(568, 4, -6.931820, 107.713744, 100.00, '2026-06-02 11:33:57.242142'),
 	(569, 4, -6.931820, 107.713744, 100.00, '2026-06-02 11:34:57.156876'),
-	(1457, 2, -6.925499, 107.729493, 42.50, '2026-06-18 06:28:57.366715'),
-	(1463, 2, -6.925495, 107.729498, 52.40, '2026-06-18 06:34:00.647232'),
-	(1469, 2, -6.925501, 107.729494, 32.10, '2026-06-18 07:51:36.813382'),
+	(3288, 39, -6.925484, 107.729458, 17.03, '2026-07-01 16:17:45.967854'),
+	(3299, 2, -6.925482, 107.729456, 32.10, '2026-07-01 17:22:17.812675'),
+	(3309, 2, -6.941217, 107.714275, 11.74, '2026-07-01 19:04:57.318549'),
 	(953, 11, -6.940836, 107.714576, 15.09, '2026-06-06 14:45:58.226162'),
 	(957, 11, -6.940842, 107.714569, 15.70, '2026-06-06 14:47:45.301837'),
-	(1475, 2, -6.925758, 107.729963, 4.92, '2026-06-18 08:02:14.337987'),
+	(3317, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:55:14.739865'),
 	(965, 3, -6.930735, 107.712931, 62.42, '2026-06-06 15:45:30.800877'),
 	(577, 4, -6.930704, 107.718277, 100.00, '2026-06-02 13:20:45.980563'),
 	(578, 3, -6.945905, 107.710276, 24.48, '2026-06-02 13:21:12.754642'),
@@ -950,7 +1120,7 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(581, 4, -6.930704, 107.718277, 100.00, '2026-06-02 13:23:55.724581'),
 	(582, 4, -6.930704, 107.718277, 100.00, '2026-06-02 13:25:09.969883'),
 	(583, 4, -6.930715, 107.718345, 61.02, '2026-06-02 13:25:51.531969'),
-	(1481, 2, -6.925508, 107.729473, 48.90, '2026-06-18 08:07:26.352802'),
+	(3325, 2, -6.925450, 107.729403, 141.00, '2026-07-02 05:04:39.513774'),
 	(585, 4, -6.930715, 107.718345, 100.00, '2026-06-02 13:26:21.55526'),
 	(586, 4, -6.930715, 107.718345, 100.00, '2026-06-02 13:26:51.313832'),
 	(587, 4, -6.930715, 107.718345, 100.00, '2026-06-02 13:28:32.461775'),
@@ -973,26 +1143,26 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(604, 11, -6.930696, 107.731558, 18.42, '2026-06-02 18:12:43.973792'),
 	(605, 11, -6.930687, 107.731545, 14.26, '2026-06-02 18:14:30.554412'),
 	(606, 11, -6.930697, 107.731554, 17.05, '2026-06-02 18:14:59.062145'),
-	(1487, 2, -6.925473, 107.729495, 8.80, '2026-06-18 09:36:11.452944'),
+	(2017, 38, -6.938283, 107.715872, 6.90, '2026-06-24 17:22:14.848495'),
 	(608, 11, -6.931489, 107.730605, 18.33, '2026-06-02 20:09:24.978703'),
 	(609, 11, -6.931489, 107.730605, 18.33, '2026-06-02 20:10:04.281214'),
-	(1493, 2, -6.925488, 107.729432, 183.00, '2026-06-18 09:43:36.339418'),
-	(1499, 2, -6.925498, 107.729495, 26.40, '2026-06-18 10:24:43.563495'),
+	(2023, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:24:33.380859'),
+	(3341, 39, -6.925603, 107.729386, 202.00, '2026-07-02 05:49:28.587012'),
 	(982, 3, -6.928831, 107.714617, 130.78, '2026-06-09 11:24:00.854782'),
 	(985, 3, -6.930860, 107.718375, 82.11, '2026-06-09 13:14:51.067702'),
-	(1505, 2, -6.925506, 107.729484, 23.60, '2026-06-18 10:31:52.844352'),
-	(1511, 2, -6.925465, 107.729508, 5.30, '2026-06-18 10:44:02.866098'),
-	(1517, 2, -6.925493, 107.729508, 7.00, '2026-06-18 10:47:14.45621'),
-	(1523, 2, -6.925499, 107.729496, 22.50, '2026-06-18 11:20:22.856981'),
-	(1529, 2, -6.925432, 107.729532, 7.40, '2026-06-18 11:27:45.890837'),
-	(1535, 2, -6.925490, 107.729500, 30.00, '2026-06-18 11:35:35.397099'),
+	(3353, 2, -6.925480, 107.729450, 72.90, '2026-07-03 06:09:22.116696'),
+	(3361, 39, -6.925487, 107.729453, 82.50, '2026-07-03 06:14:43.530358'),
+	(3369, 39, -6.925480, 107.729450, 56.10, '2026-07-03 06:18:36.900503'),
+	(3377, 2, -6.925491, 107.729460, 82.50, '2026-07-03 06:22:24.184815'),
+	(3389, 11, -6.940813, 107.714564, 14.44, '2026-07-03 08:22:32.73626'),
+	(3397, 2, -6.934814, 107.723241, 15.24, '2026-07-03 08:42:18.007332'),
 	(1006, 3, -6.930682, 107.718302, 100.00, '2026-06-10 13:23:38.339851'),
-	(1541, 2, -6.925492, 107.729500, 26.40, '2026-06-18 12:23:33.198096'),
+	(2807, 11, -6.939342, 107.707487, 19.23, '2026-06-28 03:57:27.669782'),
 	(1012, 21, -6.246794, 107.071910, 20.00, '2026-06-10 21:10:29.465178'),
 	(1015, 21, -6.246797, 107.071908, 22.50, '2026-06-10 21:11:51.988576'),
 	(1018, 21, -6.246797, 107.071909, 23.60, '2026-06-10 21:12:19.609458'),
 	(1021, 21, -6.246798, 107.071907, 21.60, '2026-06-10 21:13:52.992535'),
-	(1547, 2, -6.925499, 107.729496, 32.10, '2026-06-18 12:31:00.342619'),
+	(3253, 2, -6.925603, 107.729386, 202.00, '2026-07-01 14:48:12.590013'),
 	(1027, 21, -6.246803, 107.071907, 22.50, '2026-06-10 21:22:14.095271'),
 	(1030, 3, -6.927369, 107.713240, 3.40, '2026-06-11 06:05:32.041275'),
 	(1033, 3, -6.931958, 107.714703, 5.72, '2026-06-11 06:43:50.010165'),
@@ -1015,17 +1185,17 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1060, 4, -6.931819, 107.718074, 100.00, '2026-06-11 15:56:30.523767'),
 	(1061, 4, -6.931819, 107.718074, 100.00, '2026-06-11 15:57:54.191036'),
 	(1062, 4, -6.931819, 107.718074, 100.00, '2026-06-11 15:58:24.675338'),
-	(1553, 2, -6.925463, 107.729508, 9.90, '2026-06-18 12:57:55.557281'),
-	(1559, 2, -6.925492, 107.729501, 28.10, '2026-06-18 13:06:08.10735'),
-	(1565, 2, -6.925499, 107.729469, 48.90, '2026-06-18 13:36:53.569961'),
-	(1571, 2, -6.931824, 107.714603, 20.00, '2026-06-18 14:57:50.974926'),
-	(1577, 2, -6.925501, 107.729466, 72.90, '2026-06-18 18:57:32.386938'),
-	(1583, 2, -6.925542, 107.729409, 381.00, '2026-06-19 10:28:49.887335'),
-	(1589, 2, -6.925510, 107.729917, 10.20, '2026-06-19 11:51:09.148763'),
-	(1595, 2, -6.925281, 107.729121, 10.50, '2026-06-19 11:59:33.004822'),
-	(1601, 2, -6.925199, 107.729630, 9.80, '2026-06-19 12:04:52.585085'),
-	(1607, 2, -6.925396, 107.729319, 9.20, '2026-06-19 12:11:20.191676'),
-	(1613, 2, -6.926015, 107.729560, 9.60, '2026-06-19 12:15:57.489267'),
+	(3262, 2, -6.925313, 107.729423, 8.00, '2026-07-01 15:18:29.541963'),
+	(1938, 11, -6.940799, 107.714568, 13.53, '2026-06-23 14:27:34.500186'),
+	(3271, 2, -6.925489, 107.729464, 48.90, '2026-07-01 15:55:08.083967'),
+	(3280, 16, -6.928843, 107.715695, 100.00, '2026-07-01 15:59:26.332669'),
+	(2255, 8, -6.925505, 107.729464, 98.40, '2026-06-25 08:54:32.766282'),
+	(3289, 2, -6.925491, 107.729464, 48.90, '2026-07-01 16:18:23.116145'),
+	(3300, 2, -6.925482, 107.729457, 32.10, '2026-07-01 17:22:38.662035'),
+	(3310, 2, -6.941216, 107.714277, 12.95, '2026-07-01 19:05:13.451773'),
+	(3318, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:55:25.063145'),
+	(2424, 11, -6.939253, 107.707503, 12.26, '2026-06-26 06:20:06.318858'),
+	(3326, 2, -6.925539, 107.729412, 151.00, '2026-07-02 05:06:41.352491'),
 	(1619, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:13:43.534666'),
 	(1625, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:19:38.300007'),
 	(1631, 4, -6.944048, 107.688312, 400.00, '2026-06-19 14:47:58.640957'),
@@ -1035,22 +1205,22 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(736, 11, -6.940841, 107.714569, 15.25, '2026-06-03 14:23:04.258386'),
 	(1655, 4, -6.920841, 107.657616, 100.00, '2026-06-20 16:33:47.708656'),
 	(1661, 4, -6.931919, 107.713750, 100.00, '2026-06-21 15:38:35.649636'),
-	(1458, 2, -6.925443, 107.729498, 22.10, '2026-06-18 06:29:54.550428'),
-	(1464, 2, -6.925760, 107.729833, 9.80, '2026-06-18 06:42:22.342462'),
-	(1470, 2, -6.925501, 107.729494, 32.10, '2026-06-18 07:54:21.50955'),
-	(1476, 2, -6.925553, 107.729678, 4.90, '2026-06-18 08:02:37.222196'),
-	(1482, 2, -6.925501, 107.729453, 64.10, '2026-06-18 08:08:25.602534'),
-	(1488, 2, -6.925490, 107.729498, 42.50, '2026-06-18 09:39:35.383574'),
-	(1494, 2, -6.925493, 107.729499, 14.90, '2026-06-18 09:47:00.587646'),
-	(1500, 2, -6.925460, 107.729462, 9.70, '2026-06-18 10:26:19.29819'),
-	(1506, 2, -6.925493, 107.729473, 9.00, '2026-06-18 10:32:26.417043'),
-	(1512, 2, -6.925450, 107.729522, 5.90, '2026-06-18 10:44:32.327146'),
-	(1518, 2, -6.925520, 107.729617, 13.60, '2026-06-18 10:49:11.699098'),
-	(1524, 2, -6.925548, 107.729567, 8.60, '2026-06-18 11:20:48.212257'),
-	(1530, 2, -6.925440, 107.729533, 7.60, '2026-06-18 11:27:58.262775'),
-	(1536, 2, -6.925477, 107.729509, 45.60, '2026-06-18 11:37:05.247415'),
-	(1542, 2, -6.925494, 107.729499, 14.75, '2026-06-18 12:25:32.00705'),
-	(1548, 2, -6.925412, 107.729660, 9.30, '2026-06-18 12:31:20.25978'),
+	(3342, 2, -6.925539, 107.729412, 151.00, '2026-07-02 05:50:48.407684'),
+	(3354, 2, -6.925485, 107.729446, 82.50, '2026-07-03 06:10:19.377331'),
+	(3362, 39, -6.925487, 107.729453, 82.50, '2026-07-03 06:14:53.347436'),
+	(3370, 39, -6.925481, 107.729451, 56.10, '2026-07-03 06:18:44.286777'),
+	(3378, 2, -6.925481, 107.729450, 60.00, '2026-07-03 06:28:37.618924'),
+	(3390, 11, -6.940800, 107.714563, 13.93, '2026-07-03 08:24:26.903644'),
+	(3398, 2, -6.934752, 107.723221, 17.70, '2026-07-03 08:42:25.024936'),
+	(3405, 2, -6.934821, 107.723218, 18.70, '2026-07-03 08:45:15.767727'),
+	(3412, 39, -6.934792, 107.723232, 13.76, '2026-07-03 08:48:38.074881'),
+	(3418, 2, -6.934789, 107.723244, 16.55, '2026-07-03 08:53:41.515416'),
+	(3424, 2, -6.934806, 107.723216, 16.99, '2026-07-03 09:13:45.419943'),
+	(3430, 3, -6.940806, 107.714562, 14.07, '2026-07-03 11:02:30.671709'),
+	(3436, 3, -6.940806, 107.714562, 100.00, '2026-07-03 11:04:32.332214'),
+	(3442, 3, -6.940806, 107.714562, 100.00, '2026-07-03 11:06:15.939588'),
+	(3448, 4, -6.940803, 107.714563, 100.00, '2026-07-03 11:09:52.909805'),
+	(3454, 2, -6.925460, 107.729401, 143.00, '2026-07-03 12:07:00.248354'),
 	(1098, 3, -6.929321, 107.712450, 5.12, '2026-06-12 06:28:54.558794'),
 	(1099, 3, -6.929371, 107.712390, 4.71, '2026-06-12 06:29:02.39009'),
 	(1100, 3, -6.929441, 107.712385, 3.83, '2026-06-12 06:29:13.335453'),
@@ -1085,25 +1255,24 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1129, 11, -6.938225, 107.716036, 64.10, '2026-06-13 05:32:42.502396'),
 	(1130, 11, -6.938343, 107.715982, 15.99, '2026-06-13 05:33:09.678377'),
 	(1131, 11, -6.938349, 107.715934, 87.60, '2026-06-13 05:34:16.767293'),
-	(1554, 2, -6.925455, 107.729530, 9.00, '2026-06-18 12:58:11.502546'),
-	(1560, 2, -6.925492, 107.729499, 28.10, '2026-06-18 13:15:38.126067'),
-	(1566, 2, -6.925499, 107.729469, 48.90, '2026-06-18 13:37:59.081201'),
-	(1572, 2, -6.931820, 107.714598, 28.10, '2026-06-18 14:59:49.953971'),
-	(1578, 2, -6.925447, 107.729429, 9.40, '2026-06-18 18:58:04.703477'),
-	(1584, 2, -6.925127, 107.729628, 89.70, '2026-06-19 11:42:08.154627'),
-	(1590, 2, -6.927702, 107.732530, 13.30, '2026-06-19 11:51:34.160026'),
-	(1596, 2, -6.925054, 107.729591, 10.10, '2026-06-19 12:00:28.847198'),
-	(1602, 2, -6.925443, 107.729966, 12.30, '2026-06-19 12:06:37.645179'),
-	(1608, 2, -6.925350, 107.729242, 9.20, '2026-06-19 12:12:48.625476'),
-	(1614, 2, -6.925276, 107.729583, 13.70, '2026-06-19 12:17:44.947007'),
+	(2801, 11, -6.939453, 107.707469, 16.89, '2026-06-28 03:53:40.916856'),
+	(2138, 38, -6.922448, 107.678716, 23.08, '2026-06-25 05:35:21.682666'),
+	(2808, 11, -6.939343, 107.707486, 31.95, '2026-06-28 03:57:35.620795'),
+	(2814, 11, -6.939450, 107.707470, 16.70, '2026-06-28 04:02:59.418398'),
+	(2820, 11, -6.939463, 107.707468, 15.92, '2026-06-28 04:05:27.86583'),
+	(2825, 11, -6.939451, 107.707471, 16.45, '2026-06-28 04:10:47.919871'),
 	(1620, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:14:12.857509'),
 	(1626, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:20:13.269401'),
+	(2830, 11, -6.939460, 107.707467, 16.64, '2026-06-28 04:14:20.026413'),
+	(2835, 11, -6.939465, 107.707463, 20.00, '2026-06-28 04:18:40.742461'),
+	(2840, 11, -6.939463, 107.707463, 19.31, '2026-06-28 04:23:16.55375'),
+	(2883, 11, -6.954246, 107.696097, 82.50, '2026-06-28 06:52:45.969131'),
 	(1632, 4, -6.944048, 107.688312, 400.00, '2026-06-19 14:49:39.457758'),
 	(1638, 4, -6.944048, 107.688312, 400.00, '2026-06-19 14:55:26.484305'),
 	(1644, 6, -6.926498, 107.717051, 52.40, '2026-06-20 01:42:04.291878'),
 	(1650, 3, -6.928896, 107.714625, 100.00, '2026-06-20 07:56:44.757687'),
 	(1656, 4, -6.920841, 107.657616, 100.00, '2026-06-20 16:35:37.543124'),
-	(1662, 2, -6.925502, 107.729426, 183.00, '2026-06-21 17:00:58.933024'),
+	(3254, 2, -6.925603, 107.729386, 202.00, '2026-07-01 14:48:21.76877'),
 	(1153, 3, -6.928889, 107.714629, 100.00, '2026-06-14 09:14:30.370523'),
 	(1154, 3, -6.928889, 107.714629, 100.00, '2026-06-14 09:15:11.612175'),
 	(1155, 3, -6.928889, 107.714629, 100.00, '2026-06-14 09:15:51.352892'),
@@ -1116,7 +1285,7 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1162, 3, -6.928889, 107.714629, 100.00, '2026-06-14 09:20:01.776933'),
 	(1163, 3, -6.928889, 107.714629, 100.00, '2026-06-14 09:20:47.834997'),
 	(1164, 3, -6.928889, 107.714629, 100.00, '2026-06-14 09:21:18.828119'),
-	(1459, 2, -6.925491, 107.729501, 26.40, '2026-06-18 06:30:09.188939'),
+	(3263, 2, -6.925539, 107.729412, 151.00, '2026-07-01 15:20:03.7635'),
 	(1465, 11, -6.939452, 107.707464, 20.00, '2026-06-18 06:46:46.077494'),
 	(1191, 4, -6.932050, 107.713680, 100.00, '2026-06-15 07:40:51.268896'),
 	(1192, 4, -6.932050, 107.713680, 100.00, '2026-06-15 07:42:07.45279'),
@@ -1125,40 +1294,37 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1195, 4, -6.932050, 107.713680, 100.00, '2026-06-15 07:45:04.938738'),
 	(1196, 4, -6.932078, 107.713653, 116.10, '2026-06-15 07:46:57.054817'),
 	(1197, 4, -6.932078, 107.713653, 116.10, '2026-06-15 07:47:36.383507'),
-	(1471, 2, -6.925493, 107.729498, 36.90, '2026-06-18 07:54:58.440837'),
-	(1477, 2, -6.925507, 107.729480, 32.10, '2026-06-18 08:03:34.289816'),
-	(1483, 2, -6.925489, 107.729432, 187.00, '2026-06-18 08:52:12.147479'),
-	(1489, 2, -6.925492, 107.729483, 9.20, '2026-06-18 09:40:49.375615'),
-	(1495, 2, -6.925497, 107.729494, 39.60, '2026-06-18 09:47:25.230804'),
-	(1501, 2, -6.925487, 107.729478, 10.90, '2026-06-18 10:26:32.989501'),
-	(1507, 2, -6.925468, 107.729508, 4.30, '2026-06-18 10:34:21.763165'),
-	(1513, 2, -6.925507, 107.729482, 22.50, '2026-06-18 10:44:53.823372'),
-	(1519, 2, -6.925489, 107.729432, 187.00, '2026-06-18 10:54:17.273061'),
-	(1525, 2, -6.925500, 107.729494, 36.90, '2026-06-18 11:21:44.141038'),
-	(1531, 2, -6.925495, 107.729499, 15.22, '2026-06-18 11:28:40.253727'),
-	(1537, 2, -6.925492, 107.729501, 32.10, '2026-06-18 11:37:33.863876'),
-	(1543, 2, -6.925492, 107.729499, 24.90, '2026-06-18 12:27:23.023157'),
-	(1549, 2, -6.925500, 107.729496, 48.90, '2026-06-18 12:31:42.259316'),
-	(1555, 2, -6.925491, 107.729492, 39.60, '2026-06-18 13:00:06.879733'),
-	(1561, 2, -6.925495, 107.729490, 16.21, '2026-06-18 13:16:02.546135'),
+	(1939, 11, -6.940781, 107.714558, 18.80, '2026-06-23 14:27:59.969529'),
+	(2240, 4, -6.952813, 107.455967, 100.00, '2026-06-25 08:34:11.401542'),
+	(3272, 39, -6.925470, 107.729460, 17.45, '2026-07-01 15:56:03.780186'),
+	(3281, 16, -6.928843, 107.715695, 100.00, '2026-07-01 15:59:38.733827'),
+	(3290, 2, -6.925482, 107.729457, 30.00, '2026-07-01 16:22:54.481057'),
+	(3301, 16, -6.929487, 107.715695, 100.00, '2026-07-01 17:38:07.503392'),
+	(3311, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:53:21.557702'),
+	(3319, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:55:43.355749'),
+	(3327, 2, -6.925448, 107.729364, 187.00, '2026-07-02 05:08:41.180713'),
+	(3330, 2, -6.925539, 107.729412, 151.00, '2026-07-02 05:14:39.048414'),
+	(2019, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:24:03.376419'),
+	(3331, 2, -6.925460, 107.729399, 141.00, '2026-07-02 05:16:40.225566'),
+	(2031, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:28:06.081276'),
+	(3334, 2, -6.925460, 107.729399, 141.00, '2026-07-02 05:22:40.93269'),
+	(3335, 2, -6.925539, 107.729412, 151.00, '2026-07-02 05:42:43.849037'),
+	(3343, 16, -6.928843, 107.715695, 100.00, '2026-07-02 06:43:09.981599'),
 	(1383, 11, -6.939102, 107.713660, 14.85, '2026-06-16 15:57:38.423546'),
-	(1418, 2, -6.856908, 107.732596, 21.25, '2026-06-17 09:01:17.066365'),
-	(1422, 2, -6.856906, 107.732461, 20.00, '2026-06-17 09:08:58.900155'),
-	(1426, 2, -6.856915, 107.732482, 20.00, '2026-06-17 09:15:57.572735'),
-	(1430, 2, -6.895790, 107.640653, 12.77, '2026-06-17 12:35:11.041294'),
-	(1434, 2, -6.895779, 107.640655, 12.45, '2026-06-17 12:43:19.639732'),
-	(1438, 2, -6.895781, 107.640658, 12.04, '2026-06-17 12:52:06.605878'),
-	(1442, 2, -6.895764, 107.640656, 13.17, '2026-06-17 12:57:36.441271'),
-	(1446, 2, -6.925494, 107.729500, 26.40, '2026-06-17 23:18:41.88158'),
-	(1450, 2, -6.925492, 107.729497, 21.60, '2026-06-17 23:21:51.035794'),
-	(1567, 2, -6.925499, 107.729469, 48.90, '2026-06-18 13:38:27.212876'),
-	(1573, 2, -6.925493, 107.729501, 24.90, '2026-06-18 17:39:30.462569'),
-	(1579, 2, -6.925488, 107.729432, 183.00, '2026-06-19 10:13:38.664298'),
-	(1585, 2, -6.925213, 107.729755, 9.30, '2026-06-19 11:43:02.315859'),
-	(1591, 2, -6.928785, 107.731459, 10.40, '2026-06-19 11:51:51.498838'),
-	(1597, 2, -6.925851, 107.729365, 11.60, '2026-06-19 12:00:45.693807'),
-	(1603, 2, -6.925089, 107.729310, 9.10, '2026-06-19 12:06:53.43132'),
-	(1609, 2, -6.925432, 107.729530, 7.90, '2026-06-19 12:13:40.908835'),
+	(3344, 16, -6.797527, 107.636012, 3.00, '2026-07-02 13:16:55.249815'),
+	(3345, 4, -6.930818, 107.718617, 29.47, '2026-07-02 20:51:05.234768'),
+	(3347, 2, -6.925481, 107.729447, 92.90, '2026-07-03 06:07:06.925736'),
+	(3355, 2, -6.925492, 107.729458, 92.90, '2026-07-03 06:10:27.139828'),
+	(3363, 39, -6.925482, 107.729450, 77.60, '2026-07-03 06:15:45.313217'),
+	(3371, 39, -6.925480, 107.729449, 56.10, '2026-07-03 06:19:38.926919'),
+	(2953, 11, -6.940799, 107.714563, 21.60, '2026-06-28 11:41:15.421826'),
+	(2956, 11, -6.940807, 107.714554, 15.43, '2026-06-28 11:42:48.237692'),
+	(2959, 11, -6.940802, 107.714561, 14.44, '2026-06-28 11:47:25.312677'),
+	(2962, 11, -6.940812, 107.714554, 16.44, '2026-06-28 11:49:49.533769'),
+	(2965, 11, -6.940801, 107.714564, 14.59, '2026-06-28 11:51:51.295556'),
+	(2117, 38, -6.922454, 107.678740, 24.94, '2026-06-25 05:21:27.75201'),
+	(2118, 38, -6.922525, 107.678799, 24.67, '2026-06-25 05:23:23.891369'),
+	(2525, 6, -6.925476, 107.729479, 60.00, '2026-06-26 09:40:10.424761'),
 	(1615, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:07:27.590987'),
 	(1621, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:15:37.672187'),
 	(1627, 4, -6.931784, 107.713752, 100.00, '2026-06-19 13:22:00.03406'),
@@ -1167,7 +1333,360 @@ INSERT INTO "device_location_history" ("id", "user_id", "lat", "lng", "accuracy_
 	(1645, 4, -6.952656, 107.456177, 100.00, '2026-06-20 04:47:18.444047'),
 	(1651, 3, -6.928896, 107.714625, 100.00, '2026-06-20 07:58:44.702475'),
 	(1657, 4, -6.920841, 107.657616, 100.00, '2026-06-20 16:38:46.062449'),
-	(1663, 2, -6.925502, 107.729426, 183.00, '2026-06-21 17:11:56.905775');
+	(2529, 6, -6.925477, 107.729469, 9.40, '2026-06-26 09:41:24.511561'),
+	(2971, 11, -6.942572, 107.714307, 27.87, '2026-06-28 12:06:50.142247'),
+	(3379, 16, -6.928857, 107.716023, 34.40, '2026-07-03 06:28:39.317748'),
+	(3383, 2, -6.925474, 107.729445, 36.90, '2026-07-03 07:54:06.375547'),
+	(3391, 11, -6.940808, 107.714557, 15.46, '2026-07-03 08:26:25.383742'),
+	(3399, 2, -6.934738, 107.723240, 19.23, '2026-07-03 08:42:34.635651'),
+	(3406, 2, -6.934794, 107.723218, 18.50, '2026-07-03 08:45:48.242812'),
+	(3413, 39, -6.934833, 107.723223, 17.83, '2026-07-03 08:49:12.992198'),
+	(3419, 2, -6.934822, 107.723232, 17.50, '2026-07-03 08:54:09.326309'),
+	(3425, 2, -6.934846, 107.723218, 17.41, '2026-07-03 09:13:55.855439'),
+	(3431, 4, -6.940659, 107.714613, 100.00, '2026-07-03 11:02:40.979299'),
+	(3437, 3, -6.940806, 107.714562, 100.00, '2026-07-03 11:04:38.083845'),
+	(3443, 4, -6.940803, 107.714563, 96.92, '2026-07-03 11:06:24.596691'),
+	(3449, 2, -6.925460, 107.729401, 143.00, '2026-07-03 11:57:45.273827'),
+	(3460, 13, -6.945569, 107.705680, 13.47, '2026-07-03 18:37:28.95457'),
+	(3465, 2, -6.925491, 107.729466, 15.67, '2026-07-03 18:41:17.100949'),
+	(3470, 13, -6.945591, 107.705657, 13.68, '2026-07-03 19:26:51.536873'),
+	(3471, 2, -6.933457, 107.723004, 16.13, '2026-07-03 21:31:37.53547'),
+	(3476, 2, -6.933453, 107.723009, 15.84, '2026-07-03 21:40:42.537839'),
+	(3481, 2, -6.933439, 107.722990, 18.17, '2026-07-03 21:48:18.504687'),
+	(3486, 53, -6.940581, 107.714576, 26.48, '2026-07-03 21:53:42.537891'),
+	(3490, 2, -6.933447, 107.723002, 17.87, '2026-07-03 21:56:42.57911'),
+	(3494, 51, -7.023226, 107.543527, 16.50, '2026-07-03 21:59:46.973577'),
+	(2802, 11, -6.939462, 107.707464, 19.03, '2026-06-28 03:54:12.515467'),
+	(2809, 11, -6.939453, 107.707469, 15.31, '2026-06-28 03:58:00.281242'),
+	(2815, 11, -6.939459, 107.707464, 19.33, '2026-06-28 04:03:54.353853'),
+	(2821, 11, -6.939457, 107.707469, 16.81, '2026-06-28 04:05:56.46537'),
+	(2826, 11, -6.939449, 107.707467, 17.21, '2026-06-28 04:11:29.372435'),
+	(2831, 11, -6.939522, 107.707484, 19.66, '2026-06-28 04:14:34.291205'),
+	(2836, 11, -6.939466, 107.707462, 18.64, '2026-06-28 04:20:41.534415'),
+	(2841, 11, -6.939441, 107.707465, 17.24, '2026-06-28 04:26:15.017955'),
+	(3498, 2, -6.933455, 107.723003, 16.93, '2026-07-03 22:00:53.585524'),
+	(3502, 2, -6.933446, 107.722993, 18.85, '2026-07-03 22:04:09.069864'),
+	(2859, 11, -6.952296, 107.691751, 4.03, '2026-06-28 06:25:58.170794'),
+	(3506, 2, -6.933448, 107.722995, 17.59, '2026-07-03 22:06:41.462293'),
+	(3510, 2, -6.931944, 107.724217, 14.81, '2026-07-03 22:13:56.526435'),
+	(3514, 2, -6.925489, 107.729466, 23.60, '2026-07-03 22:26:54.303171'),
+	(3518, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:11:45.30316'),
+	(2633, 11, -6.942764, 107.714185, 17.12, '2026-06-26 12:12:42.572127'),
+	(2884, 11, -6.954927, 107.694430, 43.02, '2026-06-28 06:54:40.107143'),
+	(3255, 2, -6.925539, 107.729412, 151.00, '2026-07-01 14:49:38.720773'),
+	(2674, 39, -6.925472, 107.729488, 10.20, '2026-06-26 15:20:34.940752'),
+	(2241, 4, -6.952813, 107.455967, 100.00, '2026-06-25 08:35:00.107742'),
+	(3264, 39, -6.925539, 107.729412, 151.00, '2026-07-01 15:23:36.078265'),
+	(3273, 39, -6.925453, 107.729450, 9.60, '2026-07-01 15:56:19.227941'),
+	(3282, 2, -6.925522, 107.729468, 7.90, '2026-07-01 15:59:50.444758'),
+	(3291, 2, -6.925468, 107.729453, 9.50, '2026-07-01 16:23:04.944479'),
+	(3302, 16, -6.929487, 107.715695, 100.00, '2026-07-01 17:38:35.922856'),
+	(3312, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:53:28.513987'),
+	(3320, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:56:03.179432'),
+	(3328, 2, -6.925539, 107.729412, 151.00, '2026-07-02 05:10:41.331879'),
+	(3332, 2, -6.925460, 107.729399, 141.00, '2026-07-02 05:18:41.116751'),
+	(3336, 38, -6.922463, 107.678778, 6.84, '2026-07-02 05:45:21.518929'),
+	(3346, 4, -6.930911, 107.718609, 33.43, '2026-07-02 20:51:23.295776'),
+	(3348, 2, -6.925485, 107.729454, 68.40, '2026-07-03 06:07:34.154707'),
+	(3356, 2, -6.925495, 107.729465, 87.60, '2026-07-03 06:11:26.511469'),
+	(3364, 39, -6.925486, 107.729453, 87.60, '2026-07-03 06:15:58.523124'),
+	(3372, 39, -6.925480, 107.729449, 56.10, '2026-07-03 06:20:02.476912'),
+	(2803, 11, -6.939453, 107.707467, 15.89, '2026-06-28 03:54:30.365961'),
+	(2810, 11, -6.939457, 107.707465, 16.27, '2026-06-28 03:58:30.59366'),
+	(2816, 11, -6.939462, 107.707469, 15.70, '2026-06-28 04:04:01.342461'),
+	(2822, 11, -6.939455, 107.707467, 15.75, '2026-06-28 04:06:41.431776'),
+	(2827, 11, -6.939462, 107.707470, 15.60, '2026-06-28 04:13:24.517351'),
+	(2391, 3, -6.929501, 107.715280, 8.80, '2026-06-25 14:30:32.20617'),
+	(2392, 3, -6.929268, 107.715211, 17.34, '2026-06-25 14:37:28.968971'),
+	(2832, 11, -6.939444, 107.707463, 18.14, '2026-06-28 04:15:43.066063'),
+	(2837, 11, -6.939466, 107.707463, 17.77, '2026-06-28 04:21:55.863072'),
+	(2842, 11, -6.939444, 107.707465, 29.86, '2026-06-28 04:26:24.979665'),
+	(2844, 11, -6.940274, 107.708278, 7.89, '2026-06-28 05:48:58.365381'),
+	(3380, 2, -6.925480, 107.729453, 56.10, '2026-07-03 06:28:50.096349'),
+	(3384, 2, -6.925478, 107.729451, 36.90, '2026-07-03 07:54:17.144521'),
+	(3392, 11, -6.940808, 107.714557, 15.46, '2026-07-03 08:26:50.461782'),
+	(3400, 2, -6.934767, 107.723214, 20.20, '2026-07-03 08:42:45.286283'),
+	(3407, 2, -6.934837, 107.723198, 19.04, '2026-07-03 08:45:58.925192'),
+	(3414, 2, -6.934831, 107.723222, 18.78, '2026-07-03 08:51:07.831707'),
+	(3420, 11, -6.940808, 107.714562, 14.77, '2026-07-03 09:02:03.562152'),
+	(3426, 2, -6.934793, 107.723227, 17.42, '2026-07-03 09:30:04.132431'),
+	(3432, 3, -6.940806, 107.714562, 56.07, '2026-07-03 11:03:11.453704'),
+	(3438, 4, -6.940659, 107.714613, 100.00, '2026-07-03 11:04:42.493551'),
+	(3444, 4, -6.940803, 107.714563, 100.00, '2026-07-03 11:08:03.545117'),
+	(3450, 2, -6.925460, 107.729401, 143.00, '2026-07-03 11:57:47.521111'),
+	(2466, 11, -6.939409, 107.707476, 20.95, '2026-06-26 07:23:32.586713'),
+	(3455, 2, -6.925460, 107.729401, 143.00, '2026-07-03 17:02:20.399617'),
+	(3456, 48, -6.913695, 107.658838, 2.50, '2026-07-03 18:22:37.287106'),
+	(3461, 2, -6.925481, 107.729455, 32.10, '2026-07-03 18:39:46.659447'),
+	(3466, 2, -6.932909, 107.726222, 18.99, '2026-07-03 19:03:28.180276'),
+	(2954, 11, -6.940800, 107.714570, 12.50, '2026-06-28 11:41:40.241179'),
+	(2957, 11, -6.940808, 107.714564, 13.19, '2026-06-28 11:43:23.30289'),
+	(2960, 11, -6.940837, 107.714501, 8.56, '2026-06-28 11:47:40.117868'),
+	(2522, 6, -6.925476, 107.729456, 16.68, '2026-06-26 09:36:38.871189'),
+	(2526, 6, -6.925484, 107.729456, 45.60, '2026-06-26 09:40:28.161739'),
+	(2530, 6, -6.925515, 107.729466, 8.20, '2026-06-26 09:41:32.480088'),
+	(2963, 11, -6.940816, 107.714555, 15.93, '2026-06-28 11:50:34.850444'),
+	(2966, 11, -6.940796, 107.714546, 9.70, '2026-06-28 11:52:10.123307'),
+	(2972, 11, -6.942572, 107.714307, 27.87, '2026-06-28 12:06:51.14319'),
+	(2975, 11, -6.939142, 107.713726, 18.31, '2026-06-28 14:05:30.845619'),
+	(3011, 38, -6.922492, 107.678760, 16.95, '2026-06-28 18:20:15.49856'),
+	(3022, 4, -6.945797, 107.703280, 52.05, '2026-06-28 23:15:23.361817'),
+	(3024, 4, -6.931815, 107.713763, 32.10, '2026-06-28 23:33:11.277549'),
+	(2631, 11, -6.942772, 107.714188, 21.60, '2026-06-26 12:11:55.77429'),
+	(2634, 11, -6.942782, 107.714187, 18.69, '2026-06-26 12:12:55.729195'),
+	(3026, 4, -6.931815, 107.713763, 100.00, '2026-06-28 23:35:12.523087'),
+	(3028, 4, -6.931897, 107.713760, 24.86, '2026-06-28 23:36:53.728714'),
+	(3030, 4, -6.931897, 107.713760, 100.00, '2026-06-28 23:40:11.008927'),
+	(3032, 4, -6.931897, 107.713760, 100.00, '2026-06-28 23:40:59.24103'),
+	(3034, 4, -6.931778, 107.713749, 52.40, '2026-06-29 00:19:47.00418'),
+	(3472, 2, -6.933446, 107.722990, 18.08, '2026-07-03 21:35:44.408085'),
+	(3477, 2, -6.933454, 107.723001, 17.73, '2026-07-03 21:42:37.822268'),
+	(3482, 53, -6.940581, 107.714576, 26.48, '2026-07-03 21:48:53.271502'),
+	(2885, 11, -6.955549, 107.693847, 36.71, '2026-06-28 06:56:04.543173'),
+	(2886, 11, -6.954924, 107.694401, 40.05, '2026-06-28 06:57:08.357418'),
+	(3487, 2, -6.933451, 107.722997, 17.74, '2026-07-03 21:55:00.482935'),
+	(3491, 51, -7.023214, 107.543531, 16.05, '2026-07-03 21:57:47.030173'),
+	(3495, 51, -7.023221, 107.543542, 13.72, '2026-07-03 22:00:09.526033'),
+	(3499, 2, -6.933461, 107.723008, 15.48, '2026-07-03 22:02:49.511186'),
+	(3503, 2, -6.933450, 107.722992, 16.47, '2026-07-03 22:04:15.0313'),
+	(3507, 2, -6.933438, 107.722999, 19.80, '2026-07-03 22:06:52.464368'),
+	(3511, 2, -6.931984, 107.724243, 17.09, '2026-07-03 22:14:51.879052'),
+	(3515, 2, -6.925489, 107.729466, 23.60, '2026-07-03 22:27:36.470472'),
+	(3036, 4, -6.932012, 107.713707, 72.90, '2026-06-29 00:20:48.033996'),
+	(3038, 4, -6.931779, 107.713749, 60.00, '2026-06-29 00:24:42.935574'),
+	(3040, 4, -6.931779, 107.713749, 100.00, '2026-06-29 00:25:48.213592'),
+	(3042, 4, -6.931779, 107.713749, 100.00, '2026-06-29 00:26:52.985084'),
+	(3044, 4, -6.931779, 107.713749, 100.00, '2026-06-29 00:36:52.520321'),
+	(2020, 38, -6.938403, 107.715824, 23.89, '2026-06-24 17:24:11.052724'),
+	(2026, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:25:25.115163'),
+	(2032, 3, -6.938389, 107.715879, 100.00, '2026-06-24 17:28:18.330794'),
+	(3519, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:13:31.494694'),
+	(3522, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:16:30.352865'),
+	(3525, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:18:13.154602'),
+	(3528, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:21:42.053749'),
+	(3530, 11, -6.939462, 107.707468, 16.17, '2026-07-04 04:04:45.535935'),
+	(2128, 38, -6.922428, 107.678696, 36.90, '2026-06-25 05:30:51.208084'),
+	(2667, 39, -6.925703, 107.729297, 9.60, '2026-06-26 15:04:10.73858'),
+	(2675, 39, -6.925491, 107.729471, 14.35, '2026-06-26 15:20:44.581352'),
+	(2242, 4, -6.952813, 107.455967, 100.00, '2026-06-25 08:35:30.128146'),
+	(2686, 11, -6.938838, 107.708158, 22.50, '2026-06-26 18:01:23.173002'),
+	(3256, 2, -6.925539, 107.729412, 151.00, '2026-07-01 14:49:49.765713'),
+	(3265, 39, -6.925539, 107.729412, 151.00, '2026-07-01 15:23:50.899494'),
+	(3274, 39, -6.925437, 107.729450, 8.60, '2026-07-01 15:56:38.953906'),
+	(3283, 16, -6.928843, 107.715695, 100.00, '2026-07-01 16:00:00.306734'),
+	(3292, 2, -6.925492, 107.729464, 18.28, '2026-07-01 16:26:11.454884'),
+	(3303, 16, -6.929487, 107.715695, 100.00, '2026-07-01 17:38:55.423662'),
+	(3313, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:53:41.20028'),
+	(3321, 2, -6.925539, 107.729412, 151.00, '2026-07-02 04:56:43.79658'),
+	(3329, 2, -6.925460, 107.729399, 141.00, '2026-07-02 05:12:38.961309'),
+	(3333, 2, -6.925539, 107.729412, 151.00, '2026-07-02 05:20:41.246405'),
+	(3337, 38, -6.922440, 107.678780, 2.90, '2026-07-02 05:46:08.310302'),
+	(3349, 2, -6.925482, 107.729451, 60.00, '2026-07-03 06:07:53.124628'),
+	(2804, 11, -6.939449, 107.707469, 15.04, '2026-06-28 03:54:46.621085'),
+	(2811, 11, -6.939454, 107.707468, 16.12, '2026-06-28 03:59:31.174762'),
+	(2817, 11, -6.939460, 107.707463, 27.35, '2026-06-28 04:04:14.412046'),
+	(2823, 11, -6.939455, 107.707463, 27.07, '2026-06-28 04:06:54.478171'),
+	(2828, 11, -6.939463, 107.707469, 26.76, '2026-06-28 04:13:34.258614'),
+	(2833, 11, -6.939446, 107.707469, 17.91, '2026-06-28 04:16:20.492259'),
+	(2838, 11, -6.939463, 107.707470, 30.72, '2026-06-28 04:22:07.321531'),
+	(2393, 3, -6.929265, 107.715213, 15.47, '2026-06-25 14:37:49.808885'),
+	(2843, 11, -6.939449, 107.707471, 18.63, '2026-06-28 04:27:09.636247'),
+	(3357, 2, -6.922618, 107.727398, 9.70, '2026-07-03 06:11:36.587782'),
+	(3365, 39, -6.925497, 107.729463, 87.60, '2026-07-03 06:16:19.445626'),
+	(3373, 39, -6.925483, 107.729453, 60.00, '2026-07-03 06:20:29.868032'),
+	(2861, 11, -6.952315, 107.691771, 3.41, '2026-06-28 06:26:07.03241'),
+	(3381, 2, -6.924037, 107.729584, 48.90, '2026-07-03 06:30:44.930692'),
+	(3385, 2, -6.925469, 107.729329, 77.60, '2026-07-03 07:58:11.963504'),
+	(3393, 4, -6.931784, 107.713745, 110.00, '2026-07-03 08:27:05.315712'),
+	(3401, 2, -6.934835, 107.723208, 16.50, '2026-07-03 08:43:08.334906'),
+	(2887, 11, -6.955483, 107.694057, 54.89, '2026-06-28 06:57:19.784474'),
+	(3408, 2, -6.934706, 107.723232, 18.06, '2026-07-03 08:46:23.020407'),
+	(3415, 2, -6.934795, 107.723240, 15.76, '2026-07-03 08:51:16.664557'),
+	(3421, 11, -6.940811, 107.714563, 14.06, '2026-07-03 09:03:09.187672'),
+	(3427, 2, -6.934793, 107.723227, 17.42, '2026-07-03 09:30:30.78679'),
+	(3433, 4, -6.940659, 107.714613, 100.00, '2026-07-03 11:03:17.975328'),
+	(3439, 3, -6.940806, 107.714562, 100.00, '2026-07-03 11:05:09.638697'),
+	(3445, 3, -6.940810, 107.714563, 12.97, '2026-07-03 11:08:17.490417'),
+	(3451, 2, -6.925460, 107.729401, 143.00, '2026-07-03 11:58:01.127647'),
+	(3457, 48, -6.913695, 107.658838, 42.52, '2026-07-03 18:22:43.981272'),
+	(2955, 11, -6.940802, 107.714564, 20.40, '2026-06-28 11:42:24.632164'),
+	(2958, 11, -6.940782, 107.714509, 7.62, '2026-06-28 11:47:02.369435'),
+	(2961, 11, -6.940797, 107.714534, 6.22, '2026-06-28 11:47:55.152719'),
+	(2964, 11, -6.940809, 107.714542, 8.74, '2026-06-28 11:51:08.227742'),
+	(2527, 6, -6.925457, 107.729480, 10.70, '2026-06-26 09:40:39.293516'),
+	(2973, 11, -6.942592, 107.714324, 92.90, '2026-06-28 12:07:38.89076'),
+	(3012, 38, -6.922471, 107.678744, 18.01, '2026-06-28 18:21:16.823374'),
+	(3019, 4, -6.956797, 107.686812, 100.00, '2026-06-28 22:53:03.110297'),
+	(3021, 4, -6.956292, 107.686844, 23.26, '2026-06-28 23:00:41.442399'),
+	(3023, 4, -6.931779, 107.713754, 39.60, '2026-06-28 23:31:34.142145'),
+	(3025, 4, -6.931815, 107.713763, 80.70, '2026-06-28 23:33:45.906579'),
+	(3027, 4, -6.931815, 107.713763, 100.00, '2026-06-28 23:35:43.09929'),
+	(3029, 4, -6.931897, 107.713760, 100.00, '2026-06-28 23:39:12.78394'),
+	(3031, 4, -6.931897, 107.713760, 100.00, '2026-06-28 23:40:29.253357'),
+	(2632, 11, -6.942775, 107.714196, 20.10, '2026-06-26 12:12:25.330724'),
+	(2635, 11, -6.942714, 107.714142, 21.37, '2026-06-26 12:13:22.380036'),
+	(3033, 4, -6.931897, 107.713760, 100.00, '2026-06-28 23:41:29.33274'),
+	(3035, 4, -6.931846, 107.713731, 45.60, '2026-06-29 00:20:17.76325'),
+	(3037, 4, -6.931779, 107.713749, 60.00, '2026-06-29 00:22:43.157872'),
+	(3039, 4, -6.931779, 107.713749, 100.00, '2026-06-29 00:25:18.428142'),
+	(3041, 4, -6.931779, 107.713749, 100.00, '2026-06-29 00:26:18.89196'),
+	(3462, 2, -6.925484, 107.729460, 32.10, '2026-07-03 18:39:54.522641'),
+	(3467, 2, -6.932962, 107.726167, 18.95, '2026-07-03 19:03:43.597601'),
+	(3473, 2, -6.933460, 107.723007, 13.68, '2026-07-03 21:36:29.076895'),
+	(3478, 2, -6.933454, 107.723001, 17.73, '2026-07-03 21:43:24.111281'),
+	(3483, 53, -6.940581, 107.714576, 26.48, '2026-07-03 21:49:44.845494'),
+	(3488, 53, -6.940581, 107.714576, 26.48, '2026-07-03 21:55:09.039716'),
+	(3492, 2, -6.933460, 107.723013, 16.79, '2026-07-03 21:57:51.234412'),
+	(3496, 2, -6.933455, 107.723003, 16.93, '2026-07-03 22:00:44.12918'),
+	(3500, 2, -6.933438, 107.722978, 15.72, '2026-07-03 22:02:58.692657'),
+	(3504, 2, -6.933437, 107.722983, 16.19, '2026-07-03 22:04:37.115514'),
+	(1916, 4, -6.931785, 107.713748, 100.00, '2026-06-23 12:20:03.554588'),
+	(1917, 4, -6.931785, 107.713748, 100.00, '2026-06-23 12:20:33.335921'),
+	(3043, 4, -6.931779, 107.713749, 100.00, '2026-06-29 00:27:23.4406'),
+	(3508, 2, -6.933420, 107.722956, 18.44, '2026-07-03 22:06:59.313893'),
+	(3512, 2, -6.931984, 107.724243, 17.09, '2026-07-03 22:16:53.984995'),
+	(3516, 4, -6.931805, 107.713742, 27.85, '2026-07-03 23:10:12.236787'),
+	(3520, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:15:30.880015'),
+	(3523, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:17:00.278681'),
+	(3526, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:18:59.865282'),
+	(3529, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:22:25.238883'),
+	(3531, 11, -6.939462, 107.707471, 16.63, '2026-07-04 04:06:03.87544'),
+	(3089, 38, -6.910365, 107.629465, 16.96, '2026-06-29 14:45:02.724988'),
+	(3090, 38, -6.910364, 107.629464, 17.04, '2026-06-29 14:45:18.42692'),
+	(3091, 11, -6.939454, 107.707462, 20.00, '2026-06-29 15:35:06.56268'),
+	(3092, 11, -6.939570, 107.707453, 12.56, '2026-06-29 15:35:23.668513'),
+	(3093, 11, -6.939460, 107.707465, 16.50, '2026-06-29 15:38:01.024238'),
+	(3094, 11, -6.939459, 107.707465, 15.23, '2026-06-29 15:39:56.08866'),
+	(3095, 11, -6.939428, 107.707464, 18.36, '2026-06-29 15:41:35.225105'),
+	(3096, 11, -6.939433, 107.707466, 18.28, '2026-06-29 15:43:31.408518'),
+	(3097, 11, -6.939450, 107.707554, 100.00, '2026-06-29 16:43:11.824989'),
+	(3123, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:43:58.153572'),
+	(3124, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:44:28.540704'),
+	(3125, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:45:03.333275'),
+	(3126, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:45:33.367917'),
+	(3127, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:47:14.353907'),
+	(3128, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:47:43.43037'),
+	(3129, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:49:29.91905'),
+	(3130, 4, -6.931900, 107.713732, 100.00, '2026-06-29 23:50:29.186797'),
+	(3131, 11, -6.939417, 107.707469, 20.96, '2026-06-30 04:08:27.345043'),
+	(3132, 11, -6.939417, 107.707469, 20.96, '2026-06-30 04:09:03.817212'),
+	(3133, 11, -6.939452, 107.707468, 18.18, '2026-06-30 04:10:08.494686'),
+	(3134, 11, -6.939452, 107.707462, 16.40, '2026-06-30 04:10:21.036019'),
+	(3135, 11, -6.939559, 107.707489, 5.36, '2026-06-30 04:10:38.82021'),
+	(3136, 11, -6.939430, 107.707399, 12.66, '2026-06-30 04:10:49.541071'),
+	(3137, 11, -6.939468, 107.707460, 20.09, '2026-06-30 04:38:02.240877'),
+	(3138, 11, -6.939465, 107.707462, 20.81, '2026-06-30 04:38:34.339111'),
+	(3139, 11, -6.939466, 107.707467, 14.35, '2026-06-30 04:38:48.513166'),
+	(3140, 11, -6.939465, 107.707460, 18.80, '2026-06-30 04:39:06.192596'),
+	(3141, 11, -6.939460, 107.707461, 21.78, '2026-06-30 04:39:19.735721'),
+	(3142, 11, -6.939465, 107.707438, 4.38, '2026-06-30 04:39:48.576779'),
+	(3143, 11, -6.939448, 107.707463, 18.05, '2026-06-30 04:41:41.81916'),
+	(3144, 11, -6.939445, 107.707472, 18.51, '2026-06-30 04:43:41.849967'),
+	(3153, 7, -6.925539, 107.729412, 151.00, '2026-06-30 06:22:45.893743'),
+	(3154, 39, -6.925539, 107.729412, 151.00, '2026-06-30 06:23:06.85111'),
+	(3155, 39, -6.925539, 107.729412, 151.00, '2026-06-30 06:23:21.416199'),
+	(3156, 39, -6.925539, 107.729412, 151.00, '2026-06-30 06:23:28.326299'),
+	(3163, 39, -6.925539, 107.729412, 151.00, '2026-06-30 06:48:10.016936'),
+	(3164, 39, -6.925539, 107.729412, 151.00, '2026-06-30 06:48:19.80308'),
+	(3165, 39, -6.925539, 107.729412, 151.00, '2026-06-30 06:48:27.565782'),
+	(3169, 39, -6.925485, 107.729460, 45.60, '2026-06-30 07:23:32.851451'),
+	(3183, 39, -6.925480, 107.729495, 7.00, '2026-06-30 07:53:41.267487'),
+	(3184, 39, -6.925477, 107.729487, 7.40, '2026-06-30 07:54:26.554541'),
+	(3185, 39, -6.925483, 107.729458, 17.26, '2026-06-30 07:55:00.837236'),
+	(3186, 39, -6.925422, 107.729418, 15.70, '2026-06-30 08:10:42.51554'),
+	(3187, 39, -6.925440, 107.729510, 10.80, '2026-06-30 08:10:52.627774'),
+	(3188, 39, -6.925438, 107.729503, 10.60, '2026-06-30 08:11:20.2231'),
+	(3189, 39, -6.925453, 107.729495, 10.20, '2026-06-30 08:12:16.388593'),
+	(3190, 39, -6.925477, 107.729473, 13.88, '2026-06-30 08:12:42.837665'),
+	(3191, 39, -6.925423, 107.729549, 8.80, '2026-06-30 08:13:25.806504'),
+	(3192, 39, -6.925462, 107.729493, 9.00, '2026-06-30 08:13:55.780131'),
+	(3193, 11, -6.941125, 107.714215, 100.00, '2026-06-30 08:24:32.801019'),
+	(3194, 16, -6.928843, 107.715695, 100.00, '2026-06-30 08:36:36.639992'),
+	(3195, 16, -6.928846, 107.716008, 45.60, '2026-06-30 08:36:50.995949'),
+	(3196, 16, -6.932002, 107.714607, 20.53, '2026-06-30 16:59:31.104584'),
+	(3197, 4, -6.931907, 107.713746, 100.00, '2026-06-30 17:47:50.752587'),
+	(3198, 4, -6.931907, 107.713746, 100.00, '2026-06-30 17:48:56.881434'),
+	(3199, 4, -6.931907, 107.713746, 100.00, '2026-06-30 17:49:50.420182'),
+	(3200, 4, -6.931907, 107.713746, 100.00, '2026-06-30 17:50:20.608961'),
+	(3201, 4, -6.933375, 107.723317, 100.00, '2026-06-30 20:34:16.412544'),
+	(3202, 4, -6.933375, 107.723317, 100.00, '2026-06-30 20:34:48.211004'),
+	(3203, 4, -6.933375, 107.723317, 100.00, '2026-06-30 20:37:55.594332'),
+	(3204, 4, -6.933375, 107.723317, 100.00, '2026-06-30 20:39:24.726348'),
+	(3215, 2, -6.925758, 107.729383, 352.76, '2026-07-01 06:13:39.172092'),
+	(3216, 2, -6.926741, 107.729370, 100.00, '2026-07-01 06:14:34.677995'),
+	(3217, 2, -6.927369, 107.729017, 300.00, '2026-07-01 06:15:18.356737'),
+	(3218, 2, -6.925478, 107.729444, 17.55, '2026-07-01 09:05:45.631311'),
+	(3219, 2, -6.965468, 107.685653, 15.18, '2026-07-01 11:06:10.501055'),
+	(3220, 2, -6.965444, 107.685686, 20.00, '2026-07-01 11:06:20.304576'),
+	(3221, 2, -6.965431, 107.685692, 12.20, '2026-07-01 11:07:55.410569'),
+	(3222, 2, -6.965439, 107.685679, 12.00, '2026-07-01 11:08:16.155583'),
+	(3223, 2, -6.965442, 107.685680, 13.07, '2026-07-01 11:08:56.132562'),
+	(3224, 2, -6.965461, 107.685659, 14.11, '2026-07-01 11:09:12.141653'),
+	(3225, 2, -6.965432, 107.685693, 11.68, '2026-07-01 11:11:08.456301'),
+	(3226, 2, -6.965445, 107.685667, 11.48, '2026-07-01 11:31:47.413378'),
+	(3227, 2, -6.965422, 107.685700, 11.49, '2026-07-01 11:31:58.304655'),
+	(3228, 2, -6.965438, 107.685685, 13.16, '2026-07-01 11:32:29.869992'),
+	(3229, 2, -6.965438, 107.685685, 13.16, '2026-07-01 11:32:36.714983'),
+	(3230, 2, -6.965471, 107.685650, 13.17, '2026-07-01 11:36:36.673033'),
+	(3231, 2, -6.965458, 107.685661, 17.17, '2026-07-01 11:37:33.030282'),
+	(3232, 2, -6.965456, 107.685662, 17.00, '2026-07-01 11:37:53.379231'),
+	(3233, 2, -6.965454, 107.685656, 16.83, '2026-07-01 11:38:34.22071'),
+	(3234, 2, -6.965468, 107.685653, 13.73, '2026-07-01 11:39:26.661483'),
+	(3235, 2, -6.965451, 107.685667, 16.73, '2026-07-01 11:45:27.863298'),
+	(3236, 2, -6.965445, 107.685668, 12.91, '2026-07-01 11:46:01.851479'),
+	(3237, 2, -6.965465, 107.685653, 13.70, '2026-07-01 11:46:45.6021'),
+	(3238, 2, -6.965446, 107.685675, 11.89, '2026-07-01 11:47:58.720984'),
+	(3239, 2, -6.965419, 107.685704, 12.95, '2026-07-01 11:48:11.180779'),
+	(3240, 2, -6.965438, 107.685679, 11.99, '2026-07-01 11:48:28.4209'),
+	(3241, 2, -6.965458, 107.685691, 11.82, '2026-07-01 11:49:32.695419'),
+	(3242, 2, -6.965444, 107.685677, 11.88, '2026-07-01 11:51:05.686123'),
+	(3243, 2, -6.965444, 107.685677, 11.88, '2026-07-01 11:51:25.267755'),
+	(3244, 2, -6.965447, 107.685673, 12.93, '2026-07-01 11:52:44.429782'),
+	(3245, 2, -6.965462, 107.685658, 13.79, '2026-07-01 11:53:06.080518'),
+	(3246, 2, -6.965464, 107.685656, 13.80, '2026-07-01 11:53:52.859764'),
+	(3247, 2, -6.965464, 107.685656, 13.80, '2026-07-01 11:56:00.884069'),
+	(3257, 2, -6.906219, 107.629700, 500.00, '2026-07-01 14:55:41.36327'),
+	(3266, 2, -6.925539, 107.729412, 151.00, '2026-07-01 15:24:41.605536'),
+	(3275, 39, -6.925435, 107.729442, 9.90, '2026-07-01 15:56:48.138139'),
+	(3284, 16, -6.928843, 107.715695, 100.00, '2026-07-01 16:00:29.894668'),
+	(3293, 2, -6.925492, 107.729464, 18.28, '2026-07-01 16:26:33.445652'),
+	(3304, 16, -6.929487, 107.715695, 100.00, '2026-07-01 18:19:04.432874'),
+	(3314, 2, -6.925460, 107.729399, 141.00, '2026-07-02 04:54:18.890218'),
+	(3322, 2, -6.925489, 107.729432, 183.00, '2026-07-02 04:58:40.210925'),
+	(3338, 38, -6.922428, 107.678817, 3.40, '2026-07-02 05:47:13.384698'),
+	(3350, 2, -6.925489, 107.729462, 60.00, '2026-07-03 06:08:46.344155'),
+	(3358, 2, -6.925495, 107.729466, 82.50, '2026-07-03 06:12:49.814128'),
+	(3366, 39, -6.925487, 107.729454, 82.50, '2026-07-03 06:17:07.315827'),
+	(3374, 39, -6.925485, 107.729454, 68.40, '2026-07-03 06:20:38.183287'),
+	(3382, 2, -6.923585, 107.729463, 72.60, '2026-07-03 06:31:18.317732'),
+	(3386, 2, -6.925479, 107.729427, 60.00, '2026-07-03 07:59:27.394527'),
+	(3394, 4, -6.931784, 107.713745, 110.00, '2026-07-03 08:27:36.015239'),
+	(3402, 2, -6.934788, 107.723221, 18.34, '2026-07-03 08:44:17.438532'),
+	(3409, 2, -6.934747, 107.723210, 20.33, '2026-07-03 08:46:30.814826'),
+	(3416, 2, -6.934967, 107.723352, 8.70, '2026-07-03 08:51:39.535083'),
+	(3422, 2, -6.934806, 107.723226, 17.08, '2026-07-03 09:11:28.428742'),
+	(3428, 2, -6.940800, 107.714562, 16.85, '2026-07-03 10:47:49.655118'),
+	(3434, 3, -6.940806, 107.714562, 98.08, '2026-07-03 11:03:30.462014'),
+	(3440, 3, -6.940806, 107.714562, 100.00, '2026-07-03 11:05:39.624003'),
+	(3446, 3, -6.940810, 107.714563, 54.98, '2026-07-03 11:08:46.65418'),
+	(3452, 2, -6.925460, 107.729401, 143.00, '2026-07-03 11:58:07.018463'),
+	(3458, 48, -6.913760, 107.658938, 2.50, '2026-07-03 18:22:56.709029'),
+	(3463, 2, -6.925482, 107.729450, 60.00, '2026-07-03 18:40:08.289637'),
+	(3468, 2, -6.932809, 107.726231, 17.03, '2026-07-03 19:03:59.483184'),
+	(3474, 2, -6.933448, 107.722991, 17.13, '2026-07-03 21:38:06.104991'),
+	(3479, 2, -6.933459, 107.723002, 14.78, '2026-07-03 21:45:14.242338'),
+	(3484, 2, -6.933451, 107.723048, 18.10, '2026-07-03 21:50:14.518976'),
+	(3489, 2, -6.933446, 107.723013, 17.92, '2026-07-03 21:55:54.711278'),
+	(3493, 51, -7.023218, 107.543529, 14.49, '2026-07-03 21:58:31.263108'),
+	(3497, 51, -7.023216, 107.543527, 15.09, '2026-07-03 22:00:45.791494'),
+	(3501, 2, -6.933434, 107.722979, 16.81, '2026-07-03 22:03:33.041284'),
+	(3505, 2, -6.933449, 107.722989, 15.99, '2026-07-03 22:04:45.560656'),
+	(3509, 2, -6.931952, 107.724256, 15.40, '2026-07-03 22:13:48.463074'),
+	(3513, 2, -6.931998, 107.724249, 18.56, '2026-07-03 22:17:09.404695'),
+	(3517, 4, -6.931805, 107.713742, 69.85, '2026-07-03 23:10:52.411145'),
+	(3521, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:16:00.270333'),
+	(3524, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:17:30.321561'),
+	(3527, 4, -6.931805, 107.713742, 100.00, '2026-07-03 23:19:46.554011');
 /*!40000 ALTER TABLE "device_location_history" ENABLE KEYS */;
 
 -- Dumping structure for table public.dm_messages
@@ -1179,13 +1698,15 @@ CREATE TABLE IF NOT EXISTS "dm_messages" (
 	"read_at" TIMESTAMP NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"delivered_at" TIMESTAMP NULL DEFAULT NULL,
-	INDEX "idx_dm_pair" ("sender_id", "receiver_id", "id"),
+	PRIMARY KEY ("id"),
+	INDEX "dm_delivered_idx" ("receiver_id", "delivered_at"),
 	INDEX "dm_pair_idx" ("sender_id", "receiver_id", "id"),
 	INDEX "dm_receiver_idx" ("receiver_id", "read_at"),
-	INDEX "dm_delivered_idx" ("receiver_id", "delivered_at")
+	CONSTRAINT "dm_messages_receiver_id_fkey" FOREIGN KEY ("receiver_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "dm_messages_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.dm_messages: 30 rows
+-- Dumping data for table public.dm_messages: 27 rows
 /*!40000 ALTER TABLE "dm_messages" DISABLE KEYS */;
 INSERT INTO "dm_messages" ("id", "sender_id", "receiver_id", "pesan", "read_at", "created_at", "delivered_at") VALUES
 	(5, 2, 15, 'Nif', NULL, '2026-05-24 09:43:56.986858', NULL),
@@ -1214,18 +1735,7 @@ INSERT INTO "dm_messages" ("id", "sender_id", "receiver_id", "pesan", "read_at",
 	(8, 2, 4, 'Oh iya dan, berapa lagi bayaran th?', '2026-05-24 13:55:26.780213', '2026-05-24 13:30:01.408808', '2026-06-01 22:20:51.03983'),
 	(7, 2, 4, 'Lg dmn dan', '2026-05-24 13:55:26.780213', '2026-05-24 09:45:59.090019', '2026-06-01 22:20:51.03983'),
 	(53, 4, 2, 'Cara nambah absen buat ekstern gimana kang?', '2026-06-02 20:20:45.594856', '2026-06-02 13:28:25.212208', '2026-06-02 20:20:43.876446'),
-	(54, 2, 4, 'Ada di menu input absensi', '2026-06-11 15:57:56.546115', '2026-06-02 20:21:10.024151', '2026-06-11 15:57:56.546115'),
-	(1, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 10:56:58.188406', '2026-06-22 14:00:48.114097'),
-	(2, 2, 4, 'Iio', '2026-06-22 14:00:48.114097', '2026-06-22 10:57:22.699008', '2026-06-22 14:00:48.114097'),
-	(3, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 10:58:15.689615', '2026-06-22 14:00:48.114097'),
-	(4, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 12:32:39.590171', '2026-06-22 14:00:48.114097'),
-	(5, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 12:33:11.832905', '2026-06-22 14:00:48.114097'),
-	(6, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 13:16:07.326652', '2026-06-22 14:00:48.114097'),
-	(7, 2, 4, 'Tes', '2026-06-22 14:00:48.114097', '2026-06-22 13:16:39.387367', '2026-06-22 14:00:48.114097'),
-	(8, 2, 4, 'Tes', '2026-06-22 14:06:39.087186', '2026-06-22 14:03:43.014291', '2026-06-22 14:06:39.087186'),
-	(9, 2, 4, 'Tes', '2026-06-22 14:06:39.087186', '2026-06-22 14:04:06.072592', '2026-06-22 14:06:39.087186'),
-	(10, 2, 4, 'Tes', NULL, '2026-06-22 14:23:12.439304', NULL),
-	(11, 2, 4, 'Tes', NULL, '2026-06-22 14:23:56.098468', NULL);
+	(54, 2, 4, 'Ada di menu input absensi', '2026-06-11 15:57:56.546115', '2026-06-02 20:21:10.024151', '2026-06-11 15:57:56.546115');
 /*!40000 ALTER TABLE "dm_messages" ENABLE KEYS */;
 
 -- Dumping structure for table public.doa_aamiin
@@ -1234,7 +1744,10 @@ CREATE TABLE IF NOT EXISTS "doa_aamiin" (
 	"doa_id" INTEGER NOT NULL,
 	"user_id" INTEGER NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "doa_aamiin_unique_du" ("doa_id", "user_id")
+	UNIQUE INDEX "doa_aamiin_doa_id_user_id_key" ("doa_id", "user_id"),
+	PRIMARY KEY ("id"),
+	CONSTRAINT "doa_aamiin_doa_id_fkey" FOREIGN KEY ("doa_id") REFERENCES "doa_request" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "doa_aamiin_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.doa_aamiin: -1 rows
@@ -1246,7 +1759,9 @@ CREATE TABLE IF NOT EXISTS "doa_request" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''doa_request_id_seq''::regclass)',
 	"user_id" INTEGER NOT NULL,
 	"isi" TEXT NOT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "doa_request_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.doa_request: -1 rows
@@ -1261,11 +1776,19 @@ CREATE TABLE IF NOT EXISTS "doa_user" (
 	"arab" TEXT NOT NULL,
 	"terjemah" TEXT NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"updated_at" TIMESTAMP NULL DEFAULT NULL
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "doa_user_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.doa_user: -1 rows
 /*!40000 ALTER TABLE "doa_user" DISABLE KEYS */;
+INSERT INTO "doa_user" ("id", "user_id", "judul", "arab", "terjemah", "created_at", "updated_at") VALUES
+	(2, 2, 'Doa Syukur, Tidak ada yang Sia-Sia', 'بَّنَا مَا خَلَقْتَ هٰذَا بَاطِلًاۚ سُبْحٰنَكَ فَقِنَا عَذَابَ النَّارِ', 'Ya Rabb kami, tidaklah Engkau menciptakan semua ini sia-sia. Mahasuci Engkau. Lindungilah kami dari azab neraka. (Ali Imran 191)', '2026-06-25 05:16:55.091968', '2026-06-25 05:17:40.532116'),
+	(3, 2, 'Doa Syukur, Diperlihatkan Orang Hina', 'رَبَّنَآ اِنَّكَ مَنْ تُدْخِلِ النَّارَ فَقَدْ اَخْزَيْتَهٗۗ وَمَا لِلظّٰلِمِيْنَ مِنْ اَنْصَارٍ', 'Ya Rabb kami, sesungguhnya orang yang Engkau masukkan ke dalam neraka, maka Engkau benar-benar telah menghinakannya dan tidak ada seorang penolong pun bagi orang yang zalim. (Ali Imran 192)', '2026-06-25 05:20:28.487296', NULL),
+	(4, 2, 'Doa Syukur, Diseru Kepada Iman dan Mohon Ampunan', 'رَبَّنَآ اِنَّنَا سَمِعْنَا مُنَادِيًا يُّنَادِيْ لِلْاِيْمَانِ اَنْ اٰمِنُوْا بِرَبِّكُمْ فَاٰمَنَّاۖ رَبَّنَا فَاغْفِرْ لَنَا ذُنُوْبَنَا وَكَفِّرْ عَنَّا سَيِّاٰتِنَا وَتَوَفَّنَا مَعَ الْاَبْرَارِۚ', 'Ya Tuhan kami, sesungguhnya kami mendengar orang yang menyeru pada keimanan, yaitu ‘Berimanlah kamu kepada Tuhanmu,’ maka kami pun beriman. Ya Tuhan kami, ampunilah dosa-dosa kami, hapuskanlah kesalahan-kesalahan kami, dan wafatkanlah kami beserta orang-orang yang selalu berbuat kebaikan. (Ali Imran 193)', '2026-06-25 05:22:13.566205', NULL),
+	(5, 2, 'Doa Syukur, Mendapat Anugrah dan Dijauhkan dari Kehinaan', 'رَبَّنَا وَاٰتِنَا مَا وَعَدْتَّنَا عَلٰى رُسُلِكَ وَلَا تُخْزِنَا يَوْمَ الْقِيٰمَةِۗ اِنَّكَ لَا تُخْلِفُ الْمِيْعَادَ', 'Ya Rabb kami, anugerahilah kami apa yang telah Engkau janjikan kepada kami melalui rasul-rasul-Mu dan janganlah Engkau hinakan kami pada hari Kiamat. Sesungguhnya Engkau tidak pernah mengingkari janji (Ali Imran 194)', '2026-06-25 05:24:13.441695', '2026-06-25 05:26:51.056585'),
+	(6, 2, 'Doa Kafaratul Majelis', '<div><div>سُبْحَانَكَ اللَّهُمَّ وَبِحَمْدِكَ، أَشْهَدُ أَنْ لاَ إِلَـٰهَ إِلاَّ أَنْتَ، أَسْتَغْفِرُكَ، وَأَتُوْبُ إِلَيْكَ</div></div><div><div></div></div>', 'Maha Suci Engkau ya Allah, aku memuji-Mu. Aku bersaksi bahwa tidak ada sesembahan yang berhak disembah kecuali Engkau, aku meminta ampun dan bertaubat kepada-Mu', '2026-06-29 07:16:15.972093', NULL);
 /*!40000 ALTER TABLE "doa_user" ENABLE KEYS */;
 
 -- Dumping structure for table public.donasi_krb
@@ -1280,7 +1803,9 @@ CREATE TABLE IF NOT EXISTS "donasi_krb" (
 	"bukti_path" VARCHAR(500) NULL DEFAULT NULL,
 	"catatan" TEXT NULL DEFAULT NULL,
 	"status" VARCHAR(20) NULL DEFAULT 'pending',
-	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "donasi_krb_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
 -- Dumping data for table public.donasi_krb: -1 rows
@@ -1296,10 +1821,11 @@ CREATE TABLE IF NOT EXISTS "donasi_rekening" (
 	"keterangan" VARCHAR(200) NULL DEFAULT NULL,
 	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
 	"urutan" INTEGER NOT NULL DEFAULT '0',
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.donasi_rekening: -1 rows
+-- Dumping data for table public.donasi_rekening: 3 rows
 /*!40000 ALTER TABLE "donasi_rekening" DISABLE KEYS */;
 INSERT INTO "donasi_rekening" ("id", "bank", "nomor", "atas_nama", "keterangan", "aktif", "urutan", "created_at") VALUES
 	(1, 'BCA', '1234567890', 'Bendahara Kegiatan', NULL, 'true', 1, '2026-05-30 11:18:09.797229'),
@@ -1324,13 +1850,17 @@ CREATE TABLE IF NOT EXISTS "event" (
 	"jam_mulai" TIME NULL DEFAULT NULL,
 	"jam_selesai" TIME NULL DEFAULT NULL,
 	"lokasi" VARCHAR(255) NULL DEFAULT NULL,
-	"batas_daftar" DATE NULL DEFAULT NULL
+	"batas_daftar" DATE NULL DEFAULT NULL,
+	"kategori_pelaksanaan" VARCHAR(20) NOT NULL DEFAULT 'internal',
+	"sumber_eksternal" TEXT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "event_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
--- Dumping data for table public.event: -1 rows
+-- Dumping data for table public.event: 1 rows
 /*!40000 ALTER TABLE "event" DISABLE KEYS */;
-INSERT INTO "event" ("id", "nama", "jenis", "tipe", "deskripsi", "tanggal_mulai", "tanggal_selesai", "hadiah", "status", "banner_url", "created_by", "created_at", "jam_mulai", "jam_selesai", "lokasi", "batas_daftar") VALUES
-	(2, 'Nyate Bersama Idul Adha 1447 H', 'Nyate Bersama', 'sosial', 'Gaskeun... Daging sudah tersedia', '2026-06-06', '2026-06-06', 'Konsumsi Gratis', 'open', 'https://ik.imagekit.io/ahsansur/sportapp/event/event-2-1780472669_w_8uqs1F6.jpg', 2, '2026-05-29 14:58:53.412649', '19:00:00', '22:00:00', 'Flamboyan FC', '2026-06-06');
+INSERT INTO "event" ("id", "nama", "jenis", "tipe", "deskripsi", "tanggal_mulai", "tanggal_selesai", "hadiah", "status", "banner_url", "created_by", "created_at", "jam_mulai", "jam_selesai", "lokasi", "batas_daftar", "kategori_pelaksanaan", "sumber_eksternal") VALUES
+	(2, 'Nyate Bersama Idul Adha 1447 H', 'Nyate Bersama', 'sosial', 'Gaskeun... Daging sudah tersedia', '2026-06-06', '2026-06-06', 'Konsumsi Gratis', 'open', 'https://ik.imagekit.io/ahsansur/sportapp/event/event-2-1780472669_w_8uqs1F6.jpg', 2, '2026-05-29 14:58:53.412649', '19:00:00', '22:00:00', 'Flamboyan FC', '2026-06-06', 'internal', NULL);
 /*!40000 ALTER TABLE "event" ENABLE KEYS */;
 
 -- Dumping structure for table public.event_match
@@ -1343,7 +1873,12 @@ CREATE TABLE IF NOT EXISTS "event_match" (
 	"score_a" INTEGER NULL DEFAULT '0',
 	"score_b" INTEGER NULL DEFAULT '0',
 	"pemenang" INTEGER NULL DEFAULT NULL,
-	"jadwal_at" TIMESTAMP NULL DEFAULT NULL
+	"jadwal_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "event_match_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "event_match_pemenang_fkey" FOREIGN KEY ("pemenang") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+	CONSTRAINT "event_match_tim_a_fkey" FOREIGN KEY ("tim_a") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+	CONSTRAINT "event_match_tim_b_fkey" FOREIGN KEY ("tim_b") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
 -- Dumping data for table public.event_match: -1 rows
@@ -1359,10 +1894,14 @@ CREATE TABLE IF NOT EXISTS "event_peserta" (
 	"score" NUMERIC(10,2) NULL DEFAULT '0',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"status" VARCHAR(12) NULL DEFAULT NULL,
-	"keterangan" TEXT NULL DEFAULT NULL
+	"keterangan" TEXT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "event_peserta_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "event_peserta_tim_id_fkey" FOREIGN KEY ("tim_id") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "event_peserta_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.event_peserta: -1 rows
+-- Dumping data for table public.event_peserta: 21 rows
 /*!40000 ALTER TABLE "event_peserta" DISABLE KEYS */;
 INSERT INTO "event_peserta" ("id", "event_id", "tim_id", "user_id", "score", "created_at", "status", "keterangan") VALUES
 	(54, 2, NULL, 11, 0.00, '2026-06-06 14:47:02.742934', 'hadir', NULL),
@@ -1394,7 +1933,11 @@ CREATE TABLE IF NOT EXISTS "event_tamu" (
 	"event_id" INTEGER NOT NULL,
 	"nama_tamu" VARCHAR(120) NOT NULL,
 	"dibawa_oleh_id" INTEGER NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "idx_event_tamu_event" ("event_id"),
+	CONSTRAINT "event_tamu_dibawa_oleh_id_fkey" FOREIGN KEY ("dibawa_oleh_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "event_tamu_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.event_tamu: -1 rows
@@ -1408,7 +1951,9 @@ CREATE TABLE IF NOT EXISTS "fcm_tokens" (
 	"token" TEXT NOT NULL,
 	"device" VARCHAR(100) NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "fcm_tokens_unique_ut" ("user_id", "token")
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "fcm_tokens_user_id_token_key" ("user_id", "token"),
+	CONSTRAINT "fcm_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.fcm_tokens: -1 rows
@@ -1424,7 +1969,9 @@ CREATE TABLE IF NOT EXISTS "flyover_renders" (
 	"durasi_detik" INTEGER NOT NULL DEFAULT '20',
 	"style_preset" TEXT NOT NULL DEFAULT 'satellite',
 	"file_url" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "flyr_user_idx" ("user_id", "created_at")
 );
 
 -- Dumping data for table public.flyover_renders: -1 rows
@@ -1455,7 +2002,11 @@ CREATE TABLE IF NOT EXISTS "gaya_hidup_log" (
 	"kecemasan" SMALLINT NULL DEFAULT NULL,
 	"motivasi" SMALLINT NULL DEFAULT NULL,
 	"fokus" SMALLINT NULL DEFAULT NULL,
-	"catatan_psikologi" TEXT NULL DEFAULT NULL
+	"catatan_psikologi" TEXT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "uniq_gh_user_tgl" ("user_id", "tanggal"),
+	INDEX "idx_gaya_hidup_user_tgl" ("user_id", "tanggal"),
+	INDEX "idx_gh_user_tgl" ("user_id", "tanggal")
 );
 
 -- Dumping data for table public.gaya_hidup_log: -1 rows
@@ -1470,22 +2021,28 @@ CREATE TABLE IF NOT EXISTS "guest_messages" (
 	"parent_id" INTEGER NULL DEFAULT NULL,
 	"pesan" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"updated_at" TIMESTAMP NULL DEFAULT NULL
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "guest_messages_owner_user_id_fkey" FOREIGN KEY ("owner_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "guest_messages_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "guest_messages" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "guest_messages_sender_user_id_fkey" FOREIGN KEY ("sender_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.guest_messages: -1 rows
+-- Dumping data for table public.guest_messages: 11 rows
 /*!40000 ALTER TABLE "guest_messages" DISABLE KEYS */;
 INSERT INTO "guest_messages" ("id", "owner_user_id", "sender_user_id", "parent_id", "pesan", "created_at", "updated_at") VALUES
+	(1, 3, 2, NULL, 'Berqurban Yuks...👍', '2026-05-23 07:02:06.611451', NULL),
 	(2, 14, 2, NULL, '👋 Semangat Pagi', '2026-05-23 07:18:03.654891', NULL),
 	(3, 14, 2, NULL, '👋 Assalamualaikum', '2026-05-23 07:51:17.711997', NULL),
 	(5, 2, 4, NULL, 'Kang, kumaha kabarna, sehat?', '2026-05-23 08:05:05.864711', NULL),
 	(6, 17, 4, NULL, '👋 🤗', '2026-05-23 09:15:10.057807', NULL),
+	(7, 2, 2, 5, 'Alhamdulilah dan', '2026-05-23 21:17:33.682802', NULL),
 	(8, 4, 2, NULL, 'Sudah dikirim sisa dp modul 1 ya dan', '2026-05-24 13:44:59.631205', NULL),
 	(9, 4, 4, 8, 'Siapp sudah masuk, makasih kang', '2026-05-24 13:55:11.727449', NULL),
 	(10, 4, 2, 8, 'Okay', '2026-05-24 14:05:36.612789', NULL),
 	(11, 16, 2, NULL, '💪 Tetap Semangat', '2026-05-29 17:07:20.637099', NULL),
 	(12, 21, 4, NULL, '👋 Halloo', '2026-06-05 07:30:59.302977', NULL),
-	(7, 2, 2, 5, 'Alhamdulilah dans', '2026-05-23 21:17:33.682802', '2026-06-22 11:16:52.191334');
+	(13, 52, 53, NULL, '👋 Hai', '2026-07-03 21:54:13.645127', NULL);
 /*!40000 ALTER TABLE "guest_messages" ENABLE KEYS */;
 
 -- Dumping structure for table public.health_qa_saved
@@ -1496,6 +2053,7 @@ CREATE TABLE IF NOT EXISTS "health_qa_saved" (
 	"pertanyaan" TEXT NOT NULL,
 	"jawaban" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "health_qa_user_idx" ("user_id", "kategori", "created_at")
 );
 
@@ -1535,6 +2093,22 @@ Segera konsultasikan ke dokter jika radang tenggorokan disertai demam tinggi (di
 Konten edukatif, bukan pengganti konsultasi dokter.', '2026-06-18 09:22:07.903957');
 /*!40000 ALTER TABLE "health_qa_saved" ENABLE KEYS */;
 
+-- Dumping structure for table public.hewan_liar_foto
+CREATE TABLE IF NOT EXISTS "hewan_liar_foto" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''hewan_liar_foto_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"slug" TEXT NOT NULL,
+	"path" TEXT NOT NULL,
+	"caption" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "hewan_liar_foto_slug_idx" ("slug", "created_at")
+);
+
+-- Dumping data for table public.hewan_liar_foto: -1 rows
+/*!40000 ALTER TABLE "hewan_liar_foto" DISABLE KEYS */;
+/*!40000 ALTER TABLE "hewan_liar_foto" ENABLE KEYS */;
+
 -- Dumping structure for table public.index_blok
 CREATE TABLE IF NOT EXISTS "index_blok" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''index_blok_id_seq''::regclass)',
@@ -1544,7 +2118,9 @@ CREATE TABLE IF NOT EXISTS "index_blok" (
 	"urutan" INTEGER NOT NULL DEFAULT '0',
 	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "index_blok_pos_urut_idx" ("posisi", "urutan")
 );
 
 -- Dumping data for table public.index_blok: -1 rows
@@ -1562,7 +2138,10 @@ CREATE TABLE IF NOT EXISTS "iptv_channels" (
 	"sort_order" INTEGER NULL DEFAULT '0',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "iptv_channels_unique_url" ("url")
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "iptv_channels_url_key" ("url"),
+	INDEX "idx_iptv_aktif" ("aktif"),
+	INDEX "idx_iptv_group" ("group_name")
 );
 
 -- Dumping data for table public.iptv_channels: 62 rows
@@ -1639,17 +2218,20 @@ CREATE TABLE IF NOT EXISTS "islami_artikel" (
 	"judul" VARCHAR(180) NOT NULL,
 	"isi" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"updated_at" TIMESTAMP NULL DEFAULT NULL
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "islami_artikel_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.islami_artikel: -1 rows
+-- Dumping data for table public.islami_artikel: 5 rows
 /*!40000 ALTER TABLE "islami_artikel" DISABLE KEYS */;
 INSERT INTO "islami_artikel" ("id", "user_id", "judul", "isi", "created_at", "updated_at") VALUES
 	(1, NULL, 'Pola Tidur ala Rasulullah', 'Tidur lebih awal setelah Isya, bangun sebelum Subuh. Posisi tidur miring ke kanan, dengan dzikir sebelum tidur.', '2026-05-23 23:43:21.290195', NULL),
 	(2, NULL, 'Makan Tidak Berlebihan', 'Sepertiga untuk makanan, sepertiga air, sepertiga udara. Pola makan yang menjaga kesehatan jangka panjang.', '2026-05-23 23:43:21.33081', NULL),
 	(3, NULL, 'Berbekam (Hijamah)', 'Sunnah Nabi yang baik dilakukan di tanggal 17, 19, 21 bulan hijriyah untuk membantu sirkulasi darah.', '2026-05-23 23:43:21.370454', NULL),
 	(4, NULL, 'Madu, Habbatussauda, Kurma', 'Tiga makanan sunnah yang memiliki manfaat kesehatan luar biasa.', '2026-05-23 23:43:21.410013', NULL),
-	(5, NULL, 'Berjalan Kaki & Olahraga', 'Rasulullah menganjurkan memanah, berenang, dan menunggang kuda. Bergeraklah setiap hari.', '2026-05-23 23:43:21.449408', NULL);
+	(5, NULL, 'Berjalan Kaki & Olahraga', 'Rasulullah menganjurkan memanah, berenang, dan menunggang kuda. Bergeraklah setiap hari.', '2026-05-23 23:43:21.449408', NULL),
+	(6, 2, 'Kita sering terjebak dalam perbuatan sia-sia', 'Rasulullah bersabda: Min Husnil Islamil mar-i tarkuhu mala ya''nihi - Termasuk baiknya nilai keislaman seseorang, bila ia mampu meninggalkan apa yang tidak berguna bagi dirinya.', '2026-06-25 23:17:17.62476', NULL);
 /*!40000 ALTER TABLE "islami_artikel" ENABLE KEYS */;
 
 -- Dumping structure for table public.islami_badges
@@ -1657,7 +2239,10 @@ CREATE TABLE IF NOT EXISTS "islami_badges" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''islami_badges_id_seq''::regclass)',
 	"user_id" INTEGER NOT NULL,
 	"badge_key" VARCHAR(40) NOT NULL,
-	"earned_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"earned_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "islami_badges_user_id_badge_key_key" ("user_id", "badge_key"),
+	CONSTRAINT "islami_badges_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.islami_badges: -1 rows
@@ -1676,13 +2261,44 @@ CREATE TABLE IF NOT EXISTS "islami_kajian" (
 	"tipe" VARCHAR(20) NULL DEFAULT 'buku',
 	"link_web" VARCHAR(500) NULL DEFAULT NULL,
 	"pdf_path" VARCHAR(500) NULL DEFAULT NULL,
-	"updated_at" TIMESTAMP NULL DEFAULT NULL
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	"kategori" VARCHAR(60) NULL DEFAULT 'Umum',
+	PRIMARY KEY ("id"),
+	INDEX "islami_kajian_kategori_idx" ("kategori"),
+	CONSTRAINT "islami_kajian_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.islami_kajian: -1 rows
+-- Dumping data for table public.islami_kajian: 27 rows
 /*!40000 ALTER TABLE "islami_kajian" DISABLE KEYS */;
-INSERT INTO "islami_kajian" ("id", "user_id", "judul", "isi", "link_video", "created_at", "penulis", "tipe", "link_web", "pdf_path", "updated_at") VALUES
-	(2, 2, 'Al Syura 42:52', 'Petunjuk dan al iman', '', '2026-06-08 23:33:23.465479', '', 'buku', '', NULL, NULL);
+INSERT INTO "islami_kajian" ("id", "user_id", "judul", "isi", "link_video", "created_at", "penulis", "tipe", "link_web", "pdf_path", "updated_at", "kategori") VALUES
+	(11, 2, 'Psikologi Komunikasi (Edisi Revisi)', 'Berkembangnya teknologi komunikasi telah mengubah perilaku kita dalam berkomunikasi', '', '2026-06-25 09:13:08.482348', 'Dr. Jalaluddin Rakhmat, M.Sc.', 'buku', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBa9bbN6Gryi1IBoTMde5xkk0hN3r9Iq6zc6lWB5tTog&s=10', NULL, '2026-06-25 12:02:11.69566', 'Komunikasi'),
+	(9, 2, 'The Power of Social & Emotional Intelligence', 'Menggali kekuatan pada kecerdasan sosial dan kecerdasan emosional yang membantu kamu menggapai impian', '', '2026-06-25 09:04:17.327004', 'Ridho Aldily', 'buku', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNlBFYqIOfWfCMLqhk29OzC0hXUSdSwjcsawHx99NBCQ&s=10', NULL, '2026-06-26 06:40:51.048385', 'Komunikasi'),
+	(19, 2, 'Talbis Iblis', 'Tipu muslihat dan perangkap iblis dalam menjetumuskan manusia ke jurang kehancuran', '', '2026-06-26 06:55:32.101645', 'Ibnul Jauzi', 'buku', '', NULL, '2026-06-26 06:55:44.574515', 'Aqidah'),
+	(20, 2, 'The Psychology of Money', 'Pelajaran Abadi Mengenai kekayaan, ketamakan, dan kebahagiaan', '', '2026-06-26 06:57:07.074531', 'Morgan Housel', 'buku', '', NULL, NULL, 'Psikologi'),
+	(21, 2, 'Ramadhan Sepanjang Masa', 'Edisi Revisi', '', '2026-06-26 06:58:06.063197', 'Dr. H. Ahmad Salim', 'buku', '', NULL, NULL, 'Tazkiyah'),
+	(22, 2, 'Jurus Sehat Rasulullah', 'Saat dunia belum mengenal pola tidur yang sehat, saat dunia belum tahu pentingnya mandi, dll', '', '2026-06-26 06:59:32.533058', 'Dr. Zaidul Akbar', 'buku', '', NULL, '2026-06-26 06:59:54.159877', 'Kesehatan'),
+	(23, 2, 'How Leader Act', 'Memimpin, bukan memberi perintah', '', '2026-06-26 07:01:08.197759', 'Aswin Giandra', 'buku', '', NULL, NULL, 'Leadership'),
+	(24, 2, 'Keluarga SAMARA sehidup sesurga', 'Jika keluarga baik, bangsa akan menjadi baik, pun sebaliknya.', '', '2026-06-26 07:02:33.293823', 'Imam nur suharno', 'buku', '', NULL, NULL, 'Family'),
+	(15, 2, 'Seni Komunikasi ala Rasul', '', '', '2026-06-25 09:22:53.863638', 'A.R. Shohibul Ulum', 'buku', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTakVgGxKsElJBwFto9HP5p3dSyNTKWkgx7rn9tWOPd8vRggQ5XDkFc9ZIL&s=10', NULL, '2026-06-25 12:00:14.833044', 'Komunikasi'),
+	(14, 2, 'Kenali Kepribadianmu & Orang di Sekitarmu', '', '', '2026-06-25 09:20:50.173674', 'Dewi Handayani Harahap, S.Psi, M.Psi', 'buku', 'https://bukukita.com/babacms/displaybuku/81455_f.jpg', NULL, '2026-06-25 12:00:38.576192', 'Komunikasi'),
+	(13, 2, 'Ilmu Sosial Dasar', '', '', '2026-06-25 09:16:39.756668', 'Drs. H. Abu Ahmadi', 'buku', 'https://perpustakaan.binadarma.ac.id/uploaded_files/sampul_koleksi/original/Monograf/19853.png', NULL, '2026-06-25 12:01:18.141626', 'Komunikasi'),
+	(12, 2, 'The 7 Habits of Highly Effective People', '', '', '2026-06-25 09:15:19.083077', 'Stephen R. Covey', 'buku', 'https://img.lazcdn.com/g/p/a42b32ed404dbaa5a94b6d4164beeb85.png_960x960q80.png_.webp', NULL, '2026-06-25 12:01:51.154054', 'Komunikasi'),
+	(8, 2, 'Seni Mencuri Hati dan Menaklukan orang lain dengan bahasa tubuh', 'Buku yang mengajarkan bagaimana seharusnya anda mengontrol bahasa tubuh', '', '2026-06-25 09:00:46.498739', 'Adrian Harimurti', 'buku', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRiIWgCZyV0n6rYQsQDrPPihWanYp2WJHtqPIW6CXzZEMhFBt5hah9ug4&s=10', NULL, '2026-06-26 06:41:47.574895', 'Psikologi'),
+	(10, 2, '21 Rahasia Penjual Penghasil Jutaan Dolar', 'Menguak Rahasia Sukses Penjual Penjual Para Peraih Pendapatan TOP di Amerika', '', '2026-06-25 09:06:10.186198', 'Stephen J. Harvill', 'buku', 'https://ruli.sman1purworejo.sch.id/lib/minigalnano/createthumb.php?filename=images/docs/RAHASIA_PENJUAL.jpg.jpg&width=200', NULL, '2026-06-26 06:42:00.372751', 'Ekonomi Syariah'),
+	(7, 15, 'Strategi Dakwah - Perspektif Ilmu Komunikasi', 'Tolong beliin dong 😊', '', '2026-06-25 06:55:14.011441', 'Anwar Arifin Andipate', 'buku', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSstJ5_8vaKa2FTZwN6qjkEX_EgBi-a54oJzdq1fkiarBIwBqtXAPd7U8aW&s=10', NULL, '2026-06-26 06:42:18.506563', 'Komunikasi'),
+	(6, 15, 'Komunikasi Rasulullah', 'Tolong beliin dong 😊', '', '2026-06-25 06:49:39.835104', 'Thorik Gunara', 'buku', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS09k4E9sgR3qKSIVS0fP3RqntsS1j2uW679m0ne0LXaQ&s=10', NULL, '2026-06-26 06:42:53.286684', 'Komunikasi'),
+	(5, 15, 'How To Win A Friend''s and Influence People', 'Tolong beliin dong 😊', '', '2026-06-25 06:45:50.53409', 'Dale Carnegie', 'buku', 'https://www.belbuk.com/images/products/buku/psikologi--pengembangan-diri/pengembangan-diri/Bagaimana-Mencari-Kawan-dan-Mempengaruhi-Orang-Lain-How-To-Win-Friends-and-Influence-People--6487ca594a2f3m.jpg', NULL, '2026-06-26 06:43:19.833745', 'Komunikasi'),
+	(4, 15, 'The Art Of The Communication', '', 'https://youtu.be/I38LHM4MS9M?si=1bIAVlijdp2wMNtT', '2026-06-25 06:36:25.004682', 'Oh Su Hyang', 'buku', '', NULL, '2026-06-26 06:43:36.287908', 'Komunikasi'),
+	(3, 15, 'Never Split The Difference', '', 'https://youtu.be/Q6t3tkAIfZk?si=_2693pK5VNVYD4ac', '2026-06-25 06:35:11.10806', 'Chris Voss', 'buku', '', NULL, '2026-06-26 06:45:59.754585', 'Sosial'),
+	(16, 2, 'OTW Hijrah', 'Perjalanan menuju lebih baik', '', '2026-06-26 06:51:27.729256', 'Jee Luvina', 'buku', '', NULL, '2026-06-26 06:52:11.261058', 'Storytelling'),
+	(17, 2, 'The Golden Story of Umar bin Khathtab', '', '', '2026-06-26 06:53:30.384356', 'Maghfirah Pustaka', 'buku', '', NULL, NULL, 'Sejarah Islam'),
+	(18, 2, 'Islamic Parenting', 'Mendidik Anak Menurut Sunnah Rasulullah Shallahu ''alaihi wa Sallam', '', '2026-06-26 06:54:37.016867', 'Syaikh Jamal Abdurrahman', 'buku', '', NULL, NULL, 'Parenting'),
+	(26, 2, 'Wanita, Siapkah Menjadi Tiang Negara?', 'Prinsip-Prinsip Keluarga', '', '2026-06-26 07:06:02.608837', 'Lilis Rohaeti', 'buku', '', NULL, NULL, 'Leadership'),
+	(27, 2, 'Biografi Sayyid Quthb', '"Sang Syahid" yang Melegenda', '', '2026-06-26 07:07:05.665474', 'Dr. Shalah al-Khalidiy', 'buku', '', NULL, '2026-06-26 07:07:37.467924', 'Biografi'),
+	(25, 2, 'Srikandi Perisai Nabi: Nusabah binti Ka''ab', 'Jarang sekali aku melihat (seorang wanita) yang mempunyai kekuatan sepertimu wahai Ummu Umarah', '', '2026-06-26 07:04:10.214072', 'Shafie Abd. Rahman', 'buku', '', NULL, '2026-06-26 07:07:50.956789', 'Biografi'),
+	(28, 2, 'JAS MEWAH', 'Jangan sekali-kali melupakan sejarah dan dakwah', '', '2026-06-26 07:08:53.262531', 'Dr. Tiar Anwar Bachtiar', 'buku', '', NULL, NULL, 'Sejarah Islam'),
+	(29, 2, 'Yuk Dakwah', '', '', '2026-06-26 07:09:59.832398', 'Shofwan Al-Banna', 'buku', '', NULL, NULL, 'Komunikasi'),
+	(30, 4, 'Menjadi Pribadi yang Memikat', 'Tips & Trick bagaimana orang lain tertarik berbicara dengan kita.', '', '2026-07-03 23:15:44.725459', 'Marc Reklau', 'buku', '', NULL, NULL, 'Umum');
 /*!40000 ALTER TABLE "islami_kajian" ENABLE KEYS */;
 
 -- Dumping structure for table public.islami_qa_saved
@@ -1692,6 +2308,7 @@ CREATE TABLE IF NOT EXISTS "islami_qa_saved" (
 	"pertanyaan" TEXT NOT NULL,
 	"jawaban" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "islami_qa_user_idx" ("user_id", "created_at")
 );
 
@@ -1721,7 +2338,18 @@ Rasulullah ﷺ bersabda: "Mukmin yang kuat lebih baik dan lebih dicintai Allah d
 
 Oleh karena itu, kuat fisik dalam Islam berarti memiliki tubuh yang sehat dan bugar, yang memungkinkan seseorang untuk beribadah dengan khusyuk, bekerja dengan produktif, dan siap menghadapi tantangan hidup, sebagaimana dicontohkan oleh para nabi dan orang-orang shalih.
 
-Wallahu a''lam.', '2026-06-18 15:00:13.397519');
+Wallahu a''lam.', '2026-06-18 15:00:13.397519'),
+	(3, 2, 'Jika anak menangis di malam hari, harus bagaimana?', 'Jika anak menangis di malam hari, orang tua sebaiknya memperhatikan dan menenangkan anak tersebut. Dalam sebuah hadits, Rasulullah SAW bersabda, "Apabila anak kecil menangis di malam hari, maka ucapkanlah ''Audzu billahi minas syaithanir rajiim'' (Aku memohon perlindungan kepada Allah dari setan yang terkutuk) tiga kali, lalu tiupkan pada bagian yang sakit." (HR. Abu Daud, no. 3898)
+
+Dengan demikian, orang tua dapat membantu menenangkan anak dan memohon perlindungan kepada Allah SWT dari segala kejahatan. Selain itu, perlu juga memeriksa apakah anak merasa tidak nyaman atau memerlukan sesuatu, seperti popok yang kotor atau perlu minum susu.
+
+Namun, perlu diingat bahwa setiap anak berbeda-beda, dan cara menenangkan anak juga dapat berbeda-beda. Yang terpenting adalah memberikan perhatian dan kasih sayang kepada anak, serta memohon perlindungan kepada Allah SWT.
+
+Dalam Al-Qur''an, Allah SWT berfirman, "Dan Kami perintahkan kepada manusia (berbuat baik) kepada kedua orang tuanya..." (QS. Al-''Ankabut: 8). Ayat ini menekankan pentingnya berbuat baik kepada anak dan memberikan perhatian yang cukup kepada mereka.
+
+Dalam menangani anak yang menangis, orang tua sebaiknya tetap sabar dan tenang, serta memperhatikan kebutuhan anak. Dengan demikian, anak akan merasa aman dan nyaman, serta dapat tumbuh dengan baik.
+
+Wallahu a''lam.', '2026-07-03 22:17:50.399938');
 /*!40000 ALTER TABLE "islami_qa_saved" ENABLE KEYS */;
 
 -- Dumping structure for table public.islami_quotes
@@ -1730,11 +2358,21 @@ CREATE TABLE IF NOT EXISTS "islami_quotes" (
 	"user_id" INTEGER NULL DEFAULT NULL,
 	"isi" TEXT NOT NULL,
 	"sumber" VARCHAR(120) NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "islami_quotes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
 -- Dumping data for table public.islami_quotes: -1 rows
 /*!40000 ALTER TABLE "islami_quotes" DISABLE KEYS */;
+INSERT INTO "islami_quotes" ("id", "user_id", "isi", "sumber", "created_at") VALUES
+	(1, 2, 'Silaturahmi akan meningkat jika dalam forumnya ada salah satu:
+1. Iman semakin meningkat
+2. Wawasan ilmu yang bermanfaat
+3. Keikhlasan semakin tulus
+4.Bertambah semangat kerja fi sabililah', 'Ustadz Miftahul Fath', '2026-06-25 22:35:32.373321'),
+	(2, 2, 'Ada Kerja Keras, Ada Kerja Cerdas', 'Quotes 1', '2026-06-25 23:13:15.605384'),
+	(4, 11, '&quot;Sebaik-baik manusia adalah yang paling bermanfaat untuk orang lain.&quot; (HR Ath-Thabari).', '', '2026-06-28 04:22:15.142714');
 /*!40000 ALTER TABLE "islami_quotes" ENABLE KEYS */;
 
 -- Dumping structure for table public.islami_streak
@@ -1749,10 +2387,13 @@ CREATE TABLE IF NOT EXISTS "islami_streak" (
 	"sholat_count" SMALLINT NOT NULL DEFAULT '0',
 	"subuh_walk" SMALLINT NOT NULL DEFAULT '0',
 	"sedekah" SMALLINT NOT NULL DEFAULT '0',
-	"poin" INTEGER NOT NULL DEFAULT '0'
+	"poin" INTEGER NOT NULL DEFAULT '0',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "islami_streak_user_id_tanggal_key" ("user_id", "tanggal"),
+	CONSTRAINT "islami_streak_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.islami_streak: -1 rows
+-- Dumping data for table public.islami_streak: 11 rows
 /*!40000 ALTER TABLE "islami_streak" DISABLE KEYS */;
 INSERT INTO "islami_streak" ("id", "user_id", "tanggal", "quran_done", "dzikir_pagi", "dzikir_petang", "doa_done", "sholat_count", "subuh_walk", "sedekah", "poin") VALUES
 	(1, 2, '2026-05-24', 1, 1, 0, 0, 0, 1, 0, 90),
@@ -1765,7 +2406,8 @@ INSERT INTO "islami_streak" ("id", "user_id", "tanggal", "quran_done", "dzikir_p
 	(17, 3, '2026-05-31', 1, 0, 0, 0, 0, 0, 0, 10),
 	(50, 16, '2026-06-01', 1, 0, 0, 0, 0, 0, 0, 10),
 	(51, 6, '2026-06-01', 1, 0, 0, 0, 0, 0, 0, 10),
-	(52, 2, '2026-06-13', 1, 0, 0, 0, 0, 0, 0, 10);
+	(52, 2, '2026-06-13', 1, 0, 0, 0, 0, 0, 0, 10),
+	(53, 11, '2026-06-28', 0, 1, 0, 0, 0, 0, 0, 10);
 /*!40000 ALTER TABLE "islami_streak" ENABLE KEYS */;
 
 -- Dumping structure for table public.jadwal
@@ -1785,19 +2427,45 @@ CREATE TABLE IF NOT EXISTS "jadwal" (
 	"tim_id" INTEGER NULL DEFAULT NULL,
 	"event_id" INTEGER NULL DEFAULT NULL,
 	"jam_mulai" TIME NULL DEFAULT NULL,
-	"jam_selesai" TIME NULL DEFAULT NULL
+	"jam_selesai" TIME NULL DEFAULT NULL,
+	"jenis_jadwal_id" INTEGER NULL DEFAULT NULL,
+	"komunitas_id" INTEGER NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	INDEX "jadwal_jenis_jadwal_idx" ("jenis_jadwal_id"),
+	INDEX "jadwal_kom_idx" ("komunitas_id"),
+	CONSTRAINT "jadwal_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "jadwal_jenis_jadwal_id_fkey" FOREIGN KEY ("jenis_jadwal_id") REFERENCES "jenis_jadwal" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "jadwal_komunitas_id_fkey" FOREIGN KEY ("komunitas_id") REFERENCES "komunitas" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "jadwal_koordinator_id_fkey" FOREIGN KEY ("koordinator_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "jadwal_tempat_id_fkey" FOREIGN KEY ("tempat_id") REFERENCES "tempat" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "jadwal_tim_id_fkey" FOREIGN KEY ("tim_id") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.jadwal: -1 rows
+-- Dumping data for table public.jadwal: 21 rows
 /*!40000 ALTER TABLE "jadwal" DISABLE KEYS */;
-INSERT INTO "jadwal" ("id", "tanggal", "bulan", "minggu_ke", "jenis", "tempat", "koordinator_id", "konten_obrolan", "catatan", "created_at", "tempat_id", "durasi_menit", "tim_id", "event_id", "jam_mulai", "jam_selesai") VALUES
-	(9, '2026-06-05', 'June', 'W1', 'Jogging', 'Parkiran Taman Sumringah', 2, '<p>Siapakah ''Dia'' menurut kalian?</p>', '<p>Pada telat kunjungannya, namun tetap semangat kompak</p>', '2026-06-02 20:30:34.263032', 5, 150, NULL, NULL, '06:30:00', '09:00:00'),
-	(8, '2026-06-02', 'June', 'W1', 'Badminton', 'GOR Gaza', 2, '<p>Shalat bkn hanya aspek ritual, tp 24 jam</p>', '<p>Kompak.. Gaskeun, Makan bersama mie ayam guys</p>', '2026-06-01 13:57:16.375314', 14, 120, NULL, NULL, '16:00:00', '18:00:00'),
-	(10, '2026-06-13', 'June', 'W2', 'Jogging', 'Flamboyan Jogging', 14, '<p>Ada Dia nya gk disetiap aktifitas kita</p>', '<p>Kesiangan, kemudian mulai jam 6, 2.4km, sisanya makan dan ngobrol konten</p>', '2026-06-10 21:42:46.741554', 29, 120, NULL, NULL, '06:00:00', '09:00:00'),
-	(11, '2026-06-20', 'June', 'W3', 'Badminton', 'GOR Mayasari', 14, '<p><br></p>', '<p><br></p>', '2026-06-15 13:19:58.280744', 13, 120, NULL, NULL, '08:00:00', '10:00:00'),
-	(12, '2026-06-16', 'June', 'W3', 'Badminton', 'GOR Gaza', 2, '<p>Yuk, berakrab akrab</p>', '<p><br></p>', '2026-06-16 12:29:48.694775', 14, 120, 8, NULL, '19:00:00', '21:00:00'),
-	(13, '2026-06-17', 'June', 'W3', 'Ping Pong', 'Flamboyan Pingpong', 2, '<p>Testing and ngakrab kita</p>', '<p><br></p>', '2026-06-17 20:20:27.906311', 28, 60, NULL, NULL, '21:30:00', '22:30:00'),
-	(14, '2026-06-19', 'June', 'W3', 'Renang', 'Kolam Renang BSD', 2, '<p><br></p>', '<p><br></p>', '2026-06-19 13:41:21.425402', 30, 120, NULL, NULL, '14:30:00', '16:30:00');
+INSERT INTO "jadwal" ("id", "tanggal", "bulan", "minggu_ke", "jenis", "tempat", "koordinator_id", "konten_obrolan", "catatan", "created_at", "tempat_id", "durasi_menit", "tim_id", "event_id", "jam_mulai", "jam_selesai", "jenis_jadwal_id", "komunitas_id") VALUES
+	(1, '2026-04-16', 'April', 'W3', 'Jogging', 'SR-Panyileukan', 2, '<p>Struktur DK, Indk, Sjrh</p>', '<ol><li>Dedi ada bimbingan skripsi, jadi pulang </li><li>Dani sama Rifat ada Kuliah Online</li></ol>', '2026-05-19 07:50:23.02801', 4, 240, NULL, NULL, '06:10:00', '10:00:00', NULL, NULL),
+	(2, '2026-04-22', 'April', 'W4', 'Badminton', 'GOR Mayasari', 3, '<p>Tidak Ada</p>', '<p>Tidak Ada</p>', '2026-05-19 07:51:01.708229', 2, 120, NULL, NULL, '16:00:00', '18:00:00', NULL, NULL),
+	(3, '2026-05-03', 'May', 'W1', 'Jogging', 'Summarecon', 3, '<p>Sharing Hikmah Per Orang</p>', '<ol><li>Dedi Jalan dari Kosan ke Summarecon </li><li>Dedi Cedera kaki</li></ol>', '2026-05-19 07:51:58.579444', 5, 210, NULL, NULL, '07:30:00', '10:00:00', NULL, NULL),
+	(4, '2026-05-09', 'May', 'W2', 'Futsal', 'GOR Adiguna', 3, '<p>Tidak Ada</p>', '<p>Dedi Jalan dari Kosan ke Adiguna</p>', '2026-05-19 07:52:37.974739', 1, 60, NULL, NULL, '16:00:00', '17:00:00', NULL, NULL),
+	(5, '2026-05-17', 'May', 'W3', 'Badminton', 'GOR Purbaya', 4, '<p>Sharing Hikmah Per Orang</p>', '<ol><li>Rizal (Rihlah bersama adik Mentornya) </li><li>Fajar S (Part time)</li></ol>', '2026-05-19 07:53:14.399509', 3, 120, NULL, NULL, '08:00:00', '10:00:00', NULL, NULL),
+	(8, '2026-06-02', 'June', 'W1', 'Badminton', 'GOR Gaza', 2, '<p>Shalat bkn hanya aspek ritual, tp 24 jam</p>', '<p>Kompak.. Gaskeun, Makan bersama mie ayam guys</p>', '2026-06-01 13:57:16.375314', 14, 120, NULL, NULL, '16:00:00', '18:00:00', NULL, NULL),
+	(15, '2026-06-27', 'June', 'W4', 'Hiking', 'Masjid Lembang - Gunung Putri', 2, '<p>3 120</p>', '<p>Lancar</p>', '2026-06-22 18:12:02.034635', 42, 270, NULL, NULL, '08:30:00', '13:00:00', 1, NULL),
+	(22, '2026-06-28', 'June', 'W4', 'Jogging', 'Summarecon - Ruby Commercial', 2, '<p><br></p>', '<p><br></p>', '2026-06-28 17:58:32.137895', 43, 120, NULL, NULL, '21:15:00', '22:15:00', 2, NULL),
+	(23, '2026-06-29', 'June', 'W5', 'Badminton', 'GOR Gaza', 2, '<p><br></p>', '<p><br></p>', '2026-06-29 14:01:40.951798', 14, 120, NULL, NULL, '16:00:00', '18:00:00', 2, NULL),
+	(24, '2026-06-30', 'June', 'W5', 'Jogging', 'Parkiran Taman Sumringah', 2, '<p><br></p>', '<p><br></p>', '2026-06-30 13:19:50.036117', 5, 60, NULL, NULL, '16:00:00', '17:00:00', 2, NULL),
+	(25, '2026-07-02', 'July', 'W1', 'Hiking', 'Masjid Lembang - Gunung Putri', 2, '<p><br></p>', '<p><br></p>', '2026-07-01 11:07:45.265026', 42, 560, NULL, NULL, '08:30:00', '13:00:00', 2, NULL),
+	(26, '2026-07-01', 'July', 'W1', 'Ping Pong', 'Flamboyan Pingpong', 2, '<p><br></p>', '<p><br></p>', '2026-07-01 17:22:01.170151', 28, 120, NULL, NULL, '19:30:00', '21:30:00', 2, NULL),
+	(17, '2026-06-24', 'June', 'W4', 'Ping Pong', 'Flamboyan Pingpong', 2, '<p><br></p>', '<p><br></p>', '2026-06-22 18:21:06.811547', 28, 120, NULL, NULL, '15:00:00', '17:00:00', 2, NULL),
+	(16, '2026-06-23', 'June', 'W4', 'Badminton', 'GOR Mayasari', 2, '<p><br></p>', '<p><br></p>', '2026-06-22 18:20:34.40163', 13, 120, NULL, NULL, '15:00:00', '17:00:00', 2, NULL),
+	(11, '2026-06-20', 'June', 'W3', 'Badminton', 'GOR Mayasari', 14, '<p><br></p>', '<p><br></p>', '2026-06-15 13:19:58.280744', 13, 120, NULL, NULL, '08:00:00', '10:00:00', 1, NULL),
+	(14, '2026-06-19', 'June', 'W3', 'Renang', 'BSD Sport Center', 2, '<p><br></p>', '<p><br></p>', '2026-06-19 13:41:21.425402', 30, 120, NULL, NULL, '14:30:00', '16:30:00', 2, NULL),
+	(13, '2026-06-17', 'June', 'W3', 'Ping Pong', 'Flamboyan Pingpong', 2, '<p>Testing and ngakrab kita</p>', '<p><br></p>', '2026-06-17 20:20:27.906311', 28, 60, NULL, NULL, '21:30:00', '22:30:00', 1, NULL),
+	(10, '2026-06-13', 'June', 'W2', 'Jogging', 'Flamboyan Jogging', 14, '<p>Ada Dia nya gk disetiap aktifitas kita</p>', '<p>Kesiangan, kemudian mulai jam 6, 2.4km, sisanya makan dan ngobrol konten</p>', '2026-06-10 21:42:46.741554', 29, 120, NULL, NULL, '06:00:00', '09:00:00', 1, NULL),
+	(12, '2026-06-16', 'June', 'W3', 'Badminton', 'GOR Gaza', 2, '<p>Yuk, berakrab akrab</p>', '<p><br></p>', '2026-06-16 12:29:48.694775', 14, 120, NULL, NULL, '19:00:00', '21:00:00', 2, NULL),
+	(9, '2026-06-05', 'June', 'W1', 'Jogging', 'Parkiran Taman Sumringah', 2, '<p>Siapakah ''Dia'' menurut kalian?</p>', '<p>Pada telat kunjungannya, namun tetap semangat kompak</p>', '2026-06-02 20:30:34.263032', 5, 150, NULL, NULL, '06:30:00', '09:00:00', 1, NULL),
+	(6, '2026-05-23', 'May', 'W4', 'Badminton', 'GOR Gaza', NULL, '<p><br></p>', '<p>Sepi.. dikitan kita main ini</p>', '2026-05-21 15:45:32.456543', 14, 120, NULL, NULL, '16:00:00', '18:00:00', 1, NULL),
+	(27, '2026-07-04', 'July', 'W1', 'Badminton', 'GOR Mayasari', 2, '<p><br></p>', '<p><br></p>', '2026-07-03 18:40:43.065268', 13, 120, NULL, NULL, '08:00:00', '10:00:00', 1, NULL);
 /*!40000 ALTER TABLE "jadwal" ENABLE KEYS */;
 
 -- Dumping structure for table public.jajanan
@@ -1817,10 +2485,14 @@ CREATE TABLE IF NOT EXISTS "jajanan" (
 	"jam_buka" TIME NULL DEFAULT NULL,
 	"jam_tutup" TIME NULL DEFAULT NULL,
 	"toko_id" INTEGER NULL DEFAULT NULL,
-	"hari_buka" VARCHAR(20) NULL DEFAULT '0,1,2,3,4,5,6'
+	"hari_buka" VARCHAR(20) NULL DEFAULT '0,1,2,3,4,5,6',
+	PRIMARY KEY ("id"),
+	INDEX "jajanan_aktif_idx" ("aktif"),
+	INDEX "jajanan_toko_idx" ("toko_id"),
+	CONSTRAINT "jajanan_toko_id_fkey" FOREIGN KEY ("toko_id") REFERENCES "toko" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.jajanan: -1 rows
+-- Dumping data for table public.jajanan: 7 rows
 /*!40000 ALTER TABLE "jajanan" DISABLE KEYS */;
 INSERT INTO "jajanan" ("id", "nama", "deskripsi", "harga", "stok", "foto_url", "kategori", "aktif", "created_at", "foto_file_id", "lat", "lng", "jam_buka", "jam_tutup", "toko_id", "hari_buka") VALUES
 	(4, 'Nasi Telor Dadar', NULL, 12000, 10, 'https://ik.imagekit.io/ahsansur/sportapp/jajanan/2026/05/Nasi_Dadar_Abin-1780186504-3a1835_9soVpQNTe.jpg', 'Makanan', 'true', '2026-05-30 17:54:08.943507', NULL, -6.934213, 107.716876, '07:00:00', '21:00:00', 5, '0,1,2,3,4,5,6'),
@@ -1865,10 +2537,16 @@ CREATE TABLE IF NOT EXISTS "jajanan_pesanan" (
 	"biaya_aplikasi" BIGINT NOT NULL DEFAULT '0',
 	"biaya_admin" BIGINT NOT NULL DEFAULT '0',
 	"invoice_sent_at" TIMESTAMP NULL DEFAULT NULL,
+	UNIQUE INDEX "jajanan_pesanan_kode_key" ("kode"),
+	PRIMARY KEY ("id"),
+	INDEX "idx_jjn_pesanan_driver_upd" ("driver_loc_updated_at"),
+	INDEX "jjn_pesanan_midtrans_idx" ("midtrans_order_id"),
+	INDEX "jjn_pesanan_payment_idx" ("payment_status"),
+	CONSTRAINT "jajanan_pesanan_kurir_user_id_fkey" FOREIGN KEY ("kurir_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
 	CONSTRAINT "jjn_rating_range_chk" CHECK (((rating IS NULL) OR ((rating >= 1) AND (rating <= 5))))
 );
 
--- Dumping data for table public.jajanan_pesanan: -1 rows
+-- Dumping data for table public.jajanan_pesanan: 4 rows
 /*!40000 ALTER TABLE "jajanan_pesanan" DISABLE KEYS */;
 INSERT INTO "jajanan_pesanan" ("id", "kode", "nama_pemesan", "no_wa", "alamat", "catatan", "subtotal", "ongkir", "total", "metode", "status", "kurir_user_id", "created_at", "updated_at", "pickup_lat", "pickup_lng", "payment_status", "midtrans_order_id", "snap_token", "snap_redirect", "stok_dipotong", "driver_lat", "driver_lng", "driver_loc_updated_at", "rating", "rating_komentar", "rating_at", "email_pemesan", "biaya_aplikasi", "biaya_admin", "invoice_sent_at") VALUES
 	(2, 'JJN-260530-3974', 'Andin', '081386369207', 'Tes', 'Gerbang Biru', 15000, 5000, 20000, 'cod', 'selesai', 2, '2026-05-30 17:45:28.285732', '2026-05-30 18:28:35.688819', -6.925610, 107.729378, 'pending', NULL, NULL, NULL, 'false', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL),
@@ -1884,10 +2562,13 @@ CREATE TABLE IF NOT EXISTS "jajanan_pesanan_item" (
 	"jajanan_id" INTEGER NULL DEFAULT NULL,
 	"nama" VARCHAR(160) NOT NULL,
 	"harga" INTEGER NOT NULL DEFAULT '0',
-	"qty" INTEGER NOT NULL DEFAULT '1'
+	"qty" INTEGER NOT NULL DEFAULT '1',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "jajanan_pesanan_item_jajanan_id_fkey" FOREIGN KEY ("jajanan_id") REFERENCES "jajanan" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "jajanan_pesanan_item_pesanan_id_fkey" FOREIGN KEY ("pesanan_id") REFERENCES "jajanan_pesanan" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.jajanan_pesanan_item: -1 rows
+-- Dumping data for table public.jajanan_pesanan_item: 4 rows
 /*!40000 ALTER TABLE "jajanan_pesanan_item" DISABLE KEYS */;
 INSERT INTO "jajanan_pesanan_item" ("id", "pesanan_id", "jajanan_id", "nama", "harga", "qty") VALUES
 	(1, 1, NULL, '🍕 Pizza', 20000, 2),
@@ -1896,15 +2577,35 @@ INSERT INTO "jajanan_pesanan_item" ("id", "pesanan_id", "jajanan_id", "nama", "h
 	(41, 40, NULL, 'Testes', 10000, 1);
 /*!40000 ALTER TABLE "jajanan_pesanan_item" ENABLE KEYS */;
 
+-- Dumping structure for table public.jenis_jadwal
+CREATE TABLE IF NOT EXISTS "jenis_jadwal" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''jenis_jadwal_id_seq''::regclass)',
+	"nama" VARCHAR(80) NOT NULL,
+	"warna_bg" VARCHAR(20) NOT NULL DEFAULT '#0ea5e9',
+	"warna_text" VARCHAR(20) NOT NULL DEFAULT '#ffffff',
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "jenis_jadwal_nama_key" ("nama")
+);
+
+-- Dumping data for table public.jenis_jadwal: -1 rows
+/*!40000 ALTER TABLE "jenis_jadwal" DISABLE KEYS */;
+INSERT INTO "jenis_jadwal" ("id", "nama", "warna_bg", "warna_text", "created_at") VALUES
+	(1, 'Tim Kantor KK', '#0ea5e9', '#ffffff', '2026-06-26 04:08:50.929496'),
+	(2, 'Tim Public KK', '#22c55e', '#ffffff', '2026-06-26 04:08:50.929496');
+/*!40000 ALTER TABLE "jenis_jadwal" ENABLE KEYS */;
+
 -- Dumping structure for table public.jenis_olahraga
 CREATE TABLE IF NOT EXISTS "jenis_olahraga" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''jenis_olahraga_id_seq''::regclass)',
 	"nama" VARCHAR(60) NOT NULL,
 	"deskripsi" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	UNIQUE INDEX "jenis_olahraga_nama_key" ("nama"),
+	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.jenis_olahraga: -1 rows
+-- Dumping data for table public.jenis_olahraga: 10 rows
 /*!40000 ALTER TABLE "jenis_olahraga" DISABLE KEYS */;
 INSERT INTO "jenis_olahraga" ("id", "nama", "deskripsi", "created_at") VALUES
 	(1, 'Jogging', 'Lari santai outdoor, fokus pada durasi dan jarak.', '2026-05-21 00:40:55.617378'),
@@ -1916,8 +2617,103 @@ INSERT INTO "jenis_olahraga" ("id", "nama", "deskripsi", "created_at") VALUES
 	(5, 'Renang', 'Renang gaya yang bagian dari edukasi', '2026-05-21 00:40:55.617378'),
 	(11, 'Biliard', 'Kuy, maen bola kecil', '2026-05-23 04:33:57.391667'),
 	(12, 'Ping Pong', 'Bola Bolaan Kecil', '2026-05-23 06:40:37.374439'),
-	(13, 'Olahraga Pribadi', 'Rumahan', '2026-06-03 05:36:56.762834');
+	(13, 'Olahraga Pribadi', 'Rumahan', '2026-06-03 05:36:56.762834'),
+	(14, 'Basket', 'Lempar lempar yuk', '2026-06-26 09:50:51.437901');
 /*!40000 ALTER TABLE "jenis_olahraga" ENABLE KEYS */;
+
+-- Dumping structure for table public.kajian_kategori
+CREATE TABLE IF NOT EXISTS "kajian_kategori" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''kajian_kategori_id_seq''::regclass)',
+	"nama" VARCHAR(80) NOT NULL,
+	"slug" VARCHAR(80) NOT NULL,
+	"warna" VARCHAR(20) NULL DEFAULT 'secondary',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "kajian_kategori_nama_key" ("nama")
+);
+
+-- Dumping data for table public.kajian_kategori: -1 rows
+/*!40000 ALTER TABLE "kajian_kategori" DISABLE KEYS */;
+INSERT INTO "kajian_kategori" ("id", "nama", "slug", "warna", "created_at") VALUES
+	(1, 'Umum', 'umum', 'secondary', '2026-06-25 04:07:25.49906'),
+	(2, 'Aqidah', 'aqidah', 'primary', '2026-06-25 04:07:25.49906'),
+	(3, 'Fiqih', 'fiqih', 'success', '2026-06-25 04:07:25.49906'),
+	(4, 'Tafsir', 'tafsir', 'info', '2026-06-25 04:07:25.49906'),
+	(5, 'Hadist', 'hadist', 'warning', '2026-06-25 04:07:25.49906'),
+	(6, 'Sirah', 'sirah', 'danger', '2026-06-25 04:07:25.49906'),
+	(8, 'Tazkiyah', 'tazkiyah', 'info', '2026-06-25 04:07:25.49906'),
+	(9, 'Sains Islam', 'sains-islam', 'success', '2026-06-25 04:07:25.49906'),
+	(10, 'Sejarah Islam', 'sejarah-islam', 'warning', '2026-06-25 04:07:25.49906'),
+	(11, 'Parenting', 'parenting', 'danger', '2026-06-25 04:07:25.49906'),
+	(12, 'Ekonomi Syariah', 'ekonomi-syariah', 'primary', '2026-06-25 04:07:25.49906'),
+	(13, 'Lainnya', 'lainnya', 'secondary', '2026-06-25 04:07:25.49906'),
+	(14, 'Komunikasi', 'komunikasi', 'primary', '2026-06-25 11:59:57.694628'),
+	(15, 'Psikologi', 'psikologi', 'primary', '2026-06-26 06:41:23.936379'),
+	(16, 'Sosial', 'sosial', 'success', '2026-06-26 06:45:17.613716'),
+	(17, 'Storytelling', 'storytelling', 'info', '2026-06-26 06:51:58.799895'),
+	(18, 'Kesehatan', 'kesehatan', 'primary', '2026-06-26 06:59:39.777911'),
+	(19, 'Leadership', 'leadership', 'warning', '2026-06-26 07:00:24.692678'),
+	(20, 'Family', 'family', 'success', '2026-06-26 07:01:27.640982'),
+	(21, 'Biografi', 'biografi', 'secondary', '2026-06-26 07:07:15.769624');
+/*!40000 ALTER TABLE "kajian_kategori" ENABLE KEYS */;
+
+-- Dumping structure for table public.kajian_pemilik
+CREATE TABLE IF NOT EXISTS "kajian_pemilik" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''kajian_pemilik_id_seq''::regclass)',
+	"kajian_id" BIGINT NOT NULL,
+	"user_id" BIGINT NULL DEFAULT NULL,
+	"nama_eksternal" VARCHAR(120) NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "kajian_pemilik_kajian_idx" ("kajian_id"),
+	INDEX "kajian_pemilik_user_idx" ("user_id"),
+	CONSTRAINT "kajian_pemilik_kajian_id_fkey" FOREIGN KEY ("kajian_id") REFERENCES "islami_kajian" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "kajian_pemilik_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
+);
+
+-- Dumping data for table public.kajian_pemilik: -1 rows
+/*!40000 ALTER TABLE "kajian_pemilik" DISABLE KEYS */;
+INSERT INTO "kajian_pemilik" ("id", "kajian_id", "user_id", "nama_eksternal", "created_at") VALUES
+	(3, 15, 2, NULL, '2026-06-25 12:00:14.834479'),
+	(4, 14, 2, NULL, '2026-06-25 12:00:38.577463'),
+	(5, 13, 2, NULL, '2026-06-25 12:01:18.142474'),
+	(6, 12, 2, NULL, '2026-06-25 12:01:51.155403'),
+	(7, 12, NULL, 'Teh Alya', '2026-06-25 12:01:51.156669'),
+	(8, 11, 2, NULL, '2026-06-25 12:02:11.696779'),
+	(9, 9, 2, NULL, '2026-06-26 06:40:51.049891'),
+	(10, 8, 2, NULL, '2026-06-26 06:41:47.576272'),
+	(11, 10, 2, NULL, '2026-06-26 06:42:00.373931'),
+	(12, 6, 2, NULL, '2026-06-26 06:42:53.288199'),
+	(13, 5, 2, NULL, '2026-06-26 06:43:19.834948'),
+	(15, 16, 2, NULL, '2026-06-26 06:52:11.262149'),
+	(16, 17, NULL, 'Teh Alya', '2026-06-26 06:53:30.386961'),
+	(17, 18, NULL, 'Teh Alya', '2026-06-26 06:54:37.019175'),
+	(18, 19, 2, NULL, '2026-06-26 06:55:44.575985'),
+	(19, 20, NULL, 'Teh Alya', '2026-06-26 06:57:07.076395'),
+	(20, 21, 2, NULL, '2026-06-26 06:58:06.06528'),
+	(22, 22, NULL, 'Teh Alya', '2026-06-26 06:59:54.161392'),
+	(23, 23, NULL, 'Teh Alya', '2026-06-26 07:01:08.200481'),
+	(24, 24, NULL, 'Teh Alya', '2026-06-26 07:02:33.296157'),
+	(26, 26, NULL, 'Teh Alya', '2026-06-26 07:06:02.611519'),
+	(28, 27, 2, NULL, '2026-06-26 07:07:37.469239'),
+	(29, 25, NULL, 'Teh Alya', '2026-06-26 07:07:50.958215'),
+	(30, 28, 2, NULL, '2026-06-26 07:08:53.264517'),
+	(31, 30, 4, NULL, '2026-07-03 23:15:44.729262');
+/*!40000 ALTER TABLE "kajian_pemilik" ENABLE KEYS */;
+
+-- Dumping structure for table public.kalistenik_log
+CREATE TABLE IF NOT EXISTS "kalistenik_log" (
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"level" VARCHAR(20) NOT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id", "tanggal", "level")
+);
+
+-- Dumping data for table public.kalistenik_log: -1 rows
+/*!40000 ALTER TABLE "kalistenik_log" DISABLE KEYS */;
+/*!40000 ALTER TABLE "kalistenik_log" ENABLE KEYS */;
 
 -- Dumping structure for table public.kalori_burn_lain
 CREATE TABLE IF NOT EXISTS "kalori_burn_lain" (
@@ -1929,6 +2725,7 @@ CREATE TABLE IF NOT EXISTS "kalori_burn_lain" (
 	"kalori" INTEGER NOT NULL DEFAULT '0',
 	"rincian" TEXT NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "idx_kalori_lain_user_tgl" ("user_id", "tanggal")
 );
 
@@ -1961,7 +2758,9 @@ CREATE TABLE IF NOT EXISTS "kalori_log" (
 	"menit" INTEGER NOT NULL,
 	"met" NUMERIC(4,2) NOT NULL,
 	"kalori" NUMERIC(7,2) NOT NULL,
-	"dibuat_pada" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"dibuat_pada" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "kalori_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.kalori_log: -1 rows
@@ -1988,6 +2787,7 @@ CREATE TABLE IF NOT EXISTS "kalori_makanan_log" (
 	"gula_g" NUMERIC(7,2) NULL DEFAULT NULL,
 	"sodium_mg" NUMERIC(8,2) NULL DEFAULT NULL,
 	"ai_detail" TEXT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
 	INDEX "idx_kalori_mkn_user_tgl" ("user_id", "tanggal")
 );
 
@@ -2024,26 +2824,63 @@ CREATE TABLE IF NOT EXISTS "kebijakan_privasi" (
 	"konten" TEXT NOT NULL DEFAULT '',
 	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.kebijakan_privasi: -1 rows
+-- Dumping data for table public.kebijakan_privasi: 1 rows
 /*!40000 ALTER TABLE "kebijakan_privasi" DISABLE KEYS */;
 INSERT INTO "kebijakan_privasi" ("id", "versi", "judul", "konten", "aktif", "created_at", "updated_at") VALUES
-	(1, '1.0', 'Kebijakan Privasi (UU PDP No. 27 Tahun 2022)', '<h3>Pendahuluan</h3><p>KawanKeringat menghormati privasi Anda dan mematuhi UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p>
-
-<h3>1. Data yang Kami Kumpulkan</h3><ul><li>Data identitas: nama, email, jenis kelamin, nomor WhatsApp</li><li>Data lokasi (saat memesan jajanan/booking lapangan)</li><li>Data aktivitas olahraga, foto profil, postingan</li></ul>
-
-<h3>2. Dasar Pemrosesan</h3><p>Persetujuan Anda saat mendaftar, pelaksanaan kontrak (pemesanan), dan kepentingan sah.</p>
-
-<h3>3. Hak Subjek Data</h3><ul><li>Hak mendapatkan informasi</li><li>Hak akses, koreksi, dan penghapusan</li><li>Hak menarik persetujuan</li><li>Hak menolak pemrosesan otomatis</li></ul>
-
-<h3>4. Keamanan</h3><p>Kami menerapkan enkripsi password (bcrypt), HTTPS, dan kontrol akses berbasis peran.</p>
-
-<h3>5. Pengiriman ke Pihak Ketiga</h3><p>Hanya untuk pemrosesan pembayaran (Midtrans) dan penyimpanan media (ImageKit) sesuai standar industri.</p>
-
-<h3>6. Kontak DPO</h3><p>Hubungi: admin@hapfam.local</p>', 'true', '2026-06-02 07:20:18.842615', '2026-06-02 07:20:18.842615');
+	(1, '1.0', 'Kebijakan Privasi (UU PDP No. 27 Tahun 2022)', '<h3>Pendahuluan</h3><p>KawanKeringat SportApp menghormati privasi Anda dan mematuhi UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p><h3>1. Data yang Kami Kumpulkan</h3><ul><li>Data identitas: nama, email, jenis kelamin, nomor WhatsApp</li><li>Data lokasi (saat memesan jajanan/booking lapangan)</li><li>Data aktivitas olahraga, foto profil, postingan</li></ul><h3>2. Dasar Pemrosesan</h3><p>Persetujuan Anda saat mendaftar, pelaksanaan kontrak (pemesanan), dan kepentingan sah.</p><h3>3. Hak Subjek Data</h3><ul><li>Hak mendapatkan informasi</li><li>Hak akses, koreksi, dan penghapusan</li><li>Hak menarik persetujuan</li><li>Hak menolak pemrosesan otomatis</li></ul><h3>4. Keamanan</h3><p>Kami menerapkan enkripsi password (bcrypt), HTTPS, dan kontrol akses berbasis peran.</p><h3>5. Pengiriman ke Pihak Ketiga</h3><p>Hanya untuk pemrosesan pembayaran (Midtrans) dan penyimpanan media (ImageKit) sesuai standar industri.</p><h3>6. Kontak DPO (Data Protection Officer)</h3><p>Hubungi: 081386369207</p>', 'true', '2026-06-02 07:20:18.842615', '2026-07-02 06:15:31.804858');
 /*!40000 ALTER TABLE "kebijakan_privasi" ENABLE KEYS */;
+
+-- Dumping structure for table public.komunitas
+CREATE TABLE IF NOT EXISTS "komunitas" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''komunitas_id_seq''::regclass)',
+	"nama" VARCHAR(120) NOT NULL,
+	"slug" VARCHAR(140) NULL DEFAULT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"kota" VARCHAR(120) NULL DEFAULT NULL,
+	"kontak_wa" VARCHAR(30) NULL DEFAULT NULL,
+	"logo_url" TEXT NULL DEFAULT NULL,
+	"warna" VARCHAR(20) NULL DEFAULT '#0ea5e9',
+	"aktif" SMALLINT NOT NULL DEFAULT '1',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "komunitas_slug_key" ("slug"),
+	INDEX "komunitas_aktif_idx" ("aktif")
+);
+
+-- Dumping data for table public.komunitas: -1 rows
+/*!40000 ALTER TABLE "komunitas" DISABLE KEYS */;
+INSERT INTO "komunitas" ("id", "nama", "slug", "deskripsi", "kota", "kontak_wa", "logo_url", "warna", "aktif", "created_at", "updated_at") VALUES
+	(1, 'KawanKeringat Kantor', 'kawankeringat-kantor', 'Tim Kantor KawanKeringat.', 'Bandung', '628138636920', '', '#0ea5e9', 1, '2026-07-02 00:13:36.682625', '2026-07-03 05:50:57.118237'),
+	(2, 'KawanKeringat Public', 'kawankeringat-public', 'KawanKeringat Public', 'Bandung', '628138636920', '', '#0000ff', 1, '2026-07-03 05:52:51.524682', NULL),
+	(3, 'Petualang Sejati', 'petualang-sejati', 'Petualang Sejati', 'Bandung', '628138636920', '', '#ffff00', 1, '2026-07-03 05:53:45.721867', NULL),
+	(4, 'Ladies Grup', 'ladies-grup', 'Khusus Ladies / P', 'Bandung', '', '', '#ff00ff', 1, '2026-07-03 22:04:01.369031', NULL),
+	(5, 'SuperDuperAdmin', 'superduperadmin', 'Bisa melihat semuanya', 'Bandung', '', '', '#ff0000', 1, '2026-07-04 04:39:31.715595', NULL),
+	(6, 'Publik People', 'publik-people', 'Non Komunitas', 'All Wilayah', '', '', '#00ff00', 1, '2026-07-04 04:43:03.412706', NULL);
+/*!40000 ALTER TABLE "komunitas" ENABLE KEYS */;
+
+-- Dumping structure for table public.komunitas_data
+CREATE TABLE IF NOT EXISTS "komunitas_data" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''komunitas_data_id_seq''::regclass)',
+	"komunitas_id" INTEGER NOT NULL,
+	"judul" VARCHAR(180) NOT NULL,
+	"kategori" VARCHAR(60) NULL DEFAULT NULL,
+	"isi" TEXT NULL DEFAULT NULL,
+	"tanggal" DATE NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	INDEX "komunitas_data_kom_idx" ("komunitas_id"),
+	CONSTRAINT "komunitas_data_komunitas_id_fkey" FOREIGN KEY ("komunitas_id") REFERENCES "komunitas" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.komunitas_data: -1 rows
+/*!40000 ALTER TABLE "komunitas_data" DISABLE KEYS */;
+/*!40000 ALTER TABLE "komunitas_data" ENABLE KEYS */;
 
 -- Dumping structure for table public.live_tracking_contacts
 CREATE TABLE IF NOT EXISTS "live_tracking_contacts" (
@@ -2053,10 +2890,12 @@ CREATE TABLE IF NOT EXISTS "live_tracking_contacts" (
 	"nomor_wa" TEXT NULL DEFAULT NULL,
 	"email" TEXT NULL DEFAULT NULL,
 	"relasi" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "ltc_user_idx" ("user_id")
 );
 
--- Dumping data for table public.live_tracking_contacts: -1 rows
+-- Dumping data for table public.live_tracking_contacts: 1 rows
 /*!40000 ALTER TABLE "live_tracking_contacts" DISABLE KEYS */;
 INSERT INTO "live_tracking_contacts" ("id", "user_id", "nama", "nomor_wa", "email", "relasi", "created_at") VALUES
 	(1, 2, 'FIRDAMDAM SASMITA', '081386369207', '', '', '2026-06-15 13:12:32.529833');
@@ -2071,10 +2910,13 @@ CREATE TABLE IF NOT EXISTS "live_tracking_points" (
 	"accuracy_m" DOUBLE PRECISION NULL DEFAULT NULL,
 	"speed_mps" DOUBLE PRECISION NULL DEFAULT NULL,
 	"heading_deg" DOUBLE PRECISION NULL DEFAULT NULL,
-	"ts" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"ts" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "ltp_session_idx" ("session_id", "id"),
+	CONSTRAINT "live_tracking_points_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "live_tracking_sessions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.live_tracking_points: -1 rows
+-- Dumping data for table public.live_tracking_points: 27 rows
 /*!40000 ALTER TABLE "live_tracking_points" DISABLE KEYS */;
 INSERT INTO "live_tracking_points" ("id", "session_id", "lat", "lng", "accuracy_m", "speed_mps", "heading_deg", "ts") VALUES
 	(1, 1, -6.9254995900617, 107.72965966931, 182, NULL, NULL, '2026-06-15 12:22:28.118955'),
@@ -2120,10 +2962,15 @@ CREATE TABLE IF NOT EXISTS "live_tracking_sessions" (
 	"is_active" BOOLEAN NOT NULL DEFAULT 'true',
 	"last_lat" DOUBLE PRECISION NULL DEFAULT NULL,
 	"last_lng" DOUBLE PRECISION NULL DEFAULT NULL,
-	"last_seen_at" TIMESTAMP NULL DEFAULT NULL
+	"last_seen_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "live_tracking_sessions_token_key" ("token"),
+	INDEX "lts_active_idx" ("is_active", "expires_at"),
+	INDEX "lts_token_idx" ("token"),
+	INDEX "lts_user_idx" ("user_id", "started_at")
 );
 
--- Dumping data for table public.live_tracking_sessions: -1 rows
+-- Dumping data for table public.live_tracking_sessions: 6 rows
 /*!40000 ALTER TABLE "live_tracking_sessions" DISABLE KEYS */;
 INSERT INTO "live_tracking_sessions" ("id", "user_id", "token", "judul", "pesan", "olahraga", "started_at", "ended_at", "expires_at", "is_active", "last_lat", "last_lng", "last_seen_at") VALUES
 	(1, 2, '13X36YYkNJnx_VveTzxixoxx', 'Lari sore', NULL, 'lari', '2026-06-15 12:22:22.847447', NULL, '2026-06-15 18:22:22.847447', 'true', -6.9254995900617, 107.72965966931, '2026-06-15 12:23:27.9099'),
@@ -2140,10 +2987,11 @@ CREATE TABLE IF NOT EXISTS "login_attempts" (
 	"email" VARCHAR(150) NULL DEFAULT NULL,
 	"ip" VARCHAR(64) NULL DEFAULT NULL,
 	"success" SMALLINT NULL DEFAULT '0',
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id")
 );
 
--- Dumping data for table public.login_attempts: 469 rows
+-- Dumping data for table public.login_attempts: 560 rows
 /*!40000 ALTER TABLE "login_attempts" DISABLE KEYS */;
 INSERT INTO "login_attempts" ("id", "email", "ip", "success", "created_at") VALUES
 	(1, 'firdam@sport.local', '::1', 1, '2026-05-22 00:12:26.427246'),
@@ -2609,17 +3457,181 @@ INSERT INTO "login_attempts" ("id", "email", "ip", "success", "created_at") VALU
 	(525, 'rifat@sport.local', '100.64.0.5', 0, '2026-06-21 17:07:35.854286'),
 	(526, 'rifat@sport.local', '100.64.0.11', 0, '2026-06-21 17:08:25.561438'),
 	(527, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-21 17:30:38.194335'),
-	(1, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 09:03:20.013646'),
-	(2, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 09:12:50.145052'),
-	(3, 'firdam@sport.local', '2404:c0:2a10::2f6c:b489', 0, '2026-06-22 09:27:29.710755'),
-	(4, 'firdam@sport.local', '2404:c0:2a10::2f6c:b489', 0, '2026-06-22 09:27:43.026218'),
-	(5, 'firdam@sport.local', '2404:c0:2a10::2f6c:b489', 1, '2026-06-22 09:28:36.479936'),
-	(6, 'dani@sport.local', '103.55.33.183', 1, '2026-06-22 09:31:38.264741'),
-	(7, 'adithsetiawan62@gmail.com', '114.10.146.131', 1, '2026-06-22 12:16:00.433912'),
-	(8, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 12:24:19.920932'),
-	(9, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 13:15:01.340589'),
-	(10, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 14:03:27.662599'),
-	(11, 'firdam@sport.local', '114.122.83.62', 1, '2026-06-22 14:23:43.549619');
+	(528, 'firdam@sport.local', '114.122.82.166', 1, '2026-06-22 22:14:39.905504'),
+	(529, 'adithsetiawan62@gmail.com', '114.10.147.193', 1, '2026-06-22 22:58:54.382375'),
+	(530, 'fajar@sport.local', '103.130.17.36', 1, '2026-06-23 08:17:45.426485'),
+	(531, 'firdam@sport.local', '114.122.73.162', 1, '2026-06-23 08:31:05.705324'),
+	(532, 'firdam@sport.local', '114.122.73.162', 1, '2026-06-23 08:43:37.718756'),
+	(533, 'firdam@sport.local', '114.122.73.162', 1, '2026-06-23 08:58:43.063702'),
+	(534, 'firdam@sport.local', '160.19.226.96', 0, '2026-06-23 10:42:23.834412'),
+	(535, 'adithsetiawan62@gmail.com', '114.10.147.193', 1, '2026-06-23 11:17:53.496709'),
+	(536, 'firdam@sport.local', '114.122.73.162', 1, '2026-06-23 11:41:02.317059'),
+	(537, 'firdam@sport.local', '114.122.73.162', 1, '2026-06-23 11:43:07.283146'),
+	(538, 'firdam@sport.local', '114.122.73.162', 1, '2026-06-23 12:08:29.176955'),
+	(539, 'rian@sport.local', '114.10.147.246', 0, '2026-06-23 14:21:25.913309'),
+	(540, 'rian@sport.local', '114.10.146.246', 1, '2026-06-23 14:23:31.608378'),
+	(541, 'adithsetiawan62@gmail.com', '114.10.144.204', 1, '2026-06-23 20:28:55.921523'),
+	(542, 'hanif@sport.local', '2404:c0:20be:1b69:18bb:ba48:d1e3:c83c', 0, '2026-06-23 21:29:02.85365'),
+	(543, 'hanif@sport.local', '2404:c0:202d:a9ba:1:0:a0ec:bf34', 1, '2026-06-24 12:00:43.583571'),
+	(544, 'alhamsyahlutfi2007@gmail.com', '182.5.132.196', 1, '2026-06-24 17:21:36.224151'),
+	(545, 'rifat@sport.local', '2402:5680:9313:afe2::1', 0, '2026-06-24 17:23:20.669109'),
+	(546, 'rifat@sport.local', '2402:5680:9313:afe2::1', 1, '2026-06-24 17:23:37.113814'),
+	(547, 'dendra@sport.local', '114.122.73.95', 1, '2026-06-24 23:30:54.780644'),
+	(548, 'firdam@sport.local', '114.122.73.95', 1, '2026-06-24 23:31:33.322765'),
+	(549, 'hanif@sport.local', '114.122.73.95', 1, '2026-06-24 23:33:34.834524'),
+	(550, 'firdam@sport.local', '114.122.73.95', 1, '2026-06-24 23:34:14.518953'),
+	(551, 'alhamsyahlutfi2007@gmail.com', '2404:c0:a302:b582:84ce:ca8e:fc83:5212', 0, '2026-06-25 05:20:45.137993'),
+	(552, 'alhamsyahlutfi2007@gmail.com', '2404:c0:a302:b582:84ce:ca8e:fc83:5212', 1, '2026-06-25 05:21:10.110882'),
+	(553, 'firdam@sport.local', '114.122.83.91', 1, '2026-06-25 07:23:14.413246'),
+	(554, 'firdam@sport.local', '114.122.83.91', 1, '2026-06-25 07:25:11.734042'),
+	(555, 'dedi@sport.local', '114.122.83.91', 1, '2026-06-25 08:54:12.202487'),
+	(556, 'firdam@sport.local', '114.122.83.91', 1, '2026-06-25 08:55:38.416475'),
+	(557, 'dedi@sport.local', '114.122.83.91', 0, '2026-06-25 11:26:41.376302'),
+	(558, 'dedi@sport.local', '114.122.83.91', 1, '2026-06-25 11:26:48.110947'),
+	(559, 'firdam@sport.local', '114.122.83.91', 0, '2026-06-25 11:27:04.11891'),
+	(560, 'firdam@sport.local', '114.122.83.91', 1, '2026-06-25 11:27:13.475346'),
+	(561, 'firdam@sport.local', '114.122.83.91', 1, '2026-06-25 12:27:56.000279'),
+	(562, 'adithsetiawan62@gmail.com', '114.10.145.158', 1, '2026-06-25 14:41:42.115219'),
+	(563, 'adithsetiawan62@gmail.com', '114.10.148.158', 1, '2026-06-25 16:22:11.104631'),
+	(564, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 07:53:36.564982'),
+	(565, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 09:25:19.830687'),
+	(566, 'dendra@sport.local', '114.122.73.92', 1, '2026-06-26 09:36:24.682091'),
+	(567, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 09:37:36.113701'),
+	(568, 'dendra@sport.local', '114.122.73.92', 1, '2026-06-26 09:39:21.153082'),
+	(569, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 09:41:44.91988'),
+	(570, 'hanif@sport.local', '114.122.73.92', 1, '2026-06-26 09:49:48.307239'),
+	(571, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 09:50:09.523451'),
+	(572, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 10:25:20.777859'),
+	(573, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 10:52:09.994482'),
+	(574, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 10:53:13.081299'),
+	(575, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 13:43:10.593179'),
+	(576, 'faiz@sport.local', '114.122.73.92', 1, '2026-06-26 13:44:17.949918'),
+	(577, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 13:45:09.68693'),
+	(578, 'faiz@sport.local', '114.122.73.92', 1, '2026-06-26 14:57:39.258426'),
+	(579, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 14:59:50.079043'),
+	(580, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 15:00:09.90001'),
+	(581, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 15:00:28.522459'),
+	(582, 'khansa@sport.local', '114.122.73.92', 1, '2026-06-26 15:03:54.728505'),
+	(583, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 15:13:55.572608'),
+	(584, 'khansa@sport.local', '114.122.73.92', 1, '2026-06-26 15:20:25.907882'),
+	(585, 'firdam@sport.local', '114.122.73.92', 1, '2026-06-26 15:22:09.351568'),
+	(586, 'adithsetiawan62@gmail.com', '114.10.148.166', 1, '2026-06-26 16:54:44.148757'),
+	(587, 'firdam@sport.local', '114.122.111.170', 1, '2026-06-27 04:54:58.859233'),
+	(588, 'firdam@sport.local', '114.122.111.170', 1, '2026-06-27 04:56:04.948049'),
+	(589, 'firdam@sport.local', '114.122.111.170', 1, '2026-06-27 05:09:18.149073'),
+	(590, 'firdam@sport.local', '182.10.98.80', 1, '2026-06-27 20:42:50.543576'),
+	(591, 'firdam@sport.local', '114.122.111.170', 1, '2026-06-27 21:24:41.985855'),
+	(592, 'rian@sport.local', '157.85.206.128', 0, '2026-06-28 04:10:21.91021'),
+	(593, 'rian@sport.local', '157.85.206.128', 1, '2026-06-28 04:10:39.821828'),
+	(594, 'adithsetiawan62@gmail.com', '160.19.226.17', 1, '2026-06-28 13:52:05.473906'),
+	(595, 'firdam@sport.local', '114.122.110.58', 1, '2026-06-28 17:11:30.375107'),
+	(596, 'adithsetiawan62@gmail.com', '114.10.144.136', 1, '2026-06-28 18:15:09.359457'),
+	(597, 'alhamsyahlutfi2007@gmail.com', '182.10.98.31', 1, '2026-06-28 18:20:07.664178'),
+	(598, 'adithsetiawan62@gmail.com', '114.10.149.136', 1, '2026-06-28 19:39:54.139981'),
+	(599, 'firdam@sport.local', '114.122.110.58', 1, '2026-06-29 07:19:46.495157'),
+	(600, 'rian@sport.local', '157.85.206.128', 1, '2026-06-29 15:37:52.953807'),
+	(601, 'adithsetiawan62@gmail.com', '114.10.149.198', 1, '2026-06-29 16:10:51.867279'),
+	(602, 'rian@sport.local', '157.85.206.128', 0, '2026-06-30 04:36:57.738581'),
+	(603, 'rian@sport.local', '157.85.206.128', 0, '2026-06-30 04:37:23.126865'),
+	(604, 'rian@sport.local', '157.85.206.128', 1, '2026-06-30 04:37:53.949515'),
+	(605, 'fawaid@sport.local', '114.122.109.55', 0, '2026-06-30 06:22:09.052643'),
+	(606, 'fawaid@sport.local', '114.122.109.55', 0, '2026-06-30 06:22:23.838045'),
+	(607, 'faiz@sport.local', '114.122.109.55', 1, '2026-06-30 06:22:39.095222'),
+	(608, 'khansa@sport.local', '114.122.109.55', 1, '2026-06-30 06:22:59.845605'),
+	(609, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 06:24:00.56617'),
+	(610, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 06:27:05.573995'),
+	(611, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 06:30:01.923889'),
+	(612, 'khansa@sport.local', '114.122.109.55', 1, '2026-06-30 06:48:03.30422'),
+	(613, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 07:21:27.720975'),
+	(614, 'khansa@sport.local', '114.122.109.55', 1, '2026-06-30 07:23:14.195257'),
+	(615, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 07:24:39.872083'),
+	(616, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 07:28:34.262222'),
+	(617, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 07:52:01.348507'),
+	(618, 'khansa@sport.local', '114.122.109.55', 1, '2026-06-30 07:53:21.597282'),
+	(619, 'khansa@sport.local', '114.122.109.55', 0, '2026-06-30 08:13:02.926073'),
+	(620, 'khansa@sport.local', '114.122.109.55', 1, '2026-06-30 08:13:09.843979'),
+	(621, 'adithsetiawan62@gmail.com', '114.10.144.198', 1, '2026-06-30 08:36:10.907196'),
+	(622, 'firdam@sport.local', '114.122.109.55', 1, '2026-06-30 10:24:01.491337'),
+	(623, 'adithsetiawan62@gmail.com', '114.10.147.219', 1, '2026-06-30 16:59:23.624275'),
+	(624, 'dani@sport.local', '114.122.85.34', 1, '2026-06-30 20:37:43.482024'),
+	(625, 'adithsetiawan62@gmail.com', '114.10.145.225', 1, '2026-07-01 14:05:35.910045'),
+	(626, 'firdam@sport.local', '114.122.78.33', 1, '2026-07-01 14:48:02.298568'),
+	(627, 'khansa@sport.local', '114.122.78.33', 1, '2026-07-01 15:23:29.404272'),
+	(628, 'firdam@sport.local', '114.122.78.33', 1, '2026-07-01 15:24:35.055011'),
+	(629, 'khansa@sport.local', '114.122.78.33', 1, '2026-07-01 15:55:53.965273'),
+	(630, 'firdam@sport.local', '114.122.78.33', 1, '2026-07-01 15:57:15.025851'),
+	(631, 'khansa@sport.local', '114.122.78.33', 1, '2026-07-01 15:57:32.677063'),
+	(632, 'firdam@sport.local', '114.122.78.33', 1, '2026-07-01 15:58:52.790897'),
+	(633, 'firdam@sport.local', '114.122.78.33', 1, '2026-07-01 15:59:42.853401'),
+	(634, 'khansa@sport.local', '114.122.78.33', 1, '2026-07-01 16:00:20.745753'),
+	(635, 'firdam@sport.local', '114.122.78.33', 1, '2026-07-01 16:18:10.35213'),
+	(636, 'adithsetiawan62@gmail.com', '114.10.145.225', 1, '2026-07-01 17:18:31.998002'),
+	(637, 'firdam@sport.local', '114.122.70.45', 1, '2026-07-01 17:20:57.975614'),
+	(638, 'adithsetiawan62@gmail.com', '114.10.148.225', 0, '2026-07-01 17:32:03.263175'),
+	(639, 'adithsetiawan62@gmail.com', '114.10.145.225', 0, '2026-07-01 17:32:55.838904'),
+	(640, 'adithsetiawan62@gmail.com', '114.10.148.225', 0, '2026-07-01 17:33:19.851679'),
+	(641, 'adithsetiawan62@gmail.com', '114.10.148.225', 0, '2026-07-01 17:33:50.615786'),
+	(642, 'adithsetiawan62@gmail.com', '114.10.145.225', 0, '2026-07-01 17:34:18.141759'),
+	(643, 'adithsetiawan62@gmail.com', '114.10.148.225', 0, '2026-07-01 17:34:58.27832'),
+	(644, 'adithsetiawan62@gmail.com', '114.10.148.225', 1, '2026-07-01 17:38:01.343525'),
+	(645, 'adithsetiawan62@gmail.com', '114.10.148.225', 1, '2026-07-01 18:18:57.580072'),
+	(646, 'adithsetiawan62@gmail.com', '114.10.145.225', 1, '2026-07-01 18:57:17.601301'),
+	(647, 'dendra@sport.local', '182.2.164.7', 0, '2026-07-01 19:23:46.46246'),
+	(648, 'dendra@sport.local', '182.2.164.7', 1, '2026-07-01 19:23:58.969713'),
+	(649, 'firdam@sport.local', '114.122.68.110', 1, '2026-07-02 05:39:26.732009'),
+	(650, 'alhamsyahlutfi2007@gmail.com', '182.10.97.255', 0, '2026-07-02 05:44:55.628632'),
+	(651, 'alhamsyahlutfi2007@gmail.com', '182.10.97.255', 1, '2026-07-02 05:45:15.088887'),
+	(652, 'khansa@sport.local', '114.122.68.110', 0, '2026-07-02 05:49:00.661213'),
+	(653, 'khansa@sport.local', '114.122.68.110', 1, '2026-07-02 05:49:11.357758'),
+	(654, 'firdam@sport.local', '114.122.68.110', 1, '2026-07-02 05:50:35.837135'),
+	(655, 'khansa@sport.local', '114.122.68.110', 1, '2026-07-02 06:09:05.836537'),
+	(656, 'firdam@sport.local', '114.122.68.110', 1, '2026-07-02 06:09:41.151191'),
+	(657, 'firdam@sport.local', '114.122.68.110', 1, '2026-07-02 06:14:22.383966'),
+	(658, 'firdam@sport.local', '114.122.68.110', 1, '2026-07-02 06:16:39.708348'),
+	(659, 'adithsetiawan62@gmail.com', '114.10.148.225', 1, '2026-07-02 06:43:03.312343'),
+	(660, 'adithsetiawan62@gmail.com', '114.10.144.197', 1, '2026-07-02 13:16:48.806577'),
+	(661, 'dani@sport.local', '114.122.78.213', 1, '2026-07-02 20:50:54.526332'),
+	(662, 'firdam@sport.local', '114.122.69.166', 1, '2026-07-03 06:10:12.674741'),
+	(663, 'khansa@sport.local', '114.122.69.166', 1, '2026-07-03 06:12:20.153438'),
+	(664, 'firdam@sport.local', '114.122.69.166', 1, '2026-07-03 06:12:43.072324'),
+	(665, 'firdam@sport.local', '114.122.69.166', 1, '2026-07-03 06:13:37.361879'),
+	(666, 'khansa@sport.local', '114.122.69.166', 1, '2026-07-03 06:13:58.414778'),
+	(667, 'firdam@sport.local', '114.122.69.166', 1, '2026-07-03 06:21:55.373644'),
+	(668, 'adithsetiawan62@gmail.com', '114.10.146.153', 1, '2026-07-03 06:28:32.515542'),
+	(669, 'firdam@sport.local', '114.122.69.166', 1, '2026-07-03 08:44:10.512767'),
+	(670, 'khansa@sport.local', '114.122.69.166', 1, '2026-07-03 08:48:18.567453'),
+	(671, 'firdam@sport.local', '114.122.69.166', 1, '2026-07-03 08:51:00.51402'),
+	(672, 'adithsetiawan62@gmail.com', '114.10.147.153', 1, '2026-07-03 11:21:47.553702'),
+	(673, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 12:05:47.576821'),
+	(674, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 12:31:44.217337'),
+	(675, 'u-khansa', '114.122.84.48', 0, '2026-07-03 12:32:32.156178'),
+	(676, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-03 12:33:57.423575'),
+	(677, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 12:34:54.989798'),
+	(678, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-03 12:45:17.927094'),
+	(679, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 12:58:25.625103'),
+	(680, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-03 13:02:29.258925'),
+	(681, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-03 13:03:00.095788'),
+	(682, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 13:03:51.571354'),
+	(683, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 13:44:36.436909'),
+	(684, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 17:02:02.815542'),
+	(685, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-03 18:10:36.7456'),
+	(686, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-03 18:12:08.678113'),
+	(687, 'panji@sport.local', '114.79.55.190', 1, '2026-07-03 18:22:22.116047'),
+	(688, 'regi@sport.local', '2404:c0:a303:acbd:3d1f:642c:b47c:d4f9', 1, '2026-07-03 18:22:26.918076'),
+	(689, 'rido.itb@sport.local', '114.79.54.216', 1, '2026-07-03 18:34:31.55493'),
+	(690, 'aziz@sport.local', '103.190.171.165', 1, '2026-07-03 18:37:17.896205'),
+	(691, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 18:39:39.143311'),
+	(692, 'u-aaf mustopa', '114.10.148.26', 0, '2026-07-03 18:39:40.625359'),
+	(693, 'aaf@sport.local', '114.10.148.26', 1, '2026-07-03 18:40:33.536337'),
+	(694, 'sobur@sport.local', '114.10.148.141', 1, '2026-07-03 18:46:58.724437'),
+	(695, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 19:03:20.437937'),
+	(696, 'hasan@sport.local', '140.213.47.90', 1, '2026-07-03 21:41:15.075115'),
+	(697, 'yuni@sport.local', '2404:c0:a301:c3e:11d8:ab4f:552a:3a0e', 1, '2026-07-03 21:48:36.671247'),
+	(698, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 21:50:51.858931'),
+	(699, 'firdam@sport.local', '114.122.84.48', 1, '2026-07-03 21:54:47.70896'),
+	(700, 'zao@sport.local', '182.10.130.153', 1, '2026-07-03 21:57:31.978684'),
+	(701, 'rian@sport.local', '103.3.220.106', 1, '2026-07-04 04:04:37.307849'),
+	(702, 'khansa@sport.local', '114.122.84.48', 1, '2026-07-04 05:11:57.003685');
 /*!40000 ALTER TABLE "login_attempts" ENABLE KEYS */;
 
 -- Dumping structure for table public.login_logs
@@ -2628,10 +3640,12 @@ CREATE TABLE IF NOT EXISTS "login_logs" (
 	"user_id" INTEGER NOT NULL,
 	"ip" VARCHAR(64) NULL DEFAULT NULL,
 	"user_agent" VARCHAR(255) NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "idx_login_logs_user" ("user_id", "created_at")
 );
 
--- Dumping data for table public.login_logs: -1 rows
+-- Dumping data for table public.login_logs: 14 rows
 /*!40000 ALTER TABLE "login_logs" DISABLE KEYS */;
 INSERT INTO "login_logs" ("id", "user_id", "ip", "user_agent", "created_at") VALUES
 	(1, 2, '::1', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36', '2026-06-13 14:41:23.77839'),
@@ -2655,10 +3669,13 @@ CREATE TABLE IF NOT EXISTS "member_eksternal" (
 	"id" INTEGER NOT NULL DEFAULT 'nextval(''member_eksternal_id_seq''::regclass)',
 	"jadwal_id" INTEGER NOT NULL,
 	"nama_tamu" VARCHAR(120) NOT NULL,
-	"dibawa_oleh_id" INTEGER NULL DEFAULT NULL
+	"dibawa_oleh_id" INTEGER NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "member_eksternal_dibawa_oleh_id_fkey" FOREIGN KEY ("dibawa_oleh_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "member_eksternal_jadwal_id_fkey" FOREIGN KEY ("jadwal_id") REFERENCES "jadwal" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.member_eksternal: -1 rows
+-- Dumping data for table public.member_eksternal: 19 rows
 /*!40000 ALTER TABLE "member_eksternal" DISABLE KEYS */;
 INSERT INTO "member_eksternal" ("id", "jadwal_id", "nama_tamu", "dibawa_oleh_id") VALUES
 	(4, 4, 'Zacky Arido', 4),
@@ -2668,7 +3685,19 @@ INSERT INTO "member_eksternal" ("id", "jadwal_id", "nama_tamu", "dibawa_oleh_id"
 	(33, 12, 'Irfan', 4),
 	(34, 12, 'Fahmi', 7),
 	(35, 12, 'Hanzalah', 7),
-	(36, 11, 'Haikal', 7);
+	(36, 11, 'Haikal', 7),
+	(102, 25, 'Alwi', 4),
+	(80, 16, 'M Faiz Rabbani', 11),
+	(81, 16, 'M Trio Akbar', 11),
+	(82, 16, 'Insan Nur Hayat', 11),
+	(83, 16, 'M Faiz Adam', 11),
+	(84, 16, 'Yasir', 4),
+	(85, 16, 'Alam', 4),
+	(86, 16, 'Haikal', 7),
+	(98, 23, 'Alwi', 4),
+	(99, 23, 'Kean', 4),
+	(100, 23, 'Zaky', 4),
+	(101, 23, 'Alfath', 4);
 /*!40000 ALTER TABLE "member_eksternal" ENABLE KEYS */;
 
 -- Dumping structure for table public.nav_menu
@@ -2682,11 +3711,28 @@ CREATE TABLE IF NOT EXISTS "nav_menu" (
 	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
 	"target" VARCHAR(10) NULL DEFAULT '_self',
 	"posisi" VARCHAR(20) NOT NULL DEFAULT 'drawer',
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"paket" TEXT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	INDEX "nav_menu_pos_urut_idx" ("posisi", "urutan"),
+	CONSTRAINT "nav_menu_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "nav_menu" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.nav_menu: -1 rows
 /*!40000 ALTER TABLE "nav_menu" DISABLE KEYS */;
+INSERT INTO "nav_menu" ("id", "label", "url", "icon", "parent_id", "urutan", "aktif", "target", "posisi", "created_at", "paket") VALUES
+	(1, 'Beranda', '/index.php', 'bi-house-door-fill', NULL, 1, 'true', '_self', 'bottom', '2026-06-28 08:21:51.396905', 'gratis'),
+	(2, 'Aktivitas', '/riwayat.php', 'bi-bar-chart-fill', NULL, 2, 'true', '_self', 'bottom', '2026-06-28 08:21:51.398253', 'gratis'),
+	(3, 'Upload', '/upload.php', 'bi-plus-lg', NULL, 3, 'true', '_self', 'bottom', '2026-06-28 08:21:51.398781', 'gratis'),
+	(4, 'Kalori', '/kalori_mingguan.php', 'bi-egg-fried', NULL, 4, 'true', '_self', 'bottom', '2026-06-28 08:21:51.399235', 'pro'),
+	(5, 'Saya', '/profile.php', 'bi-person-fill', NULL, 5, 'true', '_self', 'bottom', '2026-06-28 08:21:51.399747', 'gratis'),
+	(6, 'Tracking Jalur', '/live_tracking.php', 'bi-geo-alt', NULL, 1, 'true', '_self', 'drawer', '2026-06-28 08:21:51.40011', 'pro'),
+	(7, 'Survival Mode', '/survival.php', 'bi-tree-fill', NULL, 2, 'true', '_self', 'drawer', '2026-06-28 08:21:51.400425', 'komunitas'),
+	(8, 'Artikel Olahraga', '/artikel_olahraga.php', 'bi-journal-text', NULL, 3, 'true', '_self', 'drawer', '2026-06-28 08:21:51.400964', 'gratis'),
+	(9, 'Opini Viral', '/opini_viral.php', 'bi-megaphone', NULL, 4, 'true', '_self', 'drawer', '2026-06-28 08:21:51.401459', 'gratis'),
+	(10, 'Flyover Lirik', '/flyover.php', 'bi-music-note', NULL, 5, 'true', '_self', 'drawer', '2026-06-28 08:21:51.401769', 'pro'),
+	(11, 'Cari Aktivitas', '/search.php', 'bi-search', NULL, 1, 'true', '_self', 'top', '2026-06-28 08:21:51.402222', 'gratis'),
+	(12, 'Notifikasi', '/index.php#notif', 'bi-bell', NULL, 2, 'true', '_self', 'top', '2026-06-28 08:21:51.402601', 'gratis');
 /*!40000 ALTER TABLE "nav_menu" ENABLE KEYS */;
 
 -- Dumping structure for table public.notifications
@@ -2699,10 +3745,13 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 	"url" VARCHAR(255) NULL DEFAULT NULL,
 	"dibaca" SMALLINT NOT NULL DEFAULT '0',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"dibuat_pada" TIMESTAMP NULL DEFAULT 'now()'
+	"dibuat_pada" TIMESTAMP NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "notif_user_idx" ("user_id", "dibaca", "created_at"),
+	CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.notifications: 436 rows
+-- Dumping data for table public.notifications: 943 rows
 /*!40000 ALTER TABLE "notifications" DISABLE KEYS */;
 INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "dibaca", "created_at", "dibuat_pada") VALUES
 	(438, 2, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.343616', '2026-06-19 18:07:16.343616'),
@@ -2715,7 +3764,7 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(11, 15, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 0, '2026-05-22 00:27:57.085645', '2026-06-01 21:23:57.044901'),
 	(12, 10, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 0, '2026-05-22 00:27:57.125638', '2026-06-01 21:23:57.044901'),
 	(13, 9, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 0, '2026-05-22 00:27:57.165505', '2026-06-01 21:23:57.044901'),
-	(14, 11, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 0, '2026-05-22 00:27:57.205328', '2026-06-01 21:23:57.044901'),
+	(980, 2, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-07-01 17:22:27.995852', '2026-07-01 17:22:27.995852'),
 	(15, 5, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 0, '2026-05-22 00:27:57.245296', '2026-06-01 21:23:57.044901'),
 	(18, 8, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 0, '2026-05-22 03:22:47.970868', '2026-06-01 21:23:57.044901'),
 	(29, 2, 'dm', '💬 Pesan baru dari Dani', 'tes tes', '/dm.php?u=4', 1, '2026-05-24 16:47:46.618028', '2026-06-01 21:23:57.044901'),
@@ -2733,7 +3782,7 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(41, 15, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 0, '2026-05-29 14:58:54.56162', '2026-06-01 21:23:57.044901'),
 	(43, 6, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 0, '2026-05-29 14:58:54.640076', '2026-06-01 21:23:57.044901'),
 	(44, 7, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 0, '2026-05-29 14:58:54.679285', '2026-06-01 21:23:57.044901'),
-	(45, 11, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 0, '2026-05-29 14:58:54.718433', '2026-06-01 21:23:57.044901'),
+	(999, 6, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-07-01 19:24:09.220793', '2026-07-01 19:24:09.220793'),
 	(46, 5, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 0, '2026-05-29 14:58:54.757476', '2026-06-01 21:23:57.044901'),
 	(39, 20, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.48276', '2026-06-01 21:23:57.044901'),
 	(47, 20, 'dm', '💬 Pesan baru dari Firdam', 'Assalamualaikum', '/dm.php?u=2', 0, '2026-05-29 16:11:04.015005', '2026-06-01 21:23:57.044901'),
@@ -2743,17 +3792,14 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(42, 2, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.600808', '2026-06-01 21:23:57.044901'),
 	(54, 2, 'dm', '💬 Pesan baru dari Dani', 'Tes', '/dm.php?u=4', 1, '2026-06-01 00:13:11.006352', '2026-06-01 21:23:57.044901'),
 	(55, 2, 'dm', '💬 Pesan baru dari Dani', 'Euy', '/dm.php?u=4', 1, '2026-06-01 00:13:30.441056', '2026-06-01 21:23:57.044901'),
-	(49, 3, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 1, '2026-05-31 16:33:14.282903', '2026-06-01 21:23:57.044901'),
-	(37, 3, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.404635', '2026-06-01 21:23:57.044901'),
-	(27, 3, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 1, '2026-05-24 15:37:52.588805', '2026-06-01 21:23:57.044901'),
-	(21, 3, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-05-23 09:18:05.260227', '2026-06-01 21:23:57.044901'),
-	(10, 3, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:57.0456', '2026-06-01 21:23:57.044901'),
+	(1001, 3, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.627145', '2026-07-02 10:06:29.627145'),
 	(48, 16, 'titip_pesan', '💌 Titip pesan baru dari Firdam', '💪 Tetap Semangat', '/user.php?id=16#titip-pesan', 1, '2026-05-29 17:07:20.677133', '2026-06-01 21:23:57.044901'),
 	(33, 16, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.245251', '2026-06-01 21:23:57.044901'),
-	(422, 3, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.234409', '2026-06-19 13:42:23.234409'),
 	(83, 2, 'dm', '💬 Pesan baru dari Dani', 'Cara nambah absen buat ekstern gimana kang?', '/dm.php?u=4', 1, '2026-06-02 13:28:25.269817', '2026-06-02 13:28:25.269817'),
 	(85, 2, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 1, '2026-06-03 14:34:00.990057', '2026-06-03 14:34:00.990057'),
-	(87, 3, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:50.717128', '2026-06-05 11:08:50.717128'),
+	(49, 3, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 1, '2026-05-31 16:33:14.282903', '2026-06-01 21:23:57.044901'),
+	(14, 11, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:57.205328', '2026-06-01 21:23:57.044901'),
+	(45, 11, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.718433', '2026-06-01 21:23:57.044901'),
 	(99, 16, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:51.718888', '2026-06-05 11:08:51.718888'),
 	(97, 14, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:51.554643', '2026-06-05 11:08:51.554643'),
 	(489, 2, 'comment', '💬 Fawaid mengomentari post Anda', 'Mantap', '/index.php#feed', 1, '2026-06-20 12:50:33.691277', '2026-06-20 12:50:33.691277'),
@@ -2763,7 +3809,6 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(92, 8, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.139435', '2026-06-05 11:08:51.139435'),
 	(93, 9, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.222577', '2026-06-05 11:08:51.222577'),
 	(94, 10, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.306901', '2026-06-05 11:08:51.306901'),
-	(95, 11, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.389553', '2026-06-05 11:08:51.389553'),
 	(96, 13, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.471926', '2026-06-05 11:08:51.471926'),
 	(98, 15, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.636638', '2026-06-05 11:08:51.636638'),
 	(100, 17, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 11:08:51.802235', '2026-06-05 11:08:51.802235'),
@@ -2782,14 +3827,13 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(113, 15, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:49.972862', '2026-06-05 20:20:49.972862'),
 	(114, 9, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:50.054761', '2026-06-05 20:20:50.054761'),
 	(115, 10, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:50.133906', '2026-06-05 20:20:50.133906'),
-	(116, 11, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:50.213828', '2026-06-05 20:20:50.213828'),
+	(1003, 5, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.628956', '2026-07-02 10:06:29.628956'),
 	(118, 17, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:50.372629', '2026-06-05 20:20:50.372629'),
 	(119, 5, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-05 20:20:50.451785', '2026-06-05 20:20:50.451785'),
 	(112, 2, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.892012', '2026-06-05 20:20:49.892012'),
-	(120, 11, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 0, '2026-06-06 14:47:02.784461', '2026-06-06 14:47:02.784461'),
-	(122, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:36.805833', '2026-06-13 05:40:36.805833'),
+	(1004, 6, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.629795', '2026-07-02 10:06:29.629795'),
+	(1005, 7, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.631035', '2026-07-02 10:06:29.631035'),
 	(239, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:21.018914', '2026-06-16 15:30:21.018914'),
-	(240, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:21.099694', '2026-06-16 15:30:21.099694'),
 	(110, 14, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.732424', '2026-06-05 20:20:49.732424'),
 	(124, 5, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:36.970393', '2026-06-13 05:40:36.970393'),
 	(125, 6, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.054695', '2026-06-13 05:40:37.054695'),
@@ -2797,7 +3841,8 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(127, 8, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.217424', '2026-06-13 05:40:37.217424'),
 	(128, 9, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.299837', '2026-06-13 05:40:37.299837'),
 	(129, 10, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.38182', '2026-06-13 05:40:37.38182'),
-	(130, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.46669', '2026-06-13 05:40:37.46669'),
+	(625, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:03:49.979537', '2026-06-23 14:03:49.979537'),
+	(116, 11, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:50.213828', '2026-06-05 20:20:50.213828'),
 	(131, 13, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.550653', '2026-06-13 05:40:37.550653'),
 	(425, 6, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.475356', '2026-06-19 13:42:23.475356'),
 	(133, 15, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:37.714624', '2026-06-13 05:40:37.714624'),
@@ -2807,7 +3852,7 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(137, 21, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-13 05:40:38.039415', '2026-06-13 05:40:38.039415'),
 	(146, 5, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:40:59.991942', '2026-06-13 05:40:59.991942'),
 	(147, 6, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.075228', '2026-06-13 05:41:00.075228'),
-	(144, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:59.829215', '2026-06-13 05:40:59.829215'),
+	(1088, 53, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.063591', '2026-07-04 04:02:34.063591'),
 	(241, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:21.181643', '2026-06-16 15:30:21.181643'),
 	(243, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:21.346668', '2026-06-16 15:30:21.346668'),
 	(242, 14, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:21.265504', '2026-06-16 15:30:21.265504'),
@@ -2815,11 +3860,11 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(149, 8, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.242036', '2026-06-13 05:41:00.242036'),
 	(150, 9, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.325067', '2026-06-13 05:41:00.325067'),
 	(151, 10, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.406363', '2026-06-13 05:41:00.406363'),
-	(152, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.487417', '2026-06-13 05:41:00.487417'),
 	(153, 13, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.568996', '2026-06-13 05:41:00.568996'),
 	(427, 8, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.636375', '2026-06-19 13:42:23.636375'),
 	(155, 15, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.731354', '2026-06-13 05:41:00.731354'),
 	(428, 9, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.716764', '2026-06-19 13:42:23.716764'),
+	(152, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:41:00.487417', '2026-06-13 05:41:00.487417'),
 	(157, 17, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.893032', '2026-06-13 05:41:00.893032'),
 	(158, 20, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 05:41:00.974036', '2026-06-13 05:41:00.974036'),
 	(159, 21, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-13 05:41:01.055474', '2026-06-13 05:41:01.055474'),
@@ -2827,14 +3872,13 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(169, 6, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:03.995249', '2026-06-13 06:04:03.995249'),
 	(170, 7, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.077969', '2026-06-13 06:04:04.077969'),
 	(171, 8, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.159494', '2026-06-13 06:04:04.159494'),
-	(166, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 06:04:03.751293', '2026-06-13 06:04:03.751293'),
+	(775, 4, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 1, '2026-06-25 23:22:50.099955', '2026-06-25 23:22:50.099955'),
 	(245, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:21.515254', '2026-06-16 15:30:21.515254'),
 	(246, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:21.596738', '2026-06-16 15:30:21.596738'),
 	(247, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:30:21.677526', '2026-06-16 15:30:21.677526'),
 	(154, 14, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:41:00.650496', '2026-06-13 05:41:00.650496'),
 	(172, 9, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.24201', '2026-06-13 06:04:04.24201'),
 	(173, 10, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.325534', '2026-06-13 06:04:04.325534'),
-	(174, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.406505', '2026-06-13 06:04:04.406505'),
 	(175, 13, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.487325', '2026-06-13 06:04:04.487325'),
 	(429, 10, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.796819', '2026-06-19 13:42:23.796819'),
 	(177, 15, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.651243', '2026-06-13 06:04:04.651243'),
@@ -2842,12 +3886,15 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(180, 20, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 06:04:04.895272', '2026-06-13 06:04:04.895272'),
 	(181, 21, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-13 06:04:04.977535', '2026-06-13 06:04:04.977535'),
 	(165, 2, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 06:04:03.669499', '2026-06-13 06:04:03.669499'),
+	(773, 9, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.098493', '2026-06-25 23:22:50.098493'),
+	(774, 5, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.099331', '2026-06-25 23:22:50.099331'),
+	(776, 16, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 1, '2026-06-25 23:22:50.100506', '2026-06-25 23:22:50.100506'),
 	(143, 2, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:59.746836', '2026-06-13 05:40:59.746836'),
 	(121, 2, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:36.723484', '2026-06-13 05:40:36.723484'),
 	(190, 5, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:15.851442', '2026-06-13 07:56:15.851442'),
 	(191, 6, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:15.932051', '2026-06-13 07:56:15.932051'),
 	(192, 7, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.012704', '2026-06-13 07:56:16.012704'),
-	(188, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:15.688483', '2026-06-13 07:56:15.688483'),
+	(1006, 8, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.631747', '2026-07-02 10:06:29.631747'),
 	(251, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:37.672972', '2026-06-16 15:30:37.672972'),
 	(252, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:37.753997', '2026-06-16 15:30:37.753997'),
 	(253, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:37.835305', '2026-06-16 15:30:37.835305'),
@@ -2855,26 +3902,25 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(193, 8, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.094229', '2026-06-13 07:56:16.094229'),
 	(194, 9, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.174628', '2026-06-13 07:56:16.174628'),
 	(195, 10, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.254495', '2026-06-13 07:56:16.254495'),
-	(196, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.335243', '2026-06-13 07:56:16.335243'),
 	(197, 13, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.414817', '2026-06-13 07:56:16.414817'),
-	(430, 11, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.876806', '2026-06-19 13:42:23.876806'),
 	(199, 15, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.575905', '2026-06-13 07:56:16.575905'),
 	(201, 17, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.736883', '2026-06-13 07:56:16.736883'),
 	(202, 20, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 07:56:16.817098', '2026-06-13 07:56:16.817098'),
 	(203, 21, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-13 07:56:16.897417', '2026-06-13 07:56:16.897417'),
 	(187, 2, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:15.606066', '2026-06-13 07:56:15.606066'),
 	(212, 5, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.424897', '2026-06-13 12:57:15.424897'),
+	(196, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:16.335243', '2026-06-13 07:56:16.335243'),
 	(213, 6, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.508554', '2026-06-13 12:57:15.508554'),
 	(214, 7, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.590087', '2026-06-13 12:57:15.590087'),
 	(215, 8, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.671607', '2026-06-13 12:57:15.671607'),
 	(209, 2, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:15.179975', '2026-06-13 12:57:15.179975'),
-	(210, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:15.262031', '2026-06-13 12:57:15.262031'),
+	(1007, 9, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.632644', '2026-07-02 10:06:29.632644'),
 	(254, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:37.916488', '2026-06-16 15:30:37.916488'),
 	(255, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.003001', '2026-06-16 15:30:38.003001'),
 	(198, 14, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:16.495934', '2026-06-13 07:56:16.495934'),
 	(216, 9, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.752859', '2026-06-13 12:57:15.752859'),
 	(217, 10, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.835095', '2026-06-13 12:57:15.835095'),
-	(218, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.916292', '2026-06-13 12:57:15.916292'),
+	(1008, 10, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.633851', '2026-07-02 10:06:29.633851'),
 	(219, 13, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:15.997465', '2026-06-13 12:57:15.997465'),
 	(221, 15, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:16.160159', '2026-06-13 12:57:16.160159'),
 	(223, 17, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-13 12:57:16.323548', '2026-06-13 12:57:16.323548'),
@@ -2882,33 +3928,32 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(225, 21, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-13 12:57:16.485763', '2026-06-13 12:57:16.485763'),
 	(431, 13, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:23.957033', '2026-06-19 13:42:23.957033'),
 	(432, 14, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:24.072618', '2026-06-19 13:42:24.072618'),
-	(117, 3, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:50.293472', '2026-06-05 20:20:50.293472'),
-	(232, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:20.426559', '2026-06-16 15:30:20.426559'),
 	(234, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:20.612287', '2026-06-16 15:30:20.612287'),
 	(235, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:20.693099', '2026-06-16 15:30:20.693099'),
+	(218, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:15.916292', '2026-06-13 12:57:15.916292'),
 	(236, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:20.773961', '2026-06-16 15:30:20.773961'),
 	(237, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:20.854781', '2026-06-16 15:30:20.854781'),
 	(238, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:20.938007', '2026-06-16 15:30:20.938007'),
-	(249, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:37.506491', '2026-06-16 15:30:37.506491'),
+	(1009, 11, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.634652', '2026-07-02 10:06:29.634652'),
 	(222, 16, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:16.241707', '2026-06-13 12:57:16.241707'),
 	(220, 14, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:16.078923', '2026-06-13 12:57:16.078923'),
 	(256, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.084001', '2026-06-16 15:30:38.084001'),
-	(257, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.166503', '2026-06-16 15:30:38.166503'),
+	(1010, 13, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.635504', '2026-07-02 10:06:29.635504'),
 	(258, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.247279', '2026-06-16 15:30:38.247279'),
 	(260, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.410412', '2026-06-16 15:30:38.410412'),
 	(433, 15, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:24.152827', '2026-06-19 13:42:24.152827'),
 	(262, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.572326', '2026-06-16 15:30:38.572326'),
 	(263, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:30:38.652824', '2026-06-16 15:30:38.652824'),
 	(264, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:30:38.734081', '2026-06-16 15:30:38.734081'),
-	(434, 16, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:24.232993', '2026-06-19 13:42:24.232993'),
-	(266, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.404103', '2026-06-16 15:31:14.404103'),
 	(268, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.568769', '2026-06-16 15:31:14.568769'),
 	(269, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.650982', '2026-06-16 15:31:14.650982'),
 	(270, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.733987', '2026-06-16 15:31:14.733987'),
 	(271, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.816543', '2026-06-16 15:31:14.816543'),
 	(272, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.898609', '2026-06-16 15:31:14.898609'),
 	(273, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:14.981218', '2026-06-16 15:31:14.981218'),
-	(274, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:15.063416', '2026-06-16 15:31:15.063416'),
+	(257, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:38.166503', '2026-06-16 15:30:38.166503'),
+	(434, 16, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:24.232993', '2026-06-19 13:42:24.232993'),
+	(1011, 14, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.636515', '2026-07-02 10:06:29.636515'),
 	(275, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:15.145771', '2026-06-16 15:31:15.145771'),
 	(277, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:15.310086', '2026-06-16 15:31:15.310086'),
 	(261, 16, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:38.491111', '2026-06-16 15:30:38.491111'),
@@ -2917,19 +3962,20 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(280, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:15.559874', '2026-06-16 15:31:15.559874'),
 	(281, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:31:15.643121', '2026-06-16 15:31:15.643121'),
 	(435, 17, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:24.312848', '2026-06-19 13:42:24.312848'),
-	(283, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:31.945805', '2026-06-16 15:31:31.945805'),
+	(1012, 15, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.637423', '2026-07-02 10:06:29.637423'),
 	(285, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.170427', '2026-06-16 15:31:32.170427'),
 	(286, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.277722', '2026-06-16 15:31:32.277722'),
 	(287, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.384608', '2026-06-16 15:31:32.384608'),
 	(288, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.491661', '2026-06-16 15:31:32.491661'),
 	(289, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.598992', '2026-06-16 15:31:32.598992'),
 	(290, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.706016', '2026-06-16 15:31:32.706016'),
-	(291, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.813137', '2026-06-16 15:31:32.813137'),
 	(292, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:32.920007', '2026-06-16 15:31:32.920007'),
 	(436, 20, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 13:42:24.401001', '2026-06-19 13:42:24.401001'),
 	(294, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:33.134263', '2026-06-16 15:31:33.134263'),
 	(437, 21, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-19 13:42:24.48474', '2026-06-19 13:42:24.48474'),
 	(296, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:33.348438', '2026-06-16 15:31:33.348438'),
+	(777, 3, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.101158', '2026-06-25 23:22:50.101158'),
+	(778, 6, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.1022', '2026-06-25 23:22:50.1022'),
 	(297, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:31:33.455239', '2026-06-16 15:31:33.455239'),
 	(298, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:31:33.562035', '2026-06-16 15:31:33.562035'),
 	(282, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:31.836925', '2026-06-16 15:31:31.836925'),
@@ -2938,22 +3984,24 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(265, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:14.321219', '2026-06-16 15:31:14.321219'),
 	(248, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:37.424406', '2026-06-16 15:30:37.424406'),
 	(231, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:20.343511', '2026-06-16 15:30:20.343511'),
-	(300, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.376046', '2026-06-16 15:33:45.376046'),
+	(1013, 16, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.638451', '2026-07-02 10:06:29.638451'),
 	(302, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.536967', '2026-06-16 15:33:45.536967'),
 	(303, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.616901', '2026-06-16 15:33:45.616901'),
 	(304, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.697341', '2026-06-16 15:33:45.697341'),
 	(305, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.777292', '2026-06-16 15:33:45.777292'),
 	(306, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.857146', '2026-06-16 15:33:45.857146'),
 	(307, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:45.937099', '2026-06-16 15:33:45.937099'),
-	(308, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:46.017106', '2026-06-16 15:33:46.017106'),
 	(309, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:46.097143', '2026-06-16 15:33:46.097143'),
 	(421, 2, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.153062', '2026-06-19 13:42:23.153062'),
 	(311, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:46.25713', '2026-06-16 15:33:46.25713'),
 	(313, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:46.417169', '2026-06-16 15:33:46.417169'),
 	(314, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:33:46.496988', '2026-06-16 15:33:46.496988'),
 	(315, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:33:46.577162', '2026-06-16 15:33:46.577162'),
+	(780, 8, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.104397', '2026-06-25 23:22:50.104397'),
+	(781, 20, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.105385', '2026-06-25 23:22:50.105385'),
+	(782, 15, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.105835', '2026-06-25 23:22:50.105835'),
 	(299, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:45.293958', '2026-06-16 15:33:45.293958'),
-	(317, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:15.302236', '2026-06-16 15:35:15.302236'),
+	(1014, 17, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.639214', '2026-07-02 10:06:29.639214'),
 	(312, 16, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:46.33716', '2026-06-16 15:33:46.33716'),
 	(310, 14, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:46.177066', '2026-06-16 15:33:46.177066'),
 	(319, 5, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:15.514777', '2026-06-16 15:35:15.514777'),
@@ -2962,53 +4010,57 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(322, 8, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:15.837997', '2026-06-16 15:35:15.837997'),
 	(323, 9, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:15.946007', '2026-06-16 15:35:15.946007'),
 	(324, 10, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:16.053059', '2026-06-16 15:35:16.053059'),
-	(325, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:16.15956', '2026-06-16 15:35:16.15956'),
+	(1015, 20, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.640452', '2026-07-02 10:06:29.640452'),
 	(326, 13, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:16.265826', '2026-06-16 15:35:16.265826'),
 	(328, 15, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:16.47835', '2026-06-16 15:35:16.47835'),
 	(330, 17, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:16.691855', '2026-06-16 15:35:16.691855'),
 	(331, 20, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:35:16.79777', '2026-06-16 15:35:16.79777'),
 	(332, 21, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:35:16.903699', '2026-06-16 15:35:16.903699'),
-	(439, 3, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:16.433698', '2026-06-19 18:07:16.433698'),
-	(334, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.316021', '2026-06-16 15:37:18.316021'),
+	(1016, 21, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-02 10:06:29.641364', '2026-07-02 10:06:29.641364'),
 	(336, 5, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.505046', '2026-06-16 15:37:18.505046'),
 	(337, 6, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.584499', '2026-06-16 15:37:18.584499'),
 	(338, 7, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.663505', '2026-06-16 15:37:18.663505'),
 	(339, 8, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.742362', '2026-06-16 15:37:18.742362'),
+	(783, 38, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.106699', '2026-06-25 23:22:50.106699'),
+	(325, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:16.15956', '2026-06-16 15:35:16.15956'),
 	(329, 16, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:16.584453', '2026-06-16 15:35:16.584453'),
 	(327, 14, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:16.372003', '2026-06-16 15:35:16.372003'),
 	(340, 9, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.821555', '2026-06-16 15:37:18.821555'),
 	(341, 10, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.900816', '2026-06-16 15:37:18.900816'),
-	(342, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:18.979605', '2026-06-16 15:37:18.979605'),
+	(1017, 38, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-02 10:06:29.642409', '2026-07-02 10:06:29.642409'),
 	(343, 13, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:19.058615', '2026-06-16 15:37:19.058615'),
 	(345, 15, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:19.226219', '2026-06-16 15:37:19.226219'),
 	(347, 17, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:19.383775', '2026-06-16 15:37:19.383775'),
 	(348, 20, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:19.463139', '2026-06-16 15:37:19.463139'),
 	(349, 21, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:37:19.548937', '2026-06-16 15:37:19.548937'),
 	(441, 5, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:16.611031', '2026-06-19 18:07:16.611031'),
-	(351, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:40.646829', '2026-06-16 15:37:40.646829'),
 	(353, 5, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:40.807709', '2026-06-16 15:37:40.807709'),
 	(354, 6, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:40.888614', '2026-06-16 15:37:40.888614'),
 	(355, 7, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:40.96934', '2026-06-16 15:37:40.96934'),
 	(356, 8, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.050159', '2026-06-16 15:37:41.050159'),
 	(357, 9, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.130578', '2026-06-16 15:37:41.130578'),
 	(358, 10, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.211073', '2026-06-16 15:37:41.211073'),
-	(359, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.291374', '2026-06-16 15:37:41.291374'),
+	(1018, 39, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', '/', 1, '2026-07-02 10:06:29.643399', '2026-07-02 10:06:29.643399'),
 	(360, 13, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.37183', '2026-06-16 15:37:41.37183'),
 	(346, 16, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:19.304992', '2026-06-16 15:37:19.304992'),
+	(784, 15, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-26 00:22:14.121669', '2026-06-26 00:22:14.121669'),
+	(1056, 2, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-07-04 04:02:34.040977', '2026-07-04 04:02:34.040977'),
+	(786, 7, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-26 13:44:22.458708', '2026-06-26 13:44:22.458708'),
+	(787, 2, 'like', '❤️ ADITH SETIAWAN menyukai post Anda', '', '/index.php#feed', 1, '2026-06-26 16:55:14.794481', '2026-06-26 16:55:14.794481'),
+	(788, 16, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-06-26 17:52:48.418338', '2026-06-26 17:52:48.418338'),
 	(361, 14, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:41.454481', '2026-06-16 15:37:41.454481'),
 	(362, 15, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.535348', '2026-06-16 15:37:41.535348'),
 	(364, 17, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.697183', '2026-06-16 15:37:41.697183'),
 	(365, 20, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:37:41.777603', '2026-06-16 15:37:41.777603'),
 	(366, 21, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-16 15:37:41.858351', '2026-06-16 15:37:41.858351'),
 	(442, 6, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:16.692975', '2026-06-19 18:07:16.692975'),
-	(368, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.127378', '2026-06-16 15:38:12.127378'),
+	(1000, 2, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-07-02 10:06:29.624491', '2026-07-02 10:06:29.624491'),
 	(370, 5, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.288504', '2026-06-16 15:38:12.288504'),
 	(371, 6, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.36776', '2026-06-16 15:38:12.36776'),
 	(372, 7, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.446684', '2026-06-16 15:38:12.446684'),
 	(373, 8, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.525491', '2026-06-16 15:38:12.525491'),
 	(374, 9, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.605722', '2026-06-16 15:38:12.605722'),
 	(375, 10, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.684793', '2026-06-16 15:38:12.684793'),
-	(376, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.764272', '2026-06-16 15:38:12.764272'),
 	(377, 13, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:12.843312', '2026-06-16 15:38:12.843312'),
 	(443, 7, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:16.776999', '2026-06-19 18:07:16.776999'),
 	(379, 15, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-16 15:38:13.001369', '2026-06-16 15:38:13.001369'),
@@ -3018,6 +4070,7 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(367, 2, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.047659', '2026-06-16 15:38:12.047659'),
 	(380, 16, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:13.080133', '2026-06-16 15:38:13.080133'),
 	(378, 14, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.922125', '2026-06-16 15:38:12.922125'),
+	(376, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.764272', '2026-06-16 15:38:12.764272'),
 	(350, 2, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:40.565345', '2026-06-16 15:37:40.565345'),
 	(333, 2, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.236352', '2026-06-16 15:37:18.236352'),
 	(316, 2, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:15.195177', '2026-06-16 15:35:15.195177'),
@@ -3029,42 +4082,42 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(156, 16, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:41:00.812478', '2026-06-13 05:41:00.812478'),
 	(134, 16, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:37.795582', '2026-06-13 05:40:37.795582'),
 	(103, 16, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.171271', '2026-06-05 20:20:49.171271'),
-	(385, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:51.88313', '2026-06-17 04:36:51.88313'),
+	(423, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.314995', '2026-06-19 13:42:23.314995'),
 	(387, 5, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.041765', '2026-06-17 04:36:52.041765'),
 	(388, 6, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.121113', '2026-06-17 04:36:52.121113'),
 	(389, 7, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.200406', '2026-06-17 04:36:52.200406'),
 	(390, 8, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.279627', '2026-06-17 04:36:52.279627'),
 	(391, 9, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.358842', '2026-06-17 04:36:52.358842'),
 	(392, 10, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.438051', '2026-06-17 04:36:52.438051'),
-	(393, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.517235', '2026-06-17 04:36:52.517235'),
 	(394, 13, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.596342', '2026-06-17 04:36:52.596342'),
 	(444, 8, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:16.861083', '2026-06-19 18:07:16.861083'),
 	(396, 15, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.766688', '2026-06-17 04:36:52.766688'),
-	(397, 16, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.846073', '2026-06-17 04:36:52.846073'),
+	(393, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:52.517235', '2026-06-17 04:36:52.517235'),
+	(84, 4, 'dm', '💬 Pesan baru dari Firdam', 'Ada di menu input absensi', '/dm.php?u=2', 1, '2026-06-02 20:21:10.06544', '2026-06-02 20:21:10.06544'),
 	(398, 17, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:52.925982', '2026-06-17 04:36:52.925982'),
 	(399, 20, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 04:36:53.005165', '2026-06-17 04:36:53.005165'),
 	(400, 21, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-17 04:36:53.084425', '2026-06-17 04:36:53.084425'),
 	(384, 2, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:51.803298', '2026-06-17 04:36:51.803298'),
-	(401, 16, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-26', 0, '2026-06-17 04:50:09.102147', '2026-06-17 04:50:09.102147'),
-	(402, 16, 'komentar_aktivitas', '💬 Firdam mengomentari aktivitasmu', '👍✨', '/riwayat.php#act-26', 0, '2026-06-17 04:51:00.077264', '2026-06-17 04:51:00.077264'),
+	(1002, 4, 'event', 'Absensi Hiking tanggal 02 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Gunung Putri. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Gunung%20Putri.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-07-02 10:06:29.627862', '2026-07-02 10:06:29.627862'),
+	(335, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.395104', '2026-06-16 15:37:18.395104'),
 	(445, 9, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:16.947051', '2026-06-19 18:07:16.947051'),
-	(404, 3, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:58.9322', '2026-06-17 23:18:58.9322'),
+	(1046, 39, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 1, '2026-07-03 23:13:13.718376', '2026-07-03 23:13:13.718376'),
 	(406, 5, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.093613', '2026-06-17 23:18:59.093613'),
 	(407, 6, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.174674', '2026-06-17 23:18:59.174674'),
 	(408, 7, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.255491', '2026-06-17 23:18:59.255491'),
 	(409, 8, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.336213', '2026-06-17 23:18:59.336213'),
 	(410, 9, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.417123', '2026-06-17 23:18:59.417123'),
 	(411, 10, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.497979', '2026-06-17 23:18:59.497979'),
-	(412, 11, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.578637', '2026-06-17 23:18:59.578637'),
 	(413, 13, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.660078', '2026-06-17 23:18:59.660078'),
 	(446, 10, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.028065', '2026-06-19 18:07:17.028065'),
 	(415, 15, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.821666', '2026-06-17 23:18:59.821666'),
-	(416, 16, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.902451', '2026-06-17 23:18:59.902451'),
 	(414, 14, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.741017', '2026-06-17 23:18:59.741017'),
 	(417, 17, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:18:59.983226', '2026-06-17 23:18:59.983226'),
 	(418, 20, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-17 23:19:00.072164', '2026-06-17 23:19:00.072164'),
+	(412, 11, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.578637', '2026-06-17 23:18:59.578637'),
+	(397, 16, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:52.846073', '2026-06-17 04:36:52.846073'),
 	(403, 2, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:58.850833', '2026-06-17 23:18:58.850833'),
-	(447, 11, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.108938', '2026-06-19 18:07:17.108938'),
+	(457, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:01.128576', '2026-06-19 22:36:01.128576'),
 	(420, 2, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 1, '2026-06-19 09:06:05.346038', '2026-06-19 09:06:05.346038'),
 	(395, 14, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:52.67538', '2026-06-17 04:36:52.67538'),
 	(344, 14, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:19.140251', '2026-06-16 15:37:19.140251'),
@@ -3073,66 +4126,30 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(448, 13, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.189391', '2026-06-19 18:07:17.189391'),
 	(449, 14, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.270994', '2026-06-19 18:07:17.270994'),
 	(450, 15, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.355053', '2026-06-19 18:07:17.355053'),
-	(451, 16, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.435921', '2026-06-19 18:07:17.435921'),
+	(1074, 39, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 1, '2026-07-04 04:02:34.054932', '2026-07-04 04:02:34.054932'),
 	(452, 17, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.525108', '2026-06-19 18:07:17.525108'),
 	(453, 20, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 18:07:17.621038', '2026-06-19 18:07:17.621038'),
 	(454, 21, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-19 18:07:17.717655', '2026-06-19 18:07:17.717655'),
-	(456, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.045545', '2026-06-19 22:36:01.045545'),
 	(458, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.211643', '2026-06-19 22:36:01.211643'),
 	(459, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.294385', '2026-06-19 22:36:01.294385'),
 	(460, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.377296', '2026-06-19 22:36:01.377296'),
 	(463, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.629333', '2026-06-19 22:36:01.629333'),
-	(464, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.713112', '2026-06-19 22:36:01.713112'),
 	(465, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.795835', '2026-06-19 22:36:01.795835'),
 	(466, 14, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.880472', '2026-06-19 22:36:01.880472'),
+	(447, 11, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:17.108938', '2026-06-19 18:07:17.108938'),
+	(451, 16, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:17.435921', '2026-06-19 18:07:17.435921'),
 	(467, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:01.96331', '2026-06-19 22:36:01.96331'),
-	(468, 16, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:02.049117', '2026-06-19 22:36:02.049117'),
+	(405, 4, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.012965', '2026-06-17 23:18:59.012965'),
 	(469, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:02.132972', '2026-06-19 22:36:02.132972'),
 	(470, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-19 22:36:02.21721', '2026-06-19 22:36:02.21721'),
 	(471, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-19 22:36:02.300228', '2026-06-19 22:36:02.300228'),
 	(455, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:00.960549', '2026-06-19 22:36:00.960549'),
-	(473, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.233564', '2026-06-20 10:01:29.233564'),
-	(475, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.392629', '2026-06-20 10:01:29.392629'),
-	(476, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.471919', '2026-06-20 10:01:29.471919'),
-	(477, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.551602', '2026-06-20 10:01:29.551602'),
-	(478, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.631169', '2026-06-20 10:01:29.631169'),
-	(479, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.710413', '2026-06-20 10:01:29.710413'),
-	(480, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.789677', '2026-06-20 10:01:29.789677'),
-	(481, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.869191', '2026-06-20 10:01:29.869191'),
-	(482, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.94843', '2026-06-20 10:01:29.94843'),
-	(483, 14, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.027597', '2026-06-20 10:01:30.027597'),
-	(484, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.1069', '2026-06-20 10:01:30.1069'),
-	(485, 16, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.197375', '2026-06-20 10:01:30.197375'),
-	(486, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.277641', '2026-06-20 10:01:30.277641'),
-	(487, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.357866', '2026-06-20 10:01:30.357866'),
-	(488, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-20 10:01:30.441176', '2026-06-20 10:01:30.441176'),
-	(105, 4, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.33298', '2026-06-05 20:20:49.33298'),
-	(53, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:43.915597', '2026-06-01 21:23:57.044901'),
-	(52, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:38.298878', '2026-06-01 21:23:57.044901'),
-	(472, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.153176', '2026-06-20 10:01:29.153176'),
-	(1, 2, 'badge', '🏅 Badge baru: Badminton Warrior', 'Hadir 10x badminton', '/profile.php', 1, '2026-06-22 09:04:11.159891', '2026-06-22 09:04:11.159891'),
-	(423, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.314995', '2026-06-19 13:42:23.314995'),
-	(84, 4, 'dm', '💬 Pesan baru dari Firdam', 'Ada di menu input absensi', '/dm.php?u=2', 1, '2026-06-02 20:21:10.06544', '2026-06-02 20:21:10.06544'),
-	(335, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.395104', '2026-06-16 15:37:18.395104'),
-	(457, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:01.128576', '2026-06-19 22:36:01.128576'),
-	(440, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.516987', '2026-06-19 18:07:16.516987'),
-	(405, 4, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.012965', '2026-06-17 23:18:59.012965'),
 	(386, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:51.962476', '2026-06-17 04:36:51.962476'),
 	(369, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.209618', '2026-06-16 15:38:12.209618'),
 	(352, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:40.727443', '2026-06-16 15:37:40.727443'),
 	(318, 4, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:15.408405', '2026-06-16 15:35:15.408405'),
 	(301, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:45.457355', '2026-06-16 15:33:45.457355'),
 	(284, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:32.054712', '2026-06-16 15:31:32.054712'),
-	(474, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.313459', '2026-06-20 10:01:29.313459'),
-	(2, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-1', 1, '2026-06-22 10:18:23.63973', '2026-06-22 10:18:23.63973'),
-	(3, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-30', 1, '2026-06-22 10:18:24.511181', '2026-06-22 10:18:24.511181'),
-	(4, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-29', 1, '2026-06-22 10:18:25.107545', '2026-06-22 10:18:25.107545'),
-	(5, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 10:56:58.189358', '2026-06-22 10:56:58.189358'),
-	(6, 4, 'dm', '💬 Pesan baru dari Firdam', 'Iio', '/dm.php?u=2', 1, '2026-06-22 10:57:22.699635', '2026-06-22 10:57:22.699635'),
-	(7, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 10:58:15.690317', '2026-06-22 10:58:15.690317'),
-	(8, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 12:32:39.591188', '2026-06-22 12:32:39.591188'),
-	(9, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 12:33:11.833721', '2026-06-22 12:33:11.833721'),
-	(10, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 13:16:07.327493', '2026-06-22 13:16:07.327493'),
 	(267, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:14.486714', '2026-06-16 15:31:14.486714'),
 	(250, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:37.591934', '2026-06-16 15:30:37.591934'),
 	(233, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:20.508394', '2026-06-16 15:30:20.508394'),
@@ -3142,6 +4159,9 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(145, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:59.910441', '2026-06-13 05:40:59.910441'),
 	(123, 4, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:36.886955', '2026-06-13 05:40:36.886955'),
 	(88, 4, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:50.802138', '2026-06-05 11:08:50.802138'),
+	(468, 16, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:02.049117', '2026-06-19 22:36:02.049117'),
+	(105, 4, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:49.33298', '2026-06-05 20:20:49.33298'),
+	(53, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:43.915597', '2026-06-01 21:23:57.044901'),
 	(51, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-01 00:12:20.653809', '2026-06-01 21:23:57.044901'),
 	(50, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-01 00:12:11.93225', '2026-06-01 21:23:57.044901'),
 	(31, 4, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.166954', '2026-06-01 21:23:57.044901'),
@@ -3150,14 +4170,757 @@ INSERT INTO "notifications" ("id", "user_id", "jenis", "judul", "isi", "url", "d
 	(23, 4, 'titip_pesan', '💌 Titip pesan baru dari Firdam', 'Sudah dikirim sisa dp modul 1 ya dan', '/user.php?id=4#titip-pesan', 1, '2026-05-24 13:44:59.686455', '2026-06-01 21:23:57.044901'),
 	(20, 4, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-05-22 10:34:05.881776', '2026-06-01 21:23:57.044901'),
 	(2, 4, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:56.72524', '2026-06-01 21:23:57.044901'),
-	(11, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 1, '2026-06-22 13:16:39.388416', '2026-06-22 13:16:39.388416'),
-	(12, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:03:43.015526', '2026-06-22 14:03:43.015526'),
-	(13, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:04:06.073415', '2026-06-22 14:04:06.073415'),
-	(14, 2, 'comment', '💬 Dani mengomentari post Anda', '😂😂', '/index.php#feed', 1, '2026-06-22 14:07:29.621556', '2026-06-22 14:07:29.621556'),
-	(15, 2, 'comment', '💬 Dani mengomentari post Anda', 'Entitas tidak dikenal', '/index.php#feed', 1, '2026-06-22 14:07:59.055972', '2026-06-22 14:07:59.055972'),
-	(16, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:23:12.440235', '2026-06-22 14:23:12.440235'),
-	(17, 4, 'dm', '💬 Pesan baru dari Firdam', 'Tes', '/dm.php?u=2', 0, '2026-06-22 14:23:56.099666', '2026-06-22 14:23:56.099666');
+	(474, 4, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.313459', '2026-06-20 10:01:29.313459'),
+	(493, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-30', 1, '2026-06-22 22:20:46.417128', '2026-06-22 22:20:46.417128'),
+	(475, 5, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.392629', '2026-06-20 10:01:29.392629'),
+	(476, 6, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.471919', '2026-06-20 10:01:29.471919'),
+	(477, 7, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.551602', '2026-06-20 10:01:29.551602'),
+	(478, 8, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.631169', '2026-06-20 10:01:29.631169'),
+	(479, 9, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.710413', '2026-06-20 10:01:29.710413'),
+	(480, 10, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.789677', '2026-06-20 10:01:29.789677'),
+	(482, 13, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:29.94843', '2026-06-20 10:01:29.94843'),
+	(483, 14, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.027597', '2026-06-20 10:01:30.027597'),
+	(484, 15, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.1069', '2026-06-20 10:01:30.1069'),
+	(486, 17, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.277641', '2026-06-20 10:01:30.277641'),
+	(487, 20, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-20 10:01:30.357866', '2026-06-20 10:01:30.357866'),
+	(488, 21, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-20 10:01:30.441176', '2026-06-20 10:01:30.441176'),
+	(789, 13, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-26 17:52:48.429526', '2026-06-26 17:52:48.429526'),
+	(790, 13, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 0, '2026-06-26 17:52:48.434528', '2026-06-26 17:52:48.434528'),
+	(791, 13, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 0, '2026-06-26 17:52:48.438852', '2026-06-26 17:52:48.438852'),
+	(792, 14, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-26 17:52:48.454513', '2026-06-26 17:52:48.454513'),
+	(485, 16, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:30.197375', '2026-06-20 10:01:30.197375'),
+	(472, 2, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.153176', '2026-06-20 10:01:29.153176'),
+	(491, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-28', 1, '2026-06-22 22:20:44.868977', '2026-06-22 22:20:44.868977'),
+	(492, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-29', 1, '2026-06-22 22:20:45.649296', '2026-06-22 22:20:45.649296'),
+	(534, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:40.195167', '2026-06-23 14:02:40.195167'),
+	(494, 20, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-33', 0, '2026-06-23 11:15:07.607513', '2026-06-23 11:15:07.607513'),
+	(495, 20, 'komentar_aktivitas', '💬 Firdam mengomentari aktivitasmu', 'Mantap mas fajar, sing penting sehat 💪', '/riwayat.php#act-33', 0, '2026-06-23 11:15:26.327409', '2026-06-23 11:15:26.327409'),
+	(602, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:39.022575', '2026-06-23 14:03:39.022575'),
+	(499, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.073508', '2026-06-23 14:02:02.073508'),
+	(501, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.07573', '2026-06-23 14:02:02.07573'),
+	(502, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.076526', '2026-06-23 14:02:02.076526'),
+	(503, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.077378', '2026-06-23 14:02:02.077378'),
+	(504, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.078496', '2026-06-23 14:02:02.078496'),
+	(505, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.079951', '2026-06-23 14:02:02.079951'),
+	(506, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:02:02.081413', '2026-06-23 14:02:02.081413'),
+	(508, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.083529', '2026-06-23 14:02:02.083529'),
+	(509, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.084571', '2026-06-23 14:02:02.084571'),
+	(510, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.085367', '2026-06-23 14:02:02.085367'),
+	(513, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.088939', '2026-06-23 14:02:02.088939'),
+	(514, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:02.089914', '2026-06-23 14:02:02.089914'),
+	(512, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:02.087661', '2026-06-23 14:02:02.087661'),
+	(793, 14, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 0, '2026-06-26 17:52:48.460584', '2026-06-26 17:52:48.460584'),
+	(794, 5, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-26 17:52:48.483252', '2026-06-26 17:52:48.483252'),
+	(795, 5, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 0, '2026-06-26 17:52:48.488076', '2026-06-26 17:52:48.488076'),
+	(796, 5, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 0, '2026-06-26 17:52:48.492445', '2026-06-26 17:52:48.492445'),
+	(496, 16, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-34', 1, '2026-06-23 11:36:03.724871', '2026-06-23 11:36:03.724871'),
+	(497, 16, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-34', 1, '2026-06-23 11:36:05.47698', '2026-06-23 11:36:05.47698'),
+	(517, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:26.797462', '2026-06-23 14:02:26.797462'),
+	(516, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.796538', '2026-06-23 14:02:26.796538'),
+	(692, 4, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:04:38.293613', '2026-06-24 23:04:38.293613'),
+	(518, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.798471', '2026-06-23 14:02:26.798471'),
+	(519, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.799342', '2026-06-23 14:02:26.799342'),
+	(520, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.800027', '2026-06-23 14:02:26.800027'),
+	(521, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.80114', '2026-06-23 14:02:26.80114'),
+	(522, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.80226', '2026-06-23 14:02:26.80226'),
+	(523, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:02:26.803402', '2026-06-23 14:02:26.803402'),
+	(525, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.804829', '2026-06-23 14:02:26.804829'),
+	(526, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.805346', '2026-06-23 14:02:26.805346'),
+	(527, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.805913', '2026-06-23 14:02:26.805913'),
+	(530, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.807991', '2026-06-23 14:02:26.807991'),
+	(531, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:26.808775', '2026-06-23 14:02:26.808775'),
+	(533, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.193986', '2026-06-23 14:02:40.193986'),
+	(535, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.19622', '2026-06-23 14:02:40.19622'),
+	(536, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.197423', '2026-06-23 14:02:40.197423'),
+	(529, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:26.807079', '2026-06-23 14:02:26.807079'),
+	(120, 11, 'event', 'Pendaftaran event berhasil', 'Anda terdaftar di event #2', '/event.php?id=2', 1, '2026-06-06 14:47:02.784461', '2026-06-06 14:47:02.784461'),
+	(240, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:21.099694', '2026-06-16 15:30:21.099694'),
+	(515, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:26.795293', '2026-06-23 14:02:26.795293'),
+	(537, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.199209', '2026-06-23 14:02:40.199209'),
+	(538, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.201985', '2026-06-23 14:02:40.201985'),
+	(539, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.204968', '2026-06-23 14:02:40.204968'),
+	(540, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:02:40.208879', '2026-06-23 14:02:40.208879'),
+	(551, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:52.330768', '2026-06-23 14:02:52.330768'),
+	(542, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.216433', '2026-06-23 14:02:40.216433'),
+	(543, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.21913', '2026-06-23 14:02:40.21913'),
+	(544, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.221742', '2026-06-23 14:02:40.221742'),
+	(747, 4, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:41:55.482644', '2026-06-24 23:41:55.482644'),
+	(547, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.231642', '2026-06-23 14:02:40.231642'),
+	(548, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:40.233208', '2026-06-23 14:02:40.233208'),
+	(550, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.328668', '2026-06-23 14:02:52.328668'),
+	(552, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.333042', '2026-06-23 14:02:52.333042'),
+	(553, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.335229', '2026-06-23 14:02:52.335229'),
+	(554, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.337599', '2026-06-23 14:02:52.337599'),
+	(555, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.338984', '2026-06-23 14:02:52.338984'),
+	(556, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.34015', '2026-06-23 14:02:52.34015'),
+	(557, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:02:52.341341', '2026-06-23 14:02:52.341341'),
+	(546, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:40.230013', '2026-06-23 14:02:40.230013'),
+	(545, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:40.223412', '2026-06-23 14:02:40.223412'),
+	(878, 11, 'like_aktivitas', '❤️ Dani menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-35', 1, '2026-06-28 23:34:28.80923', '2026-06-28 23:34:28.80923'),
+	(549, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:52.326226', '2026-06-23 14:02:52.326226'),
+	(559, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.344906', '2026-06-23 14:02:52.344906'),
+	(560, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.346711', '2026-06-23 14:02:52.346711'),
+	(561, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.347773', '2026-06-23 14:02:52.347773'),
+	(568, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:06.405311', '2026-06-23 14:03:06.405311'),
+	(764, 4, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 1, '2026-06-25 08:41:56.274168', '2026-06-25 08:41:56.274168'),
+	(564, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.354341', '2026-06-23 14:02:52.354341'),
+	(565, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:02:52.355488', '2026-06-23 14:02:52.355488'),
+	(978, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-40', 1, '2026-06-30 23:07:38.614543', '2026-06-30 23:07:38.614543'),
+	(567, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.403516', '2026-06-23 14:03:06.403516'),
+	(569, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.406461', '2026-06-23 14:03:06.406461'),
+	(570, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.407794', '2026-06-23 14:03:06.407794'),
+	(571, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.408918', '2026-06-23 14:03:06.408918'),
+	(572, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.410365', '2026-06-23 14:03:06.410365'),
+	(573, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.412513', '2026-06-23 14:03:06.412513'),
+	(574, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:03:06.413636', '2026-06-23 14:03:06.413636'),
+	(576, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.416503', '2026-06-23 14:03:06.416503'),
+	(577, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.417943', '2026-06-23 14:03:06.417943'),
+	(578, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.419652', '2026-06-23 14:03:06.419652'),
+	(563, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:52.352595', '2026-06-23 14:02:52.352595'),
+	(562, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:52.349263', '2026-06-23 14:02:52.349263'),
+	(579, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:06.421261', '2026-06-23 14:03:06.421261'),
+	(877, 2, 'like', '❤️ Dani menyukai post Anda', '', '/index.php#feed', 1, '2026-06-28 23:31:58.083572', '2026-06-28 23:31:58.083572'),
+	(566, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:06.401301', '2026-06-23 14:03:06.401301'),
+	(581, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.424158', '2026-06-23 14:03:06.424158'),
+	(582, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:06.425614', '2026-06-23 14:03:06.425614'),
+	(585, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:20.134339', '2026-06-23 14:03:20.134339'),
+	(584, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.133328', '2026-06-23 14:03:20.133328'),
+	(979, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-38', 1, '2026-07-01 11:38:03.455645', '2026-07-01 11:38:03.455645'),
+	(586, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.135653', '2026-06-23 14:03:20.135653'),
+	(587, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.136883', '2026-06-23 14:03:20.136883'),
+	(588, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.138385', '2026-06-23 14:03:20.138385'),
+	(589, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.139422', '2026-06-23 14:03:20.139422'),
+	(590, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.140982', '2026-06-23 14:03:20.140982'),
+	(591, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:03:20.141938', '2026-06-23 14:03:20.141938'),
+	(593, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.144474', '2026-06-23 14:03:20.144474'),
+	(594, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.145609', '2026-06-23 14:03:20.145609'),
+	(595, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.146695', '2026-06-23 14:03:20.146695'),
+	(598, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.150084', '2026-06-23 14:03:20.150084'),
+	(599, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:20.151212', '2026-06-23 14:03:20.151212'),
+	(601, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.021764', '2026-06-23 14:03:39.021764'),
+	(597, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:20.148964', '2026-06-23 14:03:20.148964'),
+	(596, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:20.147773', '2026-06-23 14:03:20.147773'),
+	(583, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:20.131786', '2026-06-23 14:03:20.131786'),
+	(600, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:39.020546', '2026-06-23 14:03:39.020546'),
+	(603, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.023643', '2026-06-23 14:03:39.023643'),
+	(604, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.024889', '2026-06-23 14:03:39.024889'),
+	(605, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.026016', '2026-06-23 14:03:39.026016'),
+	(606, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.027032', '2026-06-23 14:03:39.027032'),
+	(607, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.027906', '2026-06-23 14:03:39.027906'),
+	(608, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 14:03:39.028699', '2026-06-23 14:03:39.028699'),
+	(619, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:49.972816', '2026-06-23 14:03:49.972816'),
+	(610, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.03016', '2026-06-23 14:03:39.03016'),
+	(611, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.031033', '2026-06-23 14:03:39.031033'),
+	(612, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.031695', '2026-06-23 14:03:39.031695'),
+	(1019, 11, 'like_aktivitas', '❤️ Dani menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-42', 0, '2026-07-03 08:28:48.919227', '2026-07-03 08:28:48.919227'),
+	(1022, 14, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.70588', '2026-07-03 23:13:13.70588'),
+	(615, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.033691', '2026-06-23 14:03:39.033691'),
+	(616, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:39.034656', '2026-06-23 14:03:39.034656'),
+	(1023, 10, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.707493', '2026-07-03 23:13:13.707493'),
+	(618, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.971624', '2026-06-23 14:03:49.971624'),
+	(620, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.973989', '2026-06-23 14:03:49.973989'),
+	(621, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.975167', '2026-06-23 14:03:49.975167'),
+	(622, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.976395', '2026-06-23 14:03:49.976395'),
+	(623, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.977617', '2026-06-23 14:03:49.977617'),
+	(624, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.978653', '2026-06-23 14:03:49.978653'),
+	(614, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:39.033053', '2026-06-23 14:03:39.033053'),
+	(613, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:39.03241', '2026-06-23 14:03:39.03241'),
+	(617, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:49.969786', '2026-06-23 14:03:49.969786'),
+	(637, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:34:35.903577', '2026-06-23 17:34:35.903577'),
+	(627, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.981606', '2026-06-23 14:03:49.981606'),
+	(628, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.982481', '2026-06-23 14:03:49.982481'),
+	(629, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.98333', '2026-06-23 14:03:49.98333'),
+	(1020, 11, 'komentar_aktivitas', '💬 Dani mengomentari aktivitasmu', 'Maa Syaa Allah Rian✨️', '/riwayat.php#act-42', 0, '2026-07-03 08:29:15.066628', '2026-07-03 08:29:15.066628'),
+	(1024, 9, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.708391', '2026-07-03 23:13:13.708391'),
+	(632, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.986155', '2026-06-23 14:03:49.986155'),
+	(633, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 14:03:49.987169', '2026-06-23 14:03:49.987169'),
+	(507, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:02.082311', '2026-06-23 14:02:02.082311'),
+	(524, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:26.804245', '2026-06-23 14:02:26.804245'),
+	(541, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:40.212679', '2026-06-23 14:02:40.212679'),
+	(558, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:52.342614', '2026-06-23 14:02:52.342614'),
+	(575, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:06.41507', '2026-06-23 14:03:06.41507'),
+	(592, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:20.142862', '2026-06-23 14:03:20.142862'),
+	(609, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:39.029447', '2026-06-23 14:03:39.029447'),
+	(626, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:49.980553', '2026-06-23 14:03:49.980553'),
+	(1026, 13, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.709406', '2026-07-03 23:13:13.709406'),
+	(1027, 20, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.709872', '2026-07-03 23:13:13.709872'),
+	(1028, 8, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.710539', '2026-07-03 23:13:13.710539'),
+	(638, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.904209', '2026-06-23 17:34:35.904209'),
+	(639, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.904892', '2026-06-23 17:34:35.904892'),
+	(635, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:34:35.900554', '2026-06-23 17:34:35.900554'),
+	(631, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:49.985233', '2026-06-23 14:03:49.985233'),
+	(630, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:49.984303', '2026-06-23 14:03:49.984303'),
+	(634, 11, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 1, '2026-06-23 14:27:27.908744', '2026-06-23 14:27:27.908744'),
+	(1029, 21, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.711349', '2026-07-03 23:13:13.711349'),
+	(640, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.906051', '2026-06-23 17:34:35.906051'),
+	(641, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.906999', '2026-06-23 17:34:35.906999'),
+	(642, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.907718', '2026-06-23 17:34:35.907718'),
+	(643, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.908257', '2026-06-23 17:34:35.908257'),
+	(655, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:39:57.714682', '2026-06-23 17:39:57.714682'),
+	(645, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.909297', '2026-06-23 17:34:35.909297'),
+	(646, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.910291', '2026-06-23 17:34:35.910291'),
+	(647, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.911031', '2026-06-23 17:34:35.911031'),
+	(1021, 11, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-42', 0, '2026-07-03 08:42:50.749144', '2026-07-03 08:42:50.749144'),
+	(649, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.91233', '2026-06-23 17:34:35.91233'),
+	(650, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:34:35.913039', '2026-06-23 17:34:35.913039'),
+	(651, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 17:34:35.913761', '2026-06-23 17:34:35.913761'),
+	(1030, 16, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.711833', '2026-07-03 23:13:13.711833'),
+	(1031, 11, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.712284', '2026-07-03 23:13:13.712284'),
+	(1032, 3, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.712698', '2026-07-03 23:13:13.712698'),
+	(1033, 17, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.713066', '2026-07-03 23:13:13.713066'),
+	(656, 5, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.715456', '2026-06-23 17:39:57.715456'),
+	(657, 6, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.716936', '2026-06-23 17:39:57.716936'),
+	(658, 7, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.7179', '2026-06-23 17:39:57.7179'),
+	(659, 8, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.718743', '2026-06-23 17:39:57.718743'),
+	(660, 9, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.719872', '2026-06-23 17:39:57.719872'),
+	(661, 10, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.720916', '2026-06-23 17:39:57.720916'),
+	(654, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:39:57.713854', '2026-06-23 17:39:57.713854'),
+	(644, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:34:35.908766', '2026-06-23 17:34:35.908766'),
+	(969, 38, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.989661', '2026-06-29 23:07:12.989661'),
+	(652, 16, 'komentar_aktivitas', '💬 Firdam mengomentari aktivitasmu', 'Muantap 🍺', '/riwayat.php#act-34', 1, '2026-06-23 17:35:42.081974', '2026-06-23 17:35:42.081974'),
+	(1034, 44, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.713522', '2026-07-03 23:13:13.713522'),
+	(663, 13, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.723698', '2026-06-23 17:39:57.723698'),
+	(664, 14, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.724495', '2026-06-23 17:39:57.724495'),
+	(665, 15, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.725369', '2026-06-23 17:39:57.725369'),
+	(1035, 5, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.713983', '2026-07-03 23:13:13.713983'),
+	(667, 17, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.727281', '2026-06-23 17:39:57.727281'),
+	(668, 20, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-23 17:39:57.731158', '2026-06-23 17:39:57.731158'),
+	(669, 21, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-23 17:39:57.732549', '2026-06-23 17:39:57.732549'),
+	(653, 2, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:39:57.712433', '2026-06-23 17:39:57.712433'),
+	(1036, 6, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.714403', '2026-07-03 23:13:13.714403'),
+	(670, 2, 'like', '❤️ Hanif menyukai post Anda', '', '/index.php#feed', 1, '2026-06-24 12:01:32.541248', '2026-06-24 12:01:32.541248'),
+	(671, 2, 'like', '❤️ Hanif menyukai post Anda', '', '/index.php#feed', 1, '2026-06-24 12:01:39.172272', '2026-06-24 12:01:39.172272'),
+	(37, 3, 'event', '🎉 Event baru: Nyate Bersama Idul Adha 1447 H', 'Detail di menu Event.', '/event.php?id=2', 1, '2026-05-29 14:58:54.404635', '2026-06-01 21:23:57.044901'),
+	(27, 3, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 1, '2026-05-24 15:37:52.588805', '2026-06-01 21:23:57.044901'),
+	(21, 3, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-05-23 09:18:05.260227', '2026-06-01 21:23:57.044901'),
+	(10, 3, 'event', '🏆 Event baru: Lomba Badminton', 'Daftar sekarang di menu Event.', '/event.php?id=1', 1, '2026-05-22 00:27:57.0456', '2026-06-01 21:23:57.044901'),
+	(422, 3, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.234409', '2026-06-19 13:42:23.234409'),
+	(87, 3, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:50.717128', '2026-06-05 11:08:50.717128'),
+	(122, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:36.805833', '2026-06-13 05:40:36.805833'),
+	(144, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:59.829215', '2026-06-13 05:40:59.829215'),
+	(166, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 06:04:03.751293', '2026-06-13 06:04:03.751293'),
+	(188, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 07:56:15.688483', '2026-06-13 07:56:15.688483'),
+	(210, 3, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 12:57:15.262031', '2026-06-13 12:57:15.262031'),
+	(117, 3, 'event', 'Absensi Badminton tanggal 02 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 20:20:50.293472', '2026-06-05 20:20:50.293472'),
+	(232, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:20.426559', '2026-06-16 15:30:20.426559'),
+	(249, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:30:37.506491', '2026-06-16 15:30:37.506491'),
+	(662, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:39:57.72211', '2026-06-23 17:39:57.72211'),
+	(666, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:39:57.72631', '2026-06-23 17:39:57.72631'),
+	(266, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:14.404103', '2026-06-16 15:31:14.404103'),
+	(283, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:31.945805', '2026-06-16 15:31:31.945805'),
+	(300, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:45.376046', '2026-06-16 15:33:45.376046'),
+	(317, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:35:15.302236', '2026-06-16 15:35:15.302236'),
+	(439, 3, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.433698', '2026-06-19 18:07:16.433698'),
+	(334, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.316021', '2026-06-16 15:37:18.316021'),
+	(351, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:40.646829', '2026-06-16 15:37:40.646829'),
+	(368, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:38:12.127378', '2026-06-16 15:38:12.127378'),
+	(385, 3, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 04:36:51.88313', '2026-06-17 04:36:51.88313'),
+	(404, 3, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:58.9322', '2026-06-17 23:18:58.9322'),
+	(456, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:01.045545', '2026-06-19 22:36:01.045545'),
+	(473, 3, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.233564', '2026-06-20 10:01:29.233564'),
+	(580, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:03:06.42265', '2026-06-23 14:03:06.42265'),
+	(636, 3, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:34:35.902757', '2026-06-23 17:34:35.902757'),
+	(674, 4, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 17:58:47.406605', '2026-06-24 17:58:47.406605'),
+	(673, 3, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.397471', '2026-06-24 17:58:47.397471'),
+	(1037, 40, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.714887', '2026-07-03 23:13:13.714887'),
+	(675, 5, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.413649', '2026-06-24 17:58:47.413649'),
+	(676, 6, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.420739', '2026-06-24 17:58:47.420739'),
+	(677, 7, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.428214', '2026-06-24 17:58:47.428214'),
+	(678, 8, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.439206', '2026-06-24 17:58:47.439206'),
+	(1038, 47, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.715379', '2026-07-03 23:13:13.715379'),
+	(1039, 38, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.715737', '2026-07-03 23:13:13.715737'),
+	(1040, 41, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.716142', '2026-07-03 23:13:13.716142'),
+	(679, 9, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.446004', '2026-06-24 17:58:47.446004'),
+	(680, 10, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.453173', '2026-06-24 17:58:47.453173'),
+	(1041, 7, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.716472', '2026-07-03 23:13:13.716472'),
+	(682, 13, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.456671', '2026-06-24 17:58:47.456671'),
+	(683, 14, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.457942', '2026-06-24 17:58:47.457942'),
+	(684, 15, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.45881', '2026-06-24 17:58:47.45881'),
+	(1042, 46, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.716868', '2026-07-03 23:13:13.716868'),
+	(686, 17, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.460327', '2026-06-24 17:58:47.460327'),
+	(687, 20, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.461173', '2026-06-24 17:58:47.461173'),
+	(688, 21, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-24 17:58:47.461811', '2026-06-24 17:58:47.461811'),
+	(689, 38, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 17:58:47.462924', '2026-06-24 17:58:47.462924'),
+	(672, 2, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 17:58:47.389335', '2026-06-24 17:58:47.389335'),
+	(1043, 42, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.717288', '2026-07-03 23:13:13.717288'),
+	(691, 13, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.292664', '2026-06-24 23:04:38.292664'),
+	(1044, 15, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.717597', '2026-07-03 23:13:13.717597'),
+	(693, 8, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.294889', '2026-06-24 23:04:38.294889'),
+	(694, 6, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.29592', '2026-06-24 23:04:38.29592'),
+	(695, 7, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.296622', '2026-06-24 23:04:38.296622'),
+	(696, 20, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.297422', '2026-06-24 23:04:38.297422'),
+	(697, 14, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.298421', '2026-06-24 23:04:38.298421'),
+	(698, 21, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-24 23:04:38.299222', '2026-06-24 23:04:38.299222'),
+	(681, 11, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 17:58:47.455796', '2026-06-24 17:58:47.455796'),
+	(685, 16, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 17:58:47.459608', '2026-06-24 17:58:47.459608'),
+	(1045, 48, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.71798', '2026-07-03 23:13:13.71798'),
+	(1047, 43, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.718712', '2026-07-03 23:13:13.718712'),
+	(1048, 45, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.719122', '2026-07-03 23:13:13.719122'),
+	(710, 4, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:05:13.593436', '2026-06-24 23:05:13.593436'),
+	(700, 15, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.301188', '2026-06-24 23:04:38.301188'),
+	(701, 38, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.3022', '2026-06-24 23:04:38.3022'),
+	(702, 9, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.303076', '2026-06-24 23:04:38.303076'),
+	(703, 10, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.304011', '2026-06-24 23:04:38.304011'),
+	(1049, 50, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.719453', '2026-07-03 23:13:13.719453'),
+	(705, 3, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.305622', '2026-06-24 23:04:38.305622'),
+	(706, 17, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.306431', '2026-06-24 23:04:38.306431'),
+	(707, 5, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:04:38.307096', '2026-06-24 23:04:38.307096'),
+	(1050, 51, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.719859', '2026-07-03 23:13:13.719859'),
+	(709, 13, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.592425', '2026-06-24 23:05:13.592425'),
+	(1051, 52, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.720273', '2026-07-03 23:13:13.720273'),
+	(711, 8, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.594772', '2026-06-24 23:05:13.594772'),
+	(712, 6, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.595876', '2026-06-24 23:05:13.595876'),
+	(713, 7, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.596982', '2026-06-24 23:05:13.596982'),
+	(714, 20, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.59797', '2026-06-24 23:05:13.59797'),
+	(715, 14, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.598913', '2026-06-24 23:05:13.598913'),
+	(716, 21, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-24 23:05:13.599804', '2026-06-24 23:05:13.599804'),
+	(1052, 49, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.720645', '2026-07-03 23:13:13.720645'),
+	(718, 15, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.601984', '2026-06-24 23:05:13.601984'),
+	(719, 38, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.605016', '2026-06-24 23:05:13.605016'),
+	(704, 11, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:04:38.304751', '2026-06-24 23:04:38.304751'),
+	(1053, 53, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 0, '2026-07-03 23:13:13.721152', '2026-07-03 23:13:13.721152'),
+	(708, 16, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:05:13.584645', '2026-06-24 23:05:13.584645'),
+	(720, 9, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.607625', '2026-06-24 23:05:13.607625'),
+	(721, 10, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.608911', '2026-06-24 23:05:13.608911'),
+	(738, 4, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 1, '2026-06-24 23:33:10.346115', '2026-06-24 23:33:10.346115'),
+	(723, 3, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.610733', '2026-06-24 23:05:13.610733'),
+	(724, 17, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.611372', '2026-06-24 23:05:13.611372'),
+	(725, 5, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:05:13.611931', '2026-06-24 23:05:13.611931'),
+	(699, 2, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:04:38.300112', '2026-06-24 23:04:38.300112'),
+	(717, 2, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:05:13.600809', '2026-06-24 23:05:13.600809'),
+	(726, 14, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.341071', '2026-06-24 23:33:10.341071'),
+	(727, 7, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.341898', '2026-06-24 23:33:10.341898'),
+	(728, 21, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.342437', '2026-06-24 23:33:10.342437'),
+	(729, 13, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.342851', '2026-06-24 23:33:10.342851'),
+	(730, 8, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.343295', '2026-06-24 23:33:10.343295'),
+	(731, 17, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.343658', '2026-06-24 23:33:10.343658'),
+	(732, 10, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.344044', '2026-06-24 23:33:10.344044'),
+	(733, 9, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.34443', '2026-06-24 23:33:10.34443'),
+	(734, 5, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.344761', '2026-06-24 23:33:10.344761'),
+	(735, 15, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.345148', '2026-06-24 23:33:10.345148'),
+	(736, 6, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.345485', '2026-06-24 23:33:10.345485'),
+	(1025, 4, 'post', '📝 Firdam membuat postingan baru', 'Puncak Upas Hill', '/index.php#social', 1, '2026-07-03 23:13:13.708943', '2026-07-03 23:13:13.708943'),
+	(740, 20, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.346905', '2026-06-24 23:33:10.346905'),
+	(741, 3, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.347196', '2026-06-24 23:33:10.347196'),
+	(742, 38, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 0, '2026-06-24 23:33:10.347524', '2026-06-24 23:33:10.347524'),
+	(743, 2, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 1, '2026-06-24 23:35:02.860002', '2026-06-24 23:35:02.860002'),
+	(744, 3, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-24 23:41:55.471986', '2026-06-24 23:41:55.471986'),
+	(746, 13, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.481584', '2026-06-24 23:41:55.481584'),
+	(748, 8, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.483458', '2026-06-24 23:41:55.483458'),
+	(749, 6, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.484148', '2026-06-24 23:41:55.484148'),
+	(750, 7, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.48483', '2026-06-24 23:41:55.48483'),
+	(722, 11, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:05:13.609886', '2026-06-24 23:05:13.609886'),
+	(739, 11, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 1, '2026-06-24 23:33:10.346475', '2026-06-24 23:33:10.346475'),
+	(737, 16, 'story', '📸 Firdam membagikan Story baru', 'Gimana nih?', '/index.php#feed', 1, '2026-06-24 23:33:10.34578', '2026-06-24 23:33:10.34578'),
+	(745, 16, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:41:55.480211', '2026-06-24 23:41:55.480211'),
+	(751, 20, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.485535', '2026-06-24 23:41:55.485535'),
+	(752, 14, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.486293', '2026-06-24 23:41:55.486293'),
+	(753, 21, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-24 23:41:55.48706', '2026-06-24 23:41:55.48706'),
+	(500, 4, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:02.07464', '2026-06-23 14:02:02.07464'),
+	(755, 15, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.48861', '2026-06-24 23:41:55.48861'),
+	(756, 38, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.489531', '2026-06-24 23:41:55.489531'),
+	(757, 9, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.490562', '2026-06-24 23:41:55.490562'),
+	(758, 10, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.491257', '2026-06-24 23:41:55.491257'),
+	(760, 3, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.492855', '2026-06-24 23:41:55.492855'),
+	(761, 17, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.493571', '2026-06-24 23:41:55.493571'),
+	(762, 5, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-24 23:41:55.494279', '2026-06-24 23:41:55.494279'),
+	(754, 2, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:41:55.487773', '2026-06-24 23:41:55.487773'),
+	(1054, 2, 'like', '❤️ Dani menyukai post Anda', '', '/index.php#feed', 1, '2026-07-03 23:17:25.382718', '2026-07-03 23:17:25.382718'),
+	(1057, 3, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.042047', '2026-07-04 04:02:34.042047'),
+	(1058, 4, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.042739', '2026-07-04 04:02:34.042739'),
+	(1059, 5, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.043742', '2026-07-04 04:02:34.043742'),
+	(763, 20, 'komentar_aktivitas', '💬 Dani mengomentari aktivitasmu', 'Beuhh kerenn, pertahankann💥', '/riwayat.php#act-33', 0, '2026-06-25 08:36:49.375052', '2026-06-25 08:36:49.375052'),
+	(767, 14, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.09244', '2026-06-25 23:22:50.09244'),
+	(768, 7, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.095379', '2026-06-25 23:22:50.095379'),
+	(769, 21, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.096058', '2026-06-25 23:22:50.096058'),
+	(770, 13, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.09678', '2026-06-25 23:22:50.09678'),
+	(771, 17, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.097419', '2026-06-25 23:22:50.097419'),
+	(772, 10, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 0, '2026-06-25 23:22:50.098', '2026-06-25 23:22:50.098'),
+	(765, 16, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 1, '2026-06-25 14:46:25.861851', '2026-06-25 14:46:25.861851'),
+	(766, 16, 'badge', '🏅 Badge baru: Rajin 4 Minggu', 'Hadir 4 minggu berturut-turut', '/profile.php', 1, '2026-06-25 14:46:25.969528', '2026-06-25 14:46:25.969528'),
+	(798, 13, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.495615', '2026-06-26 17:52:48.495615'),
+	(799, 4, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:52:48.496795', '2026-06-26 17:52:48.496795'),
+	(800, 8, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.497487', '2026-06-26 17:52:48.497487'),
+	(801, 6, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.498298', '2026-06-26 17:52:48.498298'),
+	(802, 7, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.498938', '2026-06-26 17:52:48.498938'),
+	(803, 20, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.499909', '2026-06-26 17:52:48.499909'),
+	(804, 14, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.500571', '2026-06-26 17:52:48.500571'),
+	(805, 21, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-26 17:52:48.501886', '2026-06-26 17:52:48.501886'),
+	(807, 15, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.503536', '2026-06-26 17:52:48.503536'),
+	(1055, 2, 'comment', '💬 Dani mengomentari post Anda', 'Mantapp', '/index.php#feed', 1, '2026-07-03 23:17:36.548915', '2026-07-03 23:17:36.548915'),
+	(809, 38, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.505535', '2026-06-26 17:52:48.505535'),
+	(810, 9, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.506237', '2026-06-26 17:52:48.506237'),
+	(811, 10, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.507245', '2026-06-26 17:52:48.507245'),
+	(1060, 6, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.044535', '2026-07-04 04:02:34.044535'),
+	(813, 3, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.509567', '2026-06-26 17:52:48.509567'),
+	(814, 17, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.510356', '2026-06-26 17:52:48.510356'),
+	(815, 5, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:52:48.511131', '2026-06-26 17:52:48.511131'),
+	(812, 11, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:52:48.508695', '2026-06-26 17:52:48.508695'),
+	(816, 11, 'badge', '🏅 Badge baru: All Rounder', 'Hadir di 3 jenis olahraga berbeda', '/profile.php', 1, '2026-06-26 17:53:23.494553', '2026-06-26 17:53:23.494553'),
+	(808, 39, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-26 17:52:48.504796', '2026-06-26 17:52:48.504796'),
+	(817, 16, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:53:23.517428', '2026-06-26 17:53:23.517428'),
+	(818, 13, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.518379', '2026-06-26 17:53:23.518379'),
+	(819, 4, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:53:23.51976', '2026-06-26 17:53:23.51976'),
+	(820, 8, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.520649', '2026-06-26 17:53:23.520649'),
+	(821, 6, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.521636', '2026-06-26 17:53:23.521636'),
+	(822, 7, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.522467', '2026-06-26 17:53:23.522467'),
+	(823, 20, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.523362', '2026-06-26 17:53:23.523362'),
+	(824, 14, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.523952', '2026-06-26 17:53:23.523952'),
+	(825, 21, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-26 17:53:23.525032', '2026-06-26 17:53:23.525032'),
+	(1061, 7, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.045199', '2026-07-04 04:02:34.045199'),
+	(827, 15, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.527662', '2026-06-26 17:53:23.527662'),
+	(829, 38, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.529783', '2026-06-26 17:53:23.529783'),
+	(830, 9, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.530744', '2026-06-26 17:53:23.530744'),
+	(831, 10, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.531427', '2026-06-26 17:53:23.531427'),
+	(833, 3, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.532881', '2026-06-26 17:53:23.532881'),
+	(834, 17, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.533814', '2026-06-26 17:53:23.533814'),
+	(835, 5, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-26 17:53:23.534859', '2026-06-26 17:53:23.534859'),
+	(806, 2, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:52:48.502678', '2026-06-26 17:52:48.502678'),
+	(826, 2, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:53:23.526377', '2026-06-26 17:53:23.526377'),
+	(836, 2, 'like', '❤️ Rian menyukai post Anda', '', '/index.php#feed', 1, '2026-06-27 05:14:01.629858', '2026-06-27 05:14:01.629858'),
+	(828, 39, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-26 17:53:23.528693', '2026-06-26 17:53:23.528693'),
+	(839, 4, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-27 15:20:28.01071', '2026-06-27 15:20:28.01071'),
+	(838, 3, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.009829', '2026-06-27 15:20:28.009829'),
+	(1062, 8, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.045883', '2026-07-04 04:02:34.045883'),
+	(840, 5, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.011656', '2026-06-27 15:20:28.011656'),
+	(841, 6, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.012417', '2026-06-27 15:20:28.012417'),
+	(842, 7, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.013641', '2026-06-27 15:20:28.013641'),
+	(843, 8, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.014705', '2026-06-27 15:20:28.014705'),
+	(844, 9, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.01547', '2026-06-27 15:20:28.01547'),
+	(845, 10, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.016284', '2026-06-27 15:20:28.016284'),
+	(847, 13, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.018021', '2026-06-27 15:20:28.018021'),
+	(848, 14, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.019095', '2026-06-27 15:20:28.019095'),
+	(849, 15, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.019996', '2026-06-27 15:20:28.019996'),
+	(851, 17, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.021791', '2026-06-27 15:20:28.021791'),
+	(852, 20, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.022652', '2026-06-27 15:20:28.022652'),
+	(853, 21, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-27 15:20:28.023417', '2026-06-27 15:20:28.023417'),
+	(854, 38, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-27 15:20:28.024316', '2026-06-27 15:20:28.024316'),
+	(837, 2, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-27 15:20:28.006749', '2026-06-27 15:20:28.006749'),
+	(95, 11, 'event', 'Absensi Jogging tanggal 05 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-05 11:08:51.389553', '2026-06-05 11:08:51.389553'),
+	(855, 39, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-27 15:20:28.025361', '2026-06-27 15:20:28.025361'),
+	(850, 16, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-27 15:20:28.020747', '2026-06-27 15:20:28.020747'),
+	(130, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 05:40:37.46669', '2026-06-13 05:40:37.46669'),
+	(174, 11, 'event', 'Absensi Jogging tanggal 13 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Flamboyan Jogging. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Flamboyan%20Jogging.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-13 06:04:04.406505', '2026-06-13 06:04:04.406505'),
+	(430, 11, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 13:42:23.876806', '2026-06-19 13:42:23.876806'),
+	(274, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:15.063416', '2026-06-16 15:31:15.063416'),
+	(291, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:31:32.813137', '2026-06-16 15:31:32.813137'),
+	(779, 11, 'post', '📝 Firdam membuat postingan baru', 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', '/index.php#social', 1, '2026-06-25 23:22:50.103626', '2026-06-25 23:22:50.103626'),
+	(308, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:33:46.017106', '2026-06-16 15:33:46.017106'),
+	(342, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:18.979605', '2026-06-16 15:37:18.979605'),
+	(359, 11, 'event', 'Absensi Badminton tanggal 16 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-16 15:37:41.291374', '2026-06-16 15:37:41.291374'),
+	(785, 11, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 1, '2026-06-26 12:12:35.477861', '2026-06-26 12:12:35.477861'),
+	(464, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 22:36:01.713112', '2026-06-19 22:36:01.713112'),
+	(481, 11, 'event', 'Absensi Badminton tanggal 20 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-20 10:01:29.869191', '2026-06-20 10:01:29.869191'),
+	(511, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:02.086699', '2026-06-23 14:02:02.086699'),
+	(528, 11, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:26.806554', '2026-06-23 14:02:26.806554'),
+	(759, 11, 'event', 'Absensi Jogging tanggal 25 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Parkiran Taman Sumringah. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Parkiran%20Taman%20Sumringah.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:41:55.491996', '2026-06-24 23:41:55.491996'),
+	(832, 11, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:53:23.532184', '2026-06-26 17:53:23.532184'),
+	(846, 11, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-27 15:20:28.01715', '2026-06-27 15:20:28.01715'),
+	(858, 4, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-28 17:58:48.658276', '2026-06-28 17:58:48.658276'),
+	(857, 3, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.657459', '2026-06-28 17:58:48.657459'),
+	(1063, 9, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.046635', '2026-07-04 04:02:34.046635'),
+	(859, 5, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.658969', '2026-06-28 17:58:48.658969'),
+	(860, 6, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.659664', '2026-06-28 17:58:48.659664'),
+	(861, 7, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.660455', '2026-06-28 17:58:48.660455'),
+	(862, 8, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.661535', '2026-06-28 17:58:48.661535'),
+	(863, 9, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.662335', '2026-06-28 17:58:48.662335'),
+	(864, 10, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.663074', '2026-06-28 17:58:48.663074'),
+	(440, 4, 'event', 'Absensi Renang tanggal 19 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Renang" di Kolam Renang BSD. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Renang%22%20di%20Kolam%20Renang%20BSD.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-19 18:07:16.516987', '2026-06-19 18:07:16.516987'),
+	(866, 13, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.664327', '2026-06-28 17:58:48.664327'),
+	(867, 14, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.664928', '2026-06-28 17:58:48.664928'),
+	(868, 15, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.665506', '2026-06-28 17:58:48.665506'),
+	(1064, 10, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.047528', '2026-07-04 04:02:34.047528'),
+	(870, 17, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.666714', '2026-06-28 17:58:48.666714'),
+	(871, 20, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.66733', '2026-06-28 17:58:48.66733'),
+	(872, 21, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-28 17:58:48.668016', '2026-06-28 17:58:48.668016'),
+	(873, 38, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-28 17:58:48.668714', '2026-06-28 17:58:48.668714'),
+	(1065, 11, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.048222', '2026-07-04 04:02:34.048222'),
+	(856, 2, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-28 17:58:48.655458', '2026-06-28 17:58:48.655458'),
+	(1066, 13, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.048812', '2026-07-04 04:02:34.048812'),
+	(1067, 14, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.049406', '2026-07-04 04:02:34.049406'),
+	(1068, 15, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.050006', '2026-07-04 04:02:34.050006'),
+	(876, 2, 'like', '❤️ Dani menyukai post Anda', '', '/index.php#feed', 1, '2026-06-28 23:31:47.405426', '2026-06-28 23:31:47.405426'),
+	(875, 11, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-35', 1, '2026-06-28 22:51:38.279873', '2026-06-28 22:51:38.279873'),
+	(874, 39, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-28 17:58:48.669435', '2026-06-28 17:58:48.669435'),
+	(869, 16, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-28 17:58:48.666149', '2026-06-28 17:58:48.666149'),
+	(52, 4, 'dm', '💬 Pesan baru dari Firdam', 'Dan', '/dm.php?u=2', 1, '2026-06-01 00:12:38.298878', '2026-06-01 21:23:57.044901'),
+	(882, 4, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 14:02:10.801028', '2026-06-29 14:02:10.801028'),
+	(881, 3, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.800035', '2026-06-29 14:02:10.800035'),
+	(1069, 16, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.050847', '2026-07-04 04:02:34.050847'),
+	(883, 5, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.802513', '2026-06-29 14:02:10.802513'),
+	(884, 6, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.80379', '2026-06-29 14:02:10.80379'),
+	(885, 7, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.805155', '2026-06-29 14:02:10.805155'),
+	(886, 8, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.806036', '2026-06-29 14:02:10.806036'),
+	(887, 9, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.806712', '2026-06-29 14:02:10.806712'),
+	(888, 10, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.807351', '2026-06-29 14:02:10.807351'),
+	(1070, 17, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.051924', '2026-07-04 04:02:34.051924'),
+	(890, 13, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.808761', '2026-06-29 14:02:10.808761'),
+	(891, 14, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.80988', '2026-06-29 14:02:10.80988'),
+	(892, 15, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.810641', '2026-06-29 14:02:10.810641'),
+	(894, 17, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.811993', '2026-06-29 14:02:10.811993'),
+	(895, 20, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.812644', '2026-06-29 14:02:10.812644'),
+	(896, 21, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-29 14:02:10.813227', '2026-06-29 14:02:10.813227'),
+	(897, 38, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 14:02:10.814019', '2026-06-29 14:02:10.814019'),
+	(899, 38, 'badge', '🏅 Badge baru: First Check-in', 'Check-in pertama via QR', '/profile.php', 0, '2026-06-29 14:45:10.606819', '2026-06-29 14:45:10.606819'),
+	(880, 2, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 14:02:10.797484', '2026-06-29 14:02:10.797484'),
+	(901, 13, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.252936', '2026-06-29 22:58:16.252936'),
+	(889, 11, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 14:02:10.808068', '2026-06-29 14:02:10.808068'),
+	(898, 39, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-29 14:02:10.814691', '2026-06-29 14:02:10.814691'),
+	(893, 16, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 14:02:10.811395', '2026-06-29 14:02:10.811395'),
+	(902, 4, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:16.253853', '2026-06-29 22:58:16.253853'),
+	(903, 8, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.254771', '2026-06-29 22:58:16.254771'),
+	(904, 6, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.255481', '2026-06-29 22:58:16.255481'),
+	(905, 7, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.256194', '2026-06-29 22:58:16.256194'),
+	(906, 20, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.256907', '2026-06-29 22:58:16.256907'),
+	(907, 14, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.257716', '2026-06-29 22:58:16.257716'),
+	(908, 21, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-29 22:58:16.258584', '2026-06-29 22:58:16.258584'),
+	(1071, 20, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.052492', '2026-07-04 04:02:34.052492'),
+	(910, 15, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.260611', '2026-06-29 22:58:16.260611'),
+	(1072, 21, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.053298', '2026-07-04 04:02:34.053298'),
+	(912, 38, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.262278', '2026-06-29 22:58:16.262278'),
+	(913, 9, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.262921', '2026-06-29 22:58:16.262921'),
+	(914, 10, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.263634', '2026-06-29 22:58:16.263634'),
+	(916, 3, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.265408', '2026-06-29 22:58:16.265408'),
+	(917, 17, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.266231', '2026-06-29 22:58:16.266231'),
+	(918, 5, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:16.26724', '2026-06-29 22:58:16.26724'),
+	(920, 13, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.04008', '2026-06-29 22:58:24.04008'),
+	(922, 8, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.042414', '2026-06-29 22:58:24.042414'),
+	(923, 6, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.043645', '2026-06-29 22:58:24.043645'),
+	(924, 7, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.044635', '2026-06-29 22:58:24.044635'),
+	(915, 11, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:16.264538', '2026-06-29 22:58:16.264538'),
+	(911, 39, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-29 22:58:16.26159', '2026-06-29 22:58:16.26159'),
+	(919, 16, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:24.038443', '2026-06-29 22:58:24.038443'),
+	(925, 20, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.045405', '2026-06-29 22:58:24.045405'),
+	(926, 14, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.046391', '2026-06-29 22:58:24.046391'),
+	(927, 21, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-29 22:58:24.04705', '2026-06-29 22:58:24.04705'),
+	(940, 4, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:42.858376', '2026-06-29 22:58:42.858376'),
+	(929, 15, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.048937', '2026-06-29 22:58:24.048937'),
+	(1073, 38, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-04 04:02:34.054151', '2026-07-04 04:02:34.054151'),
+	(931, 38, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.051285', '2026-06-29 22:58:24.051285'),
+	(932, 9, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.052353', '2026-06-29 22:58:24.052353'),
+	(933, 10, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.053165', '2026-06-29 22:58:24.053165'),
+	(935, 3, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.054918', '2026-06-29 22:58:24.054918'),
+	(936, 17, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.056113', '2026-06-29 22:58:24.056113'),
+	(937, 5, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:24.057141', '2026-06-29 22:58:24.057141'),
+	(1075, 40, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.055742', '2026-07-04 04:02:34.055742'),
+	(939, 13, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.857621', '2026-06-29 22:58:42.857621'),
+	(1076, 41, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.056432', '2026-07-04 04:02:34.056432'),
+	(941, 8, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.859174', '2026-06-29 22:58:42.859174'),
+	(942, 6, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.859891', '2026-06-29 22:58:42.859891'),
+	(943, 7, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.860588', '2026-06-29 22:58:42.860588'),
+	(944, 20, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.861317', '2026-06-29 22:58:42.861317'),
+	(945, 14, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.861951', '2026-06-29 22:58:42.861951'),
+	(946, 21, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-29 22:58:42.862538', '2026-06-29 22:58:42.862538'),
+	(934, 11, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:24.053957', '2026-06-29 22:58:24.053957'),
+	(930, 39, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-29 22:58:24.050006', '2026-06-29 22:58:24.050006'),
+	(938, 16, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:42.856608', '2026-06-29 22:58:42.856608'),
+	(948, 15, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.863929', '2026-06-29 22:58:42.863929'),
+	(959, 4, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 23:07:12.980287', '2026-06-29 23:07:12.980287'),
+	(950, 38, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.865583', '2026-06-29 22:58:42.865583'),
+	(951, 9, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.866423', '2026-06-29 22:58:42.866423'),
+	(952, 10, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.867497', '2026-06-29 22:58:42.867497'),
+	(1077, 42, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.057056', '2026-07-04 04:02:34.057056'),
+	(954, 3, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.869112', '2026-06-29 22:58:42.869112'),
+	(955, 17, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.869671', '2026-06-29 22:58:42.869671'),
+	(956, 5, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 22:58:42.870208', '2026-06-29 22:58:42.870208'),
+	(909, 2, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:16.259508', '2026-06-29 22:58:16.259508'),
+	(928, 2, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:24.047891', '2026-06-29 22:58:24.047891'),
+	(947, 2, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:42.863233', '2026-06-29 22:58:42.863233'),
+	(1078, 43, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.057604', '2026-07-04 04:02:34.057604'),
+	(958, 13, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.979176', '2026-06-29 23:07:12.979176'),
+	(960, 8, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.981172', '2026-06-29 23:07:12.981172'),
+	(961, 6, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.981958', '2026-06-29 23:07:12.981958'),
+	(962, 7, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.98274', '2026-06-29 23:07:12.98274'),
+	(963, 20, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.984058', '2026-06-29 23:07:12.984058'),
+	(964, 14, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.985138', '2026-06-29 23:07:12.985138'),
+	(965, 21, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 0, '2026-06-29 23:07:12.986024', '2026-06-29 23:07:12.986024'),
+	(967, 15, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.987707', '2026-06-29 23:07:12.987707'),
+	(953, 11, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:42.868231', '2026-06-29 22:58:42.868231'),
+	(949, 39, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-29 22:58:42.864736', '2026-06-29 22:58:42.864736'),
+	(957, 16, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 23:07:12.977915', '2026-06-29 23:07:12.977915'),
+	(970, 9, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.990432', '2026-06-29 23:07:12.990432'),
+	(971, 10, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.992404', '2026-06-29 23:07:12.992404'),
+	(921, 4, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:24.041256', '2026-06-29 22:58:24.041256'),
+	(973, 3, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.994189', '2026-06-29 23:07:12.994189'),
+	(974, 17, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.995178', '2026-06-29 23:07:12.995178'),
+	(975, 5, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-06-29 23:07:12.996037', '2026-06-29 23:07:12.996037'),
+	(966, 2, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281386369207?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 23:07:12.986932', '2026-06-29 23:07:12.986932'),
+	(976, 4, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-37', 1, '2026-06-29 23:13:49.58224', '2026-06-29 23:13:49.58224'),
+	(1079, 44, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.058372', '2026-07-04 04:02:34.058372'),
+	(865, 11, 'event', 'Absensi Jogging tanggal 28 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Jogging" di Summarecon - Ruby Commercial. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Jogging%22%20di%20Summarecon%20-%20Ruby%20Commercial.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-28 17:58:48.663664', '2026-06-28 17:58:48.663664'),
+	(879, 11, 'komentar_aktivitas', '💬 Dani mengomentari aktivitasmu', 'Maa Syaa Allah Rian✨️', '/riwayat.php#act-35', 1, '2026-06-29 00:28:59.163016', '2026-06-29 00:28:59.163016'),
+	(972, 11, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 23:07:12.993187', '2026-06-29 23:07:12.993187'),
+	(968, 39, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', '/', 1, '2026-06-29 23:07:12.98864', '2026-06-29 23:07:12.98864'),
+	(401, 16, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-26', 1, '2026-06-17 04:50:09.102147', '2026-06-17 04:50:09.102147'),
+	(402, 16, 'komentar_aktivitas', '💬 Firdam mengomentari aktivitasmu', '👍✨', '/riwayat.php#act-26', 1, '2026-06-17 04:51:00.077264', '2026-06-17 04:51:00.077264'),
+	(416, 16, 'event', 'Absensi Ping Pong tanggal 17 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-17 23:18:59.902451', '2026-06-17 23:18:59.902451'),
+	(498, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:02.072163', '2026-06-23 14:02:02.072163'),
+	(797, 16, 'event', 'Absensi Hiking tanggal 27 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Hiking" di Masjid Lembang - Jayagiri - Upas Hill. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Hiking%22%20di%20Masjid%20Lembang%20-%20Jayagiri%20-%20Upas%20Hill.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-26 17:52:48.494452', '2026-06-26 17:52:48.494452'),
+	(532, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 14:02:40.192377', '2026-06-23 14:02:40.192377'),
+	(648, 16, 'event', 'Absensi Badminton tanggal 23 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Mayasari.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-23 17:34:35.911648', '2026-06-23 17:34:35.911648'),
+	(690, 16, 'event', 'Absensi Ping Pong tanggal 24 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-24 23:04:38.290481', '2026-06-24 23:04:38.290481'),
+	(900, 16, 'event', 'Absensi Badminton tanggal 29 Jun 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Gaza. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Badminton%22%20di%20GOR%20Gaza.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-06-29 22:58:16.251289', '2026-06-29 22:58:16.251289'),
+	(977, 16, 'like_aktivitas', '❤️ Firdam menyukai aktivitasmu', 'Klik untuk melihat postinganmu di Riwayat Aktivitas Publik.', '/riwayat.php#act-39', 1, '2026-06-29 23:13:59.856311', '2026-06-29 23:13:59.856311'),
+	(1080, 45, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.058917', '2026-07-04 04:02:34.058917'),
+	(1081, 46, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.059453', '2026-07-04 04:02:34.059453'),
+	(1082, 47, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.06004', '2026-07-04 04:02:34.06004'),
+	(1083, 48, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.060606', '2026-07-04 04:02:34.060606'),
+	(981, 3, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281369248630?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:27.997231', '2026-07-01 17:22:27.997231'),
+	(983, 5, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289525429272?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:27.999709', '2026-07-01 17:22:27.999709'),
+	(984, 6, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282316481216?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.000775', '2026-07-01 17:22:28.000775'),
+	(985, 7, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285814120846?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.002101', '2026-07-01 17:22:28.002101'),
+	(986, 8, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282184381823?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.003179', '2026-07-01 17:22:28.003179'),
+	(987, 9, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6289502639933?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.00455', '2026-07-01 17:22:28.00455'),
+	(988, 10, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282320781890?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.005605', '2026-07-01 17:22:28.005605'),
+	(989, 11, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6285691767966?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.006698', '2026-07-01 17:22:28.006698'),
+	(990, 13, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223450704?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.007704', '2026-07-01 17:22:28.007704'),
+	(991, 14, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287854972839?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.008476', '2026-07-01 17:22:28.008476'),
+	(992, 15, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282117100115?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.009228', '2026-07-01 17:22:28.009228'),
+	(993, 16, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282118785024?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.009904', '2026-07-01 17:22:28.009904'),
+	(994, 17, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6282218532348?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.010601', '2026-07-01 17:22:28.010601'),
+	(995, 20, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6287822615464?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.011647', '2026-07-01 17:22:28.011647'),
+	(996, 21, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-01 17:22:28.012569', '2026-07-01 17:22:28.012569'),
+	(997, 38, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/6281223143020?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 0, '2026-07-01 17:22:28.013397', '2026-07-01 17:22:28.013397'),
+	(982, 4, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', 'https://wa.me/62895337148803?text=Absensi%20telah%20diinput%20admin%20untuk%20kegiatan%20%22Ping%20Pong%22%20di%20Flamboyan%20Pingpong.%20Cek%20riwayat%20kamu%20di%20aplikasi.', 1, '2026-07-01 17:22:27.998511', '2026-07-01 17:22:27.998511'),
+	(998, 39, 'event', 'Absensi Ping Pong tanggal 01 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Ping Pong" di Flamboyan Pingpong. Cek riwayat kamu di aplikasi.', '/', 1, '2026-07-01 17:22:28.014118', '2026-07-01 17:22:28.014118'),
+	(1084, 49, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.061194', '2026-07-04 04:02:34.061194'),
+	(1085, 50, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.061769', '2026-07-04 04:02:34.061769'),
+	(1086, 51, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.062449', '2026-07-04 04:02:34.062449'),
+	(1087, 52, 'event', 'Absensi Badminton tanggal 04 Jul 2026', 'Absensi telah diinput admin untuk kegiatan "Badminton" di GOR Mayasari. Cek riwayat kamu di aplikasi.', '/', 0, '2026-07-04 04:02:34.063005', '2026-07-04 04:02:34.063005');
 /*!40000 ALTER TABLE "notifications" ENABLE KEYS */;
+
+-- Dumping structure for table public.opini_viral
+CREATE TABLE IF NOT EXISTS "opini_viral" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''opini_viral_id_seq''::regclass)',
+	"judul" TEXT NOT NULL,
+	"sumber" TEXT NULL DEFAULT NULL,
+	"url" TEXT NULL DEFAULT NULL,
+	"ringkasan" TEXT NULL DEFAULT NULL,
+	"sentimen" VARCHAR(10) NOT NULL DEFAULT 'netral',
+	"skor" NUMERIC(5,2) NULL DEFAULT '0',
+	"kategori" TEXT NULL DEFAULT NULL,
+	"fetched_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"komentar" TEXT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	INDEX "idx_opini_fetched" ("fetched_at"),
+	CONSTRAINT "opini_viral_sentimen_check" CHECK (((sentimen)::text = ANY ((ARRAY['rendah'::character varying, 'netral'::character varying, 'tinggi'::character varying])::text[])))
+);
+
+-- Dumping data for table public.opini_viral: 84 rows
+/*!40000 ALTER TABLE "opini_viral" DISABLE KEYS */;
+INSERT INTO "opini_viral" ("id", "judul", "sumber", "url", "ringkasan", "sentimen", "skor", "kategori", "fetched_at", "komentar") VALUES
+	(1249, 'Pengacara Pastikan Jokowi Akan Hadiri Sidang dr Tifa: Siap Tunjukkan Ijazah - detikNews', 'detikNews', 'https://news.google.com/rss/articles/CBMitAFBVV95cUxPRjl3RmN5Q3lSTlZFdUxJQ3prZjFoeVNZcUliQ2RFdC1PSHVxLXA0Z2U3d0VKWDF6c281aUkwQW5DaW9BU2dlWi15NkxLRFBDeHg4a2pPM3kxUjF5MU41X21GTE5vbVNqeEJ3ZWhVWkFLNEc4RWd4TU9fbUc3bzRSWEVra002MGVLZFd2c3AxQ21US2VTeE5nQWtlbUM5TXBtRUt2Q25STlpOZnBfRGJIdVh2Yk7SAboBQVVfeXFMTi1KQXNwYWd2eVEwRTl2RHNPcXVLalR2ekphM3JrTldKOEVYRVFvc3BtNVprOWlZWDl5RnlMRFFfektqNy03cHJ2SmM0dHZhWEZaUGZfNTh2TlJmSHJhel9oWDh2OC1PV0FnbXVBSGpZVkNTYjhXRUlsNTFDa1J4YlRNS3BkNGo3N1VEbnFqUTFrc3UyQUQyRGRjbFRvdWJ', 'Pengacara Pastikan Jokowi Akan Hadiri Sidang dr Tifa: Siap Tunjukkan Ijazah&nbsp;&nbsp;detikNewsMediasi Gugatan "Deadlock", Kuasa Hukum Tolak Tunjukkan Ijazah Jokowi&nbsp;&nbsp;Kompas.comPakar Hukum Tegaskan Karya Jurnalistik Tak Bisa Dijadikan Barang Bukti Persidangan Dokter Tifa&nbsp;&nbsp;SINDOnews NasionalDokter Tifa Tolak Restorative Justice Terkait Kasus Dugaan Ijazah Palsu Jokowi&nbsp;&nbsp;SumutPosKomisi Informasi Jateng Cek Fisik Salinan Ijazah Jokowi di Dispersip Solo&nbsp;&nbsp;Suara.com', 'netral', 0.00, 'Berita Umum', '2026-07-03 06:07:34.868817', '["Pengacara Pastikan Jokowi Akan Hadiri Sidang dr Tifa: Siap Tunjukkan Ijazah&nbsp;&nbsp;detikNewsMediasi Gugatan \"Deadlock\", Kuasa Hukum Tolak Tunjukkan Ijazah Jokowi&nbsp;&nbsp;Kompas.comPakar Hukum Tegaskan Karya Jurnalistik Tak Bisa Dijad"]'),
+	(1250, 'Hujan Rudal Rusia Hantam Ukraina! Mayat Bergelimpangan, Jet NATO Siaga - CNBC Indonesia', 'CNBC Indonesia', 'https://news.google.com/rss/articles/CBMixgFBVV95cUxOMzMtckZOX3NlT1NXeF8tY3FFTjRXWUF0ZHUxM2NSeE95eTQ5R2JEYmxuMXNuYkNFWjN6XzhRNUJ1YnZmSzl4MGxDSDhEb3pnQV9zNU9yZlpOR2V3TnNaZGUwdHpHQ3VybUdYTnRzc2dCRXQ4c0gtY0hsU2M5RWZVSTJUV2Y0b0hmRWxlNlY4R1llcGtRUlJKeGVxWHY2WDBlQ01YUVhzVk1kVDVqWTlhVGZyb3pOZ1lSaW50dWZKLTdUUDRHalHSAcsBQVVfeXFMUGsydkZNT3lzMlpwVWdSSFd0UkZ6SkVPSUY3QjJXWXZiNWRwZS1MN3c5SldTNXE2d0ZDT2tzLTY1VVZ4dk82TU5fcjNCUVdHVmpGcTBFM0VPa1h5Y21ObjlvX2d6M0ZtQXh1YWI2c3VZdjJENmhTZzh2cmxKbnBud0lhWVMtU19NY3Njb0l', 'Hujan Rudal Rusia Hantam Ukraina! Mayat Bergelimpangan, Jet NATO Siaga&nbsp;&nbsp;CNBC IndonesiaFOTO: Puluhan Rudal Balistik Rusia Menghujani Ukraina&nbsp;&nbsp;CNN IndonesiaPenampakan 5 SPBU Hancur Berantakan Sisa Kerangka Kena Serangan Drone&nbsp;&nbsp;CNBC IndonesiaBalas Serangan Ukraina, Rusia Ngamuk , Hujani Kiev dengan Rudal dan Drone&nbsp;&nbsp;republika.co.idZelenskyy Baru Peringatkan Putin Akan Lakukan Serangan Besar ke Ukraina, Ledakan Besar Goncang Kyiv&nbsp;&nbsp;Kompas.tv', 'netral', 0.00, 'Berita Umum', '2026-07-03 06:07:35.032618', '["Hujan Rudal Rusia Hantam Ukraina!","Mayat Bergelimpangan, Jet NATO Siaga&nbsp;&nbsp;CNBC IndonesiaFOTO: Puluhan Rudal Balistik Rusia Menghujani Ukraina&nbsp;&nbsp;CNN IndonesiaPenampakan 5 SPBU Hancur Berantakan Sisa Kerangka Kena Serangan Drone&nbsp;&nbsp;CNBC IndonesiaBalas"]'),
+	(1251, 'Dihantam Gelombang Panas, Kenapa Rumah Orang Eropa Jarang Pakai AC? - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMiygFBVV95cUxONHZMSXlRRTV5NW5CZDVUZnhxeWFRemlxX1RNRjNEajd6VjVOQnZPcndtalhSUTQyTXRRZHh0Nm5EVWxvaVZPMnk0TEdKWnhMMUdtUjNpdkNyNUgwSFZzLXFKQmcxYm1qMzNzYUwyX3BJSTVpQnRxS2U4NURyekZoektOcFdjRHBDaFpmUnJLU3h5SElOVm0xTWVDaV9sbzFjRkR1bVVSM3NVMFhlSkNIZmw1VFlNZzFIMDUybFJmNzdQS2JkOFlXUGhB?oc=5', 'Dihantam Gelombang Panas, Kenapa Rumah Orang Eropa Jarang Pakai AC?&nbsp;&nbsp;Kompas.comBMKG Beberkan Alasan RI Tak Alami Gelombang Panas Seperti di Eropa&nbsp;&nbsp;detikHealthEropa Terbakar Gelombang Panas Mematikan, Alarm untuk Indonesia&nbsp;&nbsp;Kompas.idFenomena Ajaib Paris Kini Lebih Panas dari Mekah, Ini Penyebabnya&nbsp;&nbsp;CNBC IndonesiaSebanyak 1.028 orang tewas akibat gelombang panas di Spanyol&nbsp;&nbsp;ANTARA News Bali', 'rendah', -1.00, 'Berita Umum', '2026-07-03 06:07:35.21381', '["Dihantam Gelombang Panas, Kenapa Rumah Orang Eropa Jarang Pakai AC?&nbsp;&nbsp;Kompas.comBMKG Beberkan Alasan RI Tak Alami Gelombang Panas Seperti di Eropa&nbsp;&nbsp;detikHealthEropa Terbakar Gelombang Panas Mematikan, Alarm untuk Indonesi"]'),
+	(1252, 'Kejagung Tetapkan Brigjen Lalu Muhammad Iwan Tersangka Korupsi MBG - CNN Indonesia', 'CNN Indonesia', 'https://news.google.com/rss/articles/CBMiygFBVV95cUxOLTlqR1JIWVdFTWVWMURCaVdzNldoMDNycWFEZDBwMjhnemUzVloyNEV1TVIzUUlGdVI3V3lGaUNjYVlhUjJITDgzNzhITnBmdEpUS0xiM21iTkg0WTE0TU0tMENqNnhsZTZESmNGaFIxdl9CbDBmMTRkMGFyWGhLalIzVW1NdzJZX3JXc0NrSjMwVHR1ZGFURTNMRUN2TTFQdDFmWDUxQjZrdEdBMFJzRWFZOUNZaVNzVk52MXlMSjU3NVpvZzdFSk530gHPAUFVX3lxTE5JM016Y3UyQ1ZaTV9oVVNYUWQzWVZLdkJEZ09QM3N0dkZsS2lmcXlFOUdlLTZSdGZZcUNxYVVJaFRpRHZERmE0Z1V6VEhYVG03MWIwamdIbXM1bFA2a1JONno2Qy05VDNlWkZwZDlnSmNHejYwdG9TRWxfS1IycmVBTThuNHhEMEN', 'Kejagung Tetapkan Brigjen Lalu Muhammad Iwan Tersangka Korupsi MBG&nbsp;&nbsp;CNN IndonesiaAnggota TNI-Polri Aktif dalam Pusaran Kasus MBG&nbsp;&nbsp;Kompas.comKejagung Ungkap Keterlibatan Perwira Polisi dan TNI dalam Lingkaran Korupsi MBG&nbsp;&nbsp;Kompas.idRespons Kejagung soal Lodewyk Pusung Ajukan Praperadilan di Kasus MBG&nbsp;&nbsp;detikNewsAparat Aktif Terlibat Dugaan Korupsi MBG&nbsp;&nbsp;Epaper Media Indonesia', 'rendah', -1.00, 'Berita Umum', '2026-07-03 06:07:35.384805', '["Kejagung Tetapkan Brigjen Lalu Muhammad Iwan Tersangka Korupsi MBG&nbsp;&nbsp;CNN IndonesiaAnggota TNI-Polri Aktif dalam Pusaran Kasus MBG&nbsp;&nbsp;Kompas.comKejagung Ungkap Keterlibatan Perwira Polisi dan TNI dalam Lingkaran Korupsi MBG&"]'),
+	(1253, 'Presiden Lukashenko Sambut Rencana RI Buka KBRI dan Direct Flight ke Belarus - detikNews', 'detikNews', 'https://news.google.com/rss/articles/CBMitwFBVV95cUxOYXZ3VzZ1YU9YNEtGX3hyQjFkb0w0TzB0UXVfUWtwR0ZaMHlXSzFhRTdRbHFPYjZJM0pNRU1sQS1UV0hTRWRHMGV6Zk5yMjhkd3RFcVVVOWs3RDZLQkplTlZxUDZFTkpXNlpWVDFPazZFRHhQYU9MMnphak03OW1hNTV5M1NKNWZkamNJb1BjSDFPajNGYS00Nlhmc2lQRHNlUUluYlh3OHROSEJkREJJYTQ4Tk1LOHfSAbwBQVVfeXFMTWdzLTFmT0R0WjN2THgzRlhmTW5wck1hZ0ZLNWdQU2xuanNjV21TdFFMOWduUUlwSUF4RG1RNEZ1YU5OS2x3VjFTLVVvQVBZUFdsdXhmZlZRY2JkNnh2RFFvZy01aEZ1X1ozRmlfY0tBRGRiTndPVlJTRXEydjFhWWVsbVNQLUdWUFZSRmp3WGdmNm9NWnpEQkduVXl', 'Presiden Lukashenko Sambut Rencana RI Buka KBRI dan Direct Flight ke Belarus&nbsp;&nbsp;detikNewsPresiden Prabowo: Kunjungan Kenegaraan Belarus Pererat Hubungan Persahabatan&nbsp;&nbsp;Tribrata NewsDisaksikan Prabowo-Lukashenko, Indonesia dan Belarus Sepakati 7 Kerja Sama&nbsp;&nbsp;Kompas.comPotret Sahabat Putin Temui Prabowo, Bahas Kerja Sama di Istana&nbsp;&nbsp;CNBC IndonesiaBuka Kran Impor Baru, Belarus Siap Pasok Daging dan Susu ke Indonesia&nbsp;&nbsp;CNN Indonesia', 'tinggi', 1.00, 'Berita Umum', '2026-07-03 06:07:35.564948', '["Presiden Lukashenko Sambut Rencana RI Buka KBRI dan Direct Flight ke Belarus&nbsp;&nbsp;detikNewsPresiden Prabowo: Kunjungan Kenegaraan Belarus Pererat Hubungan Persahabatan&nbsp;&nbsp;Tribrata NewsDisaksikan Prabowo-Lukashenko, Indonesia d"]'),
+	(1254, 'Kejagung Resmi Ajukan Banding atas Vonis Nadiem di Kasus Chromebook - detikNews', 'detikNews', 'https://news.google.com/rss/articles/CBMiqwFBVV95cUxOQ21HOXkzM0RSRWI4TjRBSGFmWDRpTjdqNk5KSXB3cjhDUnF4S1ZzdzRNUHhpNlNoZTVIZmcxb1kyeWNKT1UxdDg3Q09ZdEtleElZb3N3b0RDX1c3dUl1ZWFQcmdvRENkZTNBUUoycUduTUc1czdsanhxak44ZWlXWm8zRVFERGw4V2JuMzd3cUJMQTF0U1RwdHQ4UDc4TVVTUmNsMV9YZWtTUmPSAbABQVVfeXFMTUNYQlBYbnpiQnJqeGxkSkFFdTMzZC1NZ3pGSFpxUVZ4d1pjRlQ3OUo2cXNBRElRWEwwc0JlaEo4TzBBZWZpZnFWSF9PVE9HLWxiZ3FyRlJHSTJvdnNURmQ5YndXWE9fRjM2VHZ5YzNScW5OVFNCWk9POUMxcGdJV0tRV0dsN0FsNGd3amxsLVlJYUhVUm5wM2pnckx1OEVJNzhENHV0MHB', 'Kejagung Resmi Ajukan Banding atas Vonis Nadiem di Kasus Chromebook&nbsp;&nbsp;detikNewsTanda Tanya Keberadaan Buronan Jurist Tan Usai Vonis Nadiem Makarim&nbsp;&nbsp;Kompas.computusan majelis hakim terhadap terdakwa nadiem makarim perka ...&nbsp;&nbsp;Kejaksaan AgungHotman Beberkan Kesalahan Nadiem di Sidang, Sebut tak Berguna Menangis, Jaksa di Atas Angin&nbsp;&nbsp;republika.co.idDivonis 10 Tahun, Akankah Nadiem Dapat Amnesti dari Prabowo?&nbsp;&nbsp;Suara.com', 'tinggi', 1.00, 'Berita Umum', '2026-07-03 06:07:35.724044', '["Kejagung Resmi Ajukan Banding atas Vonis Nadiem di Kasus Chromebook&nbsp;&nbsp;detikNewsTanda Tanya Keberadaan Buronan Jurist Tan Usai Vonis Nadiem Makarim&nbsp;&nbsp;Kompas.computusan majelis hakim terhadap terdakwa nadiem makarim perka .."]'),
+	(1255, 'Pajak E-Commerce mulai Berlaku 1 Juli 2026, Ini Ketentuan dan Skemanya - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMizAFBVV95cUxPOTNqOHE4aGQ1TENvN0MtUmdySHAtVlQyNXYwaURwQkdOdjdJOGM2OWU1VjI0Umc5amFuQlFadE9nV3ppWFlfWTFmZlBsS2FLdExsRk0xZk5qM2Jidkoxell6RGswOGZRQ1hvM0d4RmFUNC11Q25pRWtjUUE5andLa0d5aERxd0FidEhWRGhqTXdxTFRVZ1RqeDdlQnZSWS1lOWxkbkNNU2tDc190QzlheTUtX1FDMGp1TmlHQmNQODdiMEt4UW9qM0dPekM?oc=5', 'Pajak E-Commerce mulai Berlaku 1 Juli 2026, Ini Ketentuan dan Skemanya&nbsp;&nbsp;Kompas.comIni Kriteria Pedagang Online yang Pajaknya Tidak Dipungut Marketplace&nbsp;&nbsp;CNBC IndonesiaPedagang Online Jualan di Banyak Marketplace Tak Kena Pajak Berganda&nbsp;&nbsp;CNN IndonesiaPurbaya Akan Tambah Perusahaan Pemungut Pajak Toko Online di Ecommerce&nbsp;&nbsp;Suara.comMemahami Pemungutan PPh Pasal 22 oleh Marketplace (Bagian 1)&nbsp;&nbsp;DDTCNews', 'netral', 0.00, 'Berita Umum', '2026-07-03 06:07:35.726195', '["Pajak E-Commerce mulai Berlaku 1 Juli 2026, Ini Ketentuan dan Skemanya&nbsp;&nbsp;Kompas.comIni Kriteria Pedagang Online yang Pajaknya Tidak Dipungut Marketplace&nbsp;&nbsp;CNBC IndonesiaPedagang Online Jualan di Banyak Marketplace Tak Kena"]'),
+	(1256, 'Menkeu Purbaya Tolak IKN Jadi Pusat Finansial Internasional: Tempatnya Terlalu Sepi - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMivwFBVV95cUxPeUVVYmR5d3I3cDZ0Z0x1amFDSUU0MVFQQ1BZY0VqcmpFWHFmVWJ5MlAtd2tFOTczcmJMaGUtMHQydGc2Tk1WVGNqdHJaUDRUWGdPOEhUTW5OalpZZTNyYVR5NXNRTW1JVENvVGM0WnRxeDdRZzRqYUhYVlhKVDgtamJTQ0lkVXlhYlR4RjZMclpGUHQ5VGZDMWhRbzVnV01RNk1WTlJiV1dVUWppRHJVNE5VdWphd241WDBoY28tUQ?oc=5', 'Menkeu Purbaya Tolak IKN Jadi Pusat Finansial Internasional: Tempatnya Terlalu Sepi&nbsp;&nbsp;Kompas.comPayung Hukum Pendirian Pusat Keuangan Global RI Dikebut&nbsp;&nbsp;Kompas.idRI Jadi Pusat Finansial, Insentif Dis&nbsp;&nbsp;Epaper Media IndonesiaMenkeu ungkap dana investasi di Pusat Finansial bisa biayai proyek Danantara&nbsp;&nbsp;ANTARA News BaliTiru Abu Dhabi, Purbaya Siapkan Skema Pajak Khusus di PFII&nbsp;&nbsp;CNBC Indonesia', 'netral', 0.00, 'Berita Umum', '2026-07-03 06:07:35.728503', '["Menkeu Purbaya Tolak IKN Jadi Pusat Finansial Internasional: Tempatnya Terlalu Sepi&nbsp;&nbsp;Kompas.comPayung Hukum Pendirian Pusat Keuangan Global RI Dikebut&nbsp;&nbsp;Kompas.idRI Jadi Pusat Finansial, Insentif Dis&nbsp;&nbsp;Epaper Med"]'),
+	(1257, 'Saat Prabowo dan Jokowi Saling Beri Hormat - detikNews', 'detikNews', 'https://news.google.com/rss/articles/CBMiigFBVV95cUxPV2lzZEp0VkFJcEFLWnZEdHp6cFhRQUFVMU4weThSVV9nNFpneFJxNkY3QW5pLWRDOHdBbkxaaDZFMFV6Tk5KalpWdHVHTnpIdmpXdDBmUm4yWEU5M0UzOThwTnhHdmNzUElyMHZ5SDd1RnlDa2diOGV2UUt3ZERhQ3FNS2xBcmlNUkHSAY8BQVVfeXFMTnRTb1FQY243d0FpZWpSMk16NXpLWlduZm9WWS0zT1RsNDA4Ym5oT29vODBaaW5BNDV1bU9ZQ0cteEI2NVRSRG13TU0ta2g0cHVHUEM0dmlsQnFGRWVxVzhGbWJSYlIwTkpCa2RsbXBEeFZ0M0JUR2VsSFhyRzdTYm15N2xzQ1hSbk94cmlpd28?oc=5', 'Saat Prabowo dan Jokowi Saling Beri Hormat&nbsp;&nbsp;detikNewsDitbinmas Polda Sulteng Berbagi Sembako untuk Warga dalam Peringatan Hari Bhayangkara ke-80&nbsp;&nbsp;Website Resmi PolriBaik Hati pada Polri, Tak Acuh pada Korban Sipil&nbsp;&nbsp;Kompas.comMahkamah Agung Republik Indonesia&nbsp;&nbsp;Mahkamah AgungPresiden Prabowo Tinjau Pameran Bhayangkara, Tegaskan Kemandirian Industri Keamanan sebagai Pilar Kedaulatan Nasional&nbsp;&nbsp;Presiden RI', 'netral', 0.00, 'Berita Umum', '2026-07-03 06:07:35.731708', '["Saat Prabowo dan Jokowi Saling Beri Hormat&nbsp;&nbsp;detikNewsDitbinmas Polda Sulteng Berbagi Sembako untuk Warga dalam Peringatan Hari Bhayangkara ke-80&nbsp;&nbsp;Website Resmi PolriBaik Hati pada Polri, Tak Acuh pada Korban Sipil&nbsp;&"]'),
+	(1258, 'Paripurna DPR Sepakati Hasil Pembahasan RAPBN 2027, Ini Isinya - detikFinance', 'detikFinance', 'https://news.google.com/rss/articles/CBMiuwFBVV95cUxOQWFmU3dUQmE5dko4YjA1X2JiV0ZwMGc1T25sNXdhcFJmZ0hYTS12Z2ptRXZsYlk0b1FZbzlCNVJNZUo1RXJvakJXV2xqVEdXdFBCclM2M2w0Q2VWWl9HVEstb3ZRVzc2NzRwZGs1My1pQ1cyX3I2eHRkdUdZMy1hWGlJRWhsSnBYZ0lNeGNSczY3eHdHYUZJQVRKUUVYRWFOdnMtVmQ4M1dZWG1iZEpVTmt1NVBvcDROZ3ZF0gHAAUFVX3lxTE5RaUZyYVNSZUZTYXVWZUFfZFhKZTdRNnJnVmlnZy0yeVJ5eHAtMFZKVG1IeDdSOXM0MmhyZ1gtcjB6SlZNUXNlWTlyMEw4djdLMi1xQW5NWlBBeUIxZ0oyVDk0QjhSMEFzUThWQ2VMTVBJbTk0N09CbHFnTWxaSkp6OUV6RlVrSnA2QkRudTZIZG1RUFp5VGl', 'Paripurna DPR Sepakati Hasil Pembahasan RAPBN 2027, Ini Isinya&nbsp;&nbsp;detikFinancePurbaya seleksi usulan tambahan anggaran K/L Rp984 triliun&nbsp;&nbsp;ANTARA NewsKementerian Minta Tambahan Rp 984 T untuk 2027, Purbaya: Enggak Semua Akan Dipenuhi&nbsp;&nbsp;Kompas.comAPBN 2027: Alat Kerek Pendapatan Warga RI Jadi Rp8,03 Juta per Bulan&nbsp;&nbsp;CNBC IndonesiaPurbaya Tegaskan Tak Akan Obral Anggaran Rp984 T untuk Semua Instansi&nbsp;&nbsp;CNN Indonesia', 'tinggi', 1.00, 'Berita Umum', '2026-07-03 06:07:35.735085', '["Paripurna DPR Sepakati Hasil Pembahasan RAPBN 2027, Ini Isinya&nbsp;&nbsp;detikFinancePurbaya seleksi usulan tambahan anggaran K\/L Rp984 triliun&nbsp;&nbsp;ANTARA NewsKementerian Minta Tambahan Rp 984 T untuk 2027, Purbaya: Enggak Semua Aka"]'),
+	(1259, 'Perundingan AS-Iran Dilanjutkan Usai Pemakaman Pemimpin Tertinggi - detikNews', 'detikNews', 'https://news.google.com/rss/articles/CBMiowFBVV95cUxPOTNLWWVCR2pBbktJR3JZLXZPb1l6WGVkTGp5RDNEWW5DYTNNQm5UUXl2NXkyY0ZJUGszOG4tOWNvVWh0NldiZzBHVlh4SjhoSDNqS3NweHk3TGpQSHRFd1hvSXA3blhteTZMd0xjSFdBSXM2ZFpuQVlJX1Z0NUdmeldYQ2hsSE91b01HaGs0cTBrdHQzUC0zZV84Y3c5VHJyaVZF0gGoAUFVX3lxTFBXanFQYmlsVDVRRGZLYUNMYWt0UTRJYjAzbC1TZUhMSEVFaHB3cjktV2VGSHh2Yjd0YzNnYkU2RUlYdjU3cVROa2Z6allIdzJsWERYc0VjdGhXOEFFX29JVXk4NXpmQmdZYnpYTEU2VmRteU1QWEdTN1FTcVRjT3JXOTlvMWVja0NaMElRWUdfV1FZRUx3eFB4YWJOUC1BUmtwcEhNVjg3Sg?oc=5', 'Perundingan AS-Iran Dilanjutkan Usai Pemakaman Pemimpin Tertinggi&nbsp;&nbsp;detikNewsNegosiasi Iran-AS di Qatar Selesai, Apa Hasilnya?&nbsp;&nbsp;detikNewsPerundingan Belum Boleh Gagal&nbsp;&nbsp;Kompas.idNegosiasi Delegasi AS dan Iran di Qatar Rampung, Apa Hasilnya?&nbsp;&nbsp;CNN IndonesiaPerang Hari ke-125: AS dan Iran Mulai Berdamai, Israel Malah Bikin Situasi Memanas?&nbsp;&nbsp;Kompas.com', 'rendah', -1.00, 'Berita Umum', '2026-07-03 06:07:35.73864', '["Perundingan AS-Iran Dilanjutkan Usai Pemakaman Pemimpin Tertinggi&nbsp;&nbsp;detikNewsNegosiasi Iran-AS di Qatar Selesai, Apa Hasilnya?&nbsp;&nbsp;detikNewsPerundingan Belum Boleh Gagal&nbsp;&nbsp;Kompas.idNegosiasi Delegasi AS dan Iran di "]'),
+	(1260, 'Cincin Api Pasifik Bergejolak, Rentetan Gempa Kuat Guncang Dunia - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMixgFBVV95cUxQOVRGZHc4Q2RMS21RRmF2Smh2N0Y0ZmRHcWxjbzRpbDhfbXpPc2dTODlFMDAtNS1ma3daa0JHMnJabEFJV1c0SGVlbkdNOEFZMEY1a3lpYVc3b2xveEdYNDJodWdIZ0tkNksxdnhLdjFoSGJhZ3JIZUdVRXZ6SEE5Y1lFTWpmN2JhOGdWWUxhQWJMRGtBa0tROUNHTEFrVzhGMmpqZHZBekFDTFhBUERVRzhMVTl0SnFTZXBfMjhfc2tCLXR2Rmc?oc=5', 'Cincin Api Pasifik Bergejolak, Rentetan Gempa Kuat Guncang Dunia&nbsp;&nbsp;Kompas.comGempa Kembar Venezuela, Gubernur Mualem Sampaikan Belasungkawa Mendalam&nbsp;&nbsp;Pemerintahan AcehTangan-tangan Penjemput Keajaiban di Bawah Reruntuhan&nbsp;&nbsp;Kompas.idLebih dari 6.400 orang diselamatkan pasca-gempa di Venezuela&nbsp;&nbsp;ANTARA News SultengAS Kirim 2.000 Personel Militer ke Venezuela Usai Gempa Kembar&nbsp;&nbsp;detikNews', 'rendah', -1.00, 'Berita Umum', '2026-07-03 06:07:35.742128', '["Cincin Api Pasifik Bergejolak, Rentetan Gempa Kuat Guncang Dunia&nbsp;&nbsp;Kompas.comGempa Kembar Venezuela, Gubernur Mualem Sampaikan Belasungkawa Mendalam&nbsp;&nbsp;Pemerintahan AcehTangan-tangan Penjemput Keajaiban di Bawah Reruntuhan&"]'),
+	(1261, 'Jokowi Safari bersama PSI, Puan Ingatkan Soal Jaga Situasi Tetap Kondusif - Kompas.id', 'Kompas.id', 'https://news.google.com/rss/articles/CBMipAFBVV95cUxPcUVtRExCdG1Ub2RXcXlIVjNidXdYeHl0Sk96Ny1BVUZEUGl6SFE4VFhoNDhaVDNsUW9CdldPQVJ4aHMwUjNQY0dSV0ZZRmVlczA3UG9hX25aaTQ0WnVpbkRHMXAzYnBxR2FPUGlmNk5LckhuRXVPSzktOGlqckhheWtoaTQ1cFVPblNpM2lyRlpZOXl4Z0FOMHFsS0I1T1hya283Ug?oc=5', 'Jokowi Safari bersama PSI, Puan Ingatkan Soal Jaga Situasi Tetap Kondusif&nbsp;&nbsp;Kompas.id', 'netral', 0.00, 'Politik', '2026-07-03 06:07:36.455882', '["Jokowi Safari bersama PSI, Puan Ingatkan Soal Jaga Situasi Tetap Kondusif&nbsp;&nbsp;Kompas.id"]'),
+	(1262, 'Hadapi Geopolitik yang Dinamis, Presiden Prabowo Perkuat Politik Nonblok Indonesia - Kementerian Sekretariat Negara', 'Kementerian Sekretariat Negara', 'https://news.google.com/rss/articles/CBMiswFBVV95cUxQYmxTa3gtMHBTOVFrajczX28zZ1ZtSW42UzB4SFBoUmhrdmhDdUtjOTNZMkU3ckZ3djZYX05rZlR6cHJBeDJFemJKbjJnTmlidDdtc245VEpKc0lLR3g4UW5GN2NYX19IanVBbEYwSnlWU2Nkams5TkxXRTR4bGo2a2V5VkV6eUp6MjltNDVmZXl5cWcxRDdtXzB4VWdlb0NsX1pqdWJiSGJ4eUFxSDVnOTN5SQ?oc=5', 'Hadapi Geopolitik yang Dinamis, Presiden Prabowo Perkuat Politik Nonblok Indonesia&nbsp;&nbsp;Kementerian Sekretariat Negara', 'netral', 0.00, 'Politik', '2026-07-03 06:07:36.649388', '["Hadapi Geopolitik yang Dinamis, Presiden Prabowo Perkuat Politik Nonblok Indonesia&nbsp;&nbsp;Kementerian Sekretariat Negara"]'),
+	(1263, 'Jokowi mungkin sudah pensiun, tapi tidak dengan ambisi politiknya - CNA.id', 'CNA.id', 'https://news.google.com/rss/articles/CBMif0FVX3lxTE1qX3F6TWhFWkVxVGNnWVlsSTRvbXNoWnJfanU2YlVkTFIwWHZKOUJHS3o1SzhYd29mVGtkYkRYZHU2SDlmeGk1cEZYQjJLMXpNejk2MGJDN2RYU3VfQWFPSWFtM2w3MTM1amxCTDd3ejZRZTNZY29ob2MxXzFSR28?oc=5', 'Jokowi mungkin sudah pensiun, tapi tidak dengan ambisi politiknya&nbsp;&nbsp;CNA.id', 'netral', 0.00, 'Politik', '2026-07-03 06:07:36.805949', '["Jokowi mungkin sudah pensiun, tapi tidak dengan ambisi politiknya&nbsp;&nbsp;CNA.id"]'),
+	(1264, 'Kartelisasi Partai Politik di Indonesia Pasca Pemilu - Kampung Gusdurian', 'Kampung Gusdurian', 'https://news.google.com/rss/articles/CBMijwFBVV95cUxOWDVNRmZSUUFYSGtkSGtOMFF2TWNzc3dlT1BZV0FUeTd0TjE3a0lHX1RoMXA2bi05Z3VBRXpOdE5GRjZJRDc4ajJDajFBeTIteFhCazVoYWlGNlI1Z21lZzAwWUFqY2hRRFhRVzJzd05mQXdHUU5FdmkwVGs3b2JJcTl1YWotN1RqaHZCY2p5Yw?oc=5', 'Kartelisasi Partai Politik di Indonesia Pasca Pemilu&nbsp;&nbsp;Kampung Gusdurian', 'netral', 0.00, 'Politik', '2026-07-03 06:07:36.964377', '["Kartelisasi Partai Politik di Indonesia Pasca Pemilu&nbsp;&nbsp;Kampung Gusdurian"]'),
+	(1265, 'Momentum HANI dan HUT Bhayangkara, Direktur Rumah Politik Indonesia: Keberhasilan BNN Selamatkan Jutaan Anak Bangsa dari Ancaman Narkoba - Koma.id', 'Koma.id', 'https://news.google.com/rss/articles/CBMi9AFBVV95cUxPQkhnbkxaUU9Ycm9lVGEyZGFJbDlzWFdQOE13VkJJUER2dWdOSktZbFdyV1dpZGJYZmZBTFlDRklaOEpldjhWalppdVZELUVmWDRpSC14aDFKelVNamYzMmNIS2hETm05T2pMeXN1N3hBY1pGbklod0FyUmtzdmJfaS1uYTNMMW1yWGR2cWdfYzNqLXF0NVBOS0FfQjBPTzNfNjJ0ZTE1cjhfTmlVVnRsUlVpZ2Z4alRTV0VvT2t6UzQwU2xRbGczdnlwYzh6Z3hPTGd6eFJBZkw2X0FnUXIwN3hqOGc5R1ZubEIxTllFczFmOWEx?oc=5', 'Momentum HANI dan HUT Bhayangkara, Direktur Rumah Politik Indonesia: Keberhasilan BNN Selamatkan Jutaan Anak Bangsa dari Ancaman Narkoba&nbsp;&nbsp;Koma.id', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.121577', '["Momentum HANI dan HUT Bhayangkara, Direktur Rumah Politik Indonesia: Keberhasilan BNN Selamatkan Jutaan Anak Bangsa dari Ancaman Narkoba&nbsp;&nbsp;Koma.id"]'),
+	(1266, 'Video: Prabowo: Hukum Tidak Boleh Jadi Alat Balas Dendam Politik - CNBC Indonesia', 'CNBC Indonesia', 'https://news.google.com/rss/articles/CBMivgFBVV95cUxOQ3l6THFzWjNnc0tlWDRyLVAzS2FIbno0Z3VlUTdvc3dvZmJtY0R0VWFKVUV1QU0tZG05MmhYaGpoM014S0NNanBFS2dlNEZVczhIaFVHdmhFQkE0NVNkX1RCZlZyWDNKeEZnMmIzamxXbVNmNDNXelRKUWpUSlJfejVIM1YtU0dpWGpLdHVka0RfU1FKaHlNZTZIS2E4dHdHa2ZsYncwVkFncVZ1N0RaZlk1SkF4WU9vN2FaRVN3?oc=5', 'Video: Prabowo: Hukum Tidak Boleh Jadi Alat Balas Dendam Politik&nbsp;&nbsp;CNBC Indonesia', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.286362', '["Video: Prabowo: Hukum Tidak Boleh Jadi Alat Balas Dendam Politik&nbsp;&nbsp;CNBC Indonesia"]'),
+	(1267, 'Ini 35 Kode Redeem FF 1 Terbaru 1 Juli 2026, Bisa Klaim Reward Spesial - politikindonesia.id', 'politikindonesia.id', 'https://news.google.com/rss/articles/CBMiowFBVV95cUxOSEx1NVM4X190R2RNRzhCTV9XZnJNZE10REotVjVpZ0U5OWo5dnIwN1ByUnBYVWpzZ2l6NGZZTlZUemNVcVFLM3BTM3ZCelhSSS05N0NhcVZnYzZRSUhVQ2xQR19LbW9kaU5fMGZVNW9SWDBNdGhLVE9VWHBCOGV6RFRVUnNXN3M5NFNKOFVneWFJdGgteE1NRm5JYjhMSUNSc2FB?oc=5', 'Ini 35 Kode Redeem FF 1 Terbaru 1 Juli 2026, Bisa Klaim Reward Spesial&nbsp;&nbsp;politikindonesia.id', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.287257', '["Ini 35 Kode Redeem FF 1 Terbaru 1 Juli 2026, Bisa Klaim Reward Spesial&nbsp;&nbsp;politikindonesia.id"]'),
+	(1268, 'Biaya Politik Jadi Sorotan, Riset Ungkap Akar Politik Uang di Indonesia - Pikiran Rakyat Koran', 'Pikiran Rakyat Koran', 'https://news.google.com/rss/articles/CBMiyAFBVV95cUxNcW5DX1BGU2hnN2haVzl5QWlkcUdBbUkxSWF2R1lSc1ZPRXpEd1ZjT3A3OFozM0s0ZUJQbFBkSllGWHpxR3lJT1dYcEhHRFFnanNFMFUwU0xvbXFuS1p4S0Nyb1loMS1iNkttNERSYlVibmN5dmJ2OWY3d1hHODdpeUFJcXo4aVpjVFdWV0pvaFhob1ZDc2hERVpreEd3OXVqcURkWkFoUmZnVUwwTjEzOGhDenluMy1ndjBFNFc3R3ZOaUxPcUVtVA?oc=5', 'Biaya Politik Jadi Sorotan, Riset Ungkap Akar Politik Uang di Indonesia&nbsp;&nbsp;Pikiran Rakyat Koran', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.287952', '["Biaya Politik Jadi Sorotan, Riset Ungkap Akar Politik Uang di Indonesia&nbsp;&nbsp;Pikiran Rakyat Koran"]'),
+	(1269, 'Olly Dondokambey Jelaskan soal Indonesia Tidak Mengenal Istilah Oposisi - Merdeka.com', 'Merdeka.com', 'https://news.google.com/rss/articles/CBMiuwFBVV95cUxOQWZRU1AtOUo4VmV5NV9leWw4VTlYOVZhYmNIS2hxQmN4MmU3S0s0b1JaS19LMU40ZlRYcFd6bHdqaVRLSDBkVnlTaUR1dUlrZkwtc0RrWUlieWgwYVdCZVowUDgtZmo2OHJjNDVpb3J1UmRUY0tGbHFsSHJQeEQ1Wno4QVBPaloyNFVvSGNtWFRTU0UzbTBpN3gzQ2JhU183Z0VvSmRkQ3d2N0JLU3UtTW4yMWlLM0d4RWpJ?oc=5', 'Olly Dondokambey Jelaskan soal Indonesia Tidak Mengenal Istilah Oposisi&nbsp;&nbsp;Merdeka.com', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.288719', '["Olly Dondokambey Jelaskan soal Indonesia Tidak Mengenal Istilah Oposisi&nbsp;&nbsp;Merdeka.com"]'),
+	(1270, 'Persatuan Indonesia: Taken for Granted? - optika.id', 'optika.id', 'https://news.google.com/rss/articles/CBMidkFVX3lxTFBhSTZ2QzBZa1YyUlNkX3pkUEw3TnZQMjBIVUZ0ZEQxUmlXcnJQaEdncHA4aURhRmRGZVdkWUNpdXl2dUFUM3lZMXdzMjJDNUhzYzNnU2JfWmZyQXlDV3lNR3loWnBhVUZuNndyT3pSZ0RmZW1zbXc?oc=5', 'Persatuan Indonesia: Taken for Granted?&nbsp;&nbsp;optika.id', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.289748', '["Persatuan Indonesia: Taken for Granted?&nbsp;&nbsp;optika.id"]'),
+	(1271, 'Dari Amsterdam, Diaspora Indonesia Serukan Blok Politik Alternatif - Jubi Papua', 'Jubi Papua', 'https://news.google.com/rss/articles/CBMibkFVX3lxTE1PeTl5VjZuNFpubjJveUxHeTFWY0c2SzNpc01MTU4zVEl0VGdzbzJkSVdmR1VSa1kwb09PQUZObWdHMGdrSE1WYVkwcFU1LU1HQzFEdHhfaXhDTzRYSktrakRYMHY2bnNvYjVNUU1R?oc=5', 'Dari Amsterdam, Diaspora Indonesia Serukan Blok Politik Alternatif&nbsp;&nbsp;Jubi Papua', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.290419', '["Dari Amsterdam, Diaspora Indonesia Serukan Blok Politik Alternatif&nbsp;&nbsp;Jubi Papua"]'),
+	(1272, 'Pancasila sebagai Fondasi Hukum dan Budaya Politik Indonesia di Era Digital - JurnalPost', 'JurnalPost', 'https://news.google.com/rss/articles/CBMirwFBVV95cUxOakNKVkk4V0ZoTEk0Wl9VaFUzY1VKRkd3N3hOOXBwOFpYMzhRVWwzVFhWWDhIeUZJNUE4dU42bWtkeGhLZXJuU041YXJoYk9XdHlpWnh5VUtYd2ozZkd0S2FDbFlzdEVpdWgyT0NQazFFVlhjV1BXbDJJRHAybDdHYlk4ZUtJVkY3LW1LSktlWG5uLWxBRnhmWlFxZjJPa3pIeTBQTGE5LTRjQWFNVUpz?oc=5', 'Pancasila sebagai Fondasi Hukum dan Budaya Politik Indonesia di Era Digital&nbsp;&nbsp;JurnalPost', 'netral', 0.00, 'Politik', '2026-07-03 06:07:37.291094', '["Pancasila sebagai Fondasi Hukum dan Budaya Politik Indonesia di Era Digital&nbsp;&nbsp;JurnalPost"]'),
+	(1273, 'Prabowo Bakal Resmikan B50 9 Juli - detikFinance', 'detikFinance', 'https://news.google.com/rss/articles/CBMiggFBVV95cUxPV3Vlc3IwMjFKNEtIYUhIYWt4d0ZDRWhHX0I2NGVHQVZMMkc0NkcxX3MxTWw5REVhR2xrSjNvVVBQNWZuTHktSXBzYTNHM1RRbUlxTUI3emJodEZDblplaWltTTlkRy1CWWMzNGhrWDBDZFk4RHpYbDJuS0ZtN1hnZ2dB0gGHAUFVX3lxTE95RVRlM2syaFRneWY2MWlJSGRqS2FWNDlSeExGZUhHUHVJWHk1Ylc0eVk2bkVyY0c1RlI2M2Nwc3hIYTN5OVQ4RmFXUW51cHVJcmo3dU83emRiUjEzWXJYV2QzOGdMN2Ryb0dCaGk1RXYtMTJ4SFZ4R25HQk01UWhEQzlqUXRkbw?oc=5', 'Prabowo Bakal Resmikan B50 9 Juli&nbsp;&nbsp;detikFinancePertamina siap menyalurkan B50 menjelang peluncuran oleh Presiden Prabowo&nbsp;&nbsp;ANTARA News NttPenerapan Biodiesel B50, Organda Minta Pasokan Terjamin Merata Agar Layanan ke Masyarakat Tak Terganggu&nbsp;&nbsp;Suara SurabayaBerlakukan Mandatori BBM B50, RI Bisa Hemat Dolar Rp 157 Triliun!&nbsp;&nbsp;CNBC IndonesiaMobil Diesel Pakai Biodiesel B50, Wajib Perhatikan Komponen Ini&nbsp;&nbsp;CNN Indonesia', 'netral', 0.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:37.932419', '["Prabowo Bakal Resmikan B50 9 Juli&nbsp;&nbsp;detikFinancePertamina siap menyalurkan B50 menjelang peluncuran oleh Presiden Prabowo&nbsp;&nbsp;ANTARA News NttPenerapan Biodiesel B50, Organda Minta Pasokan Terjamin Merata Agar Layanan ke Masy"]'),
+	(1274, 'Akhirnya! Ada Kabar Baik Buat Pemilik Emas, Harganya Bangkit - CNBC Indonesia', 'CNBC Indonesia', 'https://news.google.com/rss/articles/CBMiwAFBVV95cUxNSjJpeXRjZUpFV0dKZFU2VS1RdmdKOXdOUHZWQmZuOUJ1T1hOTmlGY0o5Rko4b19fXzNWaWI2UDJGM1ptQjdwMHlNWUZRYXB0ZkFxWFlpQkJoZ1o5MkhINW1QdjJZYnlGM19kSFM3QmNxR2xvQmRjSzlFZEZUdjZXal9qR0xjZC1vOWpCYmpTdF9MRll0bTFnOFlDSV92dGw5NG8waklmX29xQlhVVkhqY1BfVnRKQUZnMlVoMnMyYmXSAcYBQVVfeXFMT1Q1VDZYMjN2a0h2ZnlBV01MMTZZV09jSUE1TVdXd3lHU242cWotWjhiQlQ2elhaSjFEMmZHRmZKTDVCcU1jRHFsbEh2TnZ0ZkxEQkJSU1pjR1dwRVNxRy00aEplNzdlMUx1eDZqODY1UjF1SFA2Nk5ESG1uUGNlbDN0eEdIaTRjZG1RSjhaR25EUnV', 'Akhirnya! Ada Kabar Baik Buat Pemilik Emas, Harganya Bangkit&nbsp;&nbsp;CNBC IndonesiaHarga emas menguat, pasar menanti laporan payroll AS&nbsp;&nbsp;IDNFinancials.comBerikut adalah Arah Pergerakan Harga Emas Selanjutnya Setelah WGC Proyeksikan $5.000 sebagai Batas Atas&nbsp;&nbsp;fxstreet-id.comHarga Emas Spot dan Antam Kompak Turun pada Juni, Ini Penyebabnya&nbsp;&nbsp;kontan.co.idHarga emas melonjak saat data pekerjaan lemah kurangi kekhawatiran kenaikan suku bunga Fed&nbsp;&nbsp;Investing.com Indonesia', 'tinggi', 0.50, 'Bisnis & Ekonomi', '2026-07-03 06:07:38.270331', '["Ada Kabar Baik Buat Pemilik Emas, Harganya Bangkit&nbsp;&nbsp;CNBC IndonesiaHarga emas menguat, pasar menanti laporan payroll AS&nbsp;&nbsp;IDNFinancials.comBerikut adalah Arah Pergerakan Harga Emas Selanjutnya Setelah WGC Proyeksikan $5.00"]'),
+	(1275, 'IPO Grup Djarum (BACH) di Rp442/Saham, Mundur Sehari & Tambah UW Baru - Emitennews.com', 'Emitennews.com', 'https://news.google.com/rss/articles/CBMilgFBVV95cUxNTkVpS19OQ2gxLXQtUTBfNFJFcFZ2bENNV2VNa3RxVnRjWk9OaTBhc1piRmVlb1VCbThWbmZBMzNGb1pSWGQ3SzZLeE5EeW41YUN0VW4ySVh0TFAzVmswVVhPNGtvU0t5Wk5LQ3BpaS1ULTU3akdiNlNvd3pQS21YeWtVLTg0U0RqeGVvdlgxYXp4eXZXdVE?oc=5', 'IPO Grup Djarum (BACH) di Rp442/Saham, Mundur Sehari & Tambah UW Baru&nbsp;&nbsp;Emitennews.comEntitas Grup Djarum IPO, Harga Wajar?&nbsp;&nbsp;investor.idBach Multi mulai masa penawaran, tetapkan harga IPO di Rp 442 per saham&nbsp;&nbsp;MSNPerusahaan Genset Grup Djarum (BACH) Tetapkan Harga IPO Rp442&nbsp;&nbsp;CNBC IndonesiaCara Beli Saham IPO BACH di Ajaib: Panduan Lengkap + Analisis Sebelum Order&nbsp;&nbsp;Ajaib', 'netral', 0.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:38.511079', '["IPO Grup Djarum (BACH) di Rp442\/Saham, Mundur Sehari & Tambah UW Baru&nbsp;&nbsp;Emitennews.comEntitas Grup Djarum IPO, Harga Wajar?&nbsp;&nbsp;investor.idBach Multi mulai masa penawaran, tetapkan harga IPO di Rp 442 per saham&nbsp;&nbsp;MS"]'),
+	(1276, 'IHSG Berpeluang Konsolidasi, tapi 5 Saham Bisa Cuan - investor.id', 'investor.id', 'https://news.google.com/rss/articles/CBMijAFBVV95cUxOTjl3Q2JvWG5Ycl9lRWdmdlFrSDl0ZS1pS2dfMTFBUXhuMElpRS14U21ZbjJCVjdGNUNZUDg0MEFabG9LekV6Tm1kWjZ3SlQ1SHF3Wk1SSVp2ZGVTemxXQ2FIbW44OVpRNFl2VGpZM0xPaktaVEFkaGRDSDQ2R0hFX2lYUUlXWFN3WXRfSA?oc=5', 'IHSG Berpeluang Konsolidasi, tapi 5 Saham Bisa Cuan&nbsp;&nbsp;investor.idRekomendasi Saham Hari Ini: AMMN, ESSA, MNCN & TLKM, IHSG Berpotensi Rebound Terbatas&nbsp;&nbsp;Bareksa.comIHSG ditutup menguat dipicu optimisme arah geopolitik dan bunga global&nbsp;&nbsp;Antara News jatimIHSG melesat 1,2% ke 5.766,5 di pagi ini (2/7), top gainers LQ45: HRTA, ANTM, AMMN&nbsp;&nbsp;MSNIHSG Sesi 1 Menguat 1,7% ke 5.792, Tertinggi di Bursa Asia - kumparan.com&nbsp;&nbsp;Kumparan.com', 'tinggi', 1.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:38.688139', '["IHSG Berpeluang Konsolidasi, tapi 5 Saham Bisa Cuan&nbsp;&nbsp;investor.idRekomendasi Saham Hari Ini: AMMN, ESSA, MNCN & TLKM, IHSG Berpotensi Rebound Terbatas&nbsp;&nbsp;Bareksa.comIHSG ditutup menguat dipicu optimisme arah geopolitik dan "]'),
+	(1277, 'Harga BBM Turun Mulai 1 Juli 2026, Ini Daftar Lengkapnya se Indonesia - Media Center Riau', 'Media Center Riau', 'https://news.google.com/rss/articles/CBMipwFBVV95cUxQV0R5aXppdjVQMnJRMkRyMzY1YjR4NkZuaVhDN1BCX1ltS1JDTVVWLXV2ZWFGb3VtbG5KeERjbmtRS2xYangwNDVhcml4OThkMzVMRElPMGsyNDQ0S1VacGx1OGtPSzNWLUZHaFNObmdFNm1USDI3bkw1UEpxRXpSVElab0hFVUIxZ295Y3JtSzU0VklETGdoeGpZSm5jNGZYaV9yaDhuRQ?oc=5', 'Harga BBM Turun Mulai 1 Juli 2026, Ini Daftar Lengkapnya se Indonesia&nbsp;&nbsp;Media Center RiauResmi Turun, Ini Harga BBM Se-Indonesia Juli 2026&nbsp;&nbsp;detikotoPertamina Patra Niaga Lakukan Penyesuaian Harga BBM Non Subsidi Per 1 Juli 2026&nbsp;&nbsp;ANTARA News JambiHarga Pertamina Dex Turun, Pengguna Mobil Mewah di Lampung Tetap Pilih Biosolar&nbsp;&nbsp;Kompas.comPenjelasan Pertamina soal Harga Pertamax Tak Berubah Awal Juli 2026 - kumparan.com&nbsp;&nbsp;Kumparan.com', 'rendah', -1.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:38.88424', '["Harga BBM Turun Mulai 1 Juli 2026, Ini Daftar Lengkapnya se Indonesia&nbsp;&nbsp;Media Center RiauResmi Turun, Ini Harga BBM Se-Indonesia Juli 2026&nbsp;&nbsp;detikotoPertamina Patra Niaga Lakukan Penyesuaian Harga BBM Non Subsidi Per 1 Jul"]'),
+	(1278, 'Mengapa Pengguna Strava Kena Pajak? Ini Penjelasan DJP soal PPN Layanan Premium - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMiyAFBVV95cUxQd1d6akx5OFgxYTdaZ3FxWnEwVjM1X01fT294cG1VS1pBWnJ4b3RfOWthazdWYlFNTGNBWnJwUjhwNEtvOGZxbktyelE1NjJxd0c1aDk1M014Vzg3bl9FN3p3d0lGbG41cG5WX0ZWRnViSUJ5ZlhUd2JHQWJzVFQ0VEo0LTNJVWFWNmpZalRTSDN0NVRYcENNWFQ1RmNjVDZPZnNkNUZ5WWNCVktVS3h2UjJndTh2SDlXS0E1TkVLZGhLM0pvZVNDYQ?oc=5', 'Mengapa Pengguna Strava Kena Pajak? Ini Penjelasan DJP soal PPN Layanan Premium&nbsp;&nbsp;Kompas.comDJP Tunjuk 7 Perusahaan Jadi Pemungut Pajak Digital Baru, Ada Strava&nbsp;&nbsp;CNN IndonesiaDJP Tunjuk Strava hingga Plaud Jadi Pemungut Pajak&nbsp;&nbsp;CNBC IndonesiaStrava hingga Envato Resmi Kena PPN 11%&nbsp;&nbsp;Tirto.idSetoran Pajak Ekonomi Digital RI Capai Rp6,81 T pada Mei 2026, Ini Detailnya&nbsp;&nbsp;Databoks Katadata', 'netral', 0.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.039075', '["Mengapa Pengguna Strava Kena Pajak?","Ini Penjelasan DJP soal PPN Layanan Premium&nbsp;&nbsp;Kompas.comDJP Tunjuk 7 Perusahaan Jadi Pemungut Pajak Digital Baru, Ada Strava&nbsp;&nbsp;CNN IndonesiaDJP Tunjuk Strava hingga Plaud Jadi Pemungut Pajak&nbsp;&nbsp;CNBC IndonesiaStrava"]'),
+	(1279, 'Harga Emas Antam Akhirnya Naik - detikFinance', 'detikFinance', 'https://news.google.com/rss/articles/CBMikgFBVV95cUxOb3hTQzVFWHpZWHlKUkh1ekx6UVBKREIyQ2RWaFBIdFViWGhoTkpfSUpHNkZkcG5KaGhBMDVER2lMNC1uOUFYOUNVblpnb3JRemJ6QWdkRzlmbHk5S0w3dXN2VzlPSjU1ZEcwMm9GYjFHbjlkSDN2UUh3MTYwNklPNUs4alNSYTVMNWtTTVNUTmxRQdIBlwFBVV95cUxPTURhTzg4NnFxX1lycHg5UUY5d2dtX2dEUC15U1FaaFp5R3lCaXMteGNzUUx5R3NZR0ZmWFl6NnR6NW1fbXJ3WDJlOGwyWkNzRHFXVFJzTFRYdjlPS0xvd0Vmcmg4YUtKaFlTU3VpcnRDOGdKRHg0QkJLU1dvMWRDdTdDbHdxMVNVaWRXUWpsOWpaRDB1Q1Fz?oc=5', 'Harga Emas Antam Akhirnya Naik&nbsp;&nbsp;detikFinanceHarga emas Antam pada Kamis naik Rp15.000 jadi Rp2,640 juta/gr&nbsp;&nbsp;ANTARA NewsHarga Buyback Emas Antam, Galeri 24, dan UBS 2 Juli 2026 Naik&nbsp;&nbsp;Kompas.comHarga Emas Antam Naik ke Rp 2.640.000/Gram, Galeri24 Turun di Rp 2.600.000/Gram - kumparan.com&nbsp;&nbsp;Kumparan.comGrafik Harga Emas Antam Hari Ini (2 Juli 2026), Naik atau Turun?&nbsp;&nbsp;Pusat Data Kontan', 'tinggi', 0.65, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.040373', '["Harga Emas Antam Akhirnya Naik&nbsp;&nbsp;detikFinanceHarga emas Antam pada Kamis naik Rp15.000 jadi Rp2,640 juta\/gr&nbsp;&nbsp;ANTARA NewsHarga Buyback Emas Antam, Galeri 24, dan UBS 2 Juli 2026 Naik&nbsp;&nbsp;Kompas.comHarga Emas Antam N"]'),
+	(1280, 'Uang ''Tabungan'' Pemerintah Tersisa Rp 438 Triliun, Dipakai buat Apa? - detikFinance', 'detikFinance', 'https://news.google.com/rss/articles/CBMivwFBVV95cUxPUUpMVFpvQlIyWThKRmM1X2NuM21vcWVTZnhOaFBIb3pLMWdTd2twRFFFTkpnZmNuSnA2OXpYTExnNW5pbjhLRkdGT0hKM3J4Y2ZydDdiUTJITHBCTUl4dUE5c2pEdjA2LVpuckVVbllYdEJySkpkU1NyMmtLYVpiVVk3LVRFVFB2bUNzb1FjYnYweHhwQUFyR3hqYjh2WEIxNGJkRlVZVXF5RlIyZmIyWGZsNGJGTGhfZXJoc1ljd9IBxAFBVV95cUxPZUNTZGpZMXJmczMyOVc2cS1Ld29IR2lXcUxac05LcXdlY0JRaFFuSjhGT0d0d0JVdHVnemstV3V2NzA0RVVhVTN2M29qa1FvUmxvRHRmUmZxczd2ZDZxZk85NGxaek5KVXdiTjJWWWJpLS1lOXZuTUhnSENhenFTa0V0em8wMGRiWVFiaUJKYjFfNWY', 'Uang ''Tabungan'' Pemerintah Tersisa Rp 438 Triliun, Dipakai buat Apa?&nbsp;&nbsp;detikFinancePurbaya sebut posisi SAL 2025 kuat menjadi penyangga fiskal&nbsp;&nbsp;ANTARA News JambiParipurna DPR, Purbaya: Ekonomi RI Terjaga di Tengah Geopolitik, Kita Bersyukur&nbsp;&nbsp;Kompas.comAset Negara Tembus Rp14.600 T, Tapi Ekuitas Melorot&nbsp;&nbsp;CNBC IndonesiaPurbaya Ungkap SAL APBN 2025 Sisa Rp438,26 T&nbsp;&nbsp;CNN Indonesia', 'netral', 0.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.04155', '["Uang ''Tabungan'' Pemerintah Tersisa Rp 438 Triliun, Dipakai buat Apa?&nbsp;&nbsp;detikFinancePurbaya sebut posisi SAL 2025 kuat menjadi penyangga fiskal&nbsp;&nbsp;ANTARA News JambiParipurna DPR, Purbaya: Ekonomi RI Terjaga di Tengah Geopoli"]'),
+	(1281, 'BEI Tambah 2 Saham yang Dikuasai Segelintir Pihak, Ini Daftarnya - detikFinance', 'detikFinance', 'https://news.google.com/rss/articles/CBMitgFBVV95cUxOYUc5TWRtRmFjNjZzRHFiUjAyV1F4ZTRNWE5SN3FhUlZZbnd6ZkZvdW9SalRLYnN6eUt3ek9nVTNCRnFPMDlJc1JaOG5LMGlOMnlXNHo5WjJuYkc2dmJLa0ZlejlrbGVSSWduV3YzanM5ckMta0V4WGVtUDRud3ZLaFpDczZzV1Y3UlBmNldZVkZoM0Q2LVpYT3RLYTdGSUdGeVVWYVBMdmtrUVUxT3lJVnZiRHlUQdIBuwFBVV95cUxNa0JXeXpMczZlVHNGOXZFUWZpYVM3MmFVVjFTOWduUXhGMTJCQk4wU2MzUHdJUDlNT05feTVKWlNsZ3ByR1U3ZnUwdE93NXp3bnNma2dlVThiY3ZUQTQxWk5iaWJDUnBTSWZIM21WQXBlS3VKSXRKaUNsR2lUb0VjZlpLNXFWeWg3VHMtSV9xX3dCMjFuTWg2TW9vRFl', 'BEI Tambah 2 Saham yang Dikuasai Segelintir Pihak, Ini Daftarnya&nbsp;&nbsp;detikFinanceHATM masuk daftar saham HSC, total kini ada 14 emiten&nbsp;&nbsp;IDNFinancials.comBEI Labeli Saham Delta Giri Wacana (DGWG) Sebagai Saham Terkonsentrasi Tinggi (HSC)&nbsp;&nbsp;kontan.co.idSaham Anjlok 15,4% Masuk Radar UMA&nbsp;&nbsp;investor.idDaftar Terbaru Saham HSC per Juli 2026, Ada Dua Emiten Baru Masuk&nbsp;&nbsp;CNBC Indonesia', 'rendah', -1.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.042724', '["BEI Tambah 2 Saham yang Dikuasai Segelintir Pihak, Ini Daftarnya&nbsp;&nbsp;detikFinanceHATM masuk daftar saham HSC, total kini ada 14 emiten&nbsp;&nbsp;IDNFinancials.comBEI Labeli Saham Delta Giri Wacana (DGWG) Sebagai Saham Terkonsentrasi"]'),
+	(1282, 'Dolar AS Menguat, Makin Dekat ke Rp 18.000 - detikFinance', 'detikFinance', 'https://news.google.com/rss/articles/CBMimAFBVV95cUxPZlNDa1JHNFNJTG5sQ1Z0WWs5aXR4cC1mTU01a0tQWU9Ba2NvM0xuYzVWR0NzSl80RXk0N1dvdXBjZzJYUHZDYWRuelhrdUd4d3RleVBBbU83S2hmWE1qMDJFWEpoMmRmaFpFSTdYa2xiYzNkN0JaTFF5bXBIWEZ2SUc1QWRDUmw5SnVhNWdOZEt4SFFuUldrLdIBngFBVV95cUxNOUJKdkZabDlnd0tLSXNPTnRzSVRBTk9oQXNjclF6QVUwWGRWVnVFMTlXOHhzN1o5NVc2TEdzWmZzLXBzelo2M0ZDN0NrWXFIdUNPbzkzV0pjeWJnM3EzeERtS2VucldaNFNFaFVHbG14S1ZGS29FWEp6cms5NFNBZV92UTF1aWNQc2xPUFJ1RXp6RFFVUzFWQmhXV1FwUQ?oc=5', 'Dolar AS Menguat, Makin Dekat ke Rp 18.000&nbsp;&nbsp;detikFinanceRupiah melemah dipengaruhi ekspektasi kenaikan suku bunga Fed&nbsp;&nbsp;ANTARA NewsNilai Tukar Rupiah ke Dollar AS 2 Juli 2026 di Bank Mandiri, BCA, dan BNI&nbsp;&nbsp;Kompas.comRabu Sore, Rupiah Melemah Akibat Ketidakpastian Negosiasi AS-Iran&nbsp;&nbsp;Suara SurabayaNasib Rupiah Terpuruk 3 Hari, Mayoritas Mata Uang Asia Menguat Hari Ini (2/7)&nbsp;&nbsp;Pusat Data Kontan', 'netral', 0.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.04416', '["Dolar AS Menguat, Makin Dekat ke Rp 18.000&nbsp;&nbsp;detikFinanceRupiah melemah dipengaruhi ekspektasi kenaikan suku bunga Fed&nbsp;&nbsp;ANTARA NewsNilai Tukar Rupiah ke Dollar AS 2 Juli 2026 di Bank Mandiri, BCA, dan BNI&nbsp;&nbsp;Kompa"]'),
+	(1283, 'Inflasi year-on-year (y-on-y) pada Juni 2026 sebesar 3,34 persen. - Badan Pusat Statistik Indonesia', 'Badan Pusat Statistik Indonesia', 'https://news.google.com/rss/articles/CBMiwgFBVV95cUxQTW9vV1ptMXEyc3pjLW1BcWFzcGl5R29jUHN3M0U3dGdYVDh6eUhfTks5OTJfYTcwVldhWWVUdnVQa0g2bFJ6Ql9ienJHV0hFLVY3NWljUW1GTmhva0Y5LTRscDV5THp2Z08tTzZPUWQwdXp2VG1OSTdYTUlBTmU4cWtpQXJ2R2pmMmdkeGpCMV93X211WndTNllaTWlTZnlweDdaaFFUbzhOY0diSnZJblI5cmVneXVMQWU4cEFsYUJxUQ?oc=5', 'Inflasi year-on-year (y-on-y) pada Juni 2026 sebesar 3,34 persen.&nbsp;&nbsp;Badan Pusat Statistik IndonesiaStabilitas Harga Tetap Terjaga, Inflasi Juni Tercatat 0,43 Persen&nbsp;&nbsp;Portal Kota MalangPicu Lonjakan Inflasi, Purbaya Sebut Efek Harga BBM Naik Bakal Hilang&nbsp;&nbsp;CNBC IndonesiaBPS Catat Harga Oli-Bensin Jadi Pendorong Inflasi per Juni 2026&nbsp;&nbsp;CNN IndonesiaInflasi Juni 2026 di Jawa Barat&nbsp;&nbsp;ANTARA Foto', 'tinggi', 1.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.045261', '["Inflasi year-on-year (y-on-y) pada Juni 2026 sebesar 3,34 persen.&nbsp;&nbsp;Badan Pusat Statistik IndonesiaStabilitas Harga Tetap Terjaga, Inflasi Juni Tercatat 0,43 Persen&nbsp;&nbsp;Portal Kota MalangPicu Lonjakan Inflasi, Purbaya Sebut "]'),
+	(1284, 'Rate & Review Ajaib dan Bawa Pulang Bonus Saldo Hingga 5JT! - Ajaib', 'Ajaib', 'https://news.google.com/rss/articles/CBMieEFVX3lxTE45WTlOcWhEVTRGYmRRZ0xVakRmRmJxcWlQWWRQdzgxR1Zvc0RmVjJfQ3ZFdUNqc0EwVU81a1QwSzNPSXhjVl9CT1RiQUhzSVFwUTdyaGxUcmVKUWlJMEpldjJtdkhmbWtjM2RocXdweHA2bVp3SXppUA?oc=5', 'Rate & Review Ajaib dan Bawa Pulang Bonus Saldo Hingga 5JT!&nbsp;&nbsp;AjaibRate & Review Ajaib Sekarang, Hadiah 2.5JT Menunggu Kamu!&nbsp;&nbsp;AjaibDiskon Biaya Transaksi di Ajaib Terminal&nbsp;&nbsp;Ajaib', 'netral', 0.00, 'Bisnis & Ekonomi', '2026-07-03 06:07:39.046249', '["Rate & Review Ajaib dan Bawa Pulang Bonus Saldo Hingga 5JT!&nbsp;&nbsp;AjaibRate & Review Ajaib Sekarang, Hadiah 2.5JT Menunggu Kamu!&nbsp;&nbsp;AjaibDiskon Biaya Transaksi di Ajaib Terminal&nbsp;&nbsp;Ajaib"]'),
+	(1285, 'Prediksi Spanyol Vs Austria: La Furia Roja Favorit Menang, tapi... - detiksport', 'detiksport', 'https://news.google.com/rss/articles/CBMixwFBVV95cUxNX0dJTEl0WlZYcXNDcWtmNEFRS3FIdWpVNXlqd2ZZVXZpOVYzQTJ5d2lfN25oZml5WWdXdDI0OEkwbjYtWjJUTTA1WE1LSzVTZXAzMmZRUnc3aS1TZk9KSjE1cEotZFVrTWVsZTBBalhYOHhMS1BZeTMtRllodlk1ZG1DU01aVEJ5Q3JXUHlOMW1yNjVzLW9ZV3diNWUtSHZGT2s3NU9SRExTUTR5cHJLUkhQeEg4Ym5ZTUs4cWMweWN0SXo5SHY00gHMAUFVX3lxTE4tZWhoTl85Tk5QWW4wblktYnpkUWY2RXQtYXdNTHpmOU50WDFxZVFJQUNjWGx2Y1IyQk04LUxHRUp6aTZfU29mQ1RpNHhIUm9CbzRCRXVvR1NGNkJxWFlQSWlhSzRPSk4taV9IQVIwOXhzZTZvRkdiS09pZG56cmNncjhBLXIteVlBSmR', 'Prediksi Spanyol Vs Austria: La Furia Roja Favorit Menang, tapi...&nbsp;&nbsp;detiksportHasil Spanyol Vs Austria: Menang 3-0, La Roja ke 16 Besar&nbsp;&nbsp;detiksportVideo: Untuk pertama kalinya dalam 32 tahun... Boro mencatatkan prestasi bersejarah bagi Spanyol&nbsp;&nbsp;Goal.comMan of the Match Spanyol Vs Austria: Lamine Yamal dan Sentuhan Magisnya&nbsp;&nbsp;Kompas.comSusunan pemain Spanyol vs Austria: trio Yamal, Olmo, Oyarzabal starter&nbsp;&nbsp;ANTARA News', 'tinggi', 1.00, 'Olahraga', '2026-07-03 06:07:39.68601', '["Prediksi Spanyol Vs Austria: La Furia Roja Favorit Menang, tapi...&nbsp;&nbsp;detiksportHasil Spanyol Vs Austria: Menang 3-0, La Roja ke 16 Besar&nbsp;&nbsp;detiksportVideo: Untuk pertama kalinya dalam 32 tahun...","Boro mencatatkan prestasi bersejarah bagi Spanyol&nbsp;&nbsp;Goal.comMan of the Match Spanyol Vs Austria: Lamine Yamal dan Sentuhan Magisnya&nbsp;&nbsp;Kompas.comSusunan pemain Spanyol vs Austria: trio Yamal, Olmo, Oyarzabal starter&nbsp;&n"]'),
+	(1286, 'Luka Modric dan Cristiano Ronaldo berada ''di atas opini publik'' sementara Roberto Martinez menegaskan bahwa ''usia hanyalah angka'' bagi para pemain senior Portugal dan Kroasia - Goal.com', 'Goal.com', 'https://news.google.com/rss/articles/CBMiwwJBVV95cUxOSUdFTE8zWW10eVVBVlZ5X2dZZjI0MVBsSnV4STFtUTd0TEJGVGpmQzhlc0hOOE1TYzE4R2lGWmNNUWkyVW5TLTZycm9XUXN5Q1E3MGtaQ0w3LTRCUTVnNDBwUm1UQ25oNktHRFQxc1dRdmdiTXI5cThvR3h5dVY1MkY4dFkxSkp0X21aMXU0N3NqbUVzNTNYb3NzQkIxNUxwNFRzcHdaR1JaUmxiVFBGcUd6eXVObEppeWNBUzZmY0FRNy04MFZhc0xQTmpkYmpFQ0RFZFEwTV81eHUzYXZUX2N0QjFDY21yalRpUDU5aGJxQ21LVTN0R1AtMzJUbmI2OEVJUnNEMmJ0YThhMk9zdU9YMEx6S3pTSnFoWVhNM2g4UkctMFNGLU56eGpUMm5vdldXb1pxejlYWWlNSUh6VGRyUQ?oc=5', 'Luka Modric dan Cristiano Ronaldo berada ''di atas opini publik'' sementara Roberto Martinez menegaskan bahwa ''usia hanyalah angka'' bagi para pemain senior Portugal dan Kroasia&nbsp;&nbsp;Goal.comSusunan Pemain Portugal vs Kroasia: Ronaldo Masih Dipercaya&nbsp;&nbsp;CNN IndonesiaKabar terkini Christiano Ronaldo jelang Portugal vs Kroasial&nbsp;&nbsp;ANTARA News MegapolitanPrediksi Skor Portugal Vs Kroasia di Babak 32 Besar Piala Dunia 2026&nbsp;&nbsp;Kompas.comJadwal Piala Dunia 2026 Jumat 3 Juli: Laga Hidup-Mati Portugal dan Spanyol&nbsp;&nbsp;detikcom', 'netral', 0.00, 'Olahraga', '2026-07-03 06:07:39.855223', '["Luka Modric dan Cristiano Ronaldo berada ''di atas opini publik'' sementara Roberto Martinez menegaskan bahwa ''usia hanyalah angka'' bagi para pemain senior Portugal dan Kroasia&nbsp;&nbsp;Goal.comSusunan Pemain Portugal vs Kroasia: Ronaldo Ma"]'),
+	(1287, 'PERSIB Bangun Skuad Bertabur Pengalaman, Resmikan Sandy Walsh dan Luka Menalo - infobdg.com', 'infobdg.com', 'https://news.google.com/rss/articles/CBMipwFBVV95cUxNUjBvRVRRZjA1QWw4MnY0Y1U5UVJYemFmUUpsTFBMUjMzalBnMmhScDlydVRyMVpKVmxKVFpPT1ktSHlKemljVFN1M21EQ0dkQ2pWdXRDV3R1UzNWNHZjaXJoR094RG85UzNIMUk2YUk5X20xTzB1WmY0MWd2SHltM3I0RTgyQUNiTGxSYnVINnJoUGdqdzZVb0FwS3NmMVFIWnU2bzFWcw?oc=5', 'PERSIB Bangun Skuad Bertabur Pengalaman, Resmikan Sandy Walsh dan Luka Menalo&nbsp;&nbsp;infobdg.comDaftar Pemain Naturalisasi Hijrah ke Liga Indonesia&nbsp;&nbsp;CNN IndonesiaAlasan Persib Rekrut Sandy Walsh: Serbabisa, Punya Mental Juara&nbsp;&nbsp;detiksportLuka Menalo Resmi ke Persib, Eks Dinamo Zagreb dan Timnas Bosnia&nbsp;&nbsp;Kompas.comPersib Bandung datangkan Luka Menalo untuk perkuat lini serang&nbsp;&nbsp;ANTARA News', 'tinggi', 1.00, 'Olahraga', '2026-07-03 06:07:40.042139', '["PERSIB Bangun Skuad Bertabur Pengalaman, Resmikan Sandy Walsh dan Luka Menalo&nbsp;&nbsp;infobdg.comDaftar Pemain Naturalisasi Hijrah ke Liga Indonesia&nbsp;&nbsp;CNN IndonesiaAlasan Persib Rekrut Sandy Walsh: Serbabisa, Punya Mental Juara&"]'),
+	(1288, 'Bukan lagi Jack Grealish: Manchester City memperkenalkan pemain termahal sepanjang sejarah - Goal.com', 'Goal.com', 'https://news.google.com/rss/articles/CBMi1wFBVV95cUxNUXhiMmNxQ21QUlR1eF82QUhRMndRcGZzdW5rRS1nT0pqQy1YTE9Rb0M5bnB5bzU5Q2UyZXA1bnFjdWhaMXZvY0tBMHpsZHNZWjR6VnFvdHlNb2Q1dzVoYW5DVXhjYUx3RnZEaU5CWnRHbTBSZWpoeXloeXN2bzdiTEFJUXFaRHZtTEl3SlIxQmF5WWRrTk1jRHA4ZEp2dFB5cmRsY2NFWm5rQVVXVy1XeE9sUHlqRGxlbHpGcW5jX190LVBDOWFEWmVFWmRQOWZweWxyellsQQ?oc=5', 'Bukan lagi Jack Grealish: Manchester City memperkenalkan pemain termahal sepanjang sejarah&nbsp;&nbsp;Goal.comMan City Umumkan Kesepakatan Transfer Elliot Anderson&nbsp;&nbsp;detiksportMengapa Man City Rela Bayar Rp 2,78 Triliun demi Boyong Elliot Anderson?&nbsp;&nbsp;Kompas.comRp2,7 Triliun untuk Elliot Anderson? Pemandu Bakat Erling Haaland: Kelewat Mahal!&nbsp;&nbsp;Bola.comTawaran fantastis AC Milan sebesar €75 juta untuk Goncalo Ramos pasti akan membuat PSG tertawa puas sambil mengantongi keuntungan: Goal memberikan penilaian terhadap transfer-transfer terbesar di bursa transfer musim panas 2026&nbsp;&nbsp;MSN', 'netral', 0.00, 'Olahraga', '2026-07-03 06:07:40.254873', '["Bukan lagi Jack Grealish: Manchester City memperkenalkan pemain termahal sepanjang sejarah&nbsp;&nbsp;Goal.comMan City Umumkan Kesepakatan Transfer Elliot Anderson&nbsp;&nbsp;detiksportMengapa Man City Rela Bayar Rp 2,78 Triliun demi Boyong","Pemandu Bakat Erling Haaland: Kelewat Mahal!&nbsp;&nbsp;Bola.comTawaran fantastis AC Milan sebesar €75 juta untuk Goncalo Ramos pasti akan membuat PSG tertawa puas sambil mengantongi keuntungan: Goal memberikan penilaian terhadap transfer-t"]'),
+	(1289, '''Kutukan'' Menit 86 untuk Para Wakil Afrika - detiksport', 'detiksport', 'https://news.google.com/rss/articles/CBMiqwFBVV95cUxOaEttZldESF9XMlBCRGJPeWFwN0IwRXdwMkoySEY4cHhPQldrTTNUbE1KOGFjVW8xYi0wYmNJZnJIRE10bWZMajFTZUExN1htSklxZXQtOFA4VndCcGVDNnZPbG1iOWtmT3VYZmRsSGtPTXRFWW8zeVFhX01oTFNTNU9NV3RpQl95aWlFdlNBY21GVW9mZk1tYnZuRjVCZ3lJRFFTSGNKYnpQOW_SAbABQVVfeXFMT0h0eU43TU9ZVWxLNmhSNFdBemY2ZlBHUTNVeEZrSjh6Z1JlMGU0NkM1YVczMENIOFZsaWczNXg1N0N4dGRsM1J5eTh2N2c4Y0VFMHVLSmxVZHBFRl8yRU44WVFQckJfNFNleVdqX2JRdmJlck9VMGJjWWc0Ynp1NEx1S3FxeUYxdmtEN3p4QUlwYnFqYU9oU1BNNkJTLTlXdDdHUnU3Snh', '''Kutukan'' Menit 86 untuk Para Wakil Afrika&nbsp;&nbsp;detiksportGol "injury time" telah makan korban di tiga laga 32 besar Piala Dunia 2026&nbsp;&nbsp;ANTARA News MegapolitanSebuah ironi yang sulit dipercaya... Satu menit saja cukup untuk menghancurkan impian trio Afrika di Piala Dunia&nbsp;&nbsp;Goal.comMomen Buruk Piala Afrika 2025 Hantui Senegal di Piala Dunia 2026&nbsp;&nbsp;IDN TimesPiala Dunia 2026 akan dipenuhi dengan gol-gol di menit-menit terakhir.&nbsp;&nbsp;Vietnam.vn', 'rendah', -1.00, 'Olahraga', '2026-07-03 06:07:40.468514', '["''Kutukan'' Menit 86 untuk Para Wakil Afrika&nbsp;&nbsp;detiksportGol \"injury time\" telah makan korban di tiga laga 32 besar Piala Dunia 2026&nbsp;&nbsp;ANTARA News MegapolitanSebuah ironi yang sulit dipercaya...","Satu menit saja cukup untuk menghancurkan impian trio Afrika di Piala Dunia&nbsp;&nbsp;Goal.comMomen Buruk Piala Afrika 2025 Hantui Senegal di Piala Dunia 2026&nbsp;&nbsp;IDN TimesPiala Dunia 2026 akan dipenuhi dengan gol-gol di menit-menit"]'),
+	(1290, 'Pape Gueye Ogah Dipanggil Timnas Senegal Lagi Selama Jajaran Pelatih Tak Diganti, Ada Apa? - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMiyAFBVV95cUxQazFPVS1IaER3R2ttNnlnOUM5UHNVeXRSX19XR3VHTDVhZXJJNmJucnhiNTVia0NVTmhuMlFkLXg3TVlSS3pkVVJ6cFNON0ZuNTd4QzB0U2llODZlOVVwd3VkRWRlMTdlalowRk85a3Rtam5OakQ1UUFJcGpMbFRjOXNKMEQ1NnlBcEZnUXlfZFhkUTg1enZIWjZYemJJTHNuNlRTMXUxWGNDRUtMeDB0OC0xbWlvbHVfX3RETW5URkw0YTh2TEstSg?oc=5', 'Pape Gueye Ogah Dipanggil Timnas Senegal Lagi Selama Jajaran Pelatih Tak Diganti, Ada Apa?&nbsp;&nbsp;Kompas.comKarena Lukaku Tak Kuat Mental&nbsp;&nbsp;detiksportBelgia Berhasil Comeback Dramatis dari Senegal Setelah Ectra Time&nbsp;&nbsp;Tribrata NewsSenegal Dihantui VAR, dari Kehilangan Gelar Piala Afrika hingga Tersingkir dari Piala Dunia 2026&nbsp;&nbsp;Kompas.comBintang Senegal yang marah mengancam tidak akan pernah lagi membela negaranya dalam sebuah postingan Instagram yang luar biasa, tak lama setelah timnya tersingkir dari Piala Dunia&nbsp;&nbsp;Goal.com', 'rendah', -0.33, 'Olahraga', '2026-07-03 06:07:40.641832', '["Pape Gueye Ogah Dipanggil Timnas Senegal Lagi Selama Jajaran Pelatih Tak Diganti, Ada Apa?&nbsp;&nbsp;Kompas.comKarena Lukaku Tak Kuat Mental&nbsp;&nbsp;detiksportBelgia Berhasil Comeback Dramatis dari Senegal Setelah Ectra Time&nbsp;&nbsp;"]'),
+	(1291, 'Eks Bos Rossi Sebut Ogura Salah Satu Rider Terbaik yang Pernah Ditanganinya - detiksport', 'detiksport', 'https://news.google.com/rss/articles/CBMiuAFBVV95cUxOLXRHXzVpR1lWenVxWjJFSkVxMkFwQjVuSEZnT0VSdGo2ZlBoaG1XaFFrNGRySVRUR0RvVUtybXF4QS1hZFYzTURpbGZ5Z3ZBSTFkanBuZklfSVZ5MGNYLW5ScFJGb0R5MFBxdkxRVC11R0wtWmViY1ZHTTFnYzk5MEhRNm15Umd6YmhaY18zcHRnamZ4MnUtTDlwX2p1bXhMXzlldUVoMDRQdnpjdGE5Vi0wVndEbHp50gG-AUFVX3lxTFBXd0pwT2JZNHRKQWFJYmJOMjg2LUJ5SHpSOTVwcHNfaHo4YXFpTHZ1VFFJVHliWjA1SFFBOEo2SDZNSk9hS09nbHl4cDE3NWZtWWgxYUtiNlF0bHlXZGhtSmIwVDhBUEJfdlFWbnY4VTdIeXlZUmhHOTFJUGg0UlA1WTBHdDZ6WDYtMGNoRXRkUWtnRVdERnVLbWl', 'Eks Bos Rossi Sebut Ogura Salah Satu Rider Terbaik yang Pernah Ditanganinya&nbsp;&nbsp;detiksportEfek domino bursa transfer MotoGP 2027: perjalanan Ai Ogura dan Davide Brivio berakhir&nbsp;&nbsp;MSNAi Ogura Tak Sekadar Podium, Performa Gemilangnya Jadi Penyelamat Aprilia di MotoGP Ceko 2026 - motorace.id&nbsp;&nbsp;motoraceid.postingnews.idDari Diasapi Andi Gilang hingga Menangi Balapan MotoGP, Ai Ogura Tetap Bikin Honda Bangga setelah Dikhianati&nbsp;&nbsp;MSNWalau belum berhasil menang, Ai Ogura petik pelajaran penting di MotoGP Ceko 2026&nbsp;&nbsp;MSN', 'tinggi', 1.00, 'Olahraga', '2026-07-03 06:07:40.643369', '["Eks Bos Rossi Sebut Ogura Salah Satu Rider Terbaik yang Pernah Ditanganinya&nbsp;&nbsp;detiksportEfek domino bursa transfer MotoGP 2027: perjalanan Ai Ogura dan Davide Brivio berakhir&nbsp;&nbsp;MSNAi Ogura Tak Sekadar Podium, Performa Gemi"]'),
+	(1292, 'Harry Kane memang pemain kelas dunia - namun Inggris TIDAK punya peluang meraih gelar juara Piala Dunia jika penampilan mereka tidak segera membaik: Pemenang dan pecundang saat pergantian pemain yang dilakukan Thomas Tuchel terbukti krusia - Goal.com', 'Goal.com', 'https://news.google.com/rss/articles/CBMihARBVV95cUxOSUl1cFU5NloyX0lya0t1MkNKRjk1VV80SU1zTUFjc3RrZVJhV0k3NGRXUk04UHpiaHNBbkZKZ20zUzJWUDROdi15YnFXWWplQlFuZnZtSWU4cEpsRHF5QWM4M1lEdnNCSlNmTmM3YjczYnZxV3JlZHNBdjhLUHplS1k5T0k0NUFJZmVLdXJrTGpJcEw5VjNaeFNTYXpRTDhFbUJXM2RHbEhGYnRnOXk4bG5Sc2xZQW5jOGJ0a1FlV21FVS1Hako5bzJfSFhyVGJseFJZaUpxdFNVdzFmbGh5Z3RfOWZiWDJ4ZGZ2Z2hOQzVhbUQ0d1A3enVEaTlaSWV6Wm02SzRqSjF2bEs2eVVMNlRPd1M0akdITUJ6d0J6ejM4Wl9pOVF5UXRUMG1kTWNwamt5WktUWnV4TG5NbDBwdDRnWXVmN2cta1lMak8yaDBmM2FKTlZ', 'Harry Kane memang pemain kelas dunia - namun Inggris TIDAK punya peluang meraih gelar juara Piala Dunia jika penampilan mereka tidak segera membaik: Pemenang dan pecundang saat pergantian pemain yang dilakukan Thomas Tuchel terbukti krusia&nbsp;&nbsp;Goal.comInggris Selamat dari Kekalahan Comeback 2-1 lawan RD Kongo&nbsp;&nbsp;Tribrata NewsKane: Tekanan di Fase Gugur Piala Dunia Lebih Tinggi, Risiko Lebih Besar&nbsp;&nbsp;detiksportHarry Kane Panaskan Persaingan Top Scorer&nbsp;&nbsp;Epaper Media IndonesiaHarry Kane, Jimat Keberuntungan Inggris&nbsp;&nbsp;Kompas.id', 'tinggi', 1.00, 'Olahraga', '2026-07-03 06:07:40.644852', '["Harry Kane memang pemain kelas dunia - namun Inggris TIDAK punya peluang meraih gelar juara Piala Dunia jika penampilan mereka tidak segera membaik: Pemenang dan pecundang saat pergantian pemain yang dilakukan Thomas Tuchel terbukti krusia&"]'),
+	(1293, 'Strategi Marc Marquez dengan Memberi Tekanan Psikologis Terhadap Marco Bezzecchi Membuahkan Hasil - RiderTua.com', 'RiderTua.com', 'https://news.google.com/rss/articles/CBMiekFVX3lxTE5ncFRocURUWEE0cXZLUVIyQnQ4NUM5N2x4MkREXzJsb2FJTzBfTzhYVHNlY2RVMVI0M2padl9JMUNaMXNUV0RTN1ZPZ1ZGZHJObTU1QVY4MXM0ejFmdVZ2XzJkbmVsTjJtTlR6TjBLVmpMUUNydUduY2Z3?oc=5', 'Strategi Marc Marquez dengan Memberi Tekanan Psikologis Terhadap Marco Bezzecchi Membuahkan Hasil&nbsp;&nbsp;RiderTua.comDigeser Jorge Martin dari Klasemen Usai Insiden Crash di Belanda, Marco Bezzecchi: Saatnya Memulihkan Diri&nbsp;&nbsp;Juara.netPemeriksaan Medis Tunjukkan Marco Bezzecchi Tak Cedera&nbsp;&nbsp;motogp.comUsai Crash di Assen, Bezzecchi: Saatnya Pulihkan Badan yang Sakit&nbsp;&nbsp;detiksportMarco Bezzecchi Terus Diterpa Masalah, Bos Aprilia: Dia Butuh Istirahat&nbsp;&nbsp;Bola.com', 'netral', 0.00, 'Olahraga', '2026-07-03 06:07:40.645887', '["Strategi Marc Marquez dengan Memberi Tekanan Psikologis Terhadap Marco Bezzecchi Membuahkan Hasil&nbsp;&nbsp;RiderTua.comDigeser Jorge Martin dari Klasemen Usai Insiden Crash di Belanda, Marco Bezzecchi: Saatnya Memulihkan Diri&nbsp;&nbsp;J"]'),
+	(1294, 'Kane Didesak Gabung Barcelona: Juara Bundesliga dengan Bayern itu Biasa - detiksport', 'detiksport', 'https://news.google.com/rss/articles/CBMixgFBVV95cUxOWHRjTUxrejM5bHdzSi10Z0lCclk1WUlCeXVzSFQ1ejZUSjV3T3g3TzFLVXE1VzFNOFNyNGxUNV9YNUNORk9OeFZtdVhDT2NOSHUtM2Q5Z0V2TXd3X2RNM2hWalBxR1FDNUNIa193M3hkYk9jbTd3bFhzZ0NLWnA3dXlZYmVnQ2I3Q2VyeFNUUk5ieG9rMTMydTdCSWZnc2o0Ql9CRGVkSHZZR21EbmVnSmNIVGt5SW9BUGpBU0I0NlFhZWZMTVHSAcsBQVVfeXFMUEhvRDBNWXhtVnJVVjZ1ank4MFZxcER0Q1ZVeXFES1I4SzdZMlk2Vzdtb2E0NW9kUmNkSldGRTlJYjRpQXBlc3lrMFY0dGVMbVFnOWlIdnp6VjcxeGdUcDRjNkRnNWJLa0REdTc3b2JRNjR4ZW5ncUNSc0laMTRBcVBzZWQ0bzN5VU1SUEN', 'Kane Didesak Gabung Barcelona: Juara Bundesliga dengan Bayern itu Biasa&nbsp;&nbsp;detiksportMantan Pemain Man United Dukung Harry Kane Pindah ke Barcelona&nbsp;&nbsp;Kompas.comTransfer Harry Kane ke Barcelona ‘dihapus sepenuhnya’ seiring dijelaskannya alasan mengapa juara La Liga itu menghentikan minatnya terhadap striker Bayern Munich tersebut&nbsp;&nbsp;Goal.comBarcelona Hubungi Perwakilan Harry Kane, Negosiasi Dibuka&nbsp;&nbsp;Bola.com3 Bursa Transfer Liga Spanyol: Harry Kane ke Barcelona, Bintang Real Madrid ke PSG - GenPI.co&nbsp;&nbsp;GenPI.co', 'tinggi', 1.00, 'Olahraga', '2026-07-03 06:07:40.646873', '["Kane Didesak Gabung Barcelona: Juara Bundesliga dengan Bayern itu Biasa&nbsp;&nbsp;detiksportMantan Pemain Man United Dukung Harry Kane Pindah ke Barcelona&nbsp;&nbsp;Kompas.comTransfer Harry Kane ke Barcelona ‘dihapus sepenuhnya’ seiring d"]'),
+	(1295, 'Hasil Piala Dunia: 10 Pemain Hajar Bosnia Herzegovina, AS ke 16 Besar - CNN Indonesia', 'CNN Indonesia', 'https://news.google.com/rss/articles/CBMizAFBVV95cUxOc25sUi1sNlAxMXZTZWxGeG5VZjVjdUpSajlGU0x3RFJLbWo5MjRxUl9sdVpZZ00xS1d0dDlZZklteWY2TEZNemNVQVB0VnJxYlQ5bDNsaDZUN2FfUnEwZG1uQlR4MHdIQXZBaHJ3OHMwZlZHaVpicDhaSW9NLWx1U3ZWczZ4U3U0ZVAwUkJ6T2I5aEY2RTZaaUNkejNhWGFJVUxnUmhiNm0yM2tkNXpCWU1UQWxtWTViU19VT25FbGZSbzFmTS1La1lJUm3SAdIBQVVfeXFMT01QLVNaeTJVSGc3TU1fZ25QQVNVMUdZT1dDZEsxRVVHVTViUGFSME9VMTAyY1l0LTk5X2MzOWJONFFsZ0tZOGZBV3JOaXFSWVNNWHhvSVpCMFBmYWE4RkpWLUxrbXpXMDVpVjRpYnZhRzFpcFVWQ0xpSlhaU1ZiZlR3UFVEQkZ', 'Hasil Piala Dunia: 10 Pemain Hajar Bosnia Herzegovina, AS ke 16 Besar&nbsp;&nbsp;CNN IndonesiaTuan Rumah Amerika Serikat Melaju 16 Besar usai Sikat Bosnia&nbsp;&nbsp;Tribrata News"Saya telah menunjukkan apa yang bisa saya lakukan" - kaus kaki berlumuran darah Malik Tillman, teknologi pemantauan aktivitas otak, dan berjam-jam latihan yang tak terhitung jumlahnya menjadi pendorong terwujudnya tendangan bebas impiannya bers&nbsp;&nbsp;Goal.comFOTO: Amerika Serikat Kehilangan Balogun di Babak 16 Besar Piala Dunia&nbsp;&nbsp;CNN IndonesiaMauricio Pochettino soal Kartu Merah Folarin Balogun: Tidak Ada Niat Menginjak&nbsp;&nbsp;Kompas.com', 'netral', 0.00, 'Olahraga', '2026-07-03 06:07:40.648065', '["Hasil Piala Dunia: 10 Pemain Hajar Bosnia Herzegovina, AS ke 16 Besar&nbsp;&nbsp;CNN IndonesiaTuan Rumah Amerika Serikat Melaju 16 Besar usai Sikat Bosnia&nbsp;&nbsp;Tribrata News\"Saya telah menunjukkan apa yang bisa saya lakukan\" - kaus ka"]'),
+	(1296, 'Hasil Babak 32 Besar Piala Dunia 2026 Periode 1-2 Juli: Prancis, Inggris, Belgia, Meksiko dan AS Lolos ke 16 Besar - Kompaspedia', 'Kompaspedia', 'https://news.google.com/rss/articles/CBMi9gFBVV95cUxNd1FZbGxoakhfRk9fZ2FEMlltTWljTHU4SnpvUGdDUHEyQTRmMUpFWHdNdExVM0dXZGhNUzBVQlBNMERES1oxYTAteEhMSm1hRTZETGJiVnNfbThxT0h2MXg3dkFJeWk1TDU4WE5ZbWJWT2ZJQUM2RWxxbnR6NXVROVpPMEJodzlSZ0JIdFdTVlcxbXV3NlFFS0xLT0FXZk1UOXFtVnJvWUlDYmpHSEotb2VaRXlITE1fQzNEZFVzd1h3QzVaS0xOdU02NDdvXzdsYldkR1V2M3ZscTBDaWhIc2YzZnplVzBiaWhxU2RQbWxvcERDOEE?oc=5', 'Hasil Babak 32 Besar Piala Dunia 2026 Periode 1-2 Juli: Prancis, Inggris, Belgia, Meksiko dan AS Lolos ke 16 Besar&nbsp;&nbsp;KompaspediaDaftar 11 Tim Negara Lolos ke 16 Besar Piala Dunia 2026&nbsp;&nbsp;CNN IndonesiaHasil pertandingan 32 besar Piala Dunia 2026, Kamis (2/7/2026), Inggris, Belgia dan AS menang dramatis&nbsp;&nbsp;ANTARA News MegapolitanDaftar 10 Negara yang Lolos ke 16 Besar Piala Dunia 2026, Terbaru AS&nbsp;&nbsp;CNBC Indonesia10 Tim Pastikan Tempat di 16 Besar Piala Dunia 2026&nbsp;&nbsp;detiksport', 'tinggi', 1.00, 'Olahraga', '2026-07-03 06:07:40.649262', '["Hasil Babak 32 Besar Piala Dunia 2026 Periode 1-2 Juli: Prancis, Inggris, Belgia, Meksiko dan AS Lolos ke 16 Besar&nbsp;&nbsp;KompaspediaDaftar 11 Tim Negara Lolos ke 16 Besar Piala Dunia 2026&nbsp;&nbsp;CNN IndonesiaHasil pertandingan 32 b"]'),
+	(1297, 'Redmi K Pad Sudah Lama Masuk di Malaysia & Singapura, Nama Globalnya Xiaomi Pad Mini - sumeks.disway.id - Sumeks', 'Sumeks', 'https://news.google.com/rss/articles/CBMixwFBVV95cUxOa2VPQTJXa2pHcE1JdVVTelJjZ2c1S2NWZFZ2cmpYV1pNaG9qZkFHSHNtOGxxRzhFVUI1ZUZfWUlUMkp0WjZZWFg5bjVtWTdNNlZuOE5YT2FfMEF3RWpBaGRSbjdYQTViQ3VFNEtlZ3k0TUtoX2V2Q2dCWnd2U25PQ3lwMEU3SU1RbGk3cnpDY1RBRlZiUTJaUFhFcUlBNUtUbEFSM1F0VjBZS19yRk1oUEtIWXBmekt1SVE1ajlnd25SM2dSbnlZ0gG4AUFVX3lxTFBzS0FXM3ByRzhXUnRMeU9tbWl2OG9IVlRPS0ZjSE1OWVlfTFZNTmZsNmx4RFVqa2VZbWhkd3llaDY2MVhqaXBCUHlxTzYxc2ZPMm1jNDhDR3lDSUhHMUhXOWpfTUZFQ1JLcXFFdG4zcnB2REx3RFBJSE45NnR0Z0lkN0VyOHIzVW9oREV', 'Redmi K Pad Sudah Lama Masuk di Malaysia & Singapura, Nama Globalnya Xiaomi Pad Mini - sumeks.disway.id&nbsp;&nbsp;SumeksLihat judul & perspektif lainnya di Google Berita', 'netral', 0.00, 'Teknologi', '2026-07-03 06:07:41.343283', '["Redmi K Pad Sudah Lama Masuk di Malaysia & Singapura, Nama Globalnya Xiaomi Pad Mini - sumeks.disway.id&nbsp;&nbsp;SumeksLihat judul & perspektif lainnya di Google Berita"]'),
+	(1298, '4 Sepeda Elektrik Polygon dengan Baterai Tahan Lama dan Kayuhan Ringan - Suara.com', 'Suara.com', 'https://news.google.com/rss/articles/CBMivAFBVV95cUxQc01lVnJySDREMVRVMlo1NGxKeHUxdmM2VTlaOUdhOWNWa0N4RnZkT01TcVNTS2dyWFR6eU1yNTJDZnl0NDBsT1N2S3FISlZ1MkIwQmozbWxVNEQ1Z2FkY2ZDaUJZejdzVW1DRzA5Z0xSZDV3U1ByNWx2OXdvUk1mSWdKRVlBS3cwZmxyTFQ3QWhFTUhZRWlvUGdqbC1uZWdtTVhPajJLblBrVkpvSWRQYTUybmlBVm1HVnVmMtIBvAFBVV95cUxNVTFCbFBkNXJFVXpOM1BFOVZiYWgweXlMd2VFOFhHR3IxNzc4eTNTVzBLQm5HRHRwVFpjVlNaSzllTWFQRW5KdWpqRGIzTTdVY0NQZGcyel9YSkxtQWtxd01uZjc2c2FiWFZoLWhkLWd5STJCNkdhbXQ0VnNtOVlKTDg4aEg3R0o5Wkd2NUczVFR6Rk16TlR', '4 Sepeda Elektrik Polygon dengan Baterai Tahan Lama dan Kayuhan Ringan&nbsp;&nbsp;Suara.com5 Sepeda Gunung MTB Polygon Termurah, Tangguh dan Awet Untuk Harian&nbsp;&nbsp;Suara.comSepeda Gravel, Andal di Berbagai Medan, Berbeda Dengan Roadbike ?&nbsp;&nbsp;RRI.co.id4 Sepeda Hybrid Poligon Paling Nyaman Buat ke Kantor Maupun Touring&nbsp;&nbsp;Suara.comSepeda Hybrid Berapa Harganya? Ini 4 Rekomendasi Terbaik Buatan Lokal yang Murah&nbsp;&nbsp;Suara.com', 'tinggi', 1.00, 'Teknologi', '2026-07-03 06:07:41.499491', '["4 Sepeda Elektrik Polygon dengan Baterai Tahan Lama dan Kayuhan Ringan&nbsp;&nbsp;Suara.com5 Sepeda Gunung MTB Polygon Termurah, Tangguh dan Awet Untuk Harian&nbsp;&nbsp;Suara.comSepeda Gravel, Andal di Berbagai Medan, Berbeda Dengan Roadbi","Ini 4 Rekomendasi Terbaik Buatan Lokal yang Murah&nbsp;&nbsp;Suara.com"]'),
+	(1299, 'Duel Kamera Raja HP Flagship 2026: Samsung Galaxy S26 Ultra vs iPhone 17 Pro Max, Hasilnya Bikin Terkejut! - VIVA.co.id', 'VIVA.co.id', 'https://news.google.com/rss/articles/CBMi6gFBVV95cUxNMzYweDU3OVNkY0lTTjJrSDZwdHFZcVQzUk9wbDItWXY3S0JNajllVWF6ekVDb3IzeWFGZTd1N3Q3Rl9XcmZmREh4Rmhud1pUQ3JOY1kzWVNxSEFrUExWRWtOY1FKRFF2R1JrakFwcUk1NUdPSnpXR2xKczJWX3MtVG1xUENTLURIQzlpalBZWkZOcEZZSlpXLW80RHdLdWI5ZC1kZEd4VkdMQmw3Z3pSTHFPNnl3c09NV2JZZnB1dGNaUkUyRkdENWlaOHNVOF9FZEdtZjY4LWpTdEJQYUFaOS1NeWlQX2hmWGfSAe8BQVVfeXFMTlFGRGhBam5rM1NOR3phV1RvSVI5YTZjQ1IxWlVrMlltaWNXTUQtSVdTYWsxaV9FX2t4OFJLY2FkN1FENUlCaDdPTmM2TFZKekVMWWRmSTU4V3pFbjhQLWRHV0g4cFhYcG1', 'Duel Kamera Raja HP Flagship 2026: Samsung Galaxy S26 Ultra vs iPhone 17 Pro Max, Hasilnya Bikin Terkejut!&nbsp;&nbsp;VIVA.co.idTren HP Terlaris 2026: Apple Memimpin, Samsung Kuasai Kelas Menengah&nbsp;&nbsp;RRI.co.idPonsel pintar yang berpotensi melampaui daya tarik iPhone 17&nbsp;&nbsp;Vietnam.vnPasar Smartphone Lesu, Penjualan iPhone Malah Naik 10 Persen — Batam Today&nbsp;&nbsp;Batamtoday.com', 'tinggi', 1.00, 'Teknologi', '2026-07-03 06:07:41.727693', '["Duel Kamera Raja HP Flagship 2026: Samsung Galaxy S26 Ultra vs iPhone 17 Pro Max, Hasilnya Bikin Terkejut!&nbsp;&nbsp;VIVA.co.idTren HP Terlaris 2026: Apple Memimpin, Samsung Kuasai Kelas Menengah&nbsp;&nbsp;RRI.co.idPonsel pintar yang berp"]'),
+	(1300, 'Bocoran Flagship Samsung Terbaru 2026 yang Bikin Penasaran Warga - pdiperjuanganbali.id', 'pdiperjuanganbali.id', 'https://news.google.com/rss/articles/CBMingFBVV95cUxORm04SEN4Z3FhN01MdzlyM180YWxvaFdPQmJvZGlMNU82U1ZhRkpYWUF3bUJTbDBCWVdBbjB3SUM5X0hMQlkxQzJlQmxvNF9LbWJNcVFBNTU2ZlZlbE80WE9RcG5QWjZxZDBwazBRRV85Rmdmd3U3ZHhWaUlGZlpJWUJhbGJvQ1RLZE53TGtTNFJZSkp2OEtFeXhlVzF4Zw?oc=5', 'Bocoran Flagship Samsung Terbaru 2026 yang Bikin Penasaran Warga&nbsp;&nbsp;pdiperjuanganbali.idSamsung Galaxy S22 Ultra vs Galaxy S24 FE: Mana yang Layak Beli di 2026?&nbsp;&nbsp;Media IndonesiaSamsung S25 vs iPhone 16: Review Jujur & Perbandingan Data 2026&nbsp;&nbsp;Telset.idMengulas lebih detail Galaxy S24 Plus: Layar 2K dan Galaxy AI memberikannya keunggulan dibandingkan iPhone 16 Plus.&nbsp;&nbsp;Vietnam.vnSamsung Galaxy S25 FE vs S25 Ultra: Pilih yang Mana?&nbsp;&nbsp;Telset.id', 'netral', 0.00, 'Teknologi', '2026-07-03 06:07:41.905681', '["Bocoran Flagship Samsung Terbaru 2026 yang Bikin Penasaran Warga&nbsp;&nbsp;pdiperjuanganbali.idSamsung Galaxy S22 Ultra vs Galaxy S24 FE: Mana yang Layak Beli di 2026?&nbsp;&nbsp;Media IndonesiaSamsung S25 vs iPhone 16: Review Jujur & Perb"]'),
+	(1301, 'Minecraft: Server Privat Dinyatakan Ilegal? Ini Penjelasan Resminya - Industry.co.id', 'Industry.co.id', 'https://news.google.com/rss/articles/CBMipwFBVV95cUxNdWYwSnVWT3hYM3VXQ2Q5RzR6WUlDekV2U0Z0TU5FdkhIX2V6NU1GX09maV9xazl2MTlWYkQtbmR4VjBKWTlqcm1fcTZ4cmx4WFJnVm5zcGp4WEhqOG96MXBBT3ZuRjVIYjhwZmxiendxZWJkZ3VDRDJfdjh4bjUtUjZ3LXNXQzFYNmhNQkNYTlBvQl9QbFdjV1J5V2VtYVJyZklMMTVnb9IBrAFBVV95cUxPT2pqYVBibm16c0MwSWpkYm40T1IzZHhZd0pzQ1d6dlczSGc4ekxhNmtzS0l4RVdmT2hZN2VwcWsyX1lMZ0R4Q0QxVEE0OXo2aUNWUVdzcTJsS09WdGNsY1ZhV1FldjQ5TWdVekhfbTBCY1REN2pDbmg4NDliR3BnZllhc3RlUmRUX2RPYklnWGpHSDJLSG83V01yWEdsUU85NDZoZnV6ZWpON0o', 'Minecraft: Server Privat Dinyatakan Ilegal? Ini Penjelasan Resminya&nbsp;&nbsp;Industry.co.idAturan yang Bisa Wajibkan Game Berbayar Punya Mode Offline Setelah Server Tutup Gagal Lolos di Senat Amerika&nbsp;&nbsp;gamerwk.comRUU Proteksi Game Online California Gagal di Komite Senat&nbsp;&nbsp;Telset.idNotch Kritik ESA Terkait Status Ilegal Server Pribadi Minecraft&nbsp;&nbsp;games.ggServer pribadi Minecraft dibandingkan dengan "pasar gelap" oleh perwakilan Asosiasi Perangkat Lunak Hiburan&nbsp;&nbsp;gamereactor.asia', 'rendah', -1.00, 'Teknologi', '2026-07-03 06:07:42.071769', '["Minecraft: Server Privat Dinyatakan Ilegal?","Ini Penjelasan Resminya&nbsp;&nbsp;Industry.co.idAturan yang Bisa Wajibkan Game Berbayar Punya Mode Offline Setelah Server Tutup Gagal Lolos di Senat Amerika&nbsp;&nbsp;gamerwk.comRUU Proteksi Game Online California Gagal di Komite Senat&nb"]'),
+	(1302, 'Cari HP RAM 12 GB Murah? Ini Pilihan Harga 3 Jutaan Terbaru Juli 2026! - Pemmzchannel', 'Pemmzchannel', 'https://news.google.com/rss/articles/CBMiqAFBVV95cUxPQ1dySi1BTGxTR095OEMxRjA5eHB4UFVzY0lzUm5mZVdQTUtVRzVtam85ajBLNlpYdnVWTXRFZU16RDhlODNtUE94R3ZuWGNuNWNETE9iXzhNOG9HdFVibEN6eUFEeC02ZXpjZTViSzg2QURBMUNaOHI4ZFIxSmh1WTcyX192NURyYVZiSzFFTXZESEx0WEpyVVZTVEpnZGNQNExWb2tyWWU?oc=5', 'Cari HP RAM 12 GB Murah? Ini Pilihan Harga 3 Jutaan Terbaru Juli 2026!&nbsp;&nbsp;PemmzchannelHp RAM 16 GB Mulai 2 Jutaan, Ini 7 Rekomendasi Hp Murah yang Bisa Main Game Berat & Punya Kamera Bagus - radarcirebon.disway.id&nbsp;&nbsp;Radar Cirebon7 Pilihan HP Murah Terbaik Harga 1 Jutaan Juli 2026: NFC hingga Baterai 7000 mAh&nbsp;&nbsp;Suara.comCari HP Murah Memori 256 GB Intip Lima Pilihan Terbaik Juni 2026&nbsp;&nbsp;pdiperjuanganbali.id7 Pilihan HP 2 Jutaan untuk Gaming Lancar 2026, RAM 8GB&nbsp;&nbsp;Media Indonesia', 'tinggi', 1.00, 'Teknologi', '2026-07-03 06:07:42.236345', '["Cari HP RAM 12 GB Murah?","Ini Pilihan Harga 3 Jutaan Terbaru Juli 2026!&nbsp;&nbsp;PemmzchannelHp RAM 16 GB Mulai 2 Jutaan, Ini 7 Rekomendasi Hp Murah yang Bisa Main Game Berat & Punya Kamera Bagus - radarcirebon.disway.id&nbsp;&nbsp;Radar Cirebon7 Pilihan HP Murah "]'),
+	(1303, '15 Laptop Terbaik di Bawah Rp7 Juta Tahun 2026, Performa Ngebut untuk Mahasiswa dan Pekerja! - harianbanyuasin.disway.id - Disway', 'Disway', 'https://news.google.com/rss/articles/CBMi3wFBVV95cUxPTmhYbERPUGVDVlJrd2treU1YZ2VxYjIxazJJbzBjS1JvZTBWQWdla1N1enZIa2dGcmV4TVpVSnlmZ3dfUzNvRVJLOC1jNV9UdWowb2xrWFBmdmNnQ0wtUkRGY0NDVTBwYmtkY1lwb0hiQzhmVktNOENoLVhkZmh4Y2dOYWxFQUtCb2RNSXhISlNVSFFSTTI1aE53dDg5NmRROGhLLVpIT0lnYTc1OWJVMXNDdmhTSk5kUUFoUVNfM3Q1UDBIbGhXd01KX0U4OGo0bThHaWlPbXhmMjJLTG400gHQAUFVX3lxTE8xUnZmVkY4a0RoM2l6WTNtQnFYV28yVzZGZU53QUNtVGlmT0pvOHBtbWlkbTZMdWg4UENSWVhqbzJDRGpJWWwwRlNoTV9lRjBUVlhKbk9hSTA0ZE1MTzRhMFNncklLNjlacE9oQ1FGYVBwV24', '15 Laptop Terbaik di Bawah Rp7 Juta Tahun 2026, Performa Ngebut untuk Mahasiswa dan Pekerja! - harianbanyuasin.disway.id&nbsp;&nbsp;Disway7 Laptop Pelajar di Kelas Rp3 Jutaan: Siap Mendukung AI, Coding, hingga Desain Grafis Tingkat Dasar&nbsp;&nbsp;VIVA.co.idMengapa Laptop Rp5 Jutaan Kini Kurang Ideal untuk Jangka Panjang?&nbsp;&nbsp;IDN TimesLaptop Asus 5 Jutaan untuk Edit Video, Editor Pemula Wajib Punya!&nbsp;&nbsp;PemmzchannelCari Laptop untuk Kerja yang Pas? 4 Pilihan Ini Paling Masuk Akal&nbsp;&nbsp;pdiperjuanganbali.id', 'tinggi', 1.00, 'Teknologi', '2026-07-03 06:07:42.237344', '["15 Laptop Terbaik di Bawah Rp7 Juta Tahun 2026, Performa Ngebut untuk Mahasiswa dan Pekerja!","- harianbanyuasin.disway.id&nbsp;&nbsp;Disway7 Laptop Pelajar di Kelas Rp3 Jutaan: Siap Mendukung AI, Coding, hingga Desain Grafis Tingkat Dasar&nbsp;&nbsp;VIVA.co.idMengapa Laptop Rp5 Jutaan Kini Kurang Ideal untuk Jangka Panjang?&nbsp;&nb"]'),
+	(1304, 'Apple Rilis iPhone 16e Refurbished, Harga Mulai Rp7,5 Juta - Sumbawanews', 'Sumbawanews', 'https://news.google.com/rss/articles/CBMioAFBVV95cUxPZURvbU85RmFHYmt5d1R2N2w4NnZDcndkYjN3Vzh0VTYtUThjNjNPQUJidDZubUVJR2o1LUNkb3JnbnRVZ2lCZXRIdGxKVHYxeVZnaWltWmNtOFpqMUkzc0x2S1AzV1hJbGt2YlhraTQwUFlMdkViM1NBSzJtcFZKMzY4bWZKZmZ2OTBvSVM5ejZNdXozanFPLVhkWVBhVWx2?oc=5', 'Apple Rilis iPhone 16e Refurbished, Harga Mulai Rp7,5 Juta&nbsp;&nbsp;SumbawanewsEfektivitas Chip Generasi Baru pada Performa iPhone 16e dan Pragmatic Play&nbsp;&nbsp;Media Center Rokan HilirHarga iPhone 17, iPhone 17 Pro, iPhone 17 Pro Max Naik Lagi di Indonesia - kumparan.com&nbsp;&nbsp;Kumparan.comUpdate Harga iPhone di iBox 1 Juli 2026: iPhone 15 Turun Harga, Cek Daftar Lengkapnya - radarcirebon.disway.id&nbsp;&nbsp;Radar CirebonSpesifikasi iPhone 16e Refurbished: Chip A18 dan Layar Ceramic Shield&nbsp;&nbsp;Media Indonesia', 'netral', 0.00, 'Teknologi', '2026-07-03 06:07:42.23819', '["Apple Rilis iPhone 16e Refurbished, Harga Mulai Rp7,5 Juta&nbsp;&nbsp;SumbawanewsEfektivitas Chip Generasi Baru pada Performa iPhone 16e dan Pragmatic Play&nbsp;&nbsp;Media Center Rokan HilirHarga iPhone 17, iPhone 17 Pro, iPhone 17 Pro Max"]'),
+	(1305, 'MediaTek Ungkap Teknologi Smartphone yang Bakal Bersinar - detikInet', 'detikInet', 'https://news.google.com/rss/articles/CBMinwFBVV95cUxPeEdMdDNVVk0wYUtEVzV5SWI1akVZb0xMRnotb3FRaHNFMk1FY0FnaEozb2NvUzhkNEZPSGQ4UGxFOGpyd2laRkRUNVNhTm9xZ2NIWVZ1bUktLWFCb3BoVzN6ME5JbzUtVG4tSkNlN2Zla1hCaGEwbU5TWV8wNkFFWGt2S3NvMUhYdlRFV0dTM1NOVGZtS2hNZDZiRDFjNkXSAaQBQVVfeXFMUGk2b0NJOGNUZDRwTEl3X3pmMHk0Um0xQlZfMG5ncGRuZVEwYVROejNhLVJWV2xYUUJ4aVpDT2dpQ1ppVGoxTkxnMDdNMG1GTUxFSDZRRXN5eThOdUNyU0dtR0l6LW9nUF9XSld6Yko0Si1CMXhnckNRazRJVDBpeHM3UzdYNF9KQjVuNzBOVnc5bnMyQ0YyNEtJR3JKd0tCODlNUlQ?oc=5', 'MediaTek Ungkap Teknologi Smartphone yang Bakal Bersinar&nbsp;&nbsp;detikInetMau HP Makin Pintar Ini 6 Cara Aktifkan Fitur AI Tersembunyi&nbsp;&nbsp;pdiperjuanganbali.idGadget Masa Depan: Review Singkat Tren Perangkat Wearable Terbaru Juli 2026&nbsp;&nbsp;JournalArtaSmartphone dengan AI Generatif Bakal Kuasai Pasar Dunia&nbsp;&nbsp;Bloomberg TechnozInovasi Smartphone 2026, Fokus pada AI dan Produktivitas&nbsp;&nbsp;RRI.co.id', 'netral', 0.00, 'Teknologi', '2026-07-03 06:07:42.239295', '["MediaTek Ungkap Teknologi Smartphone yang Bakal Bersinar&nbsp;&nbsp;detikInetMau HP Makin Pintar Ini 6 Cara Aktifkan Fitur AI Tersembunyi&nbsp;&nbsp;pdiperjuanganbali.idGadget Masa Depan: Review Singkat Tren Perangkat Wearable Terbaru Juli "]'),
+	(1306, 'Onimusha Way of the Sword Rilis Lebih Cepat Hindari GTA 6 - Telset.id', 'Telset.id', 'https://news.google.com/rss/articles/CBMiiAFBVV95cUxPYUllQjFtdzNqeVhnMGhGUEZwWk1vakNFNzZ5cEhXNThjcEVmZ3ZFSVV5S0VISlp5VE1iVkJnQVVqUnA5cjBFNlJvMk9XdXBmY0dBTmlJQUg1cHNfX1ZZWElfV3I0aTdBaFBkbEFVMndyRHUzTF9TNDEwNjZJZXUwMGhxSzhHdS1M?oc=5', 'Onimusha Way of the Sword Rilis Lebih Cepat Hindari GTA 6&nbsp;&nbsp;Telset.idOnimusha: Way of the Sword Rilis Lebih Cepat, Capcom Ubah Jadwal Peluncuran Gim Samurai Terbarunya&nbsp;&nbsp;Jawa PosOnimusha Kembali setelah Vakum Hampir Dua Dekade&nbsp;&nbsp;RRI.co.idRilis Onimusha: Way of the Sword Dimajukan 3 Minggu&nbsp;&nbsp;KoKang GamingMeski Banyak Saingan, Onimusha: Way of the Sword Tetap Pede Rilis di September!&nbsp;&nbsp;The Lazy Media', 'netral', 0.00, 'Teknologi', '2026-07-03 06:07:42.24017', '["Onimusha Way of the Sword Rilis Lebih Cepat Hindari GTA 6&nbsp;&nbsp;Telset.idOnimusha: Way of the Sword Rilis Lebih Cepat, Capcom Ubah Jadwal Peluncuran Gim Samurai Terbarunya&nbsp;&nbsp;Jawa PosOnimusha Kembali setelah Vakum Hampir Dua De"]'),
+	(1307, 'Bocoran HP Terbaru Juli 2026: 10 Smartphone dengan Baterai Jumbo dan Kamera Canggih - Radar Cirebon', 'Radar Cirebon', 'https://news.google.com/rss/articles/CBMiywFBVV95cUxPdHZ0eVlGSnJYY0hNUlU2Mm1TZmZKZmtZX0ZHdzlONVdfUTZKZmlfRzMzVXZsY0hqY2FlMkVFU01KbGhDYjZoTzBXcmNTbzlUZ2hyWnJLby1xbUM3dng2QUZ2YlA3WXR1Q0FRTkdyam5PbU9RZ0xpaHVvS2RSaEVOT0V0SkhfNmZ1Z2VsZGotMGQ2OHBJckFucDNETTRUd0I0d0owRklxNGlTZVY4WndOQ1pXczdqbC1aUXF2TlBBbk84UjJRWHV1ZVR6Yw?oc=5', 'Bocoran HP Terbaru Juli 2026: 10 Smartphone dengan Baterai Jumbo dan Kamera Canggih&nbsp;&nbsp;Radar CirebonDeretan HP Terbaik Juli 2026, Dari Flagship Kamera Ganas Hingga Mid-Range Hemat Kantong&nbsp;&nbsp;PontianakPost5 HP Baru yang Meluncur Juli 2026: Galaxy Z Fold 8, Oppo Reno 16, Nothing Phone 4b&nbsp;&nbsp;kontan.co.idLima Seri HP Baru Siap Meluncur Sepanjang Juli 2026&nbsp;&nbsp;MediaKompeten5 HP Baru yang Meluncur Juli 2026, Oppo Reno 16 hingga Samsung Galaxy Z Fold 8 Siap Ramaikan Pasar&nbsp;&nbsp;PontianakPost', 'tinggi', 1.00, 'Teknologi', '2026-07-03 06:07:42.241003', '["Bocoran HP Terbaru Juli 2026: 10 Smartphone dengan Baterai Jumbo dan Kamera Canggih&nbsp;&nbsp;Radar CirebonDeretan HP Terbaik Juli 2026, Dari Flagship Kamera Ganas Hingga Mid-Range Hemat Kantong&nbsp;&nbsp;PontianakPost5 HP Baru yang Melun"]'),
+	(1308, 'Hp Lipat Murah 2026 Mulai Rp4 Jutaan yang Bikin Penggemar Android Tergoda - pdiperjuanganbali.id', 'pdiperjuanganbali.id', 'https://news.google.com/rss/articles/CBMieEFVX3lxTE9zdllkLTFkeGJZVS1XZlgxQmNKU2Z6YzZBNFp3SW1hbnBNeEdnaENRbWViQlhkQVltNmdfNzhtTEI0UkxGNEczR05uZGgwc1ZkZ0NQZWkyelVLRm1mZlBodjZpWHlNVDBWemdMQ3d1QTJNQnREa0tyLQ?oc=5', 'Hp Lipat Murah 2026 Mulai Rp4 Jutaan yang Bikin Penggemar Android Tergoda&nbsp;&nbsp;pdiperjuanganbali.id70 Persen Pengguna Pilih HP Lipat Samsung untuk Produktivitas&nbsp;&nbsp;IDN TimesLayar lebar Galaxy Z Fold7 memberi ruang untuk membuka beberapa aplikasi sekaligus dalam satu genggaman.&nbsp;&nbsp;Hybrid.co.idSmartphone Lipat 2026: Panduan Beli, Fitur yang Wajib Dicek, dan Risiko Sebelum Upgrade&nbsp;&nbsp;JournalArtaSamsung Galaxy Z Fold6 Hadir dengan Galaxy AI, Smartphone Lipat Premium untuk Produktivitas dan Kreativitas&nbsp;&nbsp;koranindopos.com', 'netral', 0.00, 'Teknologi', '2026-07-03 06:07:42.242145', '["Hp Lipat Murah 2026 Mulai Rp4 Jutaan yang Bikin Penggemar Android Tergoda&nbsp;&nbsp;pdiperjuanganbali.id70 Persen Pengguna Pilih HP Lipat Samsung untuk Produktivitas&nbsp;&nbsp;IDN TimesLayar lebar Galaxy Z Fold7 memberi ruang untuk membuk"]'),
+	(1309, 'Janice Tjen, petenis Indonesia yang ukir sejarah di Wimbledon - BBC', 'BBC', 'https://news.google.com/rss/articles/CBMiYEFVX3lxTE9uY01lRXp4ODh6QmViX01Wc2MtN3NGclJzY3d4TUI4Z0E4Qk1mVXU1LTVxNXkzOWlMR1lzQVJpWmtuczN1SzlKMWVNYUYtbTQzbE4xMGRHeG9vOUk3WEhLUtIBZkFVX3lxTFBMOFhyV182TS04X0xVVENvb0MycERDSzI0Z1hsWkhRVUt6aDFvSk1fdmtGaHRmQlhvNXB5Rk9xdkFZNkhodGZLU1ZJTFVlXzFOZmpOVkN0OHhXeGdZXy1lQzZLRldPQQ?oc=5', 'Janice Tjen, petenis Indonesia yang ukir sejarah di Wimbledon&nbsp;&nbsp;BBC', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:42.979703', '["Janice Tjen, petenis Indonesia yang ukir sejarah di Wimbledon&nbsp;&nbsp;BBC"]'),
+	(1310, 'Video Viral ART Asal Indonesia Dianiaya di Malaysia, 4 Orang Ditangkap - 20detik', '20detik', 'https://news.google.com/rss/articles/CBMivgFBVV95cUxPM3JNdmVwZE1sbkw0QVpTQlJfRF9Rc2tSV204bV9Zb21scGhBTmNVUnFHQWJDM3VTbW5yS3dWblBDaTlITE1QcEUwZkNjWmpVMFo2RnRQY3lhdVpURGw4c0d2bmo3MDYtdzNhYzY1bmtobHFMM01PbDdxMm9xU3VJOVlSU1gxZXEwZDM4bEVJRUZsZkN1cUJtcXJvZ1dxVjRMc1RLMktob19yVjg5d0dKMWJTWW96THAzaGhlMFVB?oc=5', 'Video Viral ART Asal Indonesia Dianiaya di Malaysia, 4 Orang Ditangkap&nbsp;&nbsp;20detik', 'rendah', -1.00, 'Hiburan / Viral', '2026-07-03 06:07:43.147701', '["Video Viral ART Asal Indonesia Dianiaya di Malaysia, 4 Orang Ditangkap&nbsp;&nbsp;20detik"]'),
+	(1311, 'Viral di AVC Cup, Boy Arnez Buka Rahasia Lompat Lebih Tinggi dari Net - CNN Indonesia', 'CNN Indonesia', 'https://news.google.com/rss/articles/CBMizgFBVV95cUxORmN2WHhTOXRaalpDbEg5WmxkdUY2WHpfNTBwTnN1Z20tZDVBRGZaelptX3ZLZEhFY0dYdmk1RnZEeFhHZkppVk8zd3RQSUs1YWRnQ0o0RGlVYTlVTjBUZ0RseDhsZmVWeFVmVlhMVXNRWEFIR2szZWF6ekRQb25lU1JPdWoyV1Z5bm9uUXZ3OWVud1Nwa2JqeUdOM3NOM1NpY2NPRVF1YVlGVnNOUzJKMHV0WE82R2xGX0dwenpJdFFTVlR5MlZEUWtCY2Zhd9IB0wFBVV95cUxNTWtWYi04N21jZ1VYZ2t2M05Id0dHOW9CSUJyWFVuWGk2cUlTTFE1N21vUlhOX3dnbndYNnhIV3JkX0R2OXRIblFOakhSLThmd1lFWE9XUFNDRWNmYkZRTnJDVjV2N21sWnlyUTFDcGxhbUJQd0pTMjFaemVPeW1HdlNESnF', 'Viral di AVC Cup, Boy Arnez Buka Rahasia Lompat Lebih Tinggi dari Net&nbsp;&nbsp;CNN Indonesia', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.302747', '["Viral di AVC Cup, Boy Arnez Buka Rahasia Lompat Lebih Tinggi dari Net&nbsp;&nbsp;CNN Indonesia"]'),
+	(1312, 'Polresta Denpasar Lakukan Penyelidikan Terkait Viral Pengisian Pertamax Dengan Jirigen Yang Picu Antrean di SPBU Taman Griya - suryaindonesia.net', 'suryaindonesia.net', 'https://news.google.com/rss/articles/CBMi-wFBVV95cUxOcDY5cW9OU3NXVXk0bGh4TDZLWFI4bnkyYlYzNzFGZ1d5N2t2ZlBHNGtNeXZaUEZuS3VPVlBvTXJlLTVMTWNNSVVmZUl1NUhtcHkwaFQwaG55NmdGODgwcXEtZm1YaDhQU3pvZHR1LW42ZjltdVNIN29HalBRTzNrOVpXa3U3Sl9mLWtXTVRIRVRWMzlRSGF2WjktNjJRei1tdGlzRmJSeS1HMkRROFkyXzJ6TGIxQjAzb2NPRTNwaUZDeld3Q0tCUXdsSkpDd21QSVZDRDBudzZuODVDUG9GT1paMkdWbWNUMVh5dlo1cGFLV2dCeVBVY0ZCQQ?oc=5', 'Polresta Denpasar Lakukan Penyelidikan Terkait Viral Pengisian Pertamax Dengan Jirigen Yang Picu Antrean di SPBU Taman Griya&nbsp;&nbsp;suryaindonesia.net', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.464664', '["Polresta Denpasar Lakukan Penyelidikan Terkait Viral Pengisian Pertamax Dengan Jirigen Yang Picu Antrean di SPBU Taman Griya&nbsp;&nbsp;suryaindonesia.net"]'),
+	(1313, 'Marwah yang Hampir Roboh - IMBCNews', 'IMBCNews', 'https://news.google.com/rss/articles/CBMiWkFVX3lxTE01djRYa1gyU3JHYVlYN1hKN3hvT09tTVBxUzNoUmgtUWZVX2Vpei1rcFpIaDB4Nl9KSnBaclZzTDI0RlBuVFFjcF9RcXdlcjZacjVfVVlTaHJsdw?oc=5', 'Marwah yang Hampir Roboh&nbsp;&nbsp;IMBCNews', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.667803', '["Marwah yang Hampir Roboh&nbsp;&nbsp;IMBCNews"]'),
+	(1314, '5 Pastry Khas Prancis yang Populer di Indonesia, Ada yang Pernah Viral - RCTI+', 'RCTI+', 'https://news.google.com/rss/articles/CBMiwAFBVV95cUxORXd5Q3RNVkk3WWM3V3Y5ZHlKazFMUGpud0h2WFlhUHhhaEFNdTlpNXFVb3JLak1BelEtNHd2MUNremhvV2VFN2NTREtNWV9ZY0Y1RUdyNGRndVZvcndzM2lta1JwVDJOSVZJRGo5UU5mSW5wWDVkT1NfWHRyUEhNRXBrSjZVUzQzVzJtX3hfSTRteXRFLUM3a0lYMDFfZXZ0bnl1NHpZU045MEd6QWx4SENQWENiVGZ1WDk1YXFHazU?oc=5', '5 Pastry Khas Prancis yang Populer di Indonesia, Ada yang Pernah Viral&nbsp;&nbsp;RCTI+', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.878196', '["5 Pastry Khas Prancis yang Populer di Indonesia, Ada yang Pernah Viral&nbsp;&nbsp;RCTI+"]'),
+	(1315, 'Masih Ingat? Polisi yang Dulu Joget India Sampai Viral Se-Indonesia, Kini Nasibnya Berubah Drastis - VIVA.co.id', 'VIVA.co.id', 'https://news.google.com/rss/articles/CBMi3wFBVV95cUxQSzNrNDdndmVQUVN1Yk16RTNhX1RYYmswb3pUSmZUaWdLNmFTckdWWmFCcWpTRWtCX0VCci1DMENCb2haVm1wUWlHam01c25MZFItR1pxODRrSUY4RVh6U0dzV0xPMHBNZkdCaFBEdFZOU2t3Z01LRmVpUWJBbzhRMmJPN0NneU5RRE1GOFAwTTlVenYtczVXbVd6UGJ1OVhfbkhIRFN1dDVMZjlrZHJiR01KelNjaWg0SUNZUkVRY0h4Yzg4ZnJhMGRzU3A0LTlON1o4a1B6UmE0eGpuTkF30gHkAUFVX3lxTE5TQm5vYnR1NlpJM09VbE9kdUZ4eHd2ZjA2Zkp0aXNJaTNWUnZEWXZXbG9DcE5PY0o5UjNtenJabXh6SXlFOXB5MGZQSDZUX3NPNlc0YlJWck9QQUVLSEk2cm1WSExkbnBZUGI1Vm9lcTFycGZ', 'Masih Ingat? Polisi yang Dulu Joget India Sampai Viral Se-Indonesia, Kini Nasibnya Berubah Drastis&nbsp;&nbsp;VIVA.co.id', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.879041', '["Polisi yang Dulu Joget India Sampai Viral Se-Indonesia, Kini Nasibnya Berubah Drastis&nbsp;&nbsp;VIVA.co.id"]'),
+	(1316, 'Kabar PHK Tokopedia Viral: Analisis Dampak Potensial pada Ekosistem Digital Indonesia - BERNAS.id', 'BERNAS.id', 'https://news.google.com/rss/articles/CBMiwAFBVV95cUxOdTJBVGprY1B1bDYzYy02UnpyUWt0U3hHblBsSTc3ZlFxelF5OFVFYlRfdzROZW5wSWd3NFpGSkVVN0JkdVgteWZTS0tVU0pfRDFBV0dFN1ZOU0RKUDE1X3lXbnctYzZjX0Jpb1hlb1NCbzRVRXZrN21RQ0VES1NkNkU0djdEQmtNYjZPckZxZ0UzU3VkZ1BWQ2dEY1JxeWFGTUJsc0VmNnNqdmlWWkJ0bmQ4czkzTGlDalZvR2t5Q3M?oc=5', 'Kabar PHK Tokopedia Viral: Analisis Dampak Potensial pada Ekosistem Digital Indonesia&nbsp;&nbsp;BERNAS.id', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.879819', '["Kabar PHK Tokopedia Viral: Analisis Dampak Potensial pada Ekosistem Digital Indonesia&nbsp;&nbsp;BERNAS.id"]'),
+	(1317, 'Fact Check: Viral Video Falsely Claims Indonesia Controls Global Rice Prices - Website Resmi Polri', 'Website Resmi Polri', 'https://news.google.com/rss/articles/CBMiqwFBVV95cUxQSUQxaHdTTFNTUFFOblhQcS0telNsQVl4TEU3WUJoVFdObUtmRkhPSDdqeDZYU2dmTnJodlZ0Yi10TnZkaGNJMUlMOTZORnc2cU1VVy1HeU5BZVRoNDFPYklWb1p2VUJkZ25xOF81c1B5T2dlTnN2MEpEMWtFdUQ3Qlg2NHc1N3V6alpQU0RsUUJCckNMaXBmNDlkY1k2TlFlX1d0dWxaeDZGN0U?oc=5', 'Fact Check: Viral Video Falsely Claims Indonesia Controls Global Rice Prices&nbsp;&nbsp;Website Resmi Polri', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.880772', '["Fact Check: Viral Video Falsely Claims Indonesia Controls Global Rice Prices&nbsp;&nbsp;Website Resmi Polri"]'),
+	(1318, 'Viral video pekerja migran di Libya minta tolong, Kemlu RI: Kami dampingi AJ untuk kembali - ANTARA News Bengkulu', 'ANTARA News Bengkulu', 'https://news.google.com/rss/articles/CBMizwFBVV95cUxNUmFYQTBJenI0UktrVldiMkJjbGsydVo1YmtIZElVekRwSU9URzg0UXpmN1Ffd1ZwWjRhZkR5ZkhXRVpPcVp5R2daSGRMOG9fRXdCcWplTGctU2dMTklBaHViNGxFM3Q5YUNkdVVHTXUxeFFhN1VfbmNPOVMyQmIzN2t4NVEyTFhiMy1SYk9PZkRVYXdWTDgzaV9RZzU2eG51VmlJTDE3S3otNnBFQnpldmlLT1J2Z05wbmJHTjVMSVVUNVdCc0M3Y0lkYmVNd1E?oc=5', 'Viral video pekerja migran di Libya minta tolong, Kemlu RI: Kami dampingi AJ untuk kembali&nbsp;&nbsp;ANTARA News Bengkulu', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.882751', '["Viral video pekerja migran di Libya minta tolong, Kemlu RI: Kami dampingi AJ untuk kembali&nbsp;&nbsp;ANTARA News Bengkulu"]'),
+	(1319, 'PMI di Libya yang Viral Minta Dipulangkan Kini Dilindungi KBRI, Dugaan TPPO Diusut - Kompas.com', 'Kompas.com', 'https://news.google.com/rss/articles/CBMixgFBVV95cUxPS3NZWHlyTDZCa1RwdzRldlV2X2dzSFlMekJaN2pyMGVpTWZFMTZPa3M5dTBHcW5vbWprbGo3b0o3SmVVRDVNQzdEcFB6d3NOX1hzTEdkM0x0ZDlCSGdVeVpZQlFPUThLb2tXSmRKQjBlbVZUNm1EdTl0TkExdS1aanNrOS1jUHZ5TzNzdEpBdkc1NjFKcUo3MDVxWHB0VF81YjFLTVBhSjJfb2U2TjJXSmFsckVpQzk3Sm1hNDdaN0NKVHJfclE?oc=5', 'PMI di Libya yang Viral Minta Dipulangkan Kini Dilindungi KBRI, Dugaan TPPO Diusut&nbsp;&nbsp;Kompas.com', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.883543', '["PMI di Libya yang Viral Minta Dipulangkan Kini Dilindungi KBRI, Dugaan TPPO Diusut&nbsp;&nbsp;Kompas.com"]'),
+	(1320, 'HYROX Makin Viral di Indonesia, Kenali Tren Fitness Racing yang Cocok untuk Pemula - Jawa Pos Radar Malang', 'Jawa Pos Radar Malang', 'https://news.google.com/rss/articles/CBMizwFBVV95cUxNcVBZLXV4dE5IOFZINGF0SlpSdFE1REJXVDBLNGJrZVYtRUdTT1NuYnpjOW1sU1J5ZFlZNS1uTWxFdGZ2YlZQMHllTUZXZkJVb1o4R05wSnNrUFJidnRBaUNUR29EQ2k0MFZLdFhMV2ZnSGxNZTRYWGY5WDhxUHFka3VCN0hHbml4Q2JQY2k5RW5qLVBxM1Rva0hueGd0dzRUYUFyNVlLR0VmUkV1dk51MXRodzFPTFVaLXFMbE9oU2pueUdyQ2lUck5QZG1TdjDSAdQBQVVfeXFMTUQ2MDdIZy1RMnBxamhIaHNTd2ZDUlM1aXVjLVFySWF1S1BCR3JwV2kzblk4ZGt1VGlxeWhCSVkxaG95VUNVaFkycjhOMS1abUc5UmU5djV1eWM1SFNIWFJRV1pzUVJfSG96MjdNQnBKN2Z4V1NnMVdkT044TEpRSHNYcDR', 'HYROX Makin Viral di Indonesia, Kenali Tren Fitness Racing yang Cocok untuk Pemula&nbsp;&nbsp;Jawa Pos Radar Malang', 'netral', 0.00, 'Hiburan / Viral', '2026-07-03 06:07:43.884689', '["HYROX Makin Viral di Indonesia, Kenali Tren Fitness Racing yang Cocok untuk Pemula&nbsp;&nbsp;Jawa Pos Radar Malang"]'),
+	(1321, 'Viral Opini Kepulangan Dr. Mochammad Asri: Netizen Indonesia Ramai ''Larang'' Sang Ilmuwan Pulang, Kenapa? - Beritahu.co -', 'Beritahu.co -', 'https://news.google.com/rss/articles/CBMiuwFBVV95cUxPZjRnQ0tFdnJ5bjRoUzBQcVhVNTVNSTE0QnRPeU85TXJfck4zbkpGazhOdVFGN0ZFZHFNMHJsVk43bTJobFNJWUpPeUVTdmhDcjJwTVJuZXJ0Vkx2VFFTTjM4SmxpOWtIYVpJYTZsM09YTmhUS3BDMGdyaUV6M0VqNWl1Y25mVmYxVDhNNGsyYmNyVVU0TDZHQ2tEcjBkUUNyTzQ3bC1Tb2ZDeDNtWVg2eklqLUw2VDY0Ui1J?oc=5', 'Viral Opini Kepulangan Dr. Mochammad Asri: Netizen Indonesia Ramai ''Larang'' Sang Ilmuwan Pulang, Kenapa?&nbsp;&nbsp;Beritahu.co -', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:44.601087', '["Viral Opini Kepulangan Dr.","Mochammad Asri: Netizen Indonesia Ramai ''Larang'' Sang Ilmuwan Pulang, Kenapa?&nbsp;&nbsp;Beritahu.co -"]'),
+	(1322, 'Netizen Indonesia dan ''Crab Mentality'' - katolikana', 'katolikana', 'https://news.google.com/rss/articles/CBMigAFBVV95cUxQaFJ3eHdPZFpDUEFMWDNjOHhRMlh5RXpobkVRX1Z0NExZaXV6bEdyODZkODlPS0JDMmlvMlN0MlJaZ1hqZnV5U1RxN0YxLTNSLWVrWjAzUmpUT1hXX1JUbGFJRERNcDdQV3hCWGJFUlhvbUZ5eFJmeEZsWWJ2cHJ0ctIBhgFBVV95cUxNTThELW5UU0tnak9WaTBOVThiMVUwajNneV9xSkIycXRNUTZTMHJTcXZQdld3eW00ZVdmMTNMbm80TFptTGNudm00dEhrNGh5Sm9mc3JQTmNqUWxVY2pnc0o1dHlRa3VfN1ZXemVQRmM4bXNKc3pjLXdNUjJid3NSZUZ0YXQ2dw?oc=5', 'Netizen Indonesia dan ''Crab Mentality''&nbsp;&nbsp;katolikana', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:44.757701', '["Netizen Indonesia dan ''Crab Mentality''&nbsp;&nbsp;katolikana"]'),
+	(1323, 'Kontroversi Gunung Rinjani Sempat Viral, Memicu Perang Netizen Indonesia dan Korea Selatan - Suara Papua', 'Suara Papua', 'https://news.google.com/rss/articles/CBMiwgFBVV95cUxPWE5TRGNyRDFpeWFQMUl0Nlk2dHpOa2ZUOUgxeExoTE81WlNJTmVzbVhJVkZPNUxBN1cxaFdjaExsR3VldjkwQjBtZEdTZGlPVTNBTXN2aFhYekprUVp3M2JFNVJObGFnOXNaSkFQX3JyNFhiLTU1QXp2bjRGN3FlTEdYT3dtdWstMEh4YXVZRzRXWk1qRzZXa3lRU2xwSnNhMXpRQUQtd2RsaVJvZWRId1U4X2hZMDdfSVkzY1VabzJfQQ?oc=5', 'Kontroversi Gunung Rinjani Sempat Viral, Memicu Perang Netizen Indonesia dan Korea Selatan&nbsp;&nbsp;Suara Papua', 'rendah', -1.00, 'Opini Netizen', '2026-07-03 06:07:44.93267', '["Kontroversi Gunung Rinjani Sempat Viral, Memicu Perang Netizen Indonesia dan Korea Selatan&nbsp;&nbsp;Suara Papua"]'),
+	(1324, 'SENTIMEN PUBLIK TERHADAP INDONESIA DI DEWAN PERDAMAIAN GAZA - Drone Emprit Publications', 'Drone Emprit Publications', 'https://news.google.com/rss/articles/CBMikgFBVV95cUxQbFQyT3FDS1RyeUc5QzRMdjlSSHhEdVlQa004WlAzSGtPUTRBS3Y1azd4YkVZWmNldHhJQUE4UEpQMlBnT19QSmR4NjNxdTVGSkxVRkRVS1U2SmhPRGJGMTVxNWpGVDRwWnBfVmhMZ3JEemtIWGhRWFBLbW5uWFhnYW1vYTAxcmF4QUxiNF9VbGdid9IBlwFBVV95cUxQMVN0NnFiQWc5ZHBscU1ELVBmaXZWXzVRRHNZdzVldVNyY0ZkWjRoM0lYcTU4ZUlYODFiSTRFTWxBYmlYb1pqR3Z0QmE1cHRCYkVPeV9PZldBNXh3NFRzaVFNOEZFN1RBSjFmN3B0U19zRmlDTW0wZnRRSXQ3Yl9laWRtTTREOHBVOXgtc3NnclRmcEZIVVVR?oc=5', 'SENTIMEN PUBLIK TERHADAP INDONESIA DI DEWAN PERDAMAIAN GAZA&nbsp;&nbsp;Drone Emprit Publications', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.087936', '["SENTIMEN PUBLIK TERHADAP INDONESIA DI DEWAN PERDAMAIAN GAZA&nbsp;&nbsp;Drone Emprit Publications"]'),
+	(1325, 'Kenapa Banyak Orang Mendadak Jadi Ahli Hukum di Kolom Komentar - jatimnet.com', 'jatimnet.com', 'https://news.google.com/rss/articles/CBMiiwFBVV95cUxPMlZIYUpveXRuOXUtTGtta1VzTFAxNUpDb2JSUlJnNl9SQ0EtV1F2UW1yeGlEMlFJWlBzcUlLd2FCVnVnRV8xRjZzbWthN2F6Yjhqa3dsYnJYMTNzUnBzV2Zsc1QtVVNlSWhNRVhUd1RwTzVITkNkRUI4MEs3OTFMcjNfSkNPM25BUndN?oc=5', 'Kenapa Banyak Orang Mendadak Jadi Ahli Hukum di Kolom Komentar&nbsp;&nbsp;jatimnet.com', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.253473', '["Kenapa Banyak Orang Mendadak Jadi Ahli Hukum di Kolom Komentar&nbsp;&nbsp;jatimnet.com"]'),
+	(1326, 'SEAblings vs KNetz: Studi Kasus Krisis Komunikasi Budaya di Era Viralnya Identitas Digital - SINDOnews Nasional', 'SINDOnews Nasional', 'https://news.google.com/rss/articles/CBMi4AFBVV95cUxPSkJFbFhoQnVKQmYtdnNWRGVUaXA3Y2xxOHFwUURBUDlSc0RXSVB3SDZCWndjOGYySmlucDRINmRoRmRpbVBIY05fV2hmNTFUZHp1d1A5aFV5T3o3blJOQzlHV0c4ZnFUZldWSXNPUHdfaDZhTUMzQ2E0SjMxME0zVEJ6VnJRQzBpQW1IeG8ybFZINHVoUnJrWENabU5uUDBXRGpQck9FNU9jT3JpMzNsR2ViLUM0MXotNHNCMFhHX3lCV0pzTm44UnhPY2FzNURHQkVEdjR2TWdCWTJWcXktc9IB5gFBVV95cUxQMG5VV2duLXI4WVlQSEE1M0RtQjE4Y25uT3h5VElMQjJLb3dmclJuRWprb0pXQ0dNR0pRSy1OWjhPSDVLRVRyZnVMaFQ1R1hSZGhXeExZMXRmams5dmlpVmlFUENvcy1kdGdtRkV3Szh0Zkd', 'SEAblings vs KNetz: Studi Kasus Krisis Komunikasi Budaya di Era Viralnya Identitas Digital&nbsp;&nbsp;SINDOnews Nasional', 'rendah', -1.00, 'Opini Netizen', '2026-07-03 06:07:45.426218', '["SEAblings vs KNetz: Studi Kasus Krisis Komunikasi Budaya di Era Viralnya Identitas Digital&nbsp;&nbsp;SINDOnews Nasional"]'),
+	(1327, 'Mabuk Agama Bukan Budaya Indonesia - ketik.com', 'ketik.com', 'https://news.google.com/rss/articles/CBMiakFVX3lxTE5hanVKalp1YWsyQTNVMGlGNHlGbFZvSks5VHRvdEtlaTc5cFpZM005Q1RuYmx1RVBpbGZkbTBEb0xmNnJoU0RQRVNvNndkcUNvQWRaQkk5eDNRVmNFWFJYSUVLaHo3RWlfLXfSAWdBVV95cUxNLU1HU3FVWExBa1VwZm5WejhSVkNEOUxRWGV4MmFLcjY5RjV0STB5VENnbVpMNU9iQXVwclgyc2tNLTl2ZkxxZF8yeGhPRjQtUk1JUThtTVZHOXVIanBlSnZPTkNZejR3?oc=5', 'Mabuk Agama Bukan Budaya Indonesia&nbsp;&nbsp;ketik.com', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.426905', '["Mabuk Agama Bukan Budaya Indonesia&nbsp;&nbsp;ketik.com"]'),
+	(1328, 'Hakim di Era Algoritma: Memutus Perkara atau Memuaskan Netizen? - Dandapala Digital', 'Dandapala Digital', 'https://news.google.com/rss/articles/CBMinAFBVV95cUxOeVR0dFNoQnhaRDZkcmNNcmRrVzRoRDJyNzM2QlI5R3VHb2xDbUtZbjNXWXRaak1RR0hrb19MN3Z6V2pjN0RlYXI0QVNCYkZ5bTN4TzJRR1R4UktCVDR5MnZ2emI4QjVLOHN0RHBBc0lwa1FwRzRLWjV1Yl9VdTVMUERWcDhLZVZKc1NzNmtybWNRcUFZQ3c0TzNJb0I?oc=5', 'Hakim di Era Algoritma: Memutus Perkara atau Memuaskan Netizen?&nbsp;&nbsp;Dandapala Digital', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.427798', '["Hakim di Era Algoritma: Memutus Perkara atau Memuaskan Netizen?&nbsp;&nbsp;Dandapala Digital"]'),
+	(1329, 'Suara ”Netizen” Bukan Suara Rakyat - Kompas.id', 'Kompas.id', 'https://news.google.com/rss/articles/CBMib0FVX3lxTE5QaTVZWUpqVGRwOU8zTWRtQ3lnQzdoMGxCU0lQV0pna2I0SWRGWi0zSzZETGR2YUpnV2VqRGd0QVd0d3JmdVhhYkNLb1dYZ01ZZm91ajMtV1REZVZDNk1wYXhwYllJSVJCSVlhejdHdw?oc=5', 'Suara ”Netizen” Bukan Suara Rakyat&nbsp;&nbsp;Kompas.id', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.428547', '["Suara ”Netizen” Bukan Suara Rakyat&nbsp;&nbsp;Kompas.id"]'),
+	(1330, 'Netizen Indonesia, Pemanasan Global, dan Proyeksi Masa Depan - geotimes', 'geotimes', 'https://news.google.com/rss/articles/CBMijgFBVV95cUxQTXRlYlh2cFhteUhfb092b2Zibko2WEEtNEpXVFQ5ZVVTTDJzSGZmRVJnNkgxWXYxNFJKMmlhRFFCQU1yWmtoQU44N0ktWGVxdTkwTnFxTTREN1N2aE1ROWpXVlFERXJTeGhBMDFXeGZjZzNuMEJkYlJUN2ZxV0VLNGEwVlBIb296V1RmeGhR?oc=5', 'Netizen Indonesia, Pemanasan Global, dan Proyeksi Masa Depan&nbsp;&nbsp;geotimes', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.429238', '["Netizen Indonesia, Pemanasan Global, dan Proyeksi Masa Depan&nbsp;&nbsp;geotimes"]'),
+	(1331, 'Sesat Logika Kemenkomdigi dalam Menyimpulkan bahwa Cloudflare Melindungi Situs Judi - NU Online Jabar', 'NU Online Jabar', 'https://news.google.com/rss/articles/CBMiugFBVV95cUxQX3BTQnpYa1lGTUVzaVZuRjBOd3QweFZrTUIyanZxcHZCTERpTTg3TWxzcE9LNElpUjE0NjRZMEQ4YnRzZVZ1b2R4Rjh3VmZNZUZFVno3N0RIWWsyUzlkelFxVmxNbWIzOVpSUkhETnhXWGNfSk16b1Ata1VtR3VlOVRhMFNBdEhESHJzclc1NHY4VWtqQU02UXNDTktYZXpqTWRLbGJHXy15emU4V0pUT1Zvd3B5TXVqemfSAb8BQVVfeXFMTl9qaWFJRjcwNjYxWnN1YkQ0bjdUWG1nNE9WWVVjbEJrS3FQY1pndnFHSERTN0FRY3VoWDBjZnJYb19MNU9QSkhabHc0MnlEUE9xNGplRWtBXzlET0t2Yzl6VDVOcm50ZUVCTm11V21qZ1VzUGV0U1FuanZuS1VjOGlqLWZlem83VzAwNDc1WE40ZEtCb0dhOXY', 'Sesat Logika Kemenkomdigi dalam Menyimpulkan bahwa Cloudflare Melindungi Situs Judi&nbsp;&nbsp;NU Online Jabar', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.4299', '["Sesat Logika Kemenkomdigi dalam Menyimpulkan bahwa Cloudflare Melindungi Situs Judi&nbsp;&nbsp;NU Online Jabar"]'),
+	(1332, 'Membandingkan Netizen Cerdas RI Vs Malaysia Saat Bermedsos - CNBC Indonesia', 'CNBC Indonesia', 'https://news.google.com/rss/articles/CBMiuwFBVV95cUxNRWtJX00zSVNxSjQ4ZUdPSHBza0NVZEx5VWJIUGFweWt3SlhzYTlTMlFCY05NS2YzbmpTcFZ1Z1REUUhtYU1sVHlfemw1SmlWLU5NNHM5VWg0M0RBWVJwN3RsczBmTGV6MXdETTBrTk9vOElaak9PeklSRGdSdk5vZ1VnM0tiNEJEX0JjaVg3bmxFYTZCVjNrY2REOHFrUU1Dc3AyN0NBLWlFREhYaGJJNExreXowQ3hTVkdJ0gHAAUFVX3lxTFBJcFVyV0tJOGFTbDdJNkI3LUJLNF90Z0V4cXplWV8tRTRYWTl6MTlwa29ITlhOMkp0X3B1bFF4QUxnbW5kRVhjbml6bFVRT0dYZHFRcnY3a3ZKWFRmZk1yTVA5YXhtWFA3RlNna0VnZVNpQjdRdElLbVpWWDNON1ZSVFNXRGQ2ckhPb0stTi1zTG9ZTnIxNGl', 'Membandingkan Netizen Cerdas RI Vs Malaysia Saat Bermedsos&nbsp;&nbsp;CNBC Indonesia', 'netral', 0.00, 'Opini Netizen', '2026-07-03 06:07:45.430715', '["Membandingkan Netizen Cerdas RI Vs Malaysia Saat Bermedsos&nbsp;&nbsp;CNBC Indonesia"]');
+/*!40000 ALTER TABLE "opini_viral" ENABLE KEYS */;
+
+-- Dumping structure for table public.paket_pesanan
+CREATE TABLE IF NOT EXISTS "paket_pesanan" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''paket_pesanan_id_seq''::regclass)',
+	"kode" VARCHAR(40) NOT NULL,
+	"user_id" BIGINT NOT NULL,
+	"paket" VARCHAR(20) NOT NULL,
+	"harga" INTEGER NOT NULL,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'pending',
+	"snap_token" TEXT NULL DEFAULT NULL,
+	"snap_redirect" TEXT NULL DEFAULT NULL,
+	"midtrans_status" VARCHAR(40) NULL DEFAULT NULL,
+	"midtrans_raw" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"paid_at" TIMESTAMP NULL DEFAULT NULL,
+	"admin_catatan" TEXT NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "paket_pesanan_kode_key" ("kode"),
+	INDEX "paket_pesanan_user_idx" ("user_id", "created_at")
+);
+
+-- Dumping data for table public.paket_pesanan: -1 rows
+/*!40000 ALTER TABLE "paket_pesanan" DISABLE KEYS */;
+INSERT INTO "paket_pesanan" ("id", "kode", "user_id", "paket", "harga", "status", "snap_token", "snap_redirect", "midtrans_status", "midtrans_raw", "created_at", "paid_at", "admin_catatan", "updated_at") VALUES
+	(1, 'PKT-K-260701155743-F83A', 39, 'komunitas', 50000, 'paid', NULL, NULL, NULL, NULL, '2026-07-01 15:57:43.973145', '2026-07-02 06:08:39.574961', NULL, '2026-07-02 06:11:04.016759');
+/*!40000 ALTER TABLE "paket_pesanan" ENABLE KEYS */;
 
 -- Dumping structure for table public.pengeluaran_kegiatan
 CREATE TABLE IF NOT EXISTS "pengeluaran_kegiatan" (
@@ -3171,10 +4934,13 @@ CREATE TABLE IF NOT EXISTS "pengeluaran_kegiatan" (
 	"bukti_url" TEXT NULL DEFAULT NULL,
 	"created_by" INTEGER NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"dana_dari" VARCHAR(150) NULL DEFAULT NULL
+	"dana_dari" VARCHAR(150) NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "pengeluaran_kegiatan_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "pengeluaran_kegiatan_jadwal_id_fkey" FOREIGN KEY ("jadwal_id") REFERENCES "jadwal" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.pengeluaran_kegiatan: -1 rows
+-- Dumping data for table public.pengeluaran_kegiatan: 13 rows
 /*!40000 ALTER TABLE "pengeluaran_kegiatan" DISABLE KEYS */;
 INSERT INTO "pengeluaran_kegiatan" ("id", "jadwal_id", "tanggal", "kategori", "judul", "jumlah", "catatan", "bukti_url", "created_by", "created_at", "dana_dari") VALUES
 	(1, 6, '2026-05-23', NULL, 'Sewa Lapang 2 Jam dan Konsumsi', 76000, 'Tidak ada', NULL, 2, '2026-05-30 15:06:08.76388', NULL),
@@ -3189,8 +4955,35 @@ INSERT INTO "pengeluaran_kegiatan" ("id", "jadwal_id", "tanggal", "kategori", "j
 	(11, 12, '2026-06-16', 'Sewa Lapang dan Air 1', 'Sewa Lapang dan Konsumsi Air 1', 53000, NULL, NULL, 2, '2026-06-17 04:42:02.468491', 'Firdam'),
 	(12, 12, '2026-06-16', 'Shuttlecock', 'Shuttlecock Berwyn', 145000, NULL, NULL, 2, '2026-06-17 04:42:43.148721', 'Firdam'),
 	(13, 14, '2026-06-19', 'Sewa Lapangan / Konsumsi', 'Harga Tiket Saya dan Dani + 3 Popmie', 66000, NULL, NULL, 2, '2026-06-20 11:27:48.784241', 'Firdam'),
-	(14, 11, '2026-06-20', 'Sewa Lapangan', 'Sewa Lapang 2 Jam', 70000, NULL, NULL, 2, '2026-06-20 11:28:41.698985', 'Aziz');
+	(14, 11, '2026-06-20', 'Sewa Lapangan', 'Sewa Lapang 2 Jam', 70000, NULL, NULL, 2, '2026-06-20 11:28:41.698985', 'Aziz'),
+	(15, 16, '2026-06-23', 'Sewa Lapang', 'Sewa Lapang 2 Jam', 70000, NULL, NULL, 2, '2026-06-24 17:59:50.357678', 'Firdam'),
+	(17, 15, '2026-06-27', 'Parkiran', 'Parkiran Motor', 8000, '4x2000', NULL, 2, '2026-06-28 06:11:16.701786', 'Firdam'),
+	(16, 15, '2026-06-27', 'Konsumsi', 'Ketan Bakar 5', 50000, '1 Kstan 10.000', NULL, 2, '2026-06-28 06:09:42.964291', 'Firdam'),
+	(18, 23, '2026-06-29', 'Sewa Lapang', 'Sewa Lapang 2 Jam', 50000, NULL, NULL, 2, '2026-06-29 23:07:58.600198', 'Firdam'),
+	(19, 26, '2026-07-01', 'Beli Bet Baru 2', 'Bet Baru', 199000, 'Bet 2, Bola 2, Merk Double Fish', NULL, 2, '2026-07-03 07:55:03.745551', 'Firdam'),
+	(20, 25, '2026-07-02', 'Konsumsi', 'Konsumsi (Ketan, Snack, Kantin UPI)', 129000, NULL, NULL, 2, '2026-07-03 07:58:28.784734', 'Firdam'),
+	(21, 25, '2026-07-02', 'Konsumsi', 'Konsumsi Tambahan Kantin UPI', 60000, NULL, NULL, 2, '2026-07-03 17:39:11.810793', 'Dani');
 /*!40000 ALTER TABLE "pengeluaran_kegiatan" ENABLE KEYS */;
+
+-- Dumping structure for table public.pertemanan
+CREATE TABLE IF NOT EXISTS "pertemanan" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''pertemanan_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"nama" VARCHAR(120) NOT NULL,
+	"tanggal_kenalan" DATE NULL DEFAULT NULL,
+	"kedekatan" SMALLINT NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "ix_pertemanan_user" ("user_id")
+);
+
+-- Dumping data for table public.pertemanan: -1 rows
+/*!40000 ALTER TABLE "pertemanan" DISABLE KEYS */;
+INSERT INTO "pertemanan" ("id", "user_id", "nama", "tanggal_kenalan", "kedekatan", "catatan", "created_at") VALUES
+	(4, 2, 'Luthfi', NULL, 3, NULL, '2026-07-03 14:57:44.336561+00'),
+	(2, 2, 'Alwi', '2026-06-06', 3, 'UIN SGD 1 - Informatika - SM2', '2026-07-01 21:56:20.912969+00');
+/*!40000 ALTER TABLE "pertemanan" ENABLE KEYS */;
 
 -- Dumping structure for table public.posts
 CREATE TABLE IF NOT EXISTS "posts" (
@@ -3204,7 +4997,11 @@ CREATE TABLE IF NOT EXISTS "posts" (
 	"repost_of" INTEGER NULL DEFAULT NULL,
 	"media_type" VARCHAR(10) NOT NULL DEFAULT 'image',
 	"images_json" TEXT NULL DEFAULT NULL,
-	INDEX "posts_repost_idx" ("repost_of")
+	PRIMARY KEY ("id"),
+	INDEX "posts_created_idx" ("created_at"),
+	INDEX "posts_repost_idx" ("repost_of"),
+	CONSTRAINT "posts_repost_of_fkey" FOREIGN KEY ("repost_of") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "posts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.posts: 21 rows
@@ -3231,8 +5028,10 @@ INSERT INTO "posts" ("id", "user_id", "caption", "foto_url", "jenis", "expired_a
 	(40, 16, 'Menyambut Tahun baru Islam dengan HM 14.48km', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/ADITH_SETIAWAN-story-1781598950-fe41217b_YtyiS_4lW.jpg', 'story', '2026-06-17 15:35:52.132178', '2026-06-16 15:35:52.132178', NULL, 'image', NULL),
 	(41, 7, 'jujur tadi asa kurangg waktu mainnyaa soalnya pada jago2 semua ditambah skill saya udh menurun 😭🙏 hrs rajin2 latihan lg euy 😁', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Faiz-post-1781623696-720893fd_YuPag8ykE.jpg', 'post', NULL, '2026-06-16 22:28:17.841221', NULL, 'image', NULL),
 	(42, 2, 'Pertama kali coba..', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1781738370-eb12b535_0PjiEw4Jx.jpg', 'post', NULL, '2026-06-18 06:19:31.985291', NULL, 'image', NULL),
-	(3, 2, 'Siapa nih??', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782106177-0-3a6e50_e-ycywKmq.jpg', 'post', NULL, '2026-06-22 12:29:41.857599', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782106177-0-3a6e50_e-ycywKmq.jpg","https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782106179-1-bebe72_tRiFaKUl5.jpg"]'),
-	(4, 2, 'Bengong', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-story-1782106236-0-b40309_to6qL4jdC.jpg', 'story', '2026-06-23 12:30:39.164507', '2026-06-22 12:30:39.164507', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-story-1782106236-0-b40309_to6qL4jdC.jpg"]');
+	(43, 2, 'Siapa ini?', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782126773-0-b48c57_HxxXBbgbd.jpg', 'post', NULL, '2026-06-22 18:12:58.54257', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782126773-0-b48c57_HxxXBbgbd.jpg","https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782126776-1-b65977_6nEQp2quMO.jpg"]'),
+	(44, 2, 'Badminton di Mayasari kemarin', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782250832-0-b6b273_jgVmU_w-0.jpg', 'post', NULL, '2026-06-24 04:40:35.348728', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782250832-0-b6b273_jgVmU_w-0.jpg"]'),
+	(47, 2, 'Ceritanya mau izin pinjam lapang basket, tp blm rejekinya teman', 'https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782404567-0-a067d1_pUnIzDsra.jpg', 'post', NULL, '2026-06-25 23:22:50.086926', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/June_2026/Firdam-post-1782404567-0-a067d1_pUnIzDsra.jpg"]'),
+	(48, 2, 'Puncak Upas Hill', 'https://ik.imagekit.io/ahsansur/sportapp/social/July_2026/Firdam-post-1783095191-0-db1376_hHdzumgrS.jpg', 'post', NULL, '2026-07-03 23:13:13.702282', NULL, 'image', '["https://ik.imagekit.io/ahsansur/sportapp/social/July_2026/Firdam-post-1783095191-0-db1376_hHdzumgrS.jpg"]');
 /*!40000 ALTER TABLE "posts" ENABLE KEYS */;
 
 -- Dumping structure for table public.post_bookmarks
@@ -3240,7 +5039,9 @@ CREATE TABLE IF NOT EXISTS "post_bookmarks" (
 	"user_id" INTEGER NOT NULL,
 	"post_id" INTEGER NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "post_bookmarks_unique_up" ("user_id", "post_id")
+	PRIMARY KEY ("user_id", "post_id"),
+	CONSTRAINT "post_bookmarks_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "post_bookmarks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.post_bookmarks: 1 rows
@@ -3256,10 +5057,13 @@ CREATE TABLE IF NOT EXISTS "post_comments" (
 	"user_id" INTEGER NOT NULL,
 	"isi" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	"updated_at" TIMESTAMP NULL DEFAULT NULL
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "post_comments_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "post_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.post_comments: -1 rows
+-- Dumping data for table public.post_comments: 9 rows
 /*!40000 ALTER TABLE "post_comments" DISABLE KEYS */;
 INSERT INTO "post_comments" ("id", "post_id", "user_id", "isi", "created_at", "updated_at") VALUES
 	(10, 32, 15, 'Sumber penghasilan zionis', '2026-05-30 09:58:40.957355', NULL),
@@ -3270,18 +5074,16 @@ INSERT INTO "post_comments" ("id", "post_id", "user_id", "isi", "created_at", "u
 	(14, 41, 2, 'Iya euy saya juga asa kurang, insya allah 3 jam  next kita', '2026-06-17 18:28:56.157528', '2026-06-19 12:16:49.343009'),
 	(16, 42, 7, 'mauu jugaa dongg', '2026-06-19 18:28:41.371683', NULL),
 	(17, 41, 7, 'siapp Bangg', '2026-06-19 18:29:06.448505', NULL),
-	(18, 42, 21, 'Mantap', '2026-06-20 12:50:33.605876', NULL),
-	(1, 42, 2, 'Uhuys', '2026-06-22 10:55:20.545247', '2026-06-22 10:55:36.609378'),
-	(2, 4, 2, 'Hmmm', '2026-06-22 12:31:17.177175', NULL),
-	(3, 4, 4, '😂😂', '2026-06-22 14:07:29.62042', NULL),
-	(4, 3, 4, 'Entitas tidak dikenal', '2026-06-22 14:07:59.054859', NULL);
+	(19, 48, 4, 'Mantapp', '2026-07-03 23:17:36.546238', NULL);
 /*!40000 ALTER TABLE "post_comments" ENABLE KEYS */;
 
 -- Dumping structure for table public.post_hashtags
 CREATE TABLE IF NOT EXISTS "post_hashtags" (
 	"post_id" INTEGER NOT NULL,
 	"tag" VARCHAR(64) NOT NULL,
-	INDEX "post_hashtags_tag_idx" ("tag")
+	PRIMARY KEY ("post_id", "tag"),
+	INDEX "post_hashtags_tag_idx" ("tag"),
+	CONSTRAINT "post_hashtags_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.post_hashtags: -1 rows
@@ -3293,7 +5095,9 @@ CREATE TABLE IF NOT EXISTS "post_likes" (
 	"post_id" INTEGER NOT NULL,
 	"user_id" INTEGER NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "post_likes_unique_pu" ("post_id", "user_id")
+	PRIMARY KEY ("post_id", "user_id"),
+	CONSTRAINT "post_likes_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "post_likes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.post_likes: 14 rows
@@ -3313,13 +5117,26 @@ INSERT INTO "post_likes" ("post_id", "user_id", "created_at") VALUES
 	(42, 11, '2026-06-18 06:47:03.959835'),
 	(42, 16, '2026-06-19 21:59:03.954528'),
 	(42, 21, '2026-06-20 12:50:55.920739'),
-	(3, 2, '2026-06-22 12:32:18.227589');
+	(43, 2, '2026-06-22 22:40:21.501887'),
+	(44, 15, '2026-06-24 12:01:32.53872'),
+	(43, 15, '2026-06-24 12:01:39.170577'),
+	(44, 2, '2026-06-24 18:10:22.441085'),
+	(47, 2, '2026-06-25 23:22:59.758932'),
+	(47, 16, '2026-06-26 16:55:14.792406'),
+	(47, 11, '2026-06-27 05:14:01.62734'),
+	(44, 4, '2026-06-28 23:31:47.403358'),
+	(47, 4, '2026-06-28 23:31:58.081429'),
+	(48, 2, '2026-07-03 23:13:21.36283'),
+	(48, 4, '2026-07-03 23:17:25.380992');
 /*!40000 ALTER TABLE "post_likes" ENABLE KEYS */;
 
 -- Dumping structure for table public.post_mentions
 CREATE TABLE IF NOT EXISTS "post_mentions" (
 	"post_id" INTEGER NOT NULL,
-	"user_id" INTEGER NOT NULL
+	"user_id" INTEGER NOT NULL,
+	PRIMARY KEY ("post_id", "user_id"),
+	CONSTRAINT "post_mentions_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "post_mentions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.post_mentions: -1 rows
@@ -3336,8 +5153,11 @@ CREATE TABLE IF NOT EXISTS "post_reports" (
 	"status" VARCHAR(20) NOT NULL DEFAULT 'open',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"resolved_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
 	INDEX "post_reports_post_idx" ("post_id"),
-	INDEX "post_reports_status_idx" ("status")
+	INDEX "post_reports_status_idx" ("status"),
+	CONSTRAINT "post_reports_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "post_reports_reporter_id_fkey" FOREIGN KEY ("reporter_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.post_reports: -1 rows
@@ -3349,8 +5169,10 @@ CREATE TABLE IF NOT EXISTS "post_views" (
 	"post_id" INTEGER NOT NULL,
 	"user_id" INTEGER NOT NULL,
 	"viewed_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "post_views_unique_pu" ("post_id", "user_id"),
-	INDEX "post_views_post_idx" ("post_id", "viewed_at")
+	PRIMARY KEY ("post_id", "user_id"),
+	INDEX "post_views_post_idx" ("post_id", "viewed_at"),
+	CONSTRAINT "post_views_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "post_views_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.post_views: 12 rows
@@ -3367,31 +5189,35 @@ INSERT INTO "post_views" ("post_id", "user_id", "viewed_at") VALUES
 	(29, 14, '2026-05-26 11:40:33.125094'),
 	(29, 2, '2026-05-26 15:41:05.828374'),
 	(35, 2, '2026-06-04 11:03:30.23482'),
-	(35, 16, '2026-06-05 05:36:36.635217'),
-	(4, 2, '2026-06-22 12:30:43.134742'),
-	(4, 4, '2026-06-22 14:06:59.540823');
+	(35, 16, '2026-06-05 05:36:36.635217');
 /*!40000 ALTER TABLE "post_views" ENABLE KEYS */;
 
 -- Dumping structure for table public.push_seen
 CREATE TABLE IF NOT EXISTS "push_seen" (
 	"user_id" INTEGER NOT NULL,
 	"last_notif_id" INTEGER NOT NULL DEFAULT '0',
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "push_seen_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.push_seen: -1 rows
+-- Dumping data for table public.push_seen: 14 rows
 /*!40000 ALTER TABLE "push_seen" DISABLE KEYS */;
 INSERT INTO "push_seen" ("user_id", "last_notif_id", "updated_at") VALUES
-	(15, 11, '2026-05-23 21:18:51.120847'),
 	(20, 39, '2026-05-29 15:55:47.827124'),
-	(11, 412, '2026-06-18 06:33:50.153558'),
 	(14, 414, '2026-06-19 11:47:07.002726'),
-	(6, 459, '2026-06-20 01:25:59.196956'),
-	(16, 468, '2026-06-20 08:08:07.270717'),
-	(3, 473, '2026-06-20 11:42:08.23805'),
 	(21, 488, '2026-06-20 12:50:14.187281'),
-	(2, 490, '2026-06-20 12:51:10.453097'),
-	(4, 474, '2026-06-20 16:33:13.978235');
+	(7, 962, '2026-06-30 06:22:40.744125'),
+	(15, 967, '2026-07-01 13:24:38.687413'),
+	(38, 997, '2026-07-02 05:45:16.808708'),
+	(16, 1013, '2026-07-02 13:16:50.049687'),
+	(3, 1001, '2026-07-03 11:02:26.419972'),
+	(8, 748, '2026-06-25 08:54:41.903693'),
+	(4, 1025, '2026-07-03 23:13:15.551106'),
+	(2, 1056, '2026-07-04 04:02:35.583481'),
+	(11, 1065, '2026-07-04 04:04:39.989005'),
+	(6, 778, '2026-06-26 09:36:26.766181'),
+	(39, 1074, '2026-07-04 05:11:59.631499');
 /*!40000 ALTER TABLE "push_seen" ENABLE KEYS */;
 
 -- Dumping structure for table public.qr_tokens
@@ -3404,10 +5230,13 @@ CREATE TABLE IF NOT EXISTS "qr_tokens" (
 	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
 	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
 	"radius_meter" INTEGER NULL DEFAULT '150',
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "qr_tokens_token_key" ("token"),
+	CONSTRAINT "qr_tokens_jadwal_id_fkey" FOREIGN KEY ("jadwal_id") REFERENCES "jadwal" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.qr_tokens: -1 rows
+-- Dumping data for table public.qr_tokens: 1 rows
 /*!40000 ALTER TABLE "qr_tokens" DISABLE KEYS */;
 INSERT INTO "qr_tokens" ("id", "jadwal_id", "token", "valid_from", "valid_until", "lat", "lng", "radius_meter", "created_at") VALUES
 	(5, 6, 'cd37adec1cf2590065502b658ecf499d', '2026-05-23 05:49:08.58788', '2026-05-24 05:49:08.58788', -6.930473, 107.731552, 150, '2026-05-23 05:49:08.58788');
@@ -3420,10 +5249,13 @@ CREATE TABLE IF NOT EXISTS "quran_bookmarks" (
 	"surah" INTEGER NOT NULL,
 	"ayat" INTEGER NOT NULL,
 	"catatan" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "quran_bookmarks_user_id_surah_ayat_key" ("user_id", "surah", "ayat"),
+	CONSTRAINT "quran_bookmarks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.quran_bookmarks: -1 rows
+-- Dumping data for table public.quran_bookmarks: 3 rows
 /*!40000 ALTER TABLE "quran_bookmarks" DISABLE KEYS */;
 INSERT INTO "quran_bookmarks" ("id", "user_id", "surah", "ayat", "catatan", "created_at") VALUES
 	(1, 2, 2, 5, '', '2026-05-24 00:36:28.512328'),
@@ -3436,10 +5268,12 @@ CREATE TABLE IF NOT EXISTS "quran_last_read" (
 	"user_id" INTEGER NOT NULL,
 	"surah" INTEGER NOT NULL,
 	"ayat" INTEGER NOT NULL,
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "quran_last_read_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.quran_last_read: -1 rows
+-- Dumping data for table public.quran_last_read: 1 rows
 /*!40000 ALTER TABLE "quran_last_read" DISABLE KEYS */;
 INSERT INTO "quran_last_read" ("user_id", "surah", "ayat", "updated_at") VALUES
 	(2, 7, 179, '2026-06-13 08:08:51.572806');
@@ -3448,15 +5282,14 @@ INSERT INTO "quran_last_read" ("user_id", "surah", "ayat", "updated_at") VALUES
 -- Dumping structure for table public.rate_limit
 CREATE TABLE IF NOT EXISTS "rate_limit" (
 	"bucket" VARCHAR(120) NOT NULL,
-	"ts" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"ts" TIMESTAMP NOT NULL DEFAULT 'now()',
+	INDEX "rl_idx" ("bucket", "ts")
 );
 
--- Dumping data for table public.rate_limit: 5 rows
+-- Dumping data for table public.rate_limit: 2 rows
 /*!40000 ALTER TABLE "rate_limit" DISABLE KEYS */;
 INSERT INTO "rate_limit" ("bucket", "ts") VALUES
-	('dm:2', '2026-06-22 14:23:12.438251'),
-	('login:114.122.83.62', '2026-06-22 14:23:43.502884'),
-	('dm:2', '2026-06-22 14:23:56.097457');
+	('login:114.122.84.48', '2026-07-04 05:11:56.816834');
 /*!40000 ALTER TABLE "rate_limit" ENABLE KEYS */;
 
 -- Dumping structure for table public.referal_codes
@@ -3469,13 +5302,16 @@ CREATE TABLE IF NOT EXISTS "referal_codes" (
 	"jumlah_terpakai" INTEGER NOT NULL DEFAULT '0',
 	"dibuat_oleh" INTEGER NULL DEFAULT NULL,
 	"expired_at" DATE NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	UNIQUE INDEX "referal_codes_kode_key" ("kode"),
+	PRIMARY KEY ("id"),
+	CONSTRAINT "referal_codes_dibuat_oleh_fkey" FOREIGN KEY ("dibuat_oleh") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.referal_codes: -1 rows
+-- Dumping data for table public.referal_codes: 1 rows
 /*!40000 ALTER TABLE "referal_codes" DISABLE KEYS */;
 INSERT INTO "referal_codes" ("id", "kode", "deskripsi", "aktif", "max_pakai", "jumlah_terpakai", "dibuat_oleh", "expired_at", "created_at") VALUES
-	(1, 'HAPFAM2211', '', 1, 5, 0, 2, '2026-05-24', '2026-05-23 23:46:16.842891');
+	(1, 'HAPFAM2211', '', 1, 5, 1, 2, '2026-06-27', '2026-05-23 23:46:16.842891');
 /*!40000 ALTER TABLE "referal_codes" ENABLE KEYS */;
 
 -- Dumping structure for table public.run_points
@@ -3487,7 +5323,9 @@ CREATE TABLE IF NOT EXISTS "run_points" (
 	"ts" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"speed_mps" DOUBLE PRECISION NULL DEFAULT NULL,
 	"accuracy_m" DOUBLE PRECISION NULL DEFAULT NULL,
-	INDEX "run_points_sess_idx" ("session_id", "ts")
+	PRIMARY KEY ("id"),
+	INDEX "run_points_sess_idx" ("session_id", "ts"),
+	CONSTRAINT "run_points_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "run_sessions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.run_points: 148 rows
@@ -3654,7 +5492,9 @@ CREATE TABLE IF NOT EXISTS "run_routes" (
 	"geojson" JSONB NOT NULL,
 	"is_public" BOOLEAN NOT NULL DEFAULT 'false',
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	INDEX "run_routes_user_idx" ("user_id", "created_at")
+	PRIMARY KEY ("id"),
+	INDEX "run_routes_user_idx" ("user_id", "created_at"),
+	CONSTRAINT "run_routes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.run_routes: 3 rows
@@ -3676,7 +5516,9 @@ CREATE TABLE IF NOT EXISTS "run_sessions" (
 	"kalori" INTEGER NOT NULL DEFAULT '0',
 	"catatan" TEXT NULL DEFAULT NULL,
 	"status" VARCHAR(20) NOT NULL DEFAULT 'aktif',
-	INDEX "run_sessions_user_idx" ("user_id", "mulai_at")
+	PRIMARY KEY ("id"),
+	INDEX "run_sessions_user_idx" ("user_id", "mulai_at"),
+	CONSTRAINT "run_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.run_sessions: 3 rows
@@ -3693,7 +5535,10 @@ CREATE TABLE IF NOT EXISTS "sapa_log" (
 	"sender_user_id" INTEGER NOT NULL,
 	"target_user_id" INTEGER NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "sapa_log_unique_st" ("sender_user_id", "target_user_id")
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "sapa_log_sender_user_id_target_user_id_key" ("sender_user_id", "target_user_id"),
+	CONSTRAINT "sapa_log_sender_user_id_fkey" FOREIGN KEY ("sender_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "sapa_log_target_user_id_fkey" FOREIGN KEY ("target_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.sapa_log: 3 rows
@@ -3701,8 +5546,59 @@ CREATE TABLE IF NOT EXISTS "sapa_log" (
 INSERT INTO "sapa_log" ("id", "sender_user_id", "target_user_id", "created_at") VALUES
 	(1, 2, 14, '2026-05-23 07:54:08.724011'),
 	(2, 4, 17, '2026-05-23 09:15:10.100932'),
-	(3, 4, 21, '2026-06-05 07:30:59.34643');
+	(3, 4, 21, '2026-06-05 07:30:59.34643'),
+	(4, 53, 52, '2026-07-03 21:54:13.647726');
 /*!40000 ALTER TABLE "sapa_log" ENABLE KEYS */;
+
+-- Dumping structure for table public.search_keywords
+CREATE TABLE IF NOT EXISTS "search_keywords" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''search_keywords_id_seq''::regclass)',
+	"kategori" VARCHAR(20) NOT NULL,
+	"kata" TEXT NOT NULL,
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"urutan" INTEGER NOT NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "idx_search_keywords_kat" ("kategori", "aktif")
+);
+
+-- Dumping data for table public.search_keywords: -1 rows
+/*!40000 ALTER TABLE "search_keywords" DISABLE KEYS */;
+INSERT INTO "search_keywords" ("id", "kategori", "kata", "aktif", "urutan", "created_at") VALUES
+	(6, 'olahraga', 'latihan', 'true', 0, '2026-06-23 05:18:04.106162'),
+	(7, 'survival', 'survival', 'true', 0, '2026-06-23 05:18:04.106518'),
+	(8, 'survival', 'bushcraft', 'true', 0, '2026-06-23 05:18:04.106863'),
+	(9, 'survival', 'wilderness', 'true', 0, '2026-06-23 05:18:04.107249'),
+	(10, 'survival', 'camping', 'true', 0, '2026-06-23 05:18:04.107701'),
+	(11, 'survival', 'hutan', 'true', 0, '2026-06-23 05:18:04.108128'),
+	(1, 'olahraga', 'olahraga', 'true', 1, '2026-06-23 05:18:04.104044'),
+	(2, 'olahraga', 'pertandingan', 'true', 1, '2026-06-23 05:18:04.104681'),
+	(3, 'olahraga', 'match', 'true', 1, '2026-06-23 05:18:04.10505'),
+	(4, 'olahraga', 'tutorial', 'true', 1, '2026-06-23 05:18:04.105334'),
+	(5, 'olahraga', 'teknik', 'true', 1, '2026-06-23 05:18:04.105786'),
+	(12, 'olahraga', 'pongrekun', 'false', 0, '2026-06-23 07:27:07.826375'),
+	(13, 'kasar', 'anjing', 'true', 0, '2026-06-23 07:47:09.328568'),
+	(14, 'kasar', 'bangsat', 'true', 0, '2026-06-23 07:47:09.329332'),
+	(15, 'kasar', 'goblok', 'true', 0, '2026-06-23 07:47:09.329674'),
+	(16, 'kasar', 'tolol', 'true', 0, '2026-06-23 07:47:09.330105'),
+	(17, 'kasar', 'kontol', 'true', 0, '2026-06-23 07:47:09.330442'),
+	(18, 'kasar', 'memek', 'true', 0, '2026-06-23 07:47:09.330723'),
+	(19, 'kasar', 'asu', 'true', 0, '2026-06-23 07:47:09.331048'),
+	(20, 'kasar', 'bajingan', 'true', 0, '2026-06-23 07:47:09.331495'),
+	(21, 'abuse', 'bunuh', 'true', 0, '2026-06-23 07:47:09.331849'),
+	(22, 'abuse', 'bully', 'true', 0, '2026-06-23 07:47:09.332165'),
+	(23, 'abuse', 'sadis', 'true', 0, '2026-06-23 07:47:09.332446'),
+	(24, 'abuse', 'penyiksaan', 'true', 0, '2026-06-23 07:47:09.332699'),
+	(25, 'abuse', 'kekerasan', 'true', 0, '2026-06-23 07:47:09.332962'),
+	(26, 'porno', 'porn', 'true', 0, '2026-06-23 07:47:09.333238'),
+	(27, 'porno', 'xxx', 'true', 0, '2026-06-23 07:47:09.333489'),
+	(28, 'porno', 'bokep', 'true', 0, '2026-06-23 07:47:09.333736'),
+	(29, 'porno', 'telanjang', 'true', 0, '2026-06-23 07:47:09.334001'),
+	(30, 'porno', 'sex', 'true', 0, '2026-06-23 07:47:09.334268'),
+	(31, 'porno', 'seks', 'true', 0, '2026-06-23 07:47:09.334586'),
+	(32, 'porno', 'vcs', 'true', 0, '2026-06-23 07:47:09.334955'),
+	(33, 'porno', 'ngentot', 'true', 0, '2026-06-23 07:47:09.33536');
+/*!40000 ALTER TABLE "search_keywords" ENABLE KEYS */;
 
 -- Dumping structure for table public.sedekah_log
 CREATE TABLE IF NOT EXISTS "sedekah_log" (
@@ -3711,7 +5607,10 @@ CREATE TABLE IF NOT EXISTS "sedekah_log" (
 	"user_id" INTEGER NOT NULL,
 	"jumlah" BIGINT NOT NULL,
 	"catatan" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "sedekah_log_program_id_fkey" FOREIGN KEY ("program_id") REFERENCES "sedekah_program" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "sedekah_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.sedekah_log: -1 rows
@@ -3729,12 +5628,116 @@ CREATE TABLE IF NOT EXISTS "sedekah_program" (
 	"deadline" DATE NULL DEFAULT NULL,
 	"active" SMALLINT NOT NULL DEFAULT '1',
 	"dibuat_oleh" INTEGER NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "sedekah_program_dibuat_oleh_fkey" FOREIGN KEY ("dibuat_oleh") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
 -- Dumping data for table public.sedekah_program: -1 rows
 /*!40000 ALTER TABLE "sedekah_program" DISABLE KEYS */;
 /*!40000 ALTER TABLE "sedekah_program" ENABLE KEYS */;
+
+-- Dumping structure for table public.shalat_evaluasi_harian
+CREATE TABLE IF NOT EXISTS "shalat_evaluasi_harian" (
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"evaluasi" TEXT NULL DEFAULT NULL,
+	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id", "tanggal")
+);
+
+-- Dumping data for table public.shalat_evaluasi_harian: -1 rows
+/*!40000 ALTER TABLE "shalat_evaluasi_harian" DISABLE KEYS */;
+INSERT INTO "shalat_evaluasi_harian" ("user_id", "tanggal", "evaluasi", "updated_at") VALUES
+	(2, '2026-07-03', 'Malemnya fokus ubudiyah, tidak depan laptop', '2026-07-02 22:39:38.521569+00'),
+	(2, '2026-07-04', 'Tidur jam 23.00an', '2026-07-03 21:04:47.502833+00');
+/*!40000 ALTER TABLE "shalat_evaluasi_harian" ENABLE KEYS */;
+
+-- Dumping structure for table public.shalat_sunnah_log
+CREATE TABLE IF NOT EXISTS "shalat_sunnah_log" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''shalat_sunnah_log_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"jenis" VARCHAR(16) NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"rakaat" INTEGER NULL DEFAULT '2',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "shalat_sunnah_log_user_id_jenis_tanggal_key" ("user_id", "jenis", "tanggal"),
+	INDEX "idx_ssl_user_tgl" ("user_id", "tanggal"),
+	CONSTRAINT "shalat_sunnah_log_jenis_check" CHECK (((jenis)::text = ANY ((ARRAY['tahajud'::character varying, 'duha'::character varying])::text[])))
+);
+
+-- Dumping data for table public.shalat_sunnah_log: 45 rows
+/*!40000 ALTER TABLE "shalat_sunnah_log" DISABLE KEYS */;
+INSERT INTO "shalat_sunnah_log" ("id", "user_id", "jenis", "tanggal", "rakaat", "catatan", "created_at") VALUES
+	(1, 2, 'tahajud', '2026-06-27', 2, NULL, '2026-06-27 21:13:31.464433'),
+	(2, 2, 'duha', '2026-06-26', 2, NULL, '2026-06-27 22:47:34.67466'),
+	(3, 2, 'duha', '2026-06-25', 2, NULL, '2026-06-27 22:47:48.415075'),
+	(4, 2, 'duha', '2026-06-24', 2, NULL, '2026-06-27 22:48:04.474589'),
+	(5, 2, 'tahajud', '2026-06-23', 2, NULL, '2026-06-27 22:48:18.860507'),
+	(6, 2, 'tahajud', '2026-06-22', 2, NULL, '2026-06-27 22:48:25.906236'),
+	(7, 2, 'duha', '2026-06-21', 2, NULL, '2026-06-27 22:48:38.458269'),
+	(8, 2, 'tahajud', '2026-06-20', 2, NULL, '2026-06-27 22:48:47.494277'),
+	(9, 2, 'tahajud', '2026-06-19', 2, NULL, '2026-06-27 22:48:55.776631'),
+	(10, 2, 'duha', '2026-06-18', 2, NULL, '2026-06-27 22:49:03.630279'),
+	(11, 2, 'tahajud', '2026-06-17', 2, NULL, '2026-06-27 22:49:11.953703'),
+	(13, 11, 'tahajud', '2026-06-25', 4, NULL, '2026-06-28 03:57:27.974443'),
+	(14, 11, 'duha', '2026-06-25', 4, NULL, '2026-06-28 03:57:53.427187'),
+	(15, 11, 'tahajud', '2026-06-24', 4, NULL, '2026-06-28 03:58:19.776346'),
+	(16, 11, 'duha', '2026-06-24', 4, NULL, '2026-06-28 03:58:23.867493'),
+	(17, 11, 'tahajud', '2026-06-26', 4, NULL, '2026-06-28 03:59:11.864911'),
+	(18, 11, 'duha', '2026-06-26', 4, NULL, '2026-06-28 03:59:16.653433'),
+	(19, 11, 'tahajud', '2026-06-27', 4, NULL, '2026-06-28 03:59:23.397294'),
+	(20, 11, 'tahajud', '2026-06-28', 4, NULL, '2026-06-28 03:59:35.360028'),
+	(21, 11, 'tahajud', '2026-06-15', 4, NULL, '2026-06-28 04:02:30.666306'),
+	(22, 11, 'tahajud', '2026-06-19', 4, NULL, '2026-06-28 04:02:37.075302'),
+	(23, 11, 'tahajud', '2026-06-21', 4, NULL, '2026-06-28 04:02:43.720157'),
+	(24, 2, 'tahajud', '2026-06-28', 2, NULL, '2026-06-28 06:36:36.811162'),
+	(25, 2, 'tahajud', '2026-06-15', 2, NULL, '2026-06-28 06:37:01.875785'),
+	(26, 2, 'tahajud', '2026-06-16', 2, NULL, '2026-06-28 06:37:08.752712'),
+	(27, 2, 'tahajud', '2026-06-13', 2, NULL, '2026-06-28 06:37:22.46856'),
+	(28, 2, 'tahajud', '2026-06-12', 2, NULL, '2026-06-28 06:37:29.293437'),
+	(29, 2, 'tahajud', '2026-06-11', 2, NULL, '2026-06-28 06:37:35.873246'),
+	(30, 2, 'tahajud', '2026-06-10', 2, NULL, '2026-06-28 06:37:42.945021'),
+	(31, 2, 'tahajud', '2026-06-09', 2, NULL, '2026-06-28 06:37:48.313057'),
+	(32, 2, 'duha', '2026-06-08', 2, NULL, '2026-06-28 06:38:02.522988'),
+	(33, 2, 'tahajud', '2026-06-07', 2, NULL, '2026-06-28 06:38:18.440964'),
+	(34, 2, 'tahajud', '2026-06-06', 2, NULL, '2026-06-28 06:38:29.437328'),
+	(35, 2, 'tahajud', '2026-06-05', 2, NULL, '2026-06-28 06:38:35.954066'),
+	(36, 2, 'tahajud', '2026-06-04', 2, NULL, '2026-06-28 06:38:41.641234'),
+	(37, 2, 'tahajud', '2026-06-03', 2, NULL, '2026-06-28 06:39:18.035164'),
+	(38, 2, 'tahajud', '2026-06-02', 2, NULL, '2026-06-28 06:39:26.578194'),
+	(39, 2, 'duha', '2026-06-01', 2, NULL, '2026-06-28 06:39:34.652133'),
+	(41, 11, 'duha', '2026-06-27', 4, NULL, '2026-06-30 04:10:27.986509'),
+	(42, 11, 'duha', '2026-06-28', 2, NULL, '2026-06-30 04:10:30.608845'),
+	(43, 11, 'duha', '2026-06-29', 2, NULL, '2026-06-30 04:10:41.007415'),
+	(45, 2, 'tahajud', '2026-07-01', 2, 'Beres tahajud, ketiduran', '2026-07-01 05:55:32.417895'),
+	(46, 2, 'tahajud', '2026-06-30', 2, 'Beres tahajus, ketiduran', '2026-07-01 05:56:06.461132'),
+	(47, 2, 'tahajud', '2026-06-29', 2, 'Beres tahajud ketiduran', '2026-07-01 05:56:36.854824'),
+	(48, 2, 'tahajud', '2026-07-02', 2, 'Aman', '2026-07-02 05:33:29.860746'),
+	(49, 2, 'duha', '2026-07-03', 2, 'Bangun subuh setengah 6, gak tahajud', '2026-07-03 05:39:00.230951'),
+	(50, 2, 'tahajud', '2026-07-04', 2, 'Oke2', '2026-07-04 04:04:25.309902');
+/*!40000 ALTER TABLE "shalat_sunnah_log" ENABLE KEYS */;
+
+-- Dumping structure for table public.silat_lidah
+CREATE TABLE IF NOT EXISTS "silat_lidah" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''silat_lidah_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"teman" VARCHAR(160) NOT NULL,
+	"topik" VARCHAR(200) NOT NULL,
+	"durasi_menit" INTEGER NULL DEFAULT NULL,
+	"kualitas" SMALLINT NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "ix_silat_user_tgl" ("user_id", "tanggal")
+);
+
+-- Dumping data for table public.silat_lidah: -1 rows
+/*!40000 ALTER TABLE "silat_lidah" DISABLE KEYS */;
+/*!40000 ALTER TABLE "silat_lidah" ENABLE KEYS */;
 
 -- Dumping structure for table public.site_visitors
 CREATE TABLE IF NOT EXISTS "site_visitors" (
@@ -3743,10 +5746,11 @@ CREATE TABLE IF NOT EXISTS "site_visitors" (
 	"user_agent" TEXT NULL DEFAULT NULL,
 	"path" VARCHAR(255) NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "idx_site_visitors_created_at" ("created_at")
 );
 
--- Dumping data for table public.site_visitors: 213 rows
+-- Dumping data for table public.site_visitors: 366 rows
 /*!40000 ALTER TABLE "site_visitors" DISABLE KEYS */;
 INSERT INTO "site_visitors" ("id", "ip", "user_agent", "path", "created_at") VALUES
 	(1, '::1', 'Go-http-client/1.1', '/', '2026-05-30 09:51:58.763107'),
@@ -3959,17 +5963,190 @@ INSERT INTO "site_visitors" ("id", "ip", "user_agent", "path", "created_at") VAL
 	(272, '100.64.0.5', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:12:39.316753'),
 	(273, '100.64.0.12', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:25:43.426581'),
 	(274, '114.122.83.62', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-21 17:30:50.089003'),
-	(1, '114.122.83.62', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-22 09:03:47.01089'),
-	(2, '2404:c0:2a10::2f6c:b489', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 09:28:37.07121'),
-	(3, '103.55.33.183', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 09:31:38.782142'),
-	(4, '114.122.75.203', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/', '2026-06-22 09:57:10.484775'),
-	(5, '103.55.33.181', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-22 10:03:34.506189'),
-	(6, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 10:12:11.675137'),
-	(7, '114.10.146.131', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 12:16:00.884733'),
-	(8, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 12:24:20.35707'),
-	(9, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 13:24:41.316917'),
-	(10, '114.122.75.203', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-22 14:00:33.104359'),
-	(11, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 14:26:20.868962');
+	(275, '114.122.83.62', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 18:11:19.384463'),
+	(276, '114.122.82.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-22 22:12:33.022381'),
+	(277, '114.10.147.193', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 22:58:54.885088'),
+	(278, '114.122.82.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-22 23:32:28.608655'),
+	(279, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-23 04:32:09.675106'),
+	(280, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-23 05:39:56.57552'),
+	(281, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 06:42:26.232134'),
+	(282, '103.130.17.36', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 08:17:45.817401'),
+	(283, '114.122.73.162', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-23 08:31:06.027332'),
+	(284, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 10:14:28.092367'),
+	(285, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 11:17:09.072804'),
+	(286, '114.10.147.193', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 11:17:53.812961'),
+	(287, '114.122.79.151', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-23 12:19:56.566364'),
+	(288, '114.122.73.162', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/', '2026-06-23 12:35:33.087583'),
+	(289, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-23 14:00:46.825714'),
+	(290, '114.122.78.147', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-23 14:11:20.025096'),
+	(291, '114.10.146.246', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 14:23:32.054857'),
+	(292, '114.10.147.246', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 14:24:23.320356'),
+	(293, '160.19.226.146', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?guest=1', '2026-06-23 14:44:11.085035'),
+	(294, '36.72.195.87', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '/index.php?guest=1', '2026-06-23 15:21:48.006096'),
+	(295, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-23 16:35:18.887953'),
+	(296, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 17:35:58.847333'),
+	(297, '114.10.149.29', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36', '/index.php?guest=1', '2026-06-23 18:03:49.670791'),
+	(298, '114.10.144.29', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36', '/', '2026-06-23 20:05:46.099865'),
+	(299, '114.10.144.204', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 20:28:56.381183'),
+	(300, '114.10.149.204', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 20:29:47.37153'),
+	(301, '2404:c0:20be:1b69:18bb:ba48:d1e3:c83c', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php?guest=1', '2026-06-23 21:29:30.353725'),
+	(302, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-23 22:30:53.678877'),
+	(303, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-24 04:36:17.061155'),
+	(304, '114.122.73.162', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-24 09:57:52.333446'),
+	(305, '2404:c0:202f:fc62:1:0:9fee:7fdb', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php?guest=1', '2026-06-24 10:31:02.028042'),
+	(306, '2404:c0:202d:a9ba:1:0:a0ec:bf34', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php', '2026-06-24 12:00:45.012186'),
+	(307, '114.122.71.26', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/', '2026-06-24 14:20:02.40124'),
+	(308, '114.122.71.26', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-24 16:13:38.431298'),
+	(309, '114.122.71.26', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-24 17:21:34.27433'),
+	(310, '182.5.132.196', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-24 17:21:36.617102'),
+	(311, '2402:5680:9313:afe2::1', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-24 17:23:37.472625'),
+	(312, '2402:8780:106f:2987:dc51:6425:5b66:3b1e', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-24 19:37:33.80069'),
+	(313, '2404:c0:20be:27d4:18bb:fff7:c0bb:d6a4', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php', '2026-06-24 21:50:30.737771'),
+	(314, '114.122.73.95', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/', '2026-06-24 22:25:13.188368'),
+	(315, '114.122.73.95', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-24 23:30:55.041188'),
+	(316, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-25 05:06:35.684581'),
+	(317, '2404:c0:a302:b582:84ce:ca8e:fc83:5212', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 05:21:10.934732'),
+	(318, '2404:c0:244e:cb5a:18bc:2709:bbc5:4944', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php?guest=1', '2026-06-25 06:16:39.221118'),
+	(319, '182.2.183.235', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php', '2026-06-25 06:55:23.89284'),
+	(320, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 07:23:15.083957'),
+	(321, '114.122.75.7', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-25 08:34:04.904049'),
+	(322, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 08:54:12.453054'),
+	(323, '114.122.83.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-25 10:22:01.280293'),
+	(324, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 11:27:13.779947'),
+	(325, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 12:27:56.774874'),
+	(326, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 13:49:38.274283'),
+	(327, '2402:5680:8773:2268::1', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-25 14:30:21.761035'),
+	(328, '114.10.145.158', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 14:41:42.537365'),
+	(329, '114.10.148.158', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 14:42:08.732773'),
+	(330, '114.122.83.91', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 15:57:37.317018'),
+	(331, '114.10.148.158', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 16:22:11.53748'),
+	(332, '114.10.145.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 17:52:23.181022'),
+	(333, '114.122.73.71', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 18:00:35.717015'),
+	(334, '114.122.82.79', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-25 18:57:50.102492'),
+	(335, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-25 22:32:11.207211'),
+	(336, '2404:c0:2420:a704:18bc:5e39:ece0:b22c', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php', '2026-06-26 00:25:07.109198'),
+	(337, '2404:c0:2a10::3103:2c93', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-26 05:10:44.062193'),
+	(338, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?fp=2', '2026-06-26 05:14:19.225114'),
+	(339, '157.85.206.128', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-26 06:19:02.851895'),
+	(340, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 06:46:27.256484'),
+	(341, '114.10.145.174', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 07:23:25.777788'),
+	(342, '114.10.148.174', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 07:23:52.300863'),
+	(343, '114.122.73.92', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-26 07:53:36.963266'),
+	(344, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 09:25:20.438038'),
+	(345, '114.122.73.92', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-26 10:25:21.459867'),
+	(346, '114.122.73.92', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-26 11:31:27.159536'),
+	(347, '114.10.145.140', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-26 12:11:49.271891'),
+	(348, '114.10.148.140', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?fp=2', '2026-06-26 12:12:07.503326'),
+	(349, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 13:20:16.046819'),
+	(350, '114.10.148.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?guest=1', '2026-06-26 13:31:19.725022'),
+	(351, '114.122.73.92', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0', '/index.php', '2026-06-26 14:20:45.179534'),
+	(352, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 15:21:27.366885'),
+	(353, '114.10.148.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 16:54:44.423719'),
+	(354, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-26 17:47:54.551823'),
+	(355, '114.10.148.140', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-26 18:01:16.273163'),
+	(356, '114.122.73.92', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-26 19:49:53.399346'),
+	(357, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-26 22:41:16.674499'),
+	(358, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-27 04:41:59.961048'),
+	(359, '114.10.148.140', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-27 05:13:33.57989'),
+	(360, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-27 05:48:24.560538'),
+	(361, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-27 15:19:53.910542'),
+	(362, '182.10.98.80', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/', '2026-06-27 20:35:41.933093'),
+	(363, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-27 20:58:49.696427'),
+	(364, '114.10.147.196', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-28 03:53:34.014343'),
+	(365, '157.85.206.128', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 04:04:56.325401'),
+	(366, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 06:07:01.886869'),
+	(367, '114.10.147.196', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 06:56:52.361565'),
+	(368, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 07:20:23.67979'),
+	(369, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 08:24:42.495013'),
+	(370, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-28 09:25:42.429047'),
+	(371, '114.10.147.196', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-28 11:41:08.419747'),
+	(372, '114.122.111.170', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-28 13:23:00.918646'),
+	(373, '160.19.226.17', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 13:52:05.800733'),
+	(374, '114.122.110.58', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/', '2026-06-28 16:46:12.854819'),
+	(375, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 17:54:29.076583'),
+	(376, '114.10.144.136', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 18:15:10.058123'),
+	(377, '182.10.98.31', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 18:20:08.153377'),
+	(378, '114.10.149.136', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 19:39:54.639696'),
+	(379, '114.10.144.136', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 19:43:22.02083'),
+	(380, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-28 22:47:57.917359'),
+	(381, '114.122.72.127', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-28 22:52:56.158906'),
+	(382, '114.122.72.127', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-29 00:19:39.653701'),
+	(383, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-29 05:51:43.01606'),
+	(384, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-29 07:10:55.050071'),
+	(385, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-29 10:58:31.15568'),
+	(386, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-29 14:01:02.484867'),
+	(387, '114.122.102.226', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-29 14:44:54.564172'),
+	(388, '157.85.206.128', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-29 15:34:58.786718'),
+	(389, '114.10.149.198', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-29 16:10:52.31786'),
+	(390, '114.122.110.58', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-29 22:56:33.539601'),
+	(391, '114.122.70.131', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-29 23:43:46.933748'),
+	(392, '157.85.206.128', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-06-30 04:08:19.207898'),
+	(393, '114.122.109.55', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/index.php', '2026-06-30 06:09:41.117246'),
+	(394, '114.122.109.55', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-30 07:18:54.596736'),
+	(395, '114.10.144.198', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-30 08:36:11.358067'),
+	(396, '114.122.109.55', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-30 10:24:02.073095'),
+	(397, '114.122.109.55', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-30 13:19:03.19515'),
+	(398, '114.10.147.219', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-06-30 16:59:24.037039'),
+	(399, '114.122.85.34', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-30 17:47:44.15174'),
+	(400, '114.122.85.34', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-30 20:34:09.660494'),
+	(401, '114.122.109.55', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-06-30 23:06:20.936498'),
+	(402, '114.122.70.45', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/', '2026-07-01 08:27:10.217572'),
+	(403, '114.122.78.33', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-07-01 11:05:31.019046'),
+	(404, '111.223.255.111', 'Mozilla/5.0 (Android 16; Mobile; rv:151.0) Gecko/151.0 Firefox/151.0', '/index.php', '2026-07-01 13:24:36.318553'),
+	(405, '114.10.145.225', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 14:05:36.382991'),
+	(406, '114.122.78.33', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/', '2026-07-01 14:46:40.085084'),
+	(407, '114.122.78.33', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 15:54:57.467678'),
+	(408, '114.10.148.225', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 15:59:23.350918'),
+	(409, '157.10.107.31', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-01 16:03:10.967394'),
+	(410, '114.10.145.225', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 17:18:32.477652'),
+	(411, '114.122.70.45', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 17:20:59.170104'),
+	(412, '114.10.148.225', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 17:38:01.788224'),
+	(413, '114.10.145.225', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 18:20:58.795451'),
+	(414, '114.122.70.49', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 19:04:32.762323'),
+	(415, '182.2.164.7', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 19:23:59.46306'),
+	(416, '2001:448a:20a3:d357:d104:ecb1:80c:6287', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-01 23:12:36.424638'),
+	(417, '114.122.68.110', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/index.php', '2026-07-02 04:53:17.098292'),
+	(418, '182.10.97.255', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 05:45:15.636121'),
+	(419, '2404:c0:a301:dc32:739b:f94a:28b6:46b3', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 05:47:37.698586'),
+	(420, '114.122.68.110', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 06:09:06.264865'),
+	(421, '114.10.148.225', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 06:43:03.598382'),
+	(422, '114.122.68.110', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 08:39:19.587997'),
+	(423, '114.122.68.110', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 10:05:44.670834'),
+	(424, '114.10.144.197', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 13:16:49.181242'),
+	(425, '114.122.78.213', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-02 20:50:54.973551'),
+	(426, '114.122.69.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 05:37:54.060521'),
+	(427, '114.10.146.153', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 06:28:32.83291'),
+	(428, '114.10.145.152', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/', '2026-07-03 08:22:12.720767'),
+	(429, '114.122.84.253', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 08:26:59.195152'),
+	(430, '114.122.69.166', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 08:42:16.610466'),
+	(431, '2402:5680:931a:81f3::1', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 11:02:24.488637'),
+	(432, '114.122.84.253', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 11:02:33.416197'),
+	(433, '114.10.147.153', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 11:21:47.825119'),
+	(434, '114.122.84.48', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0', '/index.php', '2026-07-03 11:57:45.468932'),
+	(435, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 12:58:26.159456'),
+	(436, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 14:05:46.586625'),
+	(437, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 16:39:20.199076'),
+	(438, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 18:10:37.093328'),
+	(439, '114.79.55.190', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 18:22:22.509958'),
+	(440, '2404:c0:a303:acbd:3d1f:642c:b47c:d4f9', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 18:22:27.36656'),
+	(441, '114.79.54.216', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 18:34:32.000934'),
+	(442, '103.190.171.165', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 18:37:18.366097'),
+	(443, '114.10.148.26', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1', '/index.php', '2026-07-03 18:40:34.122723'),
+	(444, '114.10.148.141', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1', '/index.php', '2026-07-03 18:46:59.170299'),
+	(445, '114.10.145.141', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1', '/index.php', '2026-07-03 18:47:50.685328'),
+	(446, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 21:31:30.395732'),
+	(447, '140.213.47.90', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 HeyTapBrowser/45.13.6.1 Chrome/125.0.6422.72', '/index.php', '2026-07-03 21:41:15.448293'),
+	(448, '2404:c0:a301:c3e:11d8:ab4f:552a:3a0e', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', '/index.php', '2026-07-03 21:48:37.14082'),
+	(449, '114.10.149.200', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1', '/', '2026-07-03 21:50:05.087254'),
+	(450, '114.10.146.177', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1', '/index.php', '2026-07-03 21:51:35.737675'),
+	(451, '182.10.100.118', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', '/index.php?source=pwa', '2026-07-03 21:55:03.298702'),
+	(452, '182.10.130.153', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 21:57:32.413407'),
+	(453, '140.213.39.74', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 HeyTapBrowser/45.13.6.1 Chrome/125.0.6422.72', '/', '2026-07-03 22:28:59.579173'),
+	(454, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-03 22:53:18.419396'),
+	(455, '114.122.78.207', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36', '/index.php?source=pwa', '2026-07-03 23:10:00.972417'),
+	(456, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-04 04:01:21.038638'),
+	(457, '103.3.220.106', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-04 04:04:37.891732'),
+	(458, '114.122.84.48', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36', '/index.php', '2026-07-04 05:05:47.116195');
 /*!40000 ALTER TABLE "site_visitors" ENABLE KEYS */;
 
 -- Dumping structure for table public.sport_qa_saved
@@ -3980,6 +6157,7 @@ CREATE TABLE IF NOT EXISTS "sport_qa_saved" (
 	"pertanyaan" TEXT NOT NULL,
 	"jawaban" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "sport_qa_user_idx" ("user_id", "created_at")
 );
 
@@ -4035,7 +6213,9 @@ CREATE TABLE IF NOT EXISTS "strava_activities" (
 	"moving_time" INTEGER NULL DEFAULT NULL,
 	"start_date" TIMESTAMP NULL DEFAULT NULL,
 	"raw" JSONB NULL DEFAULT NULL,
-	"imported_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"imported_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "strava_activities_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.strava_activities: -1 rows
@@ -4048,12 +6228,30 @@ CREATE TABLE IF NOT EXISTS "survival_qa_saved" (
 	"user_id" BIGINT NOT NULL,
 	"pertanyaan" TEXT NOT NULL,
 	"jawaban" TEXT NOT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "survival_qa_user_idx" ("user_id", "created_at")
 );
 
 -- Dumping data for table public.survival_qa_saved: -1 rows
 /*!40000 ALTER TABLE "survival_qa_saved" DISABLE KEYS */;
 /*!40000 ALTER TABLE "survival_qa_saved" ENABLE KEYS */;
+
+-- Dumping structure for table public.tajwid_progress
+CREATE TABLE IF NOT EXISTS "tajwid_progress" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''tajwid_progress_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"hukum" VARCHAR(60) NOT NULL,
+	"dipelajari" BOOLEAN NOT NULL DEFAULT 'false',
+	"catatan" TEXT NULL DEFAULT NULL,
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "tajwid_progress_user_id_hukum_key" ("user_id", "hukum")
+);
+
+-- Dumping data for table public.tajwid_progress: -1 rows
+/*!40000 ALTER TABLE "tajwid_progress" DISABLE KEYS */;
+/*!40000 ALTER TABLE "tajwid_progress" ENABLE KEYS */;
 
 -- Dumping structure for table public.tempat
 CREATE TABLE IF NOT EXISTS "tempat" (
@@ -4075,42 +6273,102 @@ CREATE TABLE IF NOT EXISTS "tempat" (
 	"tampil_booking" BOOLEAN NOT NULL DEFAULT 'false',
 	"gpx_path" TEXT NULL DEFAULT NULL,
 	"parkir_info" TEXT NULL DEFAULT NULL,
-	"run_route_id" BIGINT NULL DEFAULT NULL
+	"run_route_id" BIGINT NULL DEFAULT NULL,
+	"gpx_file_id" TEXT NULL DEFAULT NULL,
+	"jarak_km" NUMERIC(6,2) NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "tempat_jenis_id_fkey" FOREIGN KEY ("jenis_id") REFERENCES "jenis_olahraga" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "tempat_pic_user_id_fkey" FOREIGN KEY ("pic_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "tempat_run_route_id_fkey" FOREIGN KEY ("run_route_id") REFERENCES "run_routes" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.tempat: -1 rows
+-- Dumping data for table public.tempat: 26 rows
 /*!40000 ALTER TABLE "tempat" DISABLE KEYS */;
-INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "status_booking", "catatan", "created_at", "lat", "lng", "pic_user_id", "kontak_wa", "jenis_id", "harga_tiket", "harga_parkir", "tampil_booking", "gpx_path", "parkir_info", "run_route_id") VALUES
-	(28, 'Flamboyan Pingpong', 'Jalan Flamboyan Utara No.6, Panyileukan, Bandung', 0.00, 0.00, 'tersedia', '', '2026-06-10 21:40:59.070103', -6.9383769, 107.715939, 2, NULL, 12, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(5, 'Parkiran Taman Sumringah', 'Summarecon Bandung', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.9537503, 107.6929201, 3, NULL, 1, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(29, 'Flamboyan Jogging', 'Jln. Flamboyan Utara No.6', 0.00, 0.00, 'tersedia', '', '2026-06-12 15:40:02.616251', -6.9383769, 107.715939, 14, NULL, 1, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(11, 'Kolam Renang Lettu Pas Basonai', 'Lanud Sulaiman, Margahayu', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:38.344177', -6.9912435, 107.5759873, 2, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(30, 'Kolam Renang BSD', 'Jln. Cipamokolan, Soetta', 0.00, 0.00, 'tersedia', '', '2026-06-19 13:40:02.438632', 6.9394837, 107.6796168, 2, NULL, 5, 30000.00, 0.00, 'false', NULL, NULL, NULL),
-	(25, 'Kina - Sanggara/Lembah Tengkorak/Pangparang', 'Bukit Kina, Cibodas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:26:01.59066', -6.8370644, 107.7277736, 2, NULL, 8, 0.00, 5000.00, 'false', NULL, NULL, NULL),
-	(9, 'Kolam Renang Panorama', 'Ujung Berung', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:36.928503', -6.898462, 107.7103046, 2, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(10, 'Kolam Renang UPI', 'UPI Setiabudi', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:05:55.865701', -6.8594515, 107.5855598, 4, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(12, 'Kolam Renang Yadika', 'Tanjungsari', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:56.515685', -6.8974891, 107.8055482, 3, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(7, 'Singgasana Sport', 'Cibaduyut', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:56:55.240167', -6.9612456, 107.5942425, 2, NULL, 12, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(19, 'Biliar Sinai', 'Baleendah, Rancamanyar', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:13:43.837103', NULL, NULL, 2, '089638726182', 11, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(8, 'BSD Sport', 'Cipamokolan', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:04.47909', NULL, NULL, 3, '08872947080', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(1, 'GOR Adiguna', 'Jln. Pertamina, Soetta', 110000.00, 110000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 3, NULL, 3, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(24, 'Gn.Pangradinan', 'Rancaekek', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:25:11.313536', -7.043889, 107.828311, 3, NULL, 8, 0.00, 5000.00, 'false', NULL, NULL, NULL),
-	(27, 'Batukuda - Manglayang', 'Batu Kuda', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:28:03.059991', -6.8928621, 107.7429292, 4, NULL, 8, 15000.00, 2000.00, 'false', NULL, NULL, NULL),
-	(23, 'Tangkuban Perahu - Cibarebeuy', 'Subang', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:24:00.396558', -6.7733931, 107.6359156, 2, NULL, 8, 0.00, 5000.00, 'false', NULL, NULL, NULL),
-	(4, 'Sindangreret - Panyileukan', 'BnC Cookies', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.9318895, 107.7216289, 2, NULL, 10, 0.00, 0.00, 'false', NULL, NULL, NULL),
-	(6, 'GOR Azaka', 'Pasirimpun Atas', 50000.00, 50000.00, 'tersedia', '0', '2026-05-21 11:29:20.544026', NULL, NULL, 2, '081320906764', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(16, 'GOR Cempaka Arum', 'Panyileukan, Al-Jabbar', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:10:20.815157', NULL, NULL, 3, NULL, 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(21, 'Biliar BS Pool and Cafe', 'Wastukencana, Kota Bandung', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:44.253902', -6.9081659, 107.6049949, 2, NULL, 11, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(13, 'GOR Mayasari', 'Soekarno Hatta, Bunderan Cibiru', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:08:01.628889', NULL, NULL, 4, NULL, 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(2, 'GOR Mayasari', 'Soekarno Hatta, Bunderan Cibiru', 125000.00, 125000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 4, NULL, 3, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(17, 'GOR Pasanggrahan', 'Cilengkrang, Bandung', 45000.00, 45000.00, 'tersedia', '', '2026-05-22 16:12:36.197922', NULL, NULL, 2, '089655369495', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(18, 'GOR Pilar Biru', 'Pilar Biru, Cibiru Hilir', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:13:13.801444', NULL, NULL, 2, NULL, 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(3, 'GOR Purbaya', 'Jln. Ciguruwik', 25000.00, 25000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', NULL, NULL, 3, NULL, 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(15, 'GOR Sindangreret', 'Sindangreret, Cibiru', 40000.00, 40000.00, 'tersedia', '', '2026-05-22 16:09:31.917895', NULL, NULL, 2, '089628188960', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(14, 'GOR Gaza', 'Cinunuk, Cibiru', 20000.00, 20000.00, 'tersedia', '', '2026-05-22 16:08:56.792858', -6.930473, 107.7315517, 3, '082215309779', 2, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(20, 'GOR Gaza', 'Ciguruwik, Cibiru', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:14:16.040455', -6.930473, 107.731552, 2, '082215309779', 11, 0.00, 0.00, 'true', NULL, NULL, NULL),
-	(26, 'BHD - Warung Yos - Batu Lonceng', 'Dago Atas', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:27:23.261738', NULL, NULL, 2, NULL, 8, 0.00, 5000.00, 'false', '/uploads/gpx/gpx_20260622_093941_1bc715.gpx', 'BHD', NULL);
+INSERT INTO "tempat" ("id", "nama", "alamat", "harga_lapang", "harga_per_jam", "status_booking", "catatan", "created_at", "lat", "lng", "pic_user_id", "kontak_wa", "jenis_id", "harga_tiket", "harga_parkir", "tampil_booking", "gpx_path", "parkir_info", "run_route_id", "gpx_file_id", "jarak_km") VALUES
+	(6, 'GOR Azaka', 'Jl. Arcamanik, Sindang Jaya, Kec. Mandalajati, Kota Bandung, Jawa Barat 40293', 50000.00, 50000.00, 'tersedia', '0', '2026-05-21 11:29:20.544026', -6.8955527, 107.682728, 2, '081320906764', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(32, 'Cimenyan - Taman Bincarung', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:25:15.818489', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_085925_34abd9_O9TJwP3ti.gpx', NULL, NULL, '6a39e87d5c7cd75eb8cb8c7b', NULL),
+	(35, 'Masjid Lembang - Cikahuripan/Benteng', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:28:01.213636', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_085948_8df41e_4Q8Ta_RWy.gpx', 'via Pasir Ipis', NULL, '6a39e8955c7cd75eb8cc0720', NULL),
+	(34, 'Masjid Lembang - Curug Cibarebeuy', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:27:25.036165', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_090005_b0d63a_1bZMWW6l4.gpx', NULL, NULL, '6a39e8a55c7cd75eb8cc68c9', NULL),
+	(13, 'GOR Mayasari', 'Soekarno Hatta, Bunderan Cibiru', 35000.00, 35000.00, 'tersedia', 'Pa Dadang', '2026-05-22 16:08:01.628889', -6.936608, 107.7152191, 2, '085794469241', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(2, 'GOR Mayasari', 'Soekarno Hatta, Bunderan Cibiru', 125000.00, 125000.00, 'tersedia', 'Pa Dadang', '2026-05-21 11:16:55.600715', -6.936608, 107.715219, 2, '085794469241', 3, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(17, 'GOR Pasanggrahan', 'Cilengkrang, Bandung', 45000.00, 45000.00, 'tersedia', '', '2026-05-22 16:12:36.197922', -6.9124955, 107.7122199, 2, '089655369495', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(15, 'GOR Al-Aghisna', '3P9F+PFQ, RT.04/RW.09, Kapung kudang, Cibiru Wetan, Kec. Cibiru, Kota Bandung, Jawa Barat 40615', 40000.00, 40000.00, 'tersedia', '', '2026-05-22 16:09:31.917895', -6.930747, 107.7235863, 2, '089628188960', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(36, 'Masjid Lembang - Jayagiri - Upas Hill', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:29:16.303005', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_090023_e9113d_TJk0ktuzG.gpx', NULL, NULL, '6a39e8b75c7cd75eb8ccccf5', NULL),
+	(38, 'Masjid Ujung Berung - Bojong Koneng', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:30:14.707271', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_090051_d776ce_BnmBkRxIv.gpx', NULL, NULL, '6a39e8d45c7cd75eb8cdbe40', NULL),
+	(8, 'BSD Sport Center', 'Jl. Ranca Mekar, Cisaranten Kidul, Kec. Gedebage, Kota Bandung, Jawa Barat 40292', 0.00, 0.00, 'tersedia', '', '2026-05-22 06:59:04.47909', -6.939631, 107.677364, 2, '08872947080', 2, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(39, 'Masjid Ujung Berung - Cicaheum', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:35:19.607992', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_090118_cdbf95_AiNEZG8UB.gpx', NULL, NULL, '6a39e8ef5c7cd75eb8cf7a16', NULL),
+	(30, 'BSD Sport Center', 'Jl. Ranca Mekar, Cisaranten Kidul, Kec. Gedebage, Kota Bandung, Jawa Barat 40292', 0.00, 0.00, 'tersedia', '', '2026-06-19 13:40:02.438632', -6.939631, 107.677364, 2, '085259966007', 5, 30000.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(29, 'Flamboyan Jogging', 'Jalan Flamboyan Utara No.6, Panyileukan, Bandung', 0.00, 0.00, 'tersedia', '', '2026-06-12 15:40:02.616251', -6.938377, 107.715939, 14, '087854972839', 1, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(28, 'Flamboyan Pingpong', 'Jalan Flamboyan Utara No.6, Panyileukan, Bandung', 0.00, 0.00, 'tersedia', '', '2026-06-10 21:40:59.070103', -6.938377, 107.715939, 2, '087854972839', 12, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(1, 'GOR Adiguna', 'Jln. Pertamina, Soetta', 110000.00, 110000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.9350711, 107.7162636, 2, '082219903569', 3, 0.00, 2000.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(16, 'GOR Cempaka Arum', 'No.1 No.101, Jl. Abu Bakar Ash Shiddiq, Jl. Cimincrang, Rancanumpang, Kec. Gedebage, Kota Bandung, Jawa Barat 40294', 35000.00, 35000.00, 'tersedia', '', '2026-05-22 16:10:20.815157', -6.9551676, 107.7033343, 2, '082219255916', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(14, 'GOR Gaza', 'Cinunuk, Cibiru', 25000.00, 25000.00, 'tersedia', '', '2026-05-22 16:08:56.792858', -6.930473, 107.731552, 2, '082215309779', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(9, 'Kolam Renang Panorama', 'Jl. Cigending No.47, Pasirjati, Kec. Ujung Berung, Kota Bandung, Jawa Barat 40618', 25000.00, 25000.00, 'tersedia', '', '2026-05-22 06:59:36.928503', -6.898462, 107.710305, 2, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(12, 'Kolam Renang Yadika Tanjungsari', 'Jl. Raya Tanjungsari No.394, Jatisari, Kec. Tanjungsari, Kabupaten Sumedang, Jawa Barat 45362', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:06:56.515685', -6.8974891, 107.8081231, 2, NULL, 5, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(4, 'Sindangreret - Panyileukan', 'BnC Cookies', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.9318842, 107.7216289, 2, '081386369207', 10, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(5, 'Parkiran Taman Sumringah', 'Summarecon Bandung', 0.00, 0.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.95375, 107.69292, 2, NULL, 1, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(42, 'Masjid Lembang - Gunung Putri', '', 0.00, 0.00, 'tersedia', '', '2026-06-27 20:37:23.389185', NULL, NULL, 2, NULL, 8, 0.00, 2000.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260627_203721_6bb7eb_wtFJtSbx0.gpx', 'Rp2000/motor Parkiran Masjid Lembang (TekTok)', NULL, '6a3fd2125c7cd75eb8443318', NULL),
+	(43, 'Summarecon - Ruby Commercial', '2MRW+JH, Cisaranten Kidul, Kec. Gedebage, Kota Bandung, Jawa Barat 40295', 0.00, 0.00, 'tersedia', '', '2026-06-28 17:58:03.718251', -6.9575949, 107.6939917, 2, NULL, 1, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(3, 'GOR Purbaya', 'Jln. Ciguruwik', 25000.00, 25000.00, 'tersedia', '', '2026-05-21 11:16:55.600715', -6.92832, 107.729372, 2, '082215564761', 2, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(33, 'Tangkuban Perahu - Curug Cibarebeuy', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:26:06.775688', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_090152_4a1e48_4bxicEK_6.gpx', NULL, NULL, '6a39e9105c7cd75eb8d0518f', NULL),
+	(20, 'GOR Gaza', 'Ciguruwik, Cibiru', 0.00, 30000.00, 'tersedia', '', '2026-05-22 16:14:16.040455', -6.930473, 107.731552, 2, '082215309779', 11, 0.00, 0.00, 'true', NULL, NULL, NULL, NULL, NULL),
+	(26, 'BHD - Warung Yos - Batu Lonceng', 'Ciburial, Kec. Cimenyan, Kabupaten Bandung, Jawa Barat', 0.00, 0.00, 'tersedia', '', '2026-05-22 16:27:23.261738', NULL, NULL, 2, NULL, 8, 0.00, 5000.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_085857_54181d_Rt2aL2FCS.gpx', 'Bumi Herbal Dago', NULL, '6a39e8625c7cd75eb8cadba5', NULL),
+	(37, 'Tenda Biru - Dago Atas', '', 0.00, 0.00, 'tersedia', '', '2026-06-23 08:29:41.607335', NULL, NULL, 2, NULL, 8, 0.00, 0.00, 'false', 'https://ik.imagekit.io/ahsansur/sportapp/gpx/June_2026/gpx_20260623_090206_4afb45_cdhQDWgx1.gpx', NULL, NULL, '6a39e91f5c7cd75eb8d09c11', NULL),
+	(40, 'Basket Hall Taman Orange', '2PXJ+MVG, Cimekar, Kec. Cileunyi, Kabupaten Bandung, Jawa Barat 40623', 0.00, 0.00, 'tersedia', 'Siapa Yang Duluan', '2026-06-26 09:54:44.261661', -6.9508195, 107.7321891, 2, NULL, 14, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL),
+	(41, 'Basket Hall UIN SGD Kampus 1', 'Cipadung, Kec. Cibiru, Kota Bandung, Jawa Barat 40614', 0.00, 0.00, 'tersedia', 'Siapa Yang Duluan', '2026-06-26 09:56:09.765196', -6.9317052, 107.7168635, 2, NULL, 14, 0.00, 0.00, 'false', NULL, NULL, NULL, NULL, NULL);
 /*!40000 ALTER TABLE "tempat" ENABLE KEYS */;
+
+-- Dumping structure for table public.tempat_survei
+CREATE TABLE IF NOT EXISTS "tempat_survei" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''tempat_survei_id_seq''::regclass)',
+	"user_id" BIGINT NOT NULL,
+	"nama" VARCHAR(180) NOT NULL,
+	"alamat" TEXT NULL DEFAULT NULL,
+	"jenis" VARCHAR(80) NULL DEFAULT NULL,
+	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
+	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"status" VARCHAR(20) NOT NULL DEFAULT 'baru',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	INDEX "tempat_survei_user_idx" ("user_id", "created_at")
+);
+
+-- Dumping data for table public.tempat_survei: -1 rows
+/*!40000 ALTER TABLE "tempat_survei" DISABLE KEYS */;
+INSERT INTO "tempat_survei" ("id", "user_id", "nama", "alamat", "jenis", "lat", "lng", "catatan", "status", "created_at", "updated_at") VALUES
+	(1, 2, 'Barubereum - Manglayang', 'Kiarapayung, UNPAD', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 05:56:59.739977', NULL),
+	(2, 2, 'Kebun Kina - Bukit Sanggara', 'Kebun Kina, Cibodas', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 05:58:03.726967', NULL),
+	(3, 2, 'Tenda Biru - Gn. Pangparang', 'Tenda Biru, Uber Atas', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 05:58:57.22741', NULL),
+	(4, 2, 'Sukawana - Upas Hill', 'Cihideung, Parongpong', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 05:59:57.104207', NULL),
+	(5, 2, 'Indomaret Cihideung - Villa Naranja', 'Cihideung, Parongpong', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 06:00:48.752525', NULL),
+	(6, 2, 'UPI Setiabudi - Pangjebolan', 'Pangjebolan, Cijengkol', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 06:01:28.105375', NULL),
+	(7, 2, 'Cikuda - BHD Dago', 'Jatinangor', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 06:31:11.277313', NULL),
+	(8, 2, 'Tenda Biru - Gn.Palasari', 'Ujung Berung Atas', 'Hiking', NULL, NULL, NULL, 'baru', '2026-07-03 16:44:27.118414', NULL);
+/*!40000 ALTER TABLE "tempat_survei" ENABLE KEYS */;
+
+-- Dumping structure for table public.tilawah_harian
+CREATE TABLE IF NOT EXISTS "tilawah_harian" (
+	"id" INTEGER NOT NULL DEFAULT 'nextval(''tilawah_harian_id_seq''::regclass)',
+	"user_id" INTEGER NOT NULL,
+	"tanggal" DATE NOT NULL,
+	"sasaran" VARCHAR(20) NOT NULL DEFAULT 'diri',
+	"surah" VARCHAR(80) NULL DEFAULT NULL,
+	"ayat_dari" INTEGER NULL DEFAULT NULL,
+	"ayat_sampai" INTEGER NULL DEFAULT NULL,
+	"durasi_menit" INTEGER NULL DEFAULT NULL,
+	"catatan" TEXT NULL DEFAULT NULL,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "ix_tilawah_user_tgl" ("user_id", "tanggal")
+);
+
+-- Dumping data for table public.tilawah_harian: -1 rows
+/*!40000 ALTER TABLE "tilawah_harian" DISABLE KEYS */;
+INSERT INTO "tilawah_harian" ("id", "user_id", "tanggal", "sasaran", "surah", "ayat_dari", "ayat_sampai", "durasi_menit", "catatan", "created_at") VALUES
+	(2, 2, '2026-07-02', 'diri', 'Al-Baqarah', 1, 2, 120, 'teas', '2026-07-01 21:54:51.385078+00');
+/*!40000 ALTER TABLE "tilawah_harian" ENABLE KEYS */;
 
 -- Dumping structure for table public.tim
 CREATE TABLE IF NOT EXISTS "tim" (
@@ -4120,13 +6378,13 @@ CREATE TABLE IF NOT EXISTS "tim" (
 	"koordinator_id" INTEGER NULL DEFAULT NULL,
 	"kuota" INTEGER NOT NULL DEFAULT '2',
 	"catatan" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "tim_koordinator_id_fkey" FOREIGN KEY ("koordinator_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.tim: -1 rows
+-- Dumping data for table public.tim: 1 rows
 /*!40000 ALTER TABLE "tim" DISABLE KEYS */;
-INSERT INTO "tim" ("id", "nama", "jenis", "koordinator_id", "kuota", "catatan", "created_at") VALUES
-	(8, 'Balford', 'Badminton', 2, 4, NULL, '2026-06-17 08:25:37.730568');
 /*!40000 ALTER TABLE "tim" ENABLE KEYS */;
 
 -- Dumping structure for table public.tim_external
@@ -4138,7 +6396,10 @@ CREATE TABLE IF NOT EXISTS "tim_external" (
 	"catatan" VARCHAR(200) NULL DEFAULT NULL,
 	"invited_by" INTEGER NULL DEFAULT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	INDEX "idx_tim_external_tim" ("tim_id")
+	PRIMARY KEY ("id"),
+	INDEX "idx_tim_external_tim" ("tim_id"),
+	CONSTRAINT "tim_external_invited_by_fkey" FOREIGN KEY ("invited_by") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "tim_external_tim_id_fkey" FOREIGN KEY ("tim_id") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.tim_external: -1 rows
@@ -4150,7 +6411,9 @@ CREATE TABLE IF NOT EXISTS "tim_member" (
 	"tim_id" INTEGER NOT NULL,
 	"user_id" INTEGER NOT NULL,
 	"peran" VARCHAR(20) NOT NULL DEFAULT 'pemain',
-	UNIQUE INDEX "tim_member_unique_tu" ("tim_id", "user_id")
+	PRIMARY KEY ("tim_id", "user_id"),
+	CONSTRAINT "tim_member_tim_id_fkey" FOREIGN KEY ("tim_id") REFERENCES "tim" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "tim_member_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.tim_member: -1 rows
@@ -4170,10 +6433,12 @@ CREATE TABLE IF NOT EXISTS "toko" (
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
 	"hari_buka" VARCHAR(20) NULL DEFAULT '0,1,2,3,4,5,6',
 	"jam_buka" TIME NULL DEFAULT NULL,
-	"jam_tutup" TIME NULL DEFAULT NULL
+	"jam_tutup" TIME NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	INDEX "toko_aktif_idx" ("aktif")
 );
 
--- Dumping data for table public.toko: -1 rows
+-- Dumping data for table public.toko: 7 rows
 /*!40000 ALTER TABLE "toko" DISABLE KEYS */;
 INSERT INTO "toko" ("id", "nama", "deskripsi", "alamat", "no_wa", "lat", "lng", "aktif", "created_at", "hari_buka", "jam_buka", "jam_tutup") VALUES
 	(1, 'Ayam Penyet Esti', 'Murah...', 'Kampus UIN SGD 1', NULL, NULL, NULL, 'true', '2026-06-01 10:47:53.154299', '0,1,2,3,4,5,6', NULL, NULL),
@@ -4184,6 +6449,38 @@ INSERT INTO "toko" ("id", "nama", "deskripsi", "alamat", "no_wa", "lat", "lng", 
 	(6, 'Bakso Neng Hajjah', 'Muantap..', 'Kampus UIN SGD 1', NULL, NULL, NULL, 'true', '2026-06-01 13:08:52.835693', '0,1,2,3,4,5,6', NULL, NULL),
 	(7, 'WiCiPi', 'Temoat Makan murah dan Berkualitas', 'Panyileukan', NULL, NULL, NULL, 'true', '2026-06-02 12:45:31.535585', '0,1,2,3,4,5,6', '08:00:00', '17:00:00');
 /*!40000 ALTER TABLE "toko" ENABLE KEYS */;
+
+-- Dumping structure for table public.toko_olahraga
+CREATE TABLE IF NOT EXISTS "toko_olahraga" (
+	"id" BIGINT NOT NULL DEFAULT 'nextval(''toko_olahraga_id_seq''::regclass)',
+	"nama" VARCHAR(180) NOT NULL,
+	"alamat" TEXT NULL DEFAULT NULL,
+	"kota" VARCHAR(120) NULL DEFAULT NULL,
+	"kategori" VARCHAR(80) NULL DEFAULT NULL,
+	"deskripsi" TEXT NULL DEFAULT NULL,
+	"foto_url" TEXT NULL DEFAULT NULL,
+	"wa_nomor" VARCHAR(20) NULL DEFAULT NULL,
+	"telp" VARCHAR(40) NULL DEFAULT NULL,
+	"jam_buka" VARCHAR(80) NULL DEFAULT NULL,
+	"lat" DOUBLE PRECISION NULL DEFAULT NULL,
+	"lng" DOUBLE PRECISION NULL DEFAULT NULL,
+	"map_url" TEXT NULL DEFAULT NULL,
+	"rating" NUMERIC(3,2) NULL DEFAULT '0',
+	"aktif" BOOLEAN NOT NULL DEFAULT 'true',
+	"sort_order" INTEGER NOT NULL DEFAULT '0',
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	INDEX "idx_toko_olahraga_aktif" ("aktif"),
+	INDEX "idx_toko_olahraga_kota" ("kota")
+);
+
+-- Dumping data for table public.toko_olahraga: -1 rows
+/*!40000 ALTER TABLE "toko_olahraga" DISABLE KEYS */;
+INSERT INTO "toko_olahraga" ("id", "nama", "alamat", "kota", "kategori", "deskripsi", "foto_url", "wa_nomor", "telp", "jam_buka", "lat", "lng", "map_url", "rating", "aktif", "sort_order", "created_at", "updated_at") VALUES
+	(1, 'Sport Station', 'Mall Central Park Lt. 2', 'Jakarta', 'Umum', 'Toko perlengkapan olahraga lengkap: sepatu, jersey, bola, aksesoris.', NULL, '6281234567890', NULL, '10.00–22.00', NULL, NULL, NULL, 0.00, 'true', 1, '2026-06-27 14:27:33.413753', '2026-06-27 14:27:33.413753'),
+	(2, 'Planet Sports', 'Jl. Gatot Subroto Kav. 25', 'Jakarta', 'Sepatu & Pakaian', 'Spesialis sepatu lari & pakaian olahraga merek internasional.', NULL, '6281200000001', NULL, '09.00–21.00', NULL, NULL, NULL, 0.00, 'true', 2, '2026-06-27 14:27:33.413753', '2026-06-27 14:27:33.413753');
+/*!40000 ALTER TABLE "toko_olahraga" ENABLE KEYS */;
 
 -- Dumping structure for table public.upload_harian
 CREATE TABLE IF NOT EXISTS "upload_harian" (
@@ -4201,10 +6498,12 @@ CREATE TABLE IF NOT EXISTS "upload_harian" (
 	"pace" VARCHAR(20) NULL DEFAULT NULL,
 	"pace_detik" INTEGER NULL DEFAULT NULL,
 	"heart_rate" INTEGER NULL DEFAULT NULL,
-	"rpe" SMALLINT NULL DEFAULT NULL
+	"rpe" SMALLINT NULL DEFAULT NULL,
+	PRIMARY KEY ("id"),
+	CONSTRAINT "upload_harian_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.upload_harian: -1 rows
+-- Dumping data for table public.upload_harian: 23 rows
 /*!40000 ALTER TABLE "upload_harian" DISABLE KEYS */;
 INSERT INTO "upload_harian" ("id", "user_id", "tanggal", "jenis", "durasi_menit", "jarak_km", "kalori", "deskripsi", "file_path", "gdrive_url", "created_at", "pace", "pace_detik", "heart_rate", "rpe") VALUES
 	(25, 2, '2026-06-15', 'Jogging', 36, 5.00, 481, 'Nyoba track ke atas nih', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-15-Jogging_oz4Ifkegy.jpg', '6a2fde225c7cd75eb8e8926c', '2026-06-15 18:12:35.472826', '7''14"/km', NULL, NULL, NULL),
@@ -4220,7 +6519,6 @@ Nah jika kita seorang muslim, sudah semestinya tujuan hidup kita itu berlandaska
 	(27, 2, '2026-06-18', 'Jogging', 41, 6.30, 531, 'Puanasss', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-18-Jogging_5x0QdaZ5t.jpg', '6a33cb325c7cd75eb8132ded', '2026-06-18 17:40:51.124571', '6''33"/km', NULL, NULL, NULL),
 	(13, 2, '2026-05-05', 'Jogging', 35, 4.96, 441, '', 'https://ik.imagekit.io/ahsansur/sportapp/May_2026/Firdam-2026-05-05-Jogging_57vIUf1o-.jpg', '6a108b4d5c7cd75eb87f8312', '2026-05-22 16:58:54.086772', '7''01" /km', NULL, NULL, NULL),
 	(14, 2, '2026-05-03', 'Jogging', 24, 3.00, 244, '', 'https://ik.imagekit.io/ahsansur/sportapp/May_2026/Firdam-2026-05-03-Jogging_CbA7iOtwa.jpg', '6a108b8e5c7cd75eb8811758', '2026-05-22 16:59:59.092363', '07''49" /km', NULL, NULL, NULL),
-	(28, 4, '2026-06-19', 'Jogging', 17, 2.42, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_OeC8EgHPT.png', '6a34de1e5c7cd75eb8c06816', '2026-06-19 13:13:51.190462', '7.18', NULL, NULL, NULL),
 	(8, 2, '2026-05-15', 'Jogging', 13, 2.40, 187, 'Wow..', 'https://ik.imagekit.io/ahsansur/sportapp/May_2026/Firdam-2026-05-15-Jogging_qFDGBnfHn.jpg', '6a0e93155c7cd75eb83d74d0', '2026-05-21 05:07:34.100156', '6''14" /km', NULL, NULL, NULL),
 	(18, 16, '2026-06-09', 'Jogging', 31, 5.00, 0, 'Happy Alhamdulillah, soalnya sambil dengerin podcast tentang cara meminimalisir Doom scrolling', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/ADITH_SETIAWAN-2026-06-09-Jogging_RbXWe1-Ju.png', '6a277b235c7cd75eb87e2389', '2026-06-09 09:32:04.585194', '6''15"/km', NULL, NULL, NULL),
 	(19, 2, '2026-06-10', 'Jogging', 32, 5.00, 422, 'Muantap', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-10-Jogging_iXQIuv2J5.jpg', '6a2970325c7cd75eb83ef9f5', '2026-06-10 21:09:55.502543', '6''30"/km', NULL, NULL, NULL),
@@ -4230,11 +6528,22 @@ Nah jika kita seorang muslim, sudah semestinya tujuan hidup kita itu berlandaska
 	(22, 4, '2026-06-11', 'Jogging', 20, 3.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-11-Jogging_Y4UGyMu79.jpg', '6a2a77d55c7cd75eb8aadf08', '2026-06-11 15:54:45.773464', '7''30"/km', NULL, NULL, NULL),
 	(23, 3, '2026-06-12', 'Jogging', 30, 5.00, 0, 'rute tritan poin', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Rifat-2026-06-12-Jogging_k67Rb8kUB.jpg', '6a2b4e5d5c7cd75eb81e2394', '2026-06-12 07:10:06.234402', '6''30"/km', NULL, NULL, NULL),
 	(24, 2, '2026-06-13', 'Jogging', 17, 2.54, 206, 'Asa te karaos', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-13-Jogging_ZlJs3FaF5.jpg', '6a2c9faa5c7cd75eb85ea342', '2026-06-13 07:09:14.779208', '7''00"/km', NULL, NULL, NULL),
-	(29, 4, '2026-06-19', 'Jogging', 40, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_MgPtPZn0K.png', '6a34de7d5c7cd75eb8c2d570', '2026-06-19 13:15:25.934335', '7''30"/km', NULL, NULL, NULL),
 	(30, 4, '2026-06-19', 'Jogging', 20, 3.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_c3bWyOgWS.png', '6a34e8ae5c7cd75eb8fc77d1', '2026-06-19 13:58:55.210927', '7''30"/km', NULL, NULL, NULL),
-	(1, 4, '2026-06-22', 'Jogging', 39, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-22-Jogging_2WXkUbgUU.png', '6a389f905c7cd75eb814cd4e', '2026-06-22 09:36:02.102856', '8''00"/km', NULL, NULL, NULL),
-	(2, 2, '2026-06-22', 'Jogging', 13, 2.40, 192, 'Sareng mang dani', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-22-Jogging_8scPYs21B.jpg', '6a38a1a25c7cd75eb81fcf79', '2026-06-22 09:44:52.08862', '5''39"/km', NULL, NULL, NULL),
-	(3, 2, '2026-06-22', 'Jogging', 21, 2.80, 253, 'Sareng mang dani', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-22-Jogging_xQ2vX4NUR.jpg', '6a38a1fe5c7cd75eb8218acb', '2026-06-22 09:46:24.391081', '7''30"/km', NULL, NULL, NULL);
+	(31, 2, '2026-06-22', 'Jogging', 13, 2.40, 192, 'Kebut', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-22-Jogging_XwkDK5aSJ.jpg', '6a391d0b5c7cd75eb8a16d40', '2026-06-22 18:31:24.782053', '5''39"/km', NULL, NULL, NULL),
+	(32, 2, '2026-06-22', 'Jogging', 21, 2.80, 253, 'With mang dani', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-22-Jogging_pBP3bt7RZ.jpg', '6a391d435c7cd75eb8a29933', '2026-06-22 18:32:20.799637', '7''30"/km', NULL, NULL, NULL),
+	(33, 20, '2026-06-23', 'Jogging', 90, 7.00, 400, 'Cuman jalan ajah tapi nanjak', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Fajar_Suseno-2026-06-23-Jogging_SjZrZIqCb.jpg', '6a39df4a5c7cd75eb89157c8', '2026-06-23 08:20:11.843791', '9''00"/km', NULL, NULL, NULL),
+	(34, 16, '2026-06-23', 'Jogging', 33, 5.00, 250, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/ADITH_SETIAWAN-2026-06-23-Jogging_Ofl5jWHNx.png', '6a3a09315c7cd75eb89fc323', '2026-06-23 11:18:58.92663', '6''34"/km', NULL, NULL, NULL),
+	(35, 11, '2026-06-28', 'Jogging', 35, 6.00, 0, 'Atas dasar bentuk syukur kepada Allah yang telah memberikan nikmat sehat . Sekaligus menyambut bulan kelahiran . Semangat untuk semua 💯', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Rian-2026-06-28-Jogging_qmp0Nk4h_.png', '6a40630c5c7cd75eb8021b10', '2026-06-28 06:55:58.16077', '5''50"/km', NULL, NULL, NULL),
+	(36, 2, '2026-06-28', 'Jogging', 24, 3.00, 242, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-28-Jogging_tWZnZ3r-b.jpg', '6a4142ed5c7cd75eb8a71eae', '2026-06-28 22:51:11.239137', '7''57"/km', NULL, NULL, NULL),
+	(37, 4, '2026-06-28', 'Jogging', 36, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-28-Jogging_BubXq11iO.jpg', '6a41451d5c7cd75eb8b6d957', '2026-06-28 23:00:30.488009', '7.17', NULL, NULL, NULL),
+	(38, 4, '2026-06-22', 'Jogging', 39, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-22-Jogging_CbGoXoif_.png', '6a414e285c7cd75eb8fd796e', '2026-06-28 23:39:06.728155', '7,55', NULL, NULL, NULL),
+	(29, 4, '2026-06-18', 'Jogging', 40, 5.00, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_MgPtPZn0K.png', '6a34de7d5c7cd75eb8c2d570', '2026-06-19 13:15:25.934335', '7''30"/km', NULL, NULL, NULL),
+	(28, 4, '2026-06-13', 'Jogging', 17, 2.42, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-19-Jogging_OeC8EgHPT.png', '6a34de1e5c7cd75eb8c06816', '2026-06-19 13:13:51.190462', '7.18', NULL, NULL, NULL),
+	(39, 16, '2026-06-28', 'Jogging', 32, 5.00, 350, 'Masyaallah Tabarakallah', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/ADITH_SETIAWAN-2026-06-28-Jogging_z56Bkrt6n.png', '6a4153295c7cd75eb816fa9b', '2026-06-29 00:00:27.570774', '7''15"/km', NULL, NULL, NULL),
+	(40, 4, '2026-06-30', 'Jogging', 18, 2.50, 0, '', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Dani-2026-06-30-Jogging_JTC7mbq-V.png', '6a439f465c7cd75eb8c8f326', '2026-06-30 17:49:44.218039', '7''30"/km', NULL, NULL, NULL),
+	(41, 2, '2026-06-30', 'Jogging', 18, 2.39, 198, 'With mang dani', 'https://ik.imagekit.io/ahsansur/sportapp/June_2026/Firdam-2026-06-30-Jogging_HMu9pQHYQ.jpg', '6a43ea465c7cd75eb81f8438', '2026-06-30 23:09:43.890756', '7''45"/km', NULL, NULL, NULL),
+	(42, 11, '2026-07-03', 'Jogging', 32, 5.51, 0, 'Ketagihan lari menjelang habis waktu subuh 😄', 'https://ik.imagekit.io/ahsansur/sportapp/July_2026/Rian-2026-07-03-Jogging_eak8MP5ht.jpg', '6a470fb95c7cd75eb8011f0e', '2026-07-03 08:26:18.977376', '5''53"/km', NULL, NULL, NULL),
+	(43, 51, '2026-07-03', 'Jogging', 45, 7.00, 500, 'Road to Polresta', 'https://ik.imagekit.io/ahsansur/sportapp/July_2026/Zao-2026-07-03-Jogging_jxrU7JLnq.png', '6a47ce595c7cd75eb8f28a13', '2026-07-03 21:59:38.971578', '6''30"/km', NULL, NULL, NULL);
 /*!40000 ALTER TABLE "upload_harian" ENABLE KEYS */;
 
 -- Dumping structure for table public.upload_harian_comments
@@ -4244,6 +6553,7 @@ CREATE TABLE IF NOT EXISTS "upload_harian_comments" (
 	"user_id" INTEGER NOT NULL,
 	"isi" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
 	INDEX "uhc_upload_idx" ("upload_id")
 );
 
@@ -4254,7 +6564,11 @@ INSERT INTO "upload_harian_comments" ("id", "upload_id", "user_id", "isi", "crea
 	(2, 24, 2, 'oke', '2026-06-13 21:01:59.054374'),
 	(3, 25, 2, 'Huh', '2026-06-15 18:13:30.047455'),
 	(4, 26, 2, '👍✨', '2026-06-17 04:50:59.988574'),
-	(1, 3, 2, 'Tes ah', '2026-06-22 11:03:53.784987');
+	(5, 33, 2, 'Mantap mas fajar, sing penting sehat 💪', '2026-06-23 11:15:26.324595'),
+	(6, 34, 2, 'Muantap 🍺', '2026-06-23 17:35:42.079185'),
+	(7, 33, 4, 'Beuhh kerenn, pertahankann💥', '2026-06-25 08:36:49.372372'),
+	(8, 35, 4, 'Maa Syaa Allah Rian✨️', '2026-06-29 00:28:59.159697'),
+	(9, 42, 4, 'Maa Syaa Allah Rian✨️', '2026-07-03 08:29:15.064652');
 /*!40000 ALTER TABLE "upload_harian_comments" ENABLE KEYS */;
 
 -- Dumping structure for table public.upload_harian_likes
@@ -4265,7 +6579,7 @@ CREATE TABLE IF NOT EXISTS "upload_harian_likes" (
 	PRIMARY KEY ("upload_id", "user_id")
 );
 
--- Dumping data for table public.upload_harian_likes: 13 rows
+-- Dumping data for table public.upload_harian_likes: 8 rows
 /*!40000 ALTER TABLE "upload_harian_likes" DISABLE KEYS */;
 INSERT INTO "upload_harian_likes" ("upload_id", "user_id", "created_at") VALUES
 	(22, 2, '2026-06-11 18:04:52.486608'),
@@ -4276,11 +6590,24 @@ INSERT INTO "upload_harian_likes" ("upload_id", "user_id", "created_at") VALUES
 	(24, 2, '2026-06-13 21:06:54.460959'),
 	(26, 2, '2026-06-17 04:50:09.021211'),
 	(27, 2, '2026-06-18 17:41:31.577677'),
-	(2, 2, '2026-06-22 10:18:21.814825'),
-	(1, 2, '2026-06-22 10:18:23.638528'),
-	(30, 2, '2026-06-22 10:18:24.510146'),
-	(29, 2, '2026-06-22 10:18:25.106797'),
-	(3, 2, '2026-06-22 11:03:42.405514');
+	(28, 2, '2026-06-22 22:20:44.867276'),
+	(29, 2, '2026-06-22 22:20:45.647491'),
+	(30, 2, '2026-06-22 22:20:46.416208'),
+	(31, 2, '2026-06-22 22:20:46.911188'),
+	(32, 2, '2026-06-22 22:20:47.984763'),
+	(33, 2, '2026-06-23 11:15:07.606261'),
+	(34, 2, '2026-06-23 11:36:05.475972'),
+	(35, 2, '2026-06-28 22:51:38.278892'),
+	(36, 2, '2026-06-28 22:52:59.08081'),
+	(35, 4, '2026-06-28 23:34:28.808311'),
+	(37, 4, '2026-06-28 23:34:39.449512'),
+	(37, 2, '2026-06-29 23:13:49.581081'),
+	(39, 2, '2026-06-29 23:13:59.851498'),
+	(40, 2, '2026-06-30 23:07:38.613162'),
+	(41, 2, '2026-06-30 23:10:25.210779'),
+	(38, 2, '2026-07-01 11:38:03.454368'),
+	(42, 4, '2026-07-03 08:28:48.917666'),
+	(42, 2, '2026-07-03 08:42:50.747666');
 /*!40000 ALTER TABLE "upload_harian_likes" ENABLE KEYS */;
 
 -- Dumping structure for table public.users
@@ -4319,29 +6646,55 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"aktif" SMALLINT NOT NULL DEFAULT '1',
 	"nonaktif_catatan" TEXT NULL DEFAULT NULL,
 	"strava_account" VARCHAR(120) NULL DEFAULT NULL,
-	"nickname" VARCHAR(80) NULL DEFAULT NULL
+	"nickname" VARCHAR(80) NULL DEFAULT NULL,
+	"paket" VARCHAR(20) NULL DEFAULT 'gratis',
+	"paket_started_at" TIMESTAMP NULL DEFAULT NULL,
+	"paket_expires_at" TIMESTAMP NULL DEFAULT NULL,
+	"komunitas_id" INTEGER NULL DEFAULT NULL,
+	UNIQUE INDEX "users_email_key" ("email"),
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "users_kode_referal_uidx" ("kode_referal"),
+	CONSTRAINT "users_koordinator_id_fkey" FOREIGN KEY ("koordinator_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "users_pic_admin_id_fkey" FOREIGN KEY ("pic_admin_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "users_pic_user_id_fkey" FOREIGN KEY ("pic_user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
--- Dumping data for table public.users: 17 rows
+-- Dumping data for table public.users: 33 rows
 /*!40000 ALTER TABLE "users" DISABLE KEYS */;
-INSERT INTO "users" ("id", "nama", "email", "password_hash", "role", "google_id", "created_at", "foto_url", "foto_file_id", "last_seen", "jenis_kelamin", "xp", "level", "streak_minggu", "bio", "dark_mode", "wa", "pic_admin_id", "nomor_wa", "berat_kg", "tinggi_cm", "tanggal_lahir", "riwayat_penyakit", "kode_referal", "referred_by_code", "username", "tema_warna", "privasi_disetujui_at", "privasi_versi_disetujui", "pic_user_id", "koordinator_id", "aktif", "nonaktif_catatan", "strava_account", "nickname") VALUES
-	(14, 'Farhan Akmali', 'farhan@sport.local', '$2y$10$FJBGlMFxj85cDACsi1G/BuyLCGZQQO1vq6j.RpXLGudAFayjKm76W', 'admin', NULL, '2026-05-19 07:56:28.908609', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Farhan_Akmali-avatar-1779482008_KIqU_LMhc.jpg', NULL, '2026-06-19 12:27:01.750083', 'L', 150, 1, 3, NULL, 0, '087854972839', 2, '087854972839', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(11, 'Rian', 'rian@sport.local', '$2y$10$1i9pPdfgTNmnk.znbNW/O.RqmElHfaA0l/cnj3Lc98BUZto6kIVhS', 'member', NULL, '2026-05-19 07:55:42.436033', NULL, NULL, '2026-06-19 06:25:28.803065', 'L', 0, 1, 0, NULL, 0, '085691767966', NULL, '085691767966', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(7, 'Faiz', 'faiz@sport.local', '$2y$10$IU70GA7RajjzT1JaITB/0Oo3D7xTWI1OfuNs.U61Zh0q7GCGPs.o2', 'member', NULL, '2026-05-19 07:54:49.054143', NULL, NULL, '2026-06-20 15:00:22.762388', 'L', 0, 1, 1, NULL, 0, '085814120846', NULL, '085814120846', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(21, 'Fawaid', 'fawaid@sport.local', '$2y$10$WRVlvftweEcCk1Qv4W4r0.swunLUfBb3NdRc0Y.kwlx7i6MkNUH7q', 'member', NULL, '2026-06-03 22:39:30.317356', NULL, NULL, '2026-06-20 12:51:32.61479', 'L', 0, 1, 0, NULL, 0, '085177010166', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(13, 'Aziz', 'aziz@sport.local', '$2y$10$hscxGGWZSkrUVdUi9GPuleeSCgD6HfEktM/SU4TzVT85LVuRsfcwO', 'member', NULL, '2026-05-19 07:56:12.862165', NULL, NULL, '2026-06-08 14:21:47.13626', 'L', 0, 1, 0, NULL, 0, '081223450704', 2, '081223450704', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(8, 'Dedi', 'dedi@sport.local', '$2y$10$nuKddv8x8SvUhueELQwWv.F/F8YzaEOLA52T438WdLXMeLhZlee8q', 'member', NULL, '2026-05-19 07:55:00.498075', NULL, NULL, '2026-05-23 17:11:43.514279', 'L', 150, 1, 0, NULL, 0, '082184381823', NULL, '082184381823', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 0, 'Dinonaktifkan oleh admin', NULL, NULL),
-	(15, 'Hanif', 'hanif@sport.local', '$2y$10$GnFSPJJ7.9X2BsmQ2ScrTOza76tmuZt1y8RFiX9QptHnZEFr4u8WK', 'member', NULL, '2026-05-19 07:56:40.664031', NULL, NULL, '2026-05-30 09:59:44.711128', 'L', 0, 1, 0, NULL, 0, '082117100115', 2, '082117100115', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(17, 'RIZAL SAAD', 'rizalsaad1405@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$dWZVNkNuMDFRbUxEbTdUbQ$FymiSUHfBJnWIII+P5DJeMVHC7cH5YbosxTQNxhFqUw', 'member', NULL, '2026-05-22 09:25:26.79199', NULL, NULL, '2026-05-22 09:26:42.829588', 'L', 0, 1, 0, NULL, 0, '082218532348', 4, '082218532348', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(20, 'Fajar Suseno', 'fajar@sport.local', '$2y$10$PCnvpCyKEdEapN87UMqQHOh7edoaNTepREZPpBljj5sHgdp68uUbi', 'member', NULL, '2026-05-29 12:57:35.205148', NULL, NULL, '2026-05-29 16:08:52.600659', 'L', 0, 1, 0, NULL, 0, '087822615464', NULL, '087822615464', 67.00, 168.00, '2005-06-19', 'Tidak ada.', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(10, 'Reyhan', 'reyhan@sport.local', '$2y$10$84RpoOaWh9iDdj4eVoNgnuy3ycDWsYTpJnhKoCW3rd74cPepinhni', 'member', NULL, '2026-05-19 07:55:29.376846', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '082320781890', NULL, '082320781890', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-	(9, 'Rafi', 'rafi@sport.local', '$2y$10$WXVJ/JHsAzNkfEEz/ZAyOuioNuZj4iM5TVN4xRd1qkqqEanljth8y', 'member', NULL, '2026-05-19 07:55:12.485671', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '089502639933', NULL, '089502639933', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-	(5, 'Usama', 'usama@sport.local', '$2y$10$.t7NxThSxmHvK3Bst9NmguSIlu9zz2QjlaTxOnB6PvcSv71OsdWm2', 'member', NULL, '2026-05-19 07:54:22.015654', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '089525429272', NULL, '089525429272', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(6, 'Dendra', 'dendra@sport.local', '$2y$10$6Xt5Sj9rKVSr9fqdXcF14.y/DP5240ULEtf/lie738rt1H5frLo/y', 'member', NULL, '2026-05-19 07:54:35.123756', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dendra-avatar-1780327141_1LN6n1f2i.jpg', NULL, '2026-06-20 01:42:46.000088', 'L', 0, 1, 0, NULL, 0, '082316481216', NULL, '082316481216', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(3, 'Rifat', 'rifat@sport.local', '$2y$10$2nAaw2Qjru8mkOrZMA5Bcu2nX7ulxiqPObQk1Ekp0VxBPTjowBrNW', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Rifat-avatar-1779378411_1K68zsR1h.jpg', '6a0f28ed5c7cd75eb84a1dad', '2026-06-20 11:42:03.347139', 'L', 300, 2, 2, '', 0, '081369248630', NULL, '081369248630', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(4, 'Dani', 'dani@sport.local', '$2y$10$VgQ6RZkSly9XqDDlNH0B8e/VTM.GB.3nDyxY6O4nyA2HtTOD8MOi2', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dani-avatar-1779446202_D6MgJZEDkC.jpg', NULL, '2026-06-22 14:14:46.538963', 'L', 300, 2, 0, NULL, 0, '0895337148803', NULL, '0895337148803', 58.00, 163.00, '2004-10-09', 'Darah Tinggi', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(16, 'ADITH SETIAWAN', 'adithsetiawan62@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$NzkuSWtnU0J1UjFTcGV4Ug$3kOfbqXaVv19r43a8KDxVPg33BbgV/AkqZ7Gt6oY9u8', 'member', NULL, '2026-05-22 09:25:05.526258', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/ADITH_SETIAWAN-avatar-1780045646_vUCRcMgf9.jpg', NULL, '2026-06-22 12:17:17.613647', 'L', 0, 1, 3, 'Enjoy the Proses', 0, '082118785024', NULL, '082118785024', 66.00, 160.00, '2006-03-12', 'Sehat sentosa', NULL, NULL, NULL, 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL),
-	(2, 'Firdam', 'firdam@sport.local', '$2y$10$J219qLjtcMqVaSla3vEmsuaOMwxaL7XVJ4Xpnc7VQl8TJKBNMDv0m', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Firdam-avatar-1782102252_7GFeGcDqc.jpg', '6a0ee0135c7cd75eb87edbaf', '2026-06-22 14:26:50.801355', 'L', 420, 3, 0, 'Mau yang manas ?', 0, '081386369207', 2, '081386369207', 83.00, 170.00, '1996-03-11', 'Usus Buntus', NULL, NULL, NULL, 'slate', NULL, NULL, NULL, NULL, 1, NULL, 'https://strava.app.link/5CnMSeGK63b', 'hambaAllah2211');
+INSERT INTO "users" ("id", "nama", "email", "password_hash", "role", "google_id", "created_at", "foto_url", "foto_file_id", "last_seen", "jenis_kelamin", "xp", "level", "streak_minggu", "bio", "dark_mode", "wa", "pic_admin_id", "nomor_wa", "berat_kg", "tinggi_cm", "tanggal_lahir", "riwayat_penyakit", "kode_referal", "referred_by_code", "username", "tema_warna", "privasi_disetujui_at", "privasi_versi_disetujui", "pic_user_id", "koordinator_id", "aktif", "nonaktif_catatan", "strava_account", "nickname", "paket", "paket_started_at", "paket_expires_at", "komunitas_id") VALUES
+	(10, 'Reyhan', 'reyhan@sport.local', '$2y$10$84RpoOaWh9iDdj4eVoNgnuy3ycDWsYTpJnhKoCW3rd74cPepinhni', 'member', NULL, '2026-05-19 07:55:29.376846', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '082320781890', NULL, '082320781890', NULL, NULL, NULL, NULL, NULL, NULL, 'reyhan', 'sky', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, 'gratis', NULL, NULL, 1),
+	(11, 'Rian', 'rian@sport.local', '$2y$10$1i9pPdfgTNmnk.znbNW/O.RqmElHfaA0l/cnj3Lc98BUZto6kIVhS', 'member', NULL, '2026-05-19 07:55:42.436033', NULL, NULL, '2026-07-04 04:06:06.679931', 'L', 330, 2, 5, NULL, 0, '085691767966', NULL, '085691767966', NULL, NULL, NULL, NULL, NULL, NULL, 'rian', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(16, 'ADITH SETIAWAN', 'adithsetiawan62@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$NzkuSWtnU0J1UjFTcGV4Ug$3kOfbqXaVv19r43a8KDxVPg33BbgV/AkqZ7Gt6oY9u8', 'member', NULL, '2026-05-22 09:25:05.526258', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/ADITH_SETIAWAN-avatar-1780045646_vUCRcMgf9.jpg', NULL, '2026-07-03 11:21:47.841281', 'L', 330, 2, 5, 'Enjoy the Proses', 0, '082118785024', NULL, '082118785024', 66.00, 160.00, '2006-03-12', 'Sehat sentosa', NULL, NULL, 'adithsetiawan62', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(13, 'Aziz', 'aziz@sport.local', '$2y$10$hscxGGWZSkrUVdUi9GPuleeSCgD6HfEktM/SU4TzVT85LVuRsfcwO', 'member', NULL, '2026-05-19 07:56:12.862165', NULL, NULL, '2026-07-03 19:26:50.421387', 'L', 330, 2, 4, NULL, 0, '081223450704', 2, '081223450704', NULL, NULL, NULL, NULL, NULL, NULL, 'aziz', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(4, 'Dani', 'dani@sport.local', '$2y$10$VgQ6RZkSly9XqDDlNH0B8e/VTM.GB.3nDyxY6O4nyA2HtTOD8MOi2', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dani-avatar-1782826720_yuDqxhwPr.jpg', NULL, '2026-07-03 23:22:59.438663', 'L', 330, 2, 5, 'Tuntaskan yang telah kau mulai hingga kau capai garis finish💥🔥', 0, '0895337148803', NULL, '0895337148803', 58.00, 163.00, '2004-10-09', 'Darah Tinggi', NULL, NULL, 'dani', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(20, 'Fajar Suseno', 'fajar@sport.local', '$2y$10$PCnvpCyKEdEapN87UMqQHOh7edoaNTepREZPpBljj5sHgdp68uUbi', 'member', NULL, '2026-05-29 12:57:35.205148', NULL, NULL, '2026-06-23 08:23:17.721124', 'L', 0, 1, 0, NULL, 0, '087822615464', NULL, '087822615464', 67.00, 168.00, '2005-06-19', 'Tidak ada.', NULL, NULL, 'fajar', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(14, 'Farhan Akmali', 'farhan@sport.local', '$2y$10$FJBGlMFxj85cDACsi1G/BuyLCGZQQO1vq6j.RpXLGudAFayjKm76W', 'member', NULL, '2026-05-19 07:56:28.908609', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Farhan_Akmali-avatar-1779482008_KIqU_LMhc.jpg', NULL, '2026-06-19 12:27:01.750083', 'L', 330, 2, 5, NULL, 0, '087854972839', 2, '087854972839', NULL, NULL, NULL, NULL, NULL, NULL, 'farhan', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(21, 'Fawaid', 'fawaid@sport.local', '$2y$10$WRVlvftweEcCk1Qv4W4r0.swunLUfBb3NdRc0Y.kwlx7i6MkNUH7q', 'member', NULL, '2026-06-03 22:39:30.317356', NULL, NULL, '2026-06-20 12:51:32.61479', 'L', 0, 1, 0, NULL, 0, '085177010166', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fawaid', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(3, 'Rifat', 'rifat@sport.local', '$2y$10$2nAaw2Qjru8mkOrZMA5Bcu2nX7ulxiqPObQk1Ekp0VxBPTjowBrNW', 'member', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Rifat-avatar-1779378411_1K68zsR1h.jpg', '6a0f28ed5c7cd75eb84a1dad', '2026-07-03 11:08:23.081289', 'L', 330, 2, 5, '', 0, '081369248630', NULL, '081369248630', NULL, NULL, NULL, NULL, NULL, NULL, 'rifat', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(17, 'RIZAL SAAD', 'rizalsaad1405@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$dWZVNkNuMDFRbUxEbTdUbQ$FymiSUHfBJnWIII+P5DJeMVHC7cH5YbosxTQNxhFqUw', 'member', NULL, '2026-05-22 09:25:26.79199', NULL, NULL, '2026-05-22 09:26:42.829588', 'L', 0, 1, 0, NULL, 0, '082218532348', 4, '082218532348', NULL, NULL, NULL, NULL, NULL, NULL, 'rizalsaad1405', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(8, 'Dedi', 'dedi@sport.local', '$2y$10$nuKddv8x8SvUhueELQwWv.F/F8YzaEOLA52T438WdLXMeLhZlee8q', 'member', NULL, '2026-05-19 07:55:00.498075', NULL, NULL, '2026-06-25 08:55:01.709124', 'L', 150, 1, 0, NULL, 0, '082184381823', NULL, '082184381823', NULL, NULL, NULL, NULL, NULL, NULL, 'dedi', 'sky', NULL, NULL, NULL, NULL, 0, 'Dinonaktifkan oleh admin', NULL, NULL, 'gratis', NULL, NULL, 1),
+	(9, 'Rafi', 'rafi@sport.local', '$2y$10$WXVJ/JHsAzNkfEEz/ZAyOuioNuZj4iM5TVN4xRd1qkqqEanljth8y', 'member', NULL, '2026-05-19 07:55:12.485671', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '089502639933', NULL, '089502639933', NULL, NULL, NULL, NULL, NULL, NULL, 'rafi', 'sky', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, 'gratis', NULL, NULL, 1),
+	(44, 'Wahyu', 'wahyu@sport.local', '$2y$12$zciOg2dbgih7oDFUG7cLFuPgz7DTkwC7Q7r1unkWHMuKsBEZH64Q6', 'member', NULL, '2026-07-03 17:59:43.461384', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'wahyu', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(5, 'Usama', 'usama@sport.local', '$2y$10$.t7NxThSxmHvK3Bst9NmguSIlu9zz2QjlaTxOnB6PvcSv71OsdWm2', 'member', NULL, '2026-05-19 07:54:22.015654', NULL, NULL, NULL, 'L', 330, 2, 4, NULL, 0, '089525429272', NULL, '089525429272', NULL, NULL, NULL, NULL, NULL, NULL, 'usama', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(6, 'Dendra', 'dendra@sport.local', '$2y$10$6Xt5Sj9rKVSr9fqdXcF14.y/DP5240ULEtf/lie738rt1H5frLo/y', 'member', NULL, '2026-05-19 07:54:35.123756', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Dendra-avatar-1780327141_1LN6n1f2i.jpg', NULL, '2026-07-01 23:18:09.512538', 'L', 30, 1, 0, NULL, 0, '082316481216', NULL, '082316481216', NULL, NULL, NULL, NULL, NULL, NULL, 'dendra', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(40, 'Eko P', 'eko.p@sport.local', '$2y$12$Nl6HraLDb9e.gLq0cdpJYO0eRlsbWfpy6fg02Oa8nZb3Zr97nca1O', 'admin', NULL, '2026-07-03 13:15:45.407231', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '082295397710', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ekopras', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(47, 'Sobur', 'sobur@sport.local', '$2y$12$sZXqs8MXzEs1h/HV0T8hpuPeDQyg2MiRgzvaTBfLaVfFMAAFm9hwO', 'member', NULL, '2026-07-03 18:01:09.119624', NULL, NULL, '2026-07-03 21:52:04.092461', 'L', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'sobur', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(38, 'Lutfi A.', 'alhamsyahlutfi2007@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$Sm03VFIwNXg1YllWMS5JWg$omJhe+z3x5a2C4O1lix/AIGsgFjTdTm4O0+8FWZhSMA', 'member', NULL, '2026-06-24 17:21:05.795371', NULL, NULL, '2026-07-02 05:47:40.459336', 'L', 30, 1, 2, NULL, 0, '081223143020', NULL, '081223143020', NULL, NULL, NULL, NULL, NULL, 'HAPFAM2211', 'alhamsyahlutfi2007', 'sky', '2026-06-24 17:21:05.795371', '1.0', NULL, NULL, 1, NULL, NULL, NULL, 'gratis', NULL, NULL, 2),
+	(41, 'Rido ITB', 'rido.itb@sport.local', '$2y$12$lDp4SKfr6r3jNqG4syzYt.fiMGXpXfp3.hDxJAJwO4XSNDEV8uJpG', 'admin', NULL, '2026-07-03 13:33:57.081564', NULL, NULL, '2026-07-03 18:36:19.006104', 'L', 0, 1, 0, NULL, 0, '085156555401', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ridoitb', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(46, 'Mutian', 'mutian@sport.local', '$2y$12$7oaFVYE8z608DhZOpdqYT.SIojmMe.xIjtiAVFPsabfhz9BcidaNe', 'member', NULL, '2026-07-03 18:00:43.159747', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'mutian', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(42, 'Fahmi', 'fahmi@sport.local', '$2y$12$PsgXJf2VClatSwCgvhASa.QE3E54pUL66zHz6LFAATPpd.UxVbQSe', 'admin', NULL, '2026-07-03 17:57:21.131698', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fahmi', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(50, 'Dani CB', 'danicb@sport.local', '$2y$12$Q3cYEMxGLcEpwN2cXEZE9u./KP.irnolf/H92VL6ACE/kz3eQkv9W', 'member', NULL, '2026-07-03 21:40:35.521963', NULL, NULL, NULL, 'L', 0, 1, 0, NULL, 0, '085822260147', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'danicb', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, '2026-07-16 21:40:00', 6),
+	(15, 'Hanif', 'hanif@sport.local', '$2y$10$GnFSPJJ7.9X2BsmQ2ScrTOza76tmuZt1y8RFiX9QptHnZEFr4u8WK', 'member', NULL, '2026-05-19 07:56:40.664031', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Hanif-avatar-1782408282_iAvzkfjmt.jpg', NULL, '2026-07-01 13:24:36.347401', 'L', 30, 1, 0, NULL, 0, '082117100115', 2, '082117100115', 52.00, 170.00, '2026-06-26', NULL, NULL, NULL, 'hanif', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, 'Beuhhh', 'komunitas', NULL, NULL, 1),
+	(49, 'Hasan', 'hasan@sport.local', '$2y$12$vNIr9kJpm/RUxtG688Teueyqb3Fti4OBIv3pCAcP513VvmXCgCDXu', 'member', NULL, '2026-07-03 21:37:58.51908', NULL, NULL, '2026-07-03 22:32:58.070431', 'L', 0, 1, 0, NULL, 0, '087705474468', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'hasan', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, '2026-07-10 21:37:00', 6),
+	(48, 'Panji', 'panji@sport.local', '$2y$12$p5/q82P9NsWaght0hxQGg.ogY4nJIwAkvlmmvFzxmD8vHqdikqiAm', 'member', NULL, '2026-07-03 18:01:34.737091', NULL, NULL, '2026-07-03 19:52:05.836487', 'L', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'panji', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(39, 'Khansa', 'khansa@sport.local', '$2y$12$.Crlrdia3gyEXwPpIkNzAOFnxnul/xIiF8DU1zaZ8x9J2wPt/vfBG', 'member', NULL, '2026-06-26 15:03:36.112609', NULL, NULL, '2026-07-04 05:13:21.338288', 'P', 0, 1, 0, NULL, 0, '08136676534', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'khansa', 'violet', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'pro', NULL, '2026-08-01 00:13:00', 6),
+	(43, 'Regi K', 'regi@sport.local', '$2y$12$A0KdyptB/F71x3DSxdEyQ.VlMXqOyciDJ8QYvB8zrO8uMA1G0LLVW', 'member', NULL, '2026-07-03 17:59:03.359949', NULL, NULL, '2026-07-03 18:23:20.95079', 'L', 0, 1, 0, NULL, 0, '081214048826', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'regi', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(45, 'Aaf', 'aaf@sport.local', '$2y$12$M.jdIaLT9I3/sNe/eafzR.txpMuyQ7b7nE/d1QmRPLBFjDFmmDlDi', 'member', NULL, '2026-07-03 18:00:12.724588', NULL, NULL, '2026-07-03 18:41:05.461131', 'L', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aaf', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 3),
+	(7, 'Faiz', 'faiz@sport.local', '$2y$10$IU70GA7RajjzT1JaITB/0Oo3D7xTWI1OfuNs.U61Zh0q7GCGPs.o2', 'member', NULL, '2026-05-19 07:54:49.054143', NULL, NULL, '2026-06-30 06:22:51.556119', 'L', 30, 1, 3, NULL, 0, '085814120846', NULL, '085814120846', NULL, NULL, NULL, NULL, NULL, NULL, 'faiz', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 1),
+	(52, 'Alya', 'alya@sport.local', '$2y$12$cKnb685RATn5tUZ6g2M9WO9YwjjGlYt71iFTJqE8aksUCjVWpp1ga', 'member', NULL, '2026-07-03 21:45:07.102794', NULL, NULL, NULL, 'P', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'alya', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 4),
+	(51, 'Zao', 'zao@sport.local', '$2y$12$4KD5Lj.CBHg0Wr9DdVY6R.A7.USbakrXhps1/4k/4dcdCuRcs2Zu6', 'member', NULL, '2026-07-03 21:43:17.854364', NULL, NULL, '2026-07-03 22:00:38.465866', 'L', 0, 1, 0, NULL, 0, '0895330964209', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'zao', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, '2026-07-17 21:43:00', 6),
+	(53, 'Yuni', 'yuni@sport.local', '$2y$12$N6/1hW7i5qD5cfHj2Gxxi.JDYLmN5.E8sxueg1KiulLEgMLLSQQxG', 'member', NULL, '2026-07-03 21:46:39.54509', NULL, NULL, '2026-07-03 22:38:04.246189', 'P', 0, 1, 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'yuni', 'sky', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, 'komunitas', NULL, NULL, 4),
+	(2, 'Firdam', 'firdam@sport.local', '$2y$10$J219qLjtcMqVaSla3vEmsuaOMwxaL7XVJ4Xpnc7VQl8TJKBNMDv0m', 'admin', NULL, '2026-05-19 07:09:24.276208', 'https://ik.imagekit.io/ahsansur/sportapp/avatar/Firdam-avatar-1781923850_aubgxKMWB.jpg', '6a0ee0135c7cd75eb87edbaf', '2026-07-04 05:11:30.843791', 'L', 330, 2, 5, 'Mau yang mana?', 0, '081386369207', 2, '081386369207', 83.00, 170.00, '1996-03-11', 'Usus Buntu', NULL, NULL, 'firdam', 'slate', NULL, NULL, NULL, NULL, 1, NULL, 'https://strava.app.link/5CnMSeGK63b', 'hamba2211', 'komunitas', NULL, NULL, 1);
 /*!40000 ALTER TABLE "users" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_badges
@@ -4350,10 +6703,13 @@ CREATE TABLE IF NOT EXISTS "user_badges" (
 	"user_id" INTEGER NOT NULL,
 	"badge_id" INTEGER NOT NULL,
 	"earned_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "user_badges_unique_ub" ("user_id", "badge_id")
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "user_badges_user_id_badge_id_key" ("user_id", "badge_id"),
+	CONSTRAINT "user_badges_badge_id_fkey" FOREIGN KEY ("badge_id") REFERENCES "badges" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "user_badges_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.user_badges: 9 rows
+-- Dumping data for table public.user_badges: 8 rows
 /*!40000 ALTER TABLE "user_badges" DISABLE KEYS */;
 INSERT INTO "user_badges" ("id", "user_id", "badge_id", "earned_at") VALUES
 	(1, 2, 7, '2026-05-22 00:37:28.111196'),
@@ -4364,7 +6720,27 @@ INSERT INTO "user_badges" ("id", "user_id", "badge_id", "earned_at") VALUES
 	(6, 2, 2, '2026-05-23 16:27:31.433549'),
 	(7, 4, 2, '2026-05-24 13:54:15.537989'),
 	(8, 3, 2, '2026-05-24 15:37:52.431443'),
-	(1, 2, 5, '2026-06-22 09:04:11.158291');
+	(9, 11, 2, '2026-06-23 14:27:27.905296'),
+	(10, 2, 6, '2026-06-24 23:35:02.856676'),
+	(11, 3, 6, '2026-06-24 23:41:55.470132'),
+	(12, 4, 6, '2026-06-25 08:41:56.271552'),
+	(13, 16, 6, '2026-06-25 14:46:25.832045'),
+	(14, 16, 2, '2026-06-25 14:46:25.933714'),
+	(15, 15, 6, '2026-06-26 00:22:14.118404'),
+	(16, 11, 6, '2026-06-26 12:12:35.47301'),
+	(17, 7, 6, '2026-06-26 13:44:22.456236'),
+	(18, 16, 7, '2026-06-26 17:52:48.415444'),
+	(19, 13, 6, '2026-06-26 17:52:48.42683'),
+	(20, 13, 7, '2026-06-26 17:52:48.433184'),
+	(21, 13, 2, '2026-06-26 17:52:48.437295'),
+	(22, 14, 6, '2026-06-26 17:52:48.453125'),
+	(23, 14, 2, '2026-06-26 17:52:48.45907'),
+	(24, 5, 6, '2026-06-26 17:52:48.481368'),
+	(25, 5, 7, '2026-06-26 17:52:48.486606'),
+	(26, 5, 2, '2026-06-26 17:52:48.490974'),
+	(27, 11, 7, '2026-06-26 17:53:23.49251'),
+	(28, 38, 6, '2026-06-29 14:45:10.603833'),
+	(29, 6, 6, '2026-07-01 19:24:09.125596');
 /*!40000 ALTER TABLE "user_badges" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_follows
@@ -4372,6 +6748,9 @@ CREATE TABLE IF NOT EXISTS "user_follows" (
 	"follower_id" INTEGER NOT NULL,
 	"following_id" INTEGER NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("follower_id", "following_id"),
+	CONSTRAINT "user_follows_follower_id_fkey" FOREIGN KEY ("follower_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "user_follows_following_id_fkey" FOREIGN KEY ("following_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
 	CONSTRAINT "user_follows_check" CHECK ((follower_id <> following_id))
 );
 
@@ -4386,10 +6765,12 @@ CREATE TABLE IF NOT EXISTS "user_islami_pref" (
 	"mode_tenang" SMALLINT NOT NULL DEFAULT '1',
 	"kota" VARCHAR(60) NOT NULL DEFAULT 'Jakarta',
 	"negara" VARCHAR(40) NOT NULL DEFAULT 'Indonesia',
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "user_islami_pref_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.user_islami_pref: -1 rows
+-- Dumping data for table public.user_islami_pref: 12 rows
 /*!40000 ALTER TABLE "user_islami_pref" DISABLE KEYS */;
 INSERT INTO "user_islami_pref" ("user_id", "hide_sapa", "mode_tenang", "kota", "negara", "updated_at") VALUES
 	(4, 0, 1, 'Jakarta', 'Indonesia', '2026-05-24 00:23:08.064265'),
@@ -4399,25 +6780,98 @@ INSERT INTO "user_islami_pref" ("user_id", "hide_sapa", "mode_tenang", "kota", "
 	(6, 0, 1, 'Jakarta', 'Indonesia', '2026-05-29 13:58:33.835718'),
 	(14, 0, 1, 'Bandung', 'Indonesia', '2026-05-30 07:15:07.73775'),
 	(15, 0, 1, 'Jakarta', 'Indonesia', '2026-05-30 09:55:49.225629'),
-	(11, 0, 1, 'Jakarta', 'Indonesia', '2026-06-02 17:43:29.415'),
 	(21, 0, 1, 'Jakarta', 'Indonesia', '2026-06-06 09:52:14.563982'),
 	(13, 0, 1, 'Jakarta', 'Indonesia', '2026-06-08 14:21:12.625834'),
 	(7, 0, 1, 'Jakarta', 'Indonesia', '2026-06-10 13:29:41.510151'),
-	(2, 1, 1, 'Bandung', 'Indonesia', '2026-06-16 05:14:07.310935');
+	(38, 0, 1, 'Jakarta', 'Indonesia', '2026-06-24 17:21:36.623019'),
+	(8, 0, 1, 'Jakarta', 'Indonesia', '2026-06-25 08:54:12.457101'),
+	(2, 1, 1, 'Bandung', 'Indonesia', '2026-06-25 08:55:54.792241'),
+	(39, 0, 1, 'Jakarta', 'Indonesia', '2026-06-26 15:03:55.082244'),
+	(11, 0, 1, 'Jakarta', 'Indonesia', '2026-06-28 11:43:24.316162'),
+	(48, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 18:22:22.516192'),
+	(43, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 18:22:27.372422'),
+	(41, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 18:34:32.007326'),
+	(45, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 18:40:34.132057'),
+	(47, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 18:46:59.176656'),
+	(49, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 21:41:15.456385'),
+	(53, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 21:48:37.154086'),
+	(51, 0, 1, 'Jakarta', 'Indonesia', '2026-07-03 21:57:32.421222');
 /*!40000 ALTER TABLE "user_islami_pref" ENABLE KEYS */;
+
+-- Dumping structure for table public.user_komunitas
+CREATE TABLE IF NOT EXISTS "user_komunitas" (
+	"user_id" INTEGER NOT NULL,
+	"komunitas_id" INTEGER NOT NULL,
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id", "komunitas_id"),
+	INDEX "idx_user_komunitas_user" ("user_id"),
+	INDEX "idx_user_komunitas_kom" ("komunitas_id"),
+	CONSTRAINT "user_komunitas_komunitas_id_fkey" FOREIGN KEY ("komunitas_id") REFERENCES "komunitas" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+	CONSTRAINT "user_komunitas_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Dumping data for table public.user_komunitas: 27 rows
+/*!40000 ALTER TABLE "user_komunitas" DISABLE KEYS */;
+INSERT INTO "user_komunitas" ("user_id", "komunitas_id", "created_at") VALUES
+	(40, 3, '2026-07-03 07:04:12.819214'),
+	(41, 3, '2026-07-03 07:04:12.819214'),
+	(38, 2, '2026-07-03 07:04:12.819214'),
+	(13, 1, '2026-07-03 17:34:26.776446'),
+	(13, 3, '2026-07-03 17:34:26.777504'),
+	(6, 1, '2026-07-03 17:34:59.116862'),
+	(20, 1, '2026-07-03 17:35:14.500565'),
+	(21, 1, '2026-07-03 17:35:22.225128'),
+	(15, 1, '2026-07-03 17:35:29.117958'),
+	(17, 1, '2026-07-03 17:36:13.736004'),
+	(5, 1, '2026-07-03 17:36:21.408548'),
+	(42, 3, '2026-07-03 17:57:21.133658'),
+	(43, 3, '2026-07-03 17:59:03.361746'),
+	(44, 3, '2026-07-03 17:59:43.463675'),
+	(45, 3, '2026-07-03 18:00:12.726131'),
+	(46, 3, '2026-07-03 18:00:43.162435'),
+	(47, 3, '2026-07-03 18:01:09.124664'),
+	(48, 3, '2026-07-03 18:01:34.739411'),
+	(53, 4, '2026-07-03 22:04:30.399312'),
+	(52, 4, '2026-07-03 22:04:38.650426'),
+	(2, 1, '2026-07-04 04:40:06.326849'),
+	(2, 3, '2026-07-04 04:40:06.327869'),
+	(2, 5, '2026-07-04 04:40:06.328355'),
+	(50, 6, '2026-07-04 04:43:19.193225'),
+	(8, 1, '2026-07-04 04:43:28.249511'),
+	(49, 6, '2026-07-04 04:43:45.991682'),
+	(9, 1, '2026-07-04 04:44:29.114785'),
+	(10, 1, '2026-07-04 04:44:43.373832'),
+	(11, 1, '2026-07-04 04:44:54.603124'),
+	(11, 2, '2026-07-04 04:44:54.604081'),
+	(16, 1, '2026-07-04 04:45:00.330327'),
+	(16, 2, '2026-07-04 04:45:00.332099'),
+	(4, 1, '2026-07-04 04:45:08.743745'),
+	(4, 2, '2026-07-04 04:45:08.744741'),
+	(7, 1, '2026-07-04 04:45:26.73126'),
+	(7, 2, '2026-07-04 04:45:26.732369'),
+	(14, 1, '2026-07-04 04:45:39.120291'),
+	(14, 2, '2026-07-04 04:45:39.12107'),
+	(3, 1, '2026-07-04 04:46:01.937096'),
+	(3, 2, '2026-07-04 04:46:01.93811'),
+	(51, 6, '2026-07-04 04:46:26.418183'),
+	(39, 6, '2026-07-04 05:11:27.023124');
+/*!40000 ALTER TABLE "user_komunitas" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_kondisi
 CREATE TABLE IF NOT EXISTS "user_kondisi" (
 	"user_id" INTEGER NOT NULL,
 	"status" VARCHAR(10) NOT NULL DEFAULT 'sehat',
 	"keterangan" TEXT NULL DEFAULT NULL,
-	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"updated_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "user_kondisi_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.user_kondisi: -1 rows
+-- Dumping data for table public.user_kondisi: 1 rows
 /*!40000 ALTER TABLE "user_kondisi" DISABLE KEYS */;
 INSERT INTO "user_kondisi" ("user_id", "status", "keterangan", "updated_at") VALUES
-	(2, 'sehat', 'Ga enak badan', '2026-05-23 07:55:15.791319');
+	(2, 'sehat', 'Ga enak badan', '2026-05-23 07:55:15.791319'),
+	(11, 'sehat', NULL, '2026-06-28 04:07:12.512366');
 /*!40000 ALTER TABLE "user_kondisi" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_olahraga_favorit
@@ -4426,7 +6880,9 @@ CREATE TABLE IF NOT EXISTS "user_olahraga_favorit" (
 	"user_id" INTEGER NOT NULL,
 	"nama" VARCHAR(80) NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
-	UNIQUE INDEX "user_olfav_unique_un" ("user_id", "nama")
+	PRIMARY KEY ("id"),
+	UNIQUE INDEX "user_olahraga_favorit_user_id_nama_key" ("user_id", "nama"),
+	CONSTRAINT "user_olahraga_favorit_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.user_olahraga_favorit: 2 rows
@@ -4446,13 +6902,15 @@ CREATE TABLE IF NOT EXISTS "user_pengalaman" (
 	"tanggal" DATE NULL DEFAULT NULL,
 	"deskripsi" TEXT NULL DEFAULT NULL,
 	"foto_url" TEXT NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "user_pengalaman_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.user_pengalaman: -1 rows
+-- Dumping data for table public.user_pengalaman: 1 rows
 /*!40000 ALTER TABLE "user_pengalaman" DISABLE KEYS */;
 INSERT INTO "user_pengalaman" ("id", "user_id", "jenis", "judul", "lokasi", "tanggal", "deskripsi", "foto_url", "created_at") VALUES
-	(1, 2, 'hiking', 'Muncak Bareng Barudaks', 'Gunung Putri', '2026-05-17', 'Adem Ayem', NULL, '2026-05-23 07:20:18.626138');
+	(1, 2, 'hiking', 'Muncak Bareng Barudak', 'Gunung Putri', '2026-05-17', 'Adem Ayem', NULL, '2026-05-23 07:20:18.626138');
 /*!40000 ALTER TABLE "user_pengalaman" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_perlengkapan
@@ -4464,12 +6922,16 @@ CREATE TABLE IF NOT EXISTS "user_perlengkapan" (
 	"nama" VARCHAR(120) NOT NULL,
 	"jumlah" INTEGER NOT NULL DEFAULT '1',
 	"catatan" VARCHAR(200) NULL DEFAULT NULL,
-	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"created_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("id"),
+	CONSTRAINT "user_perlengkapan_jenis_olahraga_id_fkey" FOREIGN KEY ("jenis_olahraga_id") REFERENCES "jenis_olahraga" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+	CONSTRAINT "user_perlengkapan_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Dumping data for table public.user_perlengkapan: -1 rows
+-- Dumping data for table public.user_perlengkapan: 20 rows
 /*!40000 ALTER TABLE "user_perlengkapan" DISABLE KEYS */;
 INSERT INTO "user_perlengkapan" ("id", "user_id", "jenis_olahraga_id", "jenis_nama", "nama", "jumlah", "catatan", "created_at") VALUES
+	(1, 2, 1, 'Jogging', 'Sepatu', 1, 'Merk Asics', '2026-05-23 07:22:07.385253'),
 	(3, 2, 12, 'Ping Pong', 'Bola', 2, 'Warna Kuninig', '2026-05-23 07:22:48.543813'),
 	(5, 2, 2, 'Badminton', 'Sepatu', 1, 'Biasa dipakai futsal', '2026-05-23 07:23:55.738743'),
 	(6, 4, 2, 'Badminton', 'Raket', 2, NULL, '2026-05-24 14:01:06.155221'),
@@ -4489,7 +6951,7 @@ INSERT INTO "user_perlengkapan" ("id", "user_id", "jenis_olahraga_id", "jenis_na
 	(20, 2, 2, 'Badminton', 'Raket Pribadi', 1, 'Merk Berwyn', '2026-06-16 12:33:29.472081'),
 	(21, 2, 2, 'Badminton', 'Kok Bulutangkis', 12, 'Merk Berwyn', '2026-06-16 12:35:06.388571'),
 	(22, 7, 2, 'Badminton', 'Raket', 1, NULL, '2026-06-16 15:19:59.474863'),
-	(1, 2, 1, 'Jogging', 'Sepatu', 1, 'Merk Asic', '2026-05-23 07:22:07.385253');
+	(23, 2, 14, 'Basket', 'Bola Basket', 1, 'Punya Farhan', '2026-06-26 13:24:44.284209');
 /*!40000 ALTER TABLE "user_perlengkapan" ENABLE KEYS */;
 
 -- Dumping structure for table public.user_strava
@@ -4499,7 +6961,9 @@ CREATE TABLE IF NOT EXISTS "user_strava" (
 	"access_token" TEXT NOT NULL,
 	"refresh_token" TEXT NOT NULL,
 	"expires_at" TIMESTAMP NOT NULL,
-	"connected_at" TIMESTAMP NOT NULL DEFAULT 'now()'
+	"connected_at" TIMESTAMP NOT NULL DEFAULT 'now()',
+	PRIMARY KEY ("user_id"),
+	CONSTRAINT "user_strava_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Dumping data for table public.user_strava: -1 rows

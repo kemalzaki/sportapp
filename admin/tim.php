@@ -11,7 +11,7 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
 send_security_headers(); enforce_session_timeout();
-require_role('admin');
+require_role(['admin','superadmin']);
 
 $u = current_user();
 $uid = (int)$u['id'];
@@ -139,7 +139,7 @@ $tim = $selTim ? db_one("SELECT * FROM tim WHERE id=$1", [$selTim]) : null;
 $tjadwal = $selTim ? db_one("SELECT * FROM jadwal WHERE tim_id=$1 ORDER BY tanggal DESC LIMIT 1", [$selTim]) : null;
 $members = $selTim ? db_all("SELECT tm.*, u.nama, u.foto_url, u.nomor_wa FROM tim_member tm JOIN users u ON u.id=tm.user_id WHERE tm.tim_id=$1 ORDER BY u.nama", [$selTim]) : [];
 $externals = $selTim ? db_all("SELECT * FROM tim_external WHERE tim_id=$1 ORDER BY id DESC", [$selTim]) : [];
-$allUsers = db_all("SELECT id, nama FROM users WHERE role IN ('member','admin') ORDER BY nama");
+$allUsers = db_all("SELECT id, nama FROM users WHERE role IN ('member','admin','superadmin') ORDER BY nama");
 
 /* Revisi 22 Juni 2026 R12 — Daftar pemain eksternal diambil dari `member_eksternal`
    (tamu yang sudah terdaftar via admin/absensi.php). Tampilkan nama unik beserta

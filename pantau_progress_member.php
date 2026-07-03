@@ -14,16 +14,18 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/scope.php'; // Revisi R7 #5
 send_security_headers(); require_login();
 $u = current_user();
 $pageTitle = 'Pantau Progress Islami Member';
 
 $role = strtolower($u['role'] ?? '');
-if (!in_array($role, ['admin','koordinator','pic'], true)) {
+if (!in_array($role, ['admin','superadmin','koordinator','pic'], true)) {
     include __DIR__.'/includes/header.php';
     echo '<div class="alert alert-danger mt-3">Halaman ini khusus admin / koordinator.</div>';
     include __DIR__.'/includes/footer.php'; exit;
 }
+$__scopeArr = scope_user_ids_sql_array();
 
 $bulan = isset($_GET['bulan']) && preg_match('/^\d{4}-\d{2}$/', $_GET['bulan']) ? $_GET['bulan'] : date('Y-m');
 $start = $bulan.'-01';
@@ -38,11 +40,13 @@ try {
         $members = db_all("SELECT id,nama,email,username FROM users
                            WHERE (nama ILIKE $1 OR email ILIKE $1 OR username ILIKE $1)
                              AND COALESCE(aktif::int,1)<>0
-                           ORDER BY nama LIMIT 100", [$like]);
+                             AND id = ANY($2::int[])
+                           ORDER BY nama LIMIT 100", [$like, $__scopeArr]);
     } else {
         $members = db_all("SELECT id,nama,email,username FROM users
                            WHERE COALESCE(aktif::int,1)<>0
-                           ORDER BY nama LIMIT 100");
+                             AND id = ANY($1::int[])
+                           ORDER BY nama LIMIT 100", [$__scopeArr]);
     }
 } catch (Throwable $e) { $members = []; }
 

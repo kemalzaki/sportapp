@@ -11,7 +11,7 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
 require __DIR__.'/../includes/security.php';
-require_role('admin');
+require_role(['admin','superadmin']);
 $pageTitle = 'Input Absensi Event';
 
 // Pastikan tabel event_tamu tersedia (auto-migrate; tidak menghapus data).
@@ -82,7 +82,7 @@ if ($eventId) {
        LEFT JOIN users u ON u.id=ep.user_id
        LEFT JOIN tim   t ON t.id=ep.tim_id
        ORDER BY COALESCE(u.nama, t.nama)", [$eventId]);
-    $allMembers = db_all("SELECT id,nama FROM users WHERE role IN ('member','admin') ORDER BY nama");
+    $allMembers = db_all("SELECT id,nama FROM users WHERE role IN ('member','admin','superadmin') ORDER BY nama");
     $allTims    = db_all("SELECT id,nama,jenis FROM tim ORDER BY nama");
     try {
       $tamuList = db_all("SELECT et.*, u.nama AS dibawa_nama FROM event_tamu et

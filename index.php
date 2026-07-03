@@ -323,6 +323,10 @@ try {
     $totalVisitor = 0; $visitorHariIni = 0;
 }
 
+// Revisi R7 #5 — batasi Jadwal Terdekat sesuai komunitas user (superadmin lihat semua)
+require_once __DIR__ . '/includes/scope.php';
+$__jadwalKomFilter = scope_is_super() ? '' : ' AND (j.komunitas_id IS NULL OR j.komunitas_id = ANY($1::int[]))';
+$__jadwalKomParams = scope_is_super() ? [] : [scope_kom_ids_sql_array()];
 $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama,
                           tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama,
                           tp.gpx_path AS tp_gpx_path, tp.run_route_id AS tp_run_route_id,
@@ -334,7 +338,7 @@ $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord
                           LEFT JOIN tempat tp ON tp.id=j.tempat_id
                           LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
                           LEFT JOIN komunitas k ON k.id=j.komunitas_id
-                          WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT 5");
+                          WHERE tanggal >= CURRENT_DATE $__jadwalKomFilter ORDER BY tanggal ASC LIMIT 5", $__jadwalKomParams);
 // Revisi 22 Juni 2026 — pra-resolve GeoJSON rute Hiking (dari run_routes) untuk ditampilkan di Jadwal Terdekat
 $jadwalRouteGeo = [];
 foreach ($jadwalTerdekat as $__j) {
@@ -998,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="card shadow-sm mb-3" id="sec-jadwal-terdekat"><div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</span><a href="/calendar.php" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-week"></i> Semua Jadwal</a></div>
       <div data-live="jadwal">
       <div class="table-responsive"><table class="table table-hover align-middle table-stack mb-0" data-paginate="5">
-        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Komunitas</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th>Absensi Saya</th><th class="text-end">Absen</th></tr></thead><tbody>
+        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th>Absensi Saya</th><th class="text-end">Absen</th></tr></thead><tbody>
         <?php foreach($jadwalTerdekat as $j):
           $jid=(int)$j['id']; $absList = $absByJadwal[$jid] ?? [];
           $cnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
@@ -1033,14 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="mt-1"><span class="badge" style="background:<?= htmlspecialchars($j['jj_bg']) ?>;color:<?= htmlspecialchars($j['jj_text']) ?>"><?= htmlspecialchars($j['jj_nama']) ?></span></div>
               <?php endif; ?>
             </td>
-            <td data-label="Komunitas">
-              <?php if (!empty($j['kom_nama'])): $bg = trim((string)($j['kom_warna'] ?? '')) ?: '#0ea5e9'; ?>
-                <span class="kom-chip" style="background:<?= htmlspecialchars($bg) ?>"><i class="bi bi-people-fill"></i> <?= htmlspecialchars($j['kom_nama']) ?></span>
-                <?php if(!empty($j['kom_kota'])): ?><div class="small text-muted mt-1"><i class="bi bi-geo"></i> <?= htmlspecialchars($j['kom_kota']) ?></div><?php endif; ?>
-              <?php else: ?>
-                <span class="kom-chip no"><i class="bi bi-dash-circle"></i> —</span>
-              <?php endif; ?>
-            </td>
+            <?php /* Revisi R7 #7 — kolom "Komunitas" pada Jadwal Terdekat dihapus */ ?>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
              <td data-label="Lokasi">
                <?php

@@ -4,10 +4,12 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/notifications.php';
+require __DIR__.'/includes/scope.php'; // Revisi R7 #5
 send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
 $pageTitle = 'Event & Tournament';
+$__vids = scope_user_ids_sql_array();
 $pageSkeleton = 'table'; // Skeleton sesuai data: tabel event
 
 // Helper: cek apakah event sudah lewat tanggal (Revisi 19 Juni 2026 Part Q)
@@ -43,7 +45,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 $detailId = (int)($_GET['id'] ?? 0);
-$events = db_all("SELECT e.*, (SELECT COUNT(*) FROM event_peserta p WHERE p.event_id=e.id) AS jml FROM event e ORDER BY e.tanggal_mulai DESC");
+// Revisi R7 #5 — batasi event ke event yang dibuat member komunitas user (superadmin lihat semua).
+$events = db_all("SELECT e.*, (SELECT COUNT(*) FROM event_peserta p WHERE p.event_id=e.id) AS jml FROM event e
+                  WHERE (e.created_by IS NULL OR e.created_by = ANY($1::int[]))
+                  ORDER BY e.tanggal_mulai DESC", [$__vids]);
+// Guard detail: cegah IDOR akses event komunitas lain via ?id=
+if ($detailId) {
+    $__evOwn = db_one("SELECT created_by FROM event WHERE id=$1", [$detailId]);
+    if ($__evOwn && !empty($__evOwn['created_by'])) scope_require_user((int)$__evOwn['created_by']);
+}
 $timsUser = db_all("SELECT t.id, t.nama, t.jenis FROM tim t JOIN tim_member tm ON tm.tim_id=t.id WHERE tm.user_id=$1", [(int)$u['id']]);
 
 $detail = $detailId ? db_one("SELECT * FROM event WHERE id=$1", [$detailId]) : null;

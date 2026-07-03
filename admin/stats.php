@@ -4,15 +4,18 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 send_security_headers(); enforce_session_timeout();
-require_role('admin');
+require_role(['admin','superadmin']);
+require __DIR__.'/../includes/scope.php'; // Revisi R7 #5
+$__scopeArr = scope_user_ids_sql_array();
 $pageTitle = 'Statistik Pintar';
 
-// Member paling sering telat (8 minggu terakhir)
+// Member paling sering telat (60 hari) — scoped ke komunitas admin
 $telat = db_all("SELECT u.id,u.nama,u.foto_url, AVG(a.telat_menit) AS rata, COUNT(*) FILTER (WHERE a.telat_menit>0) AS kali
                  FROM absensi a JOIN users u ON u.id=a.user_id JOIN jadwal j ON j.id=a.jadwal_id
                  WHERE a.hadir=1 AND j.tanggal >= CURRENT_DATE - INTERVAL '60 days'
+                   AND u.id = ANY($1::int[])
                  GROUP BY u.id,u.nama,u.foto_url HAVING COUNT(*) FILTER (WHERE a.telat_menit>0) > 0
-                 ORDER BY rata DESC LIMIT 10");
+                 ORDER BY rata DESC LIMIT 10", [$__scopeArr]);
 
 // Absensi menurun: trend 4w vs 4w sebelumnya
 $drop = db_all("WITH a AS (
@@ -22,18 +25,18 @@ $drop = db_all("WITH a AS (
               AND j.tanggal >= CURRENT_DATE - INTERVAL '56 days' AND ab.hadir=1 THEN 1 ELSE 0 END) AS prev4
   FROM users u LEFT JOIN absensi ab ON ab.user_id=u.id
   LEFT JOIN jadwal j ON j.id=ab.jadwal_id
-  WHERE u.role IN ('member','admin')
+  WHERE u.role IN ('member','admin','superadmin') AND u.id = ANY($1::int[])
   GROUP BY u.id,u.nama,u.foto_url
-) SELECT *, (now4 - prev4) AS delta FROM a WHERE prev4>0 AND now4 < prev4 ORDER BY delta ASC LIMIT 10");
+) SELECT *, (now4 - prev4) AS delta FROM a WHERE prev4>0 AND now4 < prev4 ORDER BY delta ASC LIMIT 10", [$__scopeArr]);
 
 // Hampir inactive: last absensi >21 hari yang lalu
 $inactive = db_all("SELECT u.id,u.nama,u.foto_url, MAX(j.tanggal) AS last_act
                     FROM users u LEFT JOIN absensi a ON a.user_id=u.id AND a.hadir=1
                     LEFT JOIN jadwal j ON j.id=a.jadwal_id
-                    WHERE u.role IN ('member','admin')
+                    WHERE u.role IN ('member','admin','superadmin') AND u.id = ANY($1::int[])
                     GROUP BY u.id,u.nama,u.foto_url
                     HAVING MAX(j.tanggal) IS NULL OR MAX(j.tanggal) < CURRENT_DATE - INTERVAL '21 days'
-                    ORDER BY last_act ASC NULLS FIRST LIMIT 15");
+                    ORDER BY last_act ASC NULLS FIRST LIMIT 15", [$__scopeArr]);
 
 // Prediksi dropout: skor = (hari sejak terakhir) + (3 * delta menurun)
 $pred = [];

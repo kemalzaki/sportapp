@@ -2,8 +2,12 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
-require_role('admin');
+require __DIR__.'/../includes/scope.php'; // Revisi R7 — scope komunitas & superadmin
+// Revisi R7 #1 — role 'superadmin' juga boleh mengakses halaman ini
+require_role(['admin','superadmin']);
 $pageTitle='Manajemen Member';
+$__isSuper = scope_is_super();          // R7 #2/#6 — hanya super yg lihat opsi/data lintas komunitas
+$__roleOpts = $__isSuper ? ['publik','member','admin','superadmin'] : ['publik','member','admin'];
 // ==== Migrasi idempotent ====
 try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT TRUE"); } catch (Throwable $e) {}
 try { db_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS nonaktif_catatan TEXT"); } catch (Throwable $e) {}
@@ -52,7 +56,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
     if ($a==='update_role') {
-        db_exec("UPDATE users SET role=$1 WHERE id=$2", [$_POST['role'], (int)$_POST['id']]);
+        // Revisi R7 #1/#2 — validasi role. 'superadmin' hanya boleh di-set oleh super-scope.
+        $rolePosted = (string)($_POST['role'] ?? 'member');
+        $allowedRoles = $__isSuper ? ['publik','member','admin','superadmin'] : ['publik','member','admin'];
+        if (!in_array($rolePosted, $allowedRoles, true)) $rolePosted = 'member';
+        db_exec("UPDATE users SET role=$1 WHERE id=$2", [$rolePosted, (int)$_POST['id']]);
     } elseif ($a==='update_pic') {
         $pic = ($_POST['pic_admin_id'] ?? '') !== '' ? (int)$_POST['pic_admin_id'] : null;
         db_exec("UPDATE users SET pic_admin_id=$1 WHERE id=$2", [$pic, (int)$_POST['id']]);
@@ -84,11 +92,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $paket = in_array(($_POST['paket'] ?? 'gratis'), ['gratis','pro','komunitas'], true) ? $_POST['paket'] : 'gratis';
         // Revisi R2 — masa expire paket akun (opsional).
         $exp = trim($_POST['paket_expires_at'] ?? '') ?: null;
+        // Revisi R7 #1/#2 — role. 'superadmin' hanya boleh dibuat oleh super-scope.
+        $roleNew = (string)($_POST['role'] ?? 'member');
+        $allowedRoles = $__isSuper ? ['publik','member','admin','superadmin'] : ['publik','member','admin'];
+        if (!in_array($roleNew, $allowedRoles, true)) $roleNew = 'member';
         try {
             $newId = (int) db_val(
                 "INSERT INTO users(nama,email,password_hash,role,jenis_kelamin,wa,username,komunitas_id,paket,paket_expires_at)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
-                [$_POST['nama'], $_POST['email'], password_hash($pwd, PASSWORD_BCRYPT), $_POST['role'], $jk, $wa, $username,
+                [$_POST['nama'], $_POST['email'], password_hash($pwd, PASSWORD_BCRYPT), $roleNew, $jk, $wa, $username,
                  (int)($komIds[0] ?? 0) ?: null, $paket, $exp]);
             if ($newId) _save_user_komunitas($newId, $komIds);
             $_SESSION['flash'] = 'Member baru ditambahkan.';
@@ -166,6 +178,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 // ==== Filter by komunitas (Revisi R2) ====
 $filterKom = isset($_GET['filter_komunitas']) && $_GET['filter_komunitas'] !== '' ? (int)$_GET['filter_komunitas'] : 0;
 
+// Revisi R7 #6 — admin biasa hanya boleh melihat member dari komunitas-nya sendiri.
+// Superadmin (role) atau anggota komunitas 'SuperDuperAdmin' boleh melihat SEMUA member.
+$__scopeKomIds = scope_visible_komunitas_ids();
+if (!$__isSuper) {
+    if ($filterKom > 0 && !in_array($filterKom, $__scopeKomIds, true)) {
+        // Filter meminta komunitas di luar scope → tolak diam2 (kosongkan).
+        $__scopeKomIds = [-1];
+    }
+}
+
 // Ambil daftar users (dengan agregasi komunitas dari pivot).
 $baseSql = "SELECT u.*, p.nama AS pic_nama,
             COALESCE((SELECT string_agg(k.nama, ', ' ORDER BY k.nama)
@@ -174,18 +196,35 @@ $baseSql = "SELECT u.*, p.nama AS pic_nama,
             COALESCE((SELECT array_agg(uk.komunitas_id) FROM user_komunitas uk WHERE uk.user_id=u.id), ARRAY[]::int[]) AS komunitas_ids
             FROM users u
             LEFT JOIN users p ON p.id = u.pic_admin_id";
-$params = [];
+$conds = []; $params = [];
 if ($filterKom > 0) {
-    $baseSql .= " WHERE EXISTS (SELECT 1 FROM user_komunitas uk WHERE uk.user_id=u.id AND uk.komunitas_id=$1)";
+    $conds[] = "EXISTS (SELECT 1 FROM user_komunitas uk WHERE uk.user_id=u.id AND uk.komunitas_id=$".(count($params)+1).")";
     $params[] = $filterKom;
 }
+if (!$__isSuper) {
+    // Batasi ke user yang komunitasnya beririsan dengan scope admin ini.
+    $arrLit = '{'.implode(',', array_map('intval', $__scopeKomIds ?: [-1])).'}';
+    $conds[] = "(EXISTS (SELECT 1 FROM user_komunitas uk WHERE uk.user_id=u.id AND uk.komunitas_id = ANY($".(count($params)+1)."::int[]))
+                OR u.komunitas_id = ANY($".(count($params)+1)."::int[])
+                OR u.id = $".(count($params)+2).")";
+    $params[] = $arrLit;
+    $params[] = (int)current_user()['id'];
+}
+if ($conds) $baseSql .= " WHERE ".implode(' AND ', $conds);
 $baseSql .= " ORDER BY u.role, u.nama";
 $users = db_all($baseSql, $params);
 
-$admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
+$admins = db_all("SELECT id, nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
 $komList = [];
-try { $komList = db_all("SELECT id, nama FROM komunitas WHERE aktif=1 ORDER BY nama"); }
-catch (Throwable $e) {
+try {
+    if ($__isSuper) {
+        $komList = db_all("SELECT id, nama FROM komunitas WHERE aktif=1 ORDER BY nama");
+    } else {
+        // Revisi R7 #6 — admin biasa hanya melihat komunitasnya sendiri.
+        $arrLit = '{'.implode(',', array_map('intval', $__scopeKomIds ?: [-1])).'}';
+        $komList = db_all("SELECT id, nama FROM komunitas WHERE aktif=1 AND id = ANY($1::int[]) ORDER BY nama", [$arrLit]);
+    }
+} catch (Throwable $e) {
     try { $komList = db_all("SELECT id, nama FROM komunitas ORDER BY nama"); } catch (Throwable $e2) {}
 }
 $paketOpts = ['gratis'=>'🆓 Gratis','pro'=>'⭐ Pro','komunitas'=>'👥 Komunitas'];
@@ -214,10 +253,11 @@ try {
                COUNT(DISTINCT u.id) AS total_all
         FROM komunitas k
         LEFT JOIN user_komunitas uk ON uk.komunitas_id = k.id
-        LEFT JOIN users u          ON u.id = uk.user_id AND u.role <> 'admin'
+        LEFT JOIN users u          ON u.id = uk.user_id AND u.role NOT IN ('admin','superadmin')
+        WHERE ($1 = 1 OR k.id = ANY($2::int[]))
         GROUP BY k.id, k.nama
         ORDER BY total_aktif DESC, k.nama
-    ");
+    ", [$__isSuper?1:0, '{'.implode(',', array_map('intval', $__scopeKomIds ?: [-1])).'}']);
 } catch (Throwable $e) {}
 
 
@@ -306,7 +346,7 @@ include __DIR__.'/../includes/header.php'; ?>
         <div class="col-md-1"><label class="form-label small mb-0">JK</label>
           <select class="form-select form-select-sm" name="jenis_kelamin"><option value="">—</option><option value="L">L</option><option value="P">P</option></select></div>
         <div class="col-md-2"><label class="form-label small mb-0">Role</label>
-          <select class="form-select form-select-sm" name="role"><option value="member">member</option><option value="admin">admin</option></select></div>
+          <select class="form-select form-select-sm" name="role"><?php foreach($__roleOpts as $r): if($r==='publik') continue; ?><option value="<?= $r ?>" <?= $r==='member'?'selected':'' ?>><?= $r ?></option><?php endforeach; ?></select></div>
         <div class="col-md-5"><label class="form-label small mb-0"><i class="bi bi-people-fill text-success"></i> Komunitas <span class="text-muted">(bisa &gt; 1, tahan Ctrl/⌘)</span></label>
           <select class="form-select form-select-sm" name="komunitas_ids[]" multiple size="4">
             <?php foreach($komList as $k): ?>
@@ -420,7 +460,7 @@ include __DIR__.'/../includes/header.php'; ?>
           <input type="hidden" name="_action" value="update_role">
           <input type="hidden" name="id" value="<?= $u['id'] ?>">
           <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
-            <?php foreach(['publik','member','admin'] as $r): ?><option <?= $u['role']===$r?'selected':'' ?>><?= $r ?></option><?php endforeach; ?>
+            <?php foreach($__roleOpts as $r): ?><option <?= $u['role']===$r?'selected':'' ?>><?= $r ?></option><?php endforeach; ?>
           </select>
         </form>
       </td>

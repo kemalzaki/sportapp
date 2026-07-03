@@ -3,15 +3,22 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/scope.php'; // Revisi R7 #5
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Kalender Jadwal';
 $u = current_user();
-$isAdmin = $u && $u['role']==='admin';
+$isAdmin = $u && in_array($u['role'], ['admin','superadmin'], true);
+$__isSuper = scope_is_super() ? 1 : 0;
+$__vkoms   = scope_kom_ids_sql_array();
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action'] ?? '')==='move' && $isAdmin) {
     csrf_check();
     $id = (int)$_POST['id']; $tgl = $_POST['tanggal'];
     if ($id && preg_match('/^\d{4}-\d{2}-\d{2}$/',$tgl)) {
+        // Revisi R7 #5 — cegah admin memindah jadwal komunitas lain
+        $k = db_one("SELECT komunitas_id FROM jadwal WHERE id=$1", [$id]);
+        if ($k) scope_require_kom($k['komunitas_id']===null?null:(int)$k['komunitas_id']);
         db_exec("UPDATE jadwal SET tanggal=$1, bulan=$2, minggu_ke=$3 WHERE id=$4",
                 [$tgl, date('F',strtotime($tgl)), 'W'.(int)ceil(date('j',strtotime($tgl))/7), $id]);
     }
@@ -19,9 +26,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action'] ?? '')==='move' &&
 }
 
 $events = db_all("SELECT j.id,j.tanggal,j.jenis,j.tempat,j.jam_mulai,j.jam_selesai,j.durasi_menit,j.catatan,j.konten_obrolan, u.nama AS koord
-                  FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id ORDER BY j.tanggal");
+                  FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
+                  WHERE ($1 = 1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY($2::int[]))
+                  ORDER BY j.tanggal", [$__isSuper, $__vkoms]);
 $upcoming = db_all("SELECT j.id,j.tanggal,j.jenis,j.tempat,j.jam_mulai,j.jam_selesai
-                    FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC LIMIT 8");
+                    FROM jadwal j
+                    WHERE j.tanggal >= CURRENT_DATE
+                      AND ($1 = 1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY($2::int[]))
+                    ORDER BY j.tanggal ASC LIMIT 8", [$__isSuper, $__vkoms]);
 include __DIR__.'/includes/header.php'; ?>
 
 <h2 class="mb-3"><i class="bi bi-calendar3 text-primary"></i> Kalender Jadwal</h2>

@@ -2,7 +2,8 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
-require_role('admin');
+require __DIR__.'/../includes/scope.php'; // Revisi R7 #5
+require_role(['admin','superadmin']);
 $pageTitle = 'Rekap Pengeluaran Kegiatan';
 
 // Revisi 13 Juni 2026 — kolom "Dana Dari Siapa" pada pengeluaran_kegiatan.
@@ -96,6 +97,13 @@ if ($filterJadwal) {
 if ($filterDana !== '') {
     $params[] = $filterDana; $pn++;
     $conds[] = "p.dana_dari=\$$pn";
+}
+// Revisi R7 #5 — Batasi ke jadwal komunitas user (jika bukan super).
+if (!scope_is_super()) {
+    $params[] = scope_kom_ids_sql_array(); $pn++;
+    $conds[] = "(p.jadwal_id IS NULL OR EXISTS (SELECT 1 FROM jadwal jj2 WHERE jj2.id=p.jadwal_id AND (jj2.komunitas_id IS NULL OR jj2.komunitas_id = ANY(\$$pn::int[]))))";
+    $params[] = scope_user_ids_sql_array(); $pn++;
+    $conds[] = "(p.created_by IS NULL OR p.created_by = ANY(\$$pn::int[]))";
 }
 $where = $conds ? ('WHERE '.implode(' AND ', $conds)) : '';
 

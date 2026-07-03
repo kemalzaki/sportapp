@@ -11,9 +11,12 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require_once __DIR__.'/includes/notifications.php';
+require __DIR__.'/includes/scope.php'; // Revisi R7 #5
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Riwayat & Leaderboard';
 $u = current_user();
+$__vids = scope_user_ids_sql_array();
 
 /* ---------- Auto-migration: tabel like & comment untuk upload_harian ---------- */
 try {
@@ -142,6 +145,10 @@ $periodSql = "j.tanggal >= CURRENT_DATE - INTERVAL '30 days'";
 if ($period === 'weekly') $periodSql = "j.tanggal >= CURRENT_DATE - INTERVAL '7 days'";
 if ($period === 'all')    $periodSql = "TRUE";
 $uPeriodSql = str_replace('j.tanggal','uh.tanggal',$periodSql);
+// Revisi R7 #5 — scope komunitas: sisipkan filter user_id ke setiap leaderboard.
+$__scopeFrag = " AND u.id = ANY('".pg_escape_string($__vids)."'::int[])";
+$uPeriodSql .= $__scopeFrag;
+$periodSql  .= $__scopeFrag;
 
 $lb = [];
 if ($cat === 'konsisten') {

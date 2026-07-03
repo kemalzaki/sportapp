@@ -2,7 +2,7 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
-require_role('admin');
+require_role(['admin','superadmin']);
 $pageTitle='Manajemen Tempat';
 
 /* ============================================================
@@ -238,7 +238,7 @@ $rows = db_all("SELECT t.*, u.nama AS pic_nama, u.foto_url AS pic_foto, jo.nama 
                 $whereSql
                 ORDER BY $sortSql $dir NULLS LAST", $params);
 
-$admins = db_all("SELECT id, nama FROM users WHERE role='admin' ORDER BY nama");
+$admins = db_all("SELECT id, nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
 $jenisList = db_all("SELECT id, nama FROM jenis_olahraga ORDER BY nama");
 $statuses = ['tersedia','booked','renovasi','tutup'];
 

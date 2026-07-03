@@ -2,8 +2,11 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
-require_role('admin');
+require __DIR__.'/../includes/scope.php'; // Revisi R7 #5
+require_role(['admin','superadmin']);
 $pageTitle='Manajemen Jadwal';
+$__isSuper = scope_is_super();
+$__scopeKomArr = scope_kom_ids_sql_array();
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -87,8 +90,9 @@ $rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                   FROM jadwal j
                   LEFT JOIN users u ON u.id=j.koordinator_id
                   LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
-                  ORDER BY tanggal DESC");
-$admins = db_all("SELECT id,nama FROM users WHERE role='admin' ORDER BY nama");
+                  WHERE ($1 = 1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY($2::int[]))
+                  ORDER BY tanggal DESC", [$__isSuper?1:0, $__scopeKomArr]);
+$admins = db_all("SELECT id,nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
 $jenisRows = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 $jenisList = array_column($jenisRows, 'nama');
 if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya']; $jenisRows = []; }

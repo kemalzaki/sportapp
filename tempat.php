@@ -5,16 +5,18 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/paket_helpers.php'; // R22 — gate Komunitas
+require __DIR__.'/includes/scope.php'; // Revisi R7 #5
 send_security_headers(); enforce_session_timeout();
 require_login();
 $u = current_user();
 $pageTitle = 'Booking Lapangan';
+$__vids = scope_user_ids_sql_array();
 
 // Revisi R22 — Fitur Tempat khusus paket KOMUNITAS
 paket_require_or_lock('komunitas', $u, 'Booking Tempat / Lapangan',
     'Fitur reservasi lapangan komunitas (kalender, status, recurring, reminder DP) tersedia untuk paket Komunitas.');
 
-$isAdmin = ($u['role'] ?? '') === 'admin';
+$isAdmin = in_array($u['role'] ?? '', ['admin','superadmin'], true);
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -60,22 +62,25 @@ $first = strtotime("$month-01"); $daysIn = (int) date('t', $first); $startDow = 
 
 $bookings = $selected ? db_all("SELECT b.*, u.nama FROM booking b JOIN users u ON u.id=b.user_id
                                 WHERE b.tempat_id=$1 AND to_char(b.tanggal,'YYYY-MM')=$2 AND b.status<>'canceled'
-                                ORDER BY b.tanggal,b.jam_mulai", [$selected, $month]) : [];
+                                  AND b.user_id = ANY($3::int[])
+                                ORDER BY b.tanggal,b.jam_mulai", [$selected, $month, $__vids]) : [];
 $byDate = [];
 foreach ($bookings as $b) $byDate[$b['tanggal']][] = $b;
 
 // Semua booking aktif (dapat dilihat seluruh member) — dengan pagination
 $bookPerPage = 10;
 $bookPage = max(1, (int)($_GET['bp'] ?? 1));
-$bookTotal = (int) db_val("SELECT COUNT(*) FROM booking WHERE status<>'canceled' AND tanggal >= CURRENT_DATE - INTERVAL '7 days'");
+// Revisi R7 #5 — filter jumlah booking sesuai scope
+$bookTotal = (int) db_val("SELECT COUNT(*) FROM booking WHERE status<>'canceled' AND tanggal >= CURRENT_DATE - INTERVAL '7 days' AND user_id = ANY($1::int[])", [$__vids]);
 $bookPages = max(1, (int)ceil($bookTotal / $bookPerPage));
 if ($bookPage > $bookPages) $bookPage = $bookPages;
 $bookOffset = ($bookPage - 1) * $bookPerPage;
 $allBooks = db_all("SELECT b.*, t.nama AS tnama, u.nama AS uname FROM booking b
                     JOIN tempat t ON t.id=b.tempat_id LEFT JOIN users u ON u.id=b.user_id
                     WHERE b.status<>'canceled' AND b.tanggal >= CURRENT_DATE - INTERVAL '7 days'
+                      AND b.user_id = ANY($3::int[])
                     ORDER BY b.tanggal DESC, b.jam_mulai DESC LIMIT $1 OFFSET $2",
-                    [$bookPerPage, $bookOffset]);
+                    [$bookPerPage, $bookOffset, $__vids]);
 include __DIR__.'/includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-calendar2-week text-primary"></i> Booking Lapangan</h2>

@@ -4,10 +4,16 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
 require __DIR__.'/../includes/wa_notify.php';
 require __DIR__.'/../includes/badges.php';
-require_role('admin');
+require __DIR__.'/../includes/scope.php'; // Revisi R7 #5
+require_role(['admin','superadmin']);
 $pageTitle='Input Absensi';
 
 $jadwalId = (int)($_GET['id'] ?? 0);
+// Revisi R7 #5 — cegah admin membuka jadwal komunitas lain (IDOR)
+if ($jadwalId) {
+    $__k = db_one("SELECT komunitas_id FROM jadwal WHERE id=$1", [$jadwalId]);
+    if ($__k) scope_require_kom($__k['komunitas_id'] === null ? null : (int)$__k['komunitas_id']);
+}
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
@@ -68,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $jadwal=null; $members=[]; $current=[]; $currentKet=[]; $tamu=[];
 if ($jadwalId) {
     $jadwal  = db_one("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id WHERE j.id=$1", [$jadwalId]);
-    $members = db_all("SELECT id,nama,role,foto_url,last_seen FROM users WHERE role IN ('member','admin') ORDER BY nama");
+    $members = db_all("SELECT id,nama,role,foto_url,last_seen FROM users WHERE role IN ('member','admin','superadmin') AND id = ANY($1::int[]) ORDER BY nama", [scope_user_ids_sql_array()]);
     foreach (db_all("SELECT user_id,hadir,status,keterangan FROM absensi WHERE jadwal_id=$1", [$jadwalId]) as $a) {
         $current[$a['user_id']] = $a['status'] ?: ($a['hadir']==1?'hadir':'absen');
         $currentKet[$a['user_id']] = $a['keterangan'] ?? '';

@@ -6,7 +6,7 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/notifications.php';
 send_security_headers(); enforce_session_timeout();
-require_role('admin');
+require_role(['admin','superadmin']);
 $pageTitle = 'Admin · Event';
 
 /* Revisi 24 Juni 2026 — Tambah kolom kategori pelaksanaan event:
@@ -153,7 +153,7 @@ $tims = db_all("SELECT id,nama,jenis FROM tim ORDER BY nama");
 $jenisList = array_column(db_all("SELECT nama FROM jenis_olahraga ORDER BY nama"), 'nama') ?: ['Jogging','Badminton','Futsal'];
 // Tambahkan opsi non-olahraga sebagai preset
 $jenisNonOlahraga = ['Nyate Bersama','Makan Bersama','Arisan','Pengajian','Outing','Rapat Komunitas','Bakti Sosial'];
-$allMembers = db_all("SELECT id, nama, foto_url FROM users WHERE role IN ('member','admin') ORDER BY nama");
+$allMembers = db_all("SELECT id, nama, foto_url FROM users WHERE role IN ('member','admin','superadmin') ORDER BY nama");
 include __DIR__.'/../includes/header.php';
 ?>
 <h2 class="mb-3"><i class="bi bi-calendar-heart text-danger"></i> Manajemen Event &amp; Kegiatan</h2>

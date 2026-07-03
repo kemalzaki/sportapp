@@ -8,8 +8,9 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
+require __DIR__.'/../includes/scope.php'; // Revisi R7 #5/#8
 send_security_headers();
-require_role('admin');
+require_role(['admin','superadmin']);
 
 try {
     db_exec("CREATE TABLE IF NOT EXISTS tempat_survei (
@@ -44,10 +45,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 $fStatus = trim($_GET['status'] ?? '');
-$where=''; $args=[];
-if (in_array($fStatus,['baru','disetujui','ditolak'],true)) { $where=' WHERE s.status=$1'; $args=[$fStatus]; }
+$conds=[]; $args=[];
+if (in_array($fStatus,['baru','disetujui','ditolak'],true)) { $conds[]='s.status=$'.(count($args)+1); $args[]=$fStatus; }
+// Revisi R7 #5 — admin biasa hanya melihat usulan dari komunitasnya
+if (!scope_is_super()) {
+    $conds[] = 's.user_id = ANY($'.(count($args)+1).'::int[])';
+    $args[] = scope_user_ids_sql_array();
+}
+$where = $conds ? (' WHERE '.implode(' AND ', $conds)) : '';
 try {
-    $rows = db_all("SELECT s.*, u.nama AS pengusul, u.email AS pengusul_email, u.nomor_wa
+    $rows = db_all("SELECT s.*, u.nama AS pengusul, u.email AS pengusul_email, u.nomor_wa,
+                    COALESCE((SELECT string_agg(k.nama, ', ' ORDER BY k.nama)
+                              FROM user_komunitas uk JOIN komunitas k ON k.id=uk.komunitas_id
+                              WHERE uk.user_id=s.user_id), '') AS pengusul_komunitas
                     FROM tempat_survei s LEFT JOIN users u ON u.id=s.user_id
                     $where ORDER BY s.id DESC LIMIT 500", $args);
 } catch (Throwable $e) { $rows=[]; }
@@ -85,11 +95,11 @@ $csrf = csrf_token();
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0" style="min-width:1050px">
       <thead class="table-light">
-        <tr><th>Nama Tempat</th><th>Jenis</th><th>Alamat</th><th>Pengusul</th><th>Koordinat</th><th>Status</th><th>Dibuat</th><th class="text-end">Aksi</th></tr>
+        <tr><th>Nama Tempat</th><th>Jenis</th><th>Alamat</th><th>Pengusul</th><th>Komunitas Pengusul</th><th>Koordinat</th><th>Status</th><th>Dibuat</th><th class="text-end">Aksi</th></tr>
       </thead>
       <tbody>
       <?php if (!$rows): ?>
-        <tr><td colspan="8" class="text-center text-muted py-3">Belum ada usulan.</td></tr>
+        <tr><td colspan="9" class="text-center text-muted py-3">Belum ada usulan.</td></tr>
       <?php else: foreach ($rows as $r):
         $st=$r['status']; $cls=$st==='disetujui'?'success':($st==='ditolak'?'danger':'secondary');
       ?>
@@ -98,6 +108,8 @@ $csrf = csrf_token();
           <td class="small"><?= htmlspecialchars((string)($r['jenis'] ?? '—')) ?></td>
           <td class="small text-muted"><?= htmlspecialchars((string)($r['alamat'] ?? '—')) ?><?php if(!empty($r['catatan'])): ?><div class="small text-muted fst-italic">Catatan: <?= htmlspecialchars($r['catatan']) ?></div><?php endif; ?></td>
           <td class="small"><?= htmlspecialchars((string)($r['pengusul'] ?? '#'.$r['user_id'])) ?><?php if(!empty($r['nomor_wa'])): ?><div class="text-muted"><?= htmlspecialchars($r['nomor_wa']) ?></div><?php endif; ?></td>
+          <?php /* Revisi R7 #8 — kolom Komunitas Pengusul */ ?>
+          <td class="small"><?= !empty($r['pengusul_komunitas']) ? '<span class="badge bg-success-subtle text-success border"><i class="bi bi-people-fill"></i> '.htmlspecialchars($r['pengusul_komunitas']).'</span>' : '<span class="text-muted">—</span>' ?></td>
           <td class="small font-monospace">
             <?php if ($r['lat']!==null && $r['lng']!==null): ?>
               <a target="_blank" href="https://www.google.com/maps?q=<?= (float)$r['lat'] ?>,<?= (float)$r['lng'] ?>"><?= number_format((float)$r['lat'],5) ?>, <?= number_format((float)$r['lng'],5) ?></a>

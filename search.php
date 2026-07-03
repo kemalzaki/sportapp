@@ -3,18 +3,27 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/scope.php'; // Revisi R7 #5
 send_security_headers(); enforce_session_timeout();
+require_login();
 $pageTitle = 'Pencarian Global';
 $q = trim($_GET['q'] ?? '');
 $like = '%'.str_replace(['%','_'],['\\%','\\_'],$q).'%';
+$__vids = scope_user_ids_sql_array();
+$__vkoms = scope_kom_ids_sql_array();
+$__isSuper = scope_is_super() ? 1 : 0;
 
 $members = $jadwal = $tempat = $aktivitas = [];
 if ($q !== '') {
-    $members = db_all("SELECT id,nama,email,foto_url,role FROM users WHERE nama ILIKE $1 OR email ILIKE $1 ORDER BY nama LIMIT 20",[$like]);
-    $jadwal  = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal WHERE jenis ILIKE $1 OR tempat ILIKE $1 ORDER BY tanggal DESC LIMIT 20",[$like]);
+    // Revisi R7 #5 — hasil pencarian dibatasi scope komunitas
+    $members = db_all("SELECT id,nama,email,foto_url,role FROM users WHERE (nama ILIKE $1 OR email ILIKE $1) AND id = ANY($2::int[]) ORDER BY nama LIMIT 20",[$like, $__vids]);
+    $jadwal  = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal WHERE (jenis ILIKE $1 OR tempat ILIKE $1)
+                        AND ($2 = 1 OR komunitas_id IS NULL OR komunitas_id = ANY($3::int[]))
+                        ORDER BY tanggal DESC LIMIT 20",[$like, $__isSuper, $__vkoms]);
     $tempat  = db_all("SELECT id,nama,alamat FROM tempat WHERE nama ILIKE $1 OR alamat ILIKE $1 ORDER BY nama LIMIT 20",[$like]);
     $aktivitas = db_all("SELECT uh.id,uh.tanggal,uh.jenis,uh.deskripsi,u.nama AS user FROM upload_harian uh JOIN users u ON u.id=uh.user_id
-                         WHERE uh.jenis ILIKE $1 OR uh.deskripsi ILIKE $1 OR u.nama ILIKE $1 ORDER BY uh.tanggal DESC LIMIT 20",[$like]);
+                         WHERE (uh.jenis ILIKE $1 OR uh.deskripsi ILIKE $1 OR u.nama ILIKE $1) AND u.id = ANY($2::int[])
+                         ORDER BY uh.tanggal DESC LIMIT 20",[$like, $__vids]);
 }
 include __DIR__.'/includes/header.php'; ?>
 <h2 class="mb-3"><i class="bi bi-search text-primary"></i> Pencarian Global</h2>
