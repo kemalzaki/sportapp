@@ -65,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     }
     $qs = [];
     if (isset($_GET['jadwal_id'])) $qs['jadwal_id'] = (int)$_GET['jadwal_id'];
+    if (isset($_GET['bulan']))     $qs['bulan']     = (string)$_GET['bulan'];
+    if (isset($_GET['dana']))      $qs['dana']      = (string)$_GET['dana'];
     if (isset($_GET['page']))      $qs['page']      = (int)$_GET['page'];
     header('Location: pengeluaran.php'.($qs?('?'.http_build_query($qs)):'')); exit;
 }
@@ -74,17 +76,28 @@ $filterJadwal = (int)($_GET['jadwal_id'] ?? 0);
 // Memfilter pengeluaran berdasarkan bulan tanggal jadwal terkait (j.tanggal).
 $filterBulan  = trim((string)($_GET['bulan'] ?? ''));
 if ($filterBulan !== '' && !preg_match('/^\d{4}-\d{2}$/', $filterBulan)) $filterBulan = '';
-$where = ''; $params = [];
+// Revisi R7 (Juli 2026) #3 — Filter baru: "Dana Dari".
+$filterDana   = trim((string)($_GET['dana'] ?? ''));
+if (mb_strlen($filterDana) > 150) $filterDana = mb_substr($filterDana, 0, 150);
+
+// Bangun kondisi WHERE secara bertahap (bisa dikombinasikan: bulan/jadwal + dana).
+$conds = []; $params = []; $pn = 0;
 if ($filterJadwal) {
-    $where = "WHERE p.jadwal_id=$1"; $params=[$filterJadwal];
+    $params[] = $filterJadwal; $pn++;
+    $conds[] = "p.jadwal_id=\$$pn";
 } elseif ($filterBulan !== '') {
     // Cocok bila jadwal terkait pada bulan tsb, ATAU (jika tidak terkait jadwal) pengeluaran-nya jatuh di bulan tsb.
-    $where = "WHERE (
-        (p.jadwal_id IS NOT NULL AND EXISTS (SELECT 1 FROM jadwal jj WHERE jj.id=p.jadwal_id AND to_char(jj.tanggal,'YYYY-MM')=$1))
-        OR (p.jadwal_id IS NULL AND to_char(p.tanggal,'YYYY-MM')=$1)
+    $params[] = $filterBulan; $pn++;
+    $conds[] = "(
+        (p.jadwal_id IS NOT NULL AND EXISTS (SELECT 1 FROM jadwal jj WHERE jj.id=p.jadwal_id AND to_char(jj.tanggal,'YYYY-MM')=\$$pn))
+        OR (p.jadwal_id IS NULL AND to_char(p.tanggal,'YYYY-MM')=\$$pn)
     )";
-    $params = [$filterBulan];
 }
+if ($filterDana !== '') {
+    $params[] = $filterDana; $pn++;
+    $conds[] = "p.dana_dari=\$$pn";
+}
+$where = $conds ? ('WHERE '.implode(' AND ', $conds)) : '';
 
 // ===== Revisi 1 Jun 2026 (Lanjutan) #1: pagination 5 entri =====
 $PER_PAGE = 5;
@@ -112,6 +125,11 @@ $bulanRows = db_all("
     UNION
     SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM pengeluaran_kegiatan
   ) x WHERE bulan IS NOT NULL ORDER BY bulan DESC LIMIT 60");
+// Revisi R7 (Juli 2026) #3 — Daftar unik "Dana Dari" untuk dropdown filter.
+$danaRows = db_all("
+  SELECT DISTINCT dana_dari FROM pengeluaran_kegiatan
+  WHERE dana_dari IS NOT NULL AND btrim(dana_dari) <> ''
+  ORDER BY dana_dari ASC LIMIT 200");
 
 /* Revisi 22 Juni 2026 R12 — AJAX fragment: kembalikan hanya bagian tabel + pagination. */
 if (!empty($_GET['ajax_table'])) {
@@ -219,7 +237,17 @@ include __DIR__.'/../includes/header.php';
       <?php endforeach; ?>
     </select>
   </div>
-  <?php if ($filterJadwal || $filterBulan !== ''): ?>
+  <?php /* Revisi R7 (Juli 2026) #3 — Filter berdasarkan "Dana Dari". */ ?>
+  <div>
+    <label class="small"><i class="bi bi-cash-coin text-info"></i> Filter Dana Dari</label>
+    <select name="dana" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">-- Semua Sumber Dana --</option>
+      <?php foreach($danaRows as $dr): $dv = (string)$dr['dana_dari']; ?>
+        <option value="<?= htmlspecialchars($dv) ?>" <?= $filterDana===$dv?'selected':'' ?>><?= htmlspecialchars($dv) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <?php if ($filterJadwal || $filterBulan !== '' || $filterDana !== ''): ?>
     <div><a href="pengeluaran.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i> Reset</a></div>
   <?php endif; ?>
   <div class="ms-auto small text-muted">Total: <strong class="text-danger">Rp <?= number_format($totalAgg,0,',','.') ?></strong> · <?= $totalRows ?> entri</div>
@@ -328,9 +356,11 @@ function strftime_id_my($ts){
 </table></div></div>
 
 <?php if ($totalPage > 1):
-  $pq = function($p) use ($filterJadwal) {
+  $pq = function($p) use ($filterJadwal, $filterBulan, $filterDana) {
       $a = ['page'=>$p];
       if ($filterJadwal) $a['jadwal_id'] = $filterJadwal;
+      elseif ($filterBulan !== '') $a['bulan'] = $filterBulan;
+      if ($filterDana !== '') $a['dana'] = $filterDana;
       return '?'.http_build_query($a);
   };
 ?>
@@ -479,17 +509,21 @@ function strftime_id_my($ts){
   var addForm   = document.querySelector('form input[name="_action"][value="add"]');
   addForm = addForm ? addForm.closest('form') : null;
 
-  function getFilterJadwal(){
-    var s = document.querySelector('form[method="get"] select[name="jadwal_id"]');
-    return s ? s.value : '0';
+  function getFilterVal(name){
+    var s = document.querySelector('form[method="get"] select[name="'+name+'"]');
+    return s ? s.value : '';
   }
 
   function loadTable(page){
-    var jid = getFilterJadwal();
+    var jid  = getFilterVal('jadwal_id');
+    var bln  = getFilterVal('bulan');
+    var dana = getFilterVal('dana');
     var qs = new URLSearchParams();
     qs.set('ajax_table','1');
     if (jid && jid !== '0') qs.set('jadwal_id', jid);
-    if (page) qs.set('page', page);
+    else if (bln)          qs.set('bulan', bln); // bulan diabaikan bila jadwal spesifik dipilih (samakan dgn server)
+    if (dana)              qs.set('dana', dana);
+    if (page)              qs.set('page', page);
     wrap.style.opacity = '0.5';
     fetch('/admin/pengeluaran.php?' + qs.toString(), {credentials:'same-origin', headers:{'X-Requested-With':'fetch'}})
       .then(function(r){ return r.text(); })
@@ -499,6 +533,8 @@ function strftime_id_my($ts){
         try {
           var u = new URL(location.href);
           if (jid && jid !== '0') u.searchParams.set('jadwal_id', jid); else u.searchParams.delete('jadwal_id');
+          if (bln && !(jid && jid !== '0')) u.searchParams.set('bulan', bln); else u.searchParams.delete('bulan');
+          if (dana) u.searchParams.set('dana', dana); else u.searchParams.delete('dana');
           if (page) u.searchParams.set('page', page); else u.searchParams.delete('page');
           history.replaceState(null,'', u.toString());
         } catch(e){}
@@ -506,9 +542,12 @@ function strftime_id_my($ts){
       .catch(function(){ wrap.style.opacity='1'; });
   }
 
+  // Bind semua select filter (jadwal_id, bulan, dana) ke AJAX loadTable.
+  ['jadwal_id','bulan','dana'].forEach(function(name){
+    var el = document.querySelector('form[method="get"] select[name="'+name+'"]');
+    if (el) { el.removeAttribute('onchange'); el.addEventListener('change', function(){ loadTable(1); }); }
+  });
   if (selFilter) {
-    selFilter.removeAttribute('onchange');
-    selFilter.addEventListener('change', function(){ loadTable(1); });
     var topForm = selFilter.closest('form');
     if (topForm) topForm.addEventListener('submit', function(e){ e.preventDefault(); loadTable(1); });
   }

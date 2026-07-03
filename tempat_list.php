@@ -318,22 +318,32 @@ include __DIR__.'/includes/header.php';
 <p class="text-muted small">Tempat-tempat olahraga yang dikelola admin komunitas. Klik untuk melihat detail & arah lokasi.</p>
 
 <section id="surveiTempat" class="card shadow-sm mt-4 mb-4">
-  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <?php /* Revisi R7 (Juli 2026) #4 — Seluruh blok "Coming Soon — Survei Tempat"
+       dijadikan spoiler (collapsed default). Klik header untuk buka/tutup. */ ?>
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"
+       role="button" data-bs-toggle="collapse" data-bs-target="#surveiBody"
+       aria-expanded="false" aria-controls="surveiBody" style="cursor:pointer">
     <div>
       <i class="bi bi-hourglass-split text-warning"></i>
       <strong>Coming Soon — Survei Tempat</strong>
       <span class="badge bg-warning-subtle text-warning-emphasis ms-1">Beta</span>
     </div>
-    <button class="btn  btn-outline-primary" type="button"
-            data-bs-toggle="collapse" data-bs-target="#formSurveiWrap">
-      <i class="bi bi-plus-circle"></i> Usulkan Tempat Baru
-    </button>
+    <span class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-chevron-down"></i> Buka / Tutup
+    </span>
   </div>
+  <div class="collapse" id="surveiBody">
   <div class="card-body">
-    <p class="small text-muted mb-3">
+    <p class="small text-muted mb-2">
       Punya usulan tempat / lapangan / jalur hiking baru yang belum ada di direktori?
       Kirim usulannya di sini. Admin akan meninjau &amp; menambahkannya bila layak.
     </p>
+    <div class="mb-3">
+      <button class="btn btn-outline-primary" type="button"
+              data-bs-toggle="collapse" data-bs-target="#formSurveiWrap">
+        <i class="bi bi-plus-circle"></i> Usulkan Tempat Baru
+      </button>
+    </div>
 
     <div class="collapse mb-3" id="formSurveiWrap">
       <form method="post" class="row g-2 border rounded p-3 bg-light-subtle">
@@ -427,6 +437,7 @@ include __DIR__.'/includes/header.php';
       </table>
     </div>
   </div>
+  </div><!-- /#surveiBody spoiler -->
 </section>
 
 <div class="card shadow-sm mb-3"><div class="card-body">

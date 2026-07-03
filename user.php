@@ -145,14 +145,17 @@ if (!empty($user['tanggal_lahir'])) {
 
 include __DIR__.'/includes/header.php';
 ?>
-<div class="card shadow-sm mb-3"><div class="card-body d-flex gap-3 align-items-center">
+<?php /* Revisi R7 (Juli 2026) #5 — Header profil dirapikan agar tidak "nabrak" di
+     layar HP: konten boleh wrap, avatar tidak menyusut, dan kotak "Hadir" tidak
+     terpotong (text-nowrap + flex-shrink-0). */ ?>
+<div class="card shadow-sm mb-3"><div class="card-body d-flex flex-wrap gap-3 align-items-start">
   <?php $_avSrc = $user['foto_url'] ?? null; ?>
   <?php if($_avSrc): ?>
-    <img src="<?= htmlspecialchars($_avSrc) ?>" alt="" class="user-avatar zoomable" style="width:88px;height:88px;border-radius:50%;object-fit:cover;">
+    <img src="<?= htmlspecialchars($_avSrc) ?>" alt="" class="user-avatar zoomable flex-shrink-0" style="width:88px;height:88px;border-radius:50%;object-fit:cover;">
   <?php else: ?>
-    <?= user_avatar(null, $user['nama'], 88) ?>
+    <div class="flex-shrink-0"><?= user_avatar(null, $user['nama'], 88) ?></div>
   <?php endif; ?>
-  <div class="flex-grow-1">
+  <div class="flex-grow-1" style="min-width:min(100%,220px)">
     <h4 class="mb-0"><?= htmlspecialchars($user['nama']) ?>
       <?php if(!empty($user['nickname'])): ?><span class="badge bg-info-subtle text-info border" title="Nickname"><i class="bi bi-person-badge"></i> <?= htmlspecialchars($user['nickname']) ?></span><?php endif; ?>
       <span class="badge bg-light text-dark">Lv <?= (int)$user['level'] ?></span>
@@ -214,7 +217,7 @@ include __DIR__.'/includes/header.php';
       </div>
     <?php endif; ?>
   </div>
-  <div class="text-end">
+  <div class="text-end flex-shrink-0 text-nowrap ms-auto">
     <div class="small text-muted">Hadir</div><div class="h5 mb-0"><?= $hadir ?>/<?= $sesi ?></div>
   </div>
 </div></div>

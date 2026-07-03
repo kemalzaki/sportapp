@@ -159,6 +159,8 @@ function gemini_config_status() {
         'endpoint'   => GEMINI_API_BASE,
         'proxy'      => getenv('GEMINI_HTTP_PROXY') ?: (getenv('HTTPS_PROXY') ?: (getenv('HTTP_PROXY') ?: '')),
         'fallback_base' => getenv('GEMINI_FALLBACK_BASE') ?: '',
+        // Revisi R7 — daftar provider fallback yang aktif (nama saja, tanpa key).
+        'fallback_providers' => array_map(function($p){ return $p['name'].' ('.$p['model'].')'; }, _ai_fallback_providers()),
     ];
 }
 
@@ -342,8 +344,145 @@ function _gemini_call(array $parts, array $opts = []) {
     return ['ok'=>false,'text'=>'','err'=>$lastErr ?: 'semua key gagal','raw'=>$lastJson];
 }
 
+/* ============================================================
+ * Revisi R7 (Juli 2026) #6 — FALLBACK provider AI.
+ * Bila Gemini gagal (terutama geo-block "User location is not supported",
+ * quota habis, model overloaded, atau error jaringan), otomatis switch ke
+ * provider lain yang API-nya kompatibel dengan format OpenAI Chat Completions:
+ *   1) OpenRouter  — env OPENROUTER_API_KEY (opsional OPENROUTER_MODEL)
+ *   2) Groq        — env GROQ_API_KEY       (opsional GROQ_MODEL)
+ * Aktif otomatis selama salah satu key tersedia. Bisa dimatikan dengan
+ * env AI_FALLBACK_DISABLE=1.
+ *
+ * Hanya untuk pemanggilan TEKS (gemini_text). Vision/audio tetap Gemini-only
+ * karena provider fallback belum tentu mendukung modalitas tsb.
+ * ============================================================ */
+function _ai_env($name) {
+    $v = getenv($name);
+    if ($v === false || $v === '') $v = $_ENV[$name]    ?? '';
+    if ($v === '')                 $v = $_SERVER[$name] ?? '';
+    return is_string($v) ? trim($v) : '';
+}
+
+/** Daftar provider fallback yang tersedia (berurutan sesuai prioritas). */
+function _ai_fallback_providers() {
+    if (_ai_env('AI_FALLBACK_DISABLE') === '1') return [];
+    $list = [];
+    $orKey = _ai_env('OPENROUTER_API_KEY');
+    if ($orKey !== '') {
+        $list[] = [
+            'name'    => 'openrouter',
+            'url'     => 'https://openrouter.ai/api/v1/chat/completions',
+            'key'     => $orKey,
+            'model'   => _ai_env('OPENROUTER_MODEL') ?: 'google/gemini-2.0-flash-001',
+            'headers' => [
+                'HTTP-Referer: '.(_ai_env('APP_URL') ?: 'https://sportapp.local'),
+                'X-Title: SportApp',
+            ],
+        ];
+    }
+    $grKey = _ai_env('GROQ_API_KEY');
+    if ($grKey !== '') {
+        $list[] = [
+            'name'    => 'groq',
+            'url'     => 'https://api.groq.com/openai/v1/chat/completions',
+            'key'     => $grKey,
+            'model'   => _ai_env('GROQ_MODEL') ?: 'llama-3.3-70b-versatile',
+            'headers' => [],
+        ];
+    }
+    return $list;
+}
+
+/** Panggil satu provider OpenAI-compatible. Return shape sama dgn _gemini_call. */
+function _ai_openai_compatible_call(array $prov, $prompt, array $opts = []) {
+    $messages = [];
+    if (!empty($opts['system'])) $messages[] = ['role'=>'system','content'=>(string)$opts['system']];
+    $messages[] = ['role'=>'user','content'=>(string)$prompt];
+
+    $body = [
+        'model'       => $prov['model'],
+        'messages'    => $messages,
+        'temperature' => isset($opts['temperature']) ? (float)$opts['temperature'] : 0.5,
+        'max_tokens'  => isset($opts['max_tokens'])  ? (int)$opts['max_tokens']    : 800,
+    ];
+    if (!empty($opts['json'])) $body['response_format'] = ['type'=>'json_object'];
+
+    $headers = array_merge(
+        ['Content-Type: application/json', 'Authorization: Bearer '.$prov['key']],
+        $prov['headers'] ?? []
+    );
+
+    $ch = curl_init($prov['url']);
+    $curlOpts = [
+        CURLOPT_POST=>true, CURLOPT_RETURNTRANSFER=>true,
+        CURLOPT_TIMEOUT=>60, CURLOPT_CONNECTTIMEOUT=>15,
+        CURLOPT_HTTPHEADER=>$headers,
+        CURLOPT_POSTFIELDS=>json_encode($body, JSON_UNESCAPED_UNICODE),
+    ];
+    if (getenv('GEMINI_INSECURE_SSL') === '1') {
+        $curlOpts[CURLOPT_SSL_VERIFYPEER]=false; $curlOpts[CURLOPT_SSL_VERIFYHOST]=0;
+    }
+    // Reuse proxy yang sama bila di-set (berguna bila jaringan lokal butuh proxy).
+    $proxy = getenv('GEMINI_HTTP_PROXY') ?: getenv('HTTPS_PROXY') ?: getenv('HTTP_PROXY') ?: '';
+    if ($proxy) {
+        $curlOpts[CURLOPT_PROXY] = $proxy;
+        if (stripos($proxy,'socks5h://')===0)      $curlOpts[CURLOPT_PROXYTYPE]=CURLPROXY_SOCKS5_HOSTNAME;
+        elseif (stripos($proxy,'socks5://')===0)   $curlOpts[CURLOPT_PROXYTYPE]=CURLPROXY_SOCKS5;
+    }
+    curl_setopt_array($ch, $curlOpts);
+    $resp = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $cerr = curl_error($ch);
+    curl_close($ch);
+
+    if ($resp === false) return ['ok'=>false,'text'=>'','err'=>'curl('.$prov['name'].'): '.$cerr];
+    $json = json_decode($resp, true);
+    if (!is_array($json)) return ['ok'=>false,'text'=>'','err'=>$prov['name'].' respons bukan JSON (HTTP '.$code.')'];
+    if ($code < 200 || $code >= 300 || isset($json['error'])) {
+        $msg = $json['error']['message'] ?? ($json['error'] ?? ('HTTP '.$code));
+        if (is_array($msg)) $msg = json_encode($msg);
+        return ['ok'=>false,'text'=>'','err'=>$prov['name'].': '.substr((string)$msg,0,200),'raw'=>$json];
+    }
+    $text = $json['choices'][0]['message']['content'] ?? '';
+    if (is_array($text)) { // beberapa model balas content sbg array of parts
+        $buf=''; foreach ($text as $pp) { $buf .= is_array($pp) ? ($pp['text'] ?? '') : (string)$pp; } $text=$buf;
+    }
+    return ['ok'=>true,'text'=>(string)$text,'err'=>'','raw'=>$json,'via'=>$prov['name']];
+}
+
+/**
+ * Cek apakah error Gemini layak di-fallback (geo-block, quota, overloaded,
+ * atau error jaringan). Untuk error lain (mis. prompt invalid) tetap fallback
+ * juga karena tujuan utama fitur ini: user tetap dapat jawaban.
+ */
+function _ai_should_fallback(array $r) {
+    if (!empty($r['ok'])) return false;
+    return true; // selalu coba fallback bila Gemini gagal & provider tersedia
+}
+
 function gemini_text($prompt, array $opts = []) {
-    return _gemini_call([['text' => (string)$prompt]], $opts);
+    $r = _gemini_call([['text' => (string)$prompt]], $opts);
+    if (!empty($r['ok'])) return $r;
+
+    // Gemini gagal → coba provider fallback (OpenRouter/Groq) bila tersedia.
+    if (_ai_should_fallback($r)) {
+        $geminiErr = $r['err'] ?? '';
+        foreach (_ai_fallback_providers() as $prov) {
+            $fr = _ai_openai_compatible_call($prov, $prompt, $opts);
+            if (!empty($fr['ok'])) {
+                $fr['fallback_from'] = 'gemini';
+                $fr['gemini_err']    = $geminiErr;
+                return $fr;
+            }
+            $geminiErr .= ' | fallback '.$prov['name'].' gagal: '.($fr['err'] ?? '?');
+        }
+        // Semua fallback gagal → kembalikan error gabungan yang informatif.
+        $r['err'] = ($r['err'] ?? 'Gemini gagal')
+                  . (count(_ai_fallback_providers()) ? (' | '.$geminiErr)
+                     : ' [Tip: set OPENROUTER_API_KEY atau GROQ_API_KEY sebagai fallback otomatis bila Gemini geo-blocked.]');
+    }
+    return $r;
 }
 
 function gemini_vision($prompt, $imagePath, array $opts = []) {

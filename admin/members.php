@@ -193,33 +193,59 @@ $paketOpts = ['gratis'=>'🆓 Gratis','pro'=>'⭐ Pro','komunitas'=>'👥 Komuni
 // ==== Statistik total MEMBER AKTIF per komunitas (Revisi R2 #7) ====
 $statsKom = [];
 try {
-    // Revisi R6 (Juli 2026) — hitung member aktif per komunitas dari gabungan
-    // tabel pivot user_komunitas DAN kolom lama users.komunitas_id, agar data
-    // lama (sebelum migrasi pivot) juga terhitung.
+    // Revisi R7 (Juli 2026) — FIX statistik "belum sesuai".
+    // Sumber keanggotaan HARUS sama dengan yang dipakai filter "Daftar Member"
+    // (lihat baris ~179 yang memakai EXISTS pada user_komunitas). Versi lama
+    // menggabungkan pivot + kolom lama users.komunitas_id sehingga angka statistik
+    // BISA berbeda dari jumlah baris yang muncul saat komunitas di-klik/di-filter
+    // (mis. member yang punya users.komunitas_id lama tapi sudah tidak ada di pivot).
+    // Sekarang statistik dihitung MURNI dari tabel pivot user_komunitas agar
+    // "angka di kartu" = "jumlah member yang tampil saat difilter".
+    //
+    // Definisi:
+    //   total_aktif = member (role<>'admin') yang aktif pada komunitas tsb
+    //   total_all   = seluruh member (role<>'admin') pada komunitas tsb
+    // Kolom aktif bisa BOOLEAN atau SMALLINT → dinormalkan via ::text.
     $statsKom = db_all("
-        WITH pairs AS (
-            SELECT user_id, komunitas_id FROM user_komunitas
-            UNION
-            SELECT id AS user_id, komunitas_id FROM users WHERE komunitas_id IS NOT NULL
-        )
         SELECT k.id, k.nama,
                COUNT(DISTINCT u.id) FILTER (
-                 WHERE u.id IS NOT NULL
-                   AND COALESCE(u.aktif::text,'t') IN ('t','true','1','y','yes')
+                 WHERE COALESCE(u.aktif::text,'1') IN ('t','true','1','y','yes')
                ) AS total_aktif,
                COUNT(DISTINCT u.id) AS total_all
         FROM komunitas k
-        LEFT JOIN pairs p  ON p.komunitas_id = k.id
-        LEFT JOIN users u  ON u.id = p.user_id AND u.role <> 'admin'
+        LEFT JOIN user_komunitas uk ON uk.komunitas_id = k.id
+        LEFT JOIN users u          ON u.id = uk.user_id AND u.role <> 'admin'
         GROUP BY k.id, k.nama
         ORDER BY total_aktif DESC, k.nama
     ");
 } catch (Throwable $e) {}
 
+
 $flash = $_SESSION['flash'] ?? null; $flashE = $_SESSION['flash_err'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_err']);
 include __DIR__.'/../includes/header.php'; ?>
 
+<?php /* Revisi R7 (Juli 2026) #1 — FIX popup edit: tombol (Simpan/Batal) tidak
+     boleh tertutup bottom-nav / FAB "Upload" yang position:fixed z-index tinggi.
+     - Sembunyikan bottom-nav selama modal terbuka (body.modal-open).
+     - Pastikan isi modal bisa di-scroll & footer selalu terlihat di layar HP. */ ?>
+<style>
+  /* Saat modal Bootstrap terbuka, sembunyikan bottom-nav + FAB agar tidak
+     menutupi tombol di dalam popup (khususnya di layar HP). */
+  body.modal-open .gj-nav,
+  body.modal-open .gj-topbar { display: none !important; }
+  body.modal-open { padding-bottom: 0 !important; }
+
+  /* Modal edit/foto/password bisa di-scroll penuh; footer tetap terlihat. */
+  #memberTable ~ .modal .modal-dialog,
+  .modal .modal-dialog { margin-top: .75rem; margin-bottom: .75rem; }
+  @media (max-width: 767.98px){
+    .modal-dialog-scrollable .modal-content { max-height: calc(100dvh - 1.5rem); }
+    .modal-dialog-scrollable .modal-body { overflow-y: auto; }
+    /* beri ruang bawah supaya footer tidak mepet tepi layar */
+    .modal .modal-footer { position: sticky; bottom: 0; background: var(--bs-modal-bg, #fff); z-index: 2; }
+  }
+</style>
 <h2 class="mb-3"><i class="bi bi-people text-primary"></i> Manajemen Member</h2>
 
 <?php if($flash): ?><div class="alert alert-success py-2"><?= htmlspecialchars($flash) ?></div><?php endif; ?>
