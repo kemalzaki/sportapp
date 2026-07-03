@@ -34,7 +34,7 @@ try {
     )");
 } catch (Throwable $e) {}
 
-$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit,strava_account,nickname,COALESCE(paket,'gratis') AS paket FROM users WHERE id=$1", [$id]);
+$user = db_one("SELECT id,nama,email,foto_url,xp,level,streak_minggu,bio,role,last_seen,nomor_wa,berat_kg,tinggi_cm,tanggal_lahir,riwayat_penyakit,strava_account,nickname,COALESCE(paket,'gratis') AS paket, paket_expires_at FROM users WHERE id=$1", [$id]);
 if (!$user) { http_response_code(404); die('User tidak ditemukan.'); }
 $pageTitle = 'Profil '.$user['nama'];
 
@@ -161,7 +161,7 @@ include __DIR__.'/includes/header.php';
     <?php /* Revisi R4 (Juli 2026) — Status Paket + masa aktif */ ?>
     <div class="mt-1">
       <span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($user)) ?>
-      <span class="ms-2"><?= paket_expiry_label($user) ?></span>
+      <span class="ms-2"><span class="small text-muted">Masa Expire:</span> <?= paket_expiry_label($user) ?></span>
     </div>
     <?php /* Revisi R2 (Juli 2026) — Tampilkan komunitas dari user publik. */ ?>
     <?php

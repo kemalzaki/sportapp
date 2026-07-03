@@ -40,8 +40,15 @@ if (!defined('GEMINI_MODEL_DEFAULT')) {
     define('GEMINI_MODEL_DEFAULT', 'gemini-2.5-flash');
 }
 if (!defined('GEMINI_API_BASE')) {
-    // v1beta sudah support auth key baru (AQ.*) per pengumuman Google.
-    define('GEMINI_API_BASE', 'https://generativelanguage.googleapis.com/v1beta');
+    // Revisi R6 (Juli 2026) — endpoint bisa di-override via env
+    // GEMINI_API_BASE (mis. reverse proxy Cloudflare Worker di region yang
+    // didukung Google untuk bypass error "User location is not supported").
+    // Contoh: GEMINI_API_BASE=https://gemini.<user>.workers.dev/v1beta
+    $__base = getenv('GEMINI_API_BASE');
+    if (!$__base) $__base = $_ENV['GEMINI_API_BASE'] ?? '';
+    if (!$__base) $__base = $_SERVER['GEMINI_API_BASE'] ?? '';
+    if (!$__base) $__base = 'https://generativelanguage.googleapis.com/v1beta';
+    define('GEMINI_API_BASE', rtrim((string)$__base, '/'));
 }
 
 // kompatibilitas helper dari env.local.php
@@ -150,6 +157,8 @@ function gemini_config_status() {
         'key_masked' => $k === '' ? '' : (substr($k, 0, 6) . '…' . substr($k, -4)),
         'model'      => _gemini_model(),
         'endpoint'   => GEMINI_API_BASE,
+        'proxy'      => getenv('GEMINI_HTTP_PROXY') ?: (getenv('HTTPS_PROXY') ?: (getenv('HTTP_PROXY') ?: '')),
+        'fallback_base' => getenv('GEMINI_FALLBACK_BASE') ?: '',
     ];
 }
 
@@ -286,13 +295,38 @@ function _gemini_call(array $parts, array $opts = []) {
             }
             if ($isGeo) {
                 error_log("GOOGLE GEO ERROR: ".($json['error']['message'] ?? ''));
+                // Revisi R6 — otomatis retry via reverse-proxy fallback bila di-set.
+                $fallback = getenv('GEMINI_FALLBACK_BASE') ?: ($_ENV['GEMINI_FALLBACK_BASE'] ?? '') ?: ($_SERVER['GEMINI_FALLBACK_BASE'] ?? '');
+                if ($fallback && !isset($opts['__geo_retried'])) {
+                    $optsRetry = $opts; $optsRetry['__geo_retried'] = 1;
+                    // panggil ulang dengan endpoint alternatif
+                    $prevBase = GEMINI_API_BASE;
+                    if (!defined('GEMINI_API_BASE_RUNTIME')) {
+                        define('GEMINI_API_BASE_RUNTIME', rtrim((string)$fallback,'/'));
+                    }
+                    $altUrl = rtrim((string)$fallback,'/') . '/models/' . rawurlencode($model) . ':generateContent';
+                    $ch2 = curl_init($altUrl);
+                    $co2 = [CURLOPT_POST=>true, CURLOPT_RETURNTRANSFER=>true,
+                        CURLOPT_TIMEOUT=>60, CURLOPT_CONNECTTIMEOUT=>15,
+                        CURLOPT_HTTPHEADER=>$headers, CURLOPT_POSTFIELDS=>$postBody];
+                    if (getenv('GEMINI_INSECURE_SSL')==='1') { $co2[CURLOPT_SSL_VERIFYPEER]=false; $co2[CURLOPT_SSL_VERIFYHOST]=0; }
+                    curl_setopt_array($ch2, $co2);
+                    $resp2 = curl_exec($ch2); $code2 = (int)curl_getinfo($ch2, CURLINFO_HTTP_CODE); curl_close($ch2);
+                    $j2 = json_decode((string)$resp2, true);
+                    if (is_array($j2) && $code2>=200 && $code2<300 && !isset($j2['error'])) {
+                        $t2='';
+                        if (isset($j2['candidates'][0]['content']['parts']) && is_array($j2['candidates'][0]['content']['parts'])) {
+                            foreach ($j2['candidates'][0]['content']['parts'] as $pp) if (isset($pp['text'])) $t2 .= $pp['text'];
+                        }
+                        return ['ok'=>true,'text'=>$t2,'err'=>'','raw'=>$j2,'via'=>'fallback_base'];
+                    }
+                }
                 $msg = 'Layanan Gemini AI menolak permintaan karena lokasi server tidak didukung Google '
                      . '("User location is not supported for the API use"). '
-                     . 'Solusi cepat: (1) jalankan PHP via proxy/VPN ke region yang didukung — set env '
-                     . 'GEMINI_HTTP_PROXY=http://user:pass@host:port lalu reload halaman; '
-                     . '(2) buat API key baru di Google AI Studio dari akun yang berada di region didukung '
-                     . '(mis. US/SG/JP) lalu set di GEMINI_API_KEY; '
-                     . '(3) deploy ke Cloud Run region us-central1 / asia-southeast1 yang mendukung Gemini.';
+                     . 'Solusi cepat: (1) set env GEMINI_HTTP_PROXY=http://user:pass@host:port (proxy/VPN ke US/SG/JP) lalu reload; '
+                     . '(2) set env GEMINI_API_BASE=https://<reverse-proxy-anda>/v1beta (mis. Cloudflare Worker) atau GEMINI_FALLBACK_BASE untuk auto-retry; '
+                     . '(3) buat API key baru dari akun Google di region didukung lalu set GEMINI_API_KEY; '
+                     . '(4) deploy PHP ke Cloud Run region us-central1 / asia-southeast1.';
             }
             return ['ok'=>false,'text'=>'','err'=>$msg,'code'=>($isGeo?'GEO_BLOCK':($isQuota?'QUOTA':($isOverloaded?'OVERLOADED':'ERR'))),'raw'=>$json];
 

@@ -193,15 +193,24 @@ $paketOpts = ['gratis'=>'🆓 Gratis','pro'=>'⭐ Pro','komunitas'=>'👥 Komuni
 // ==== Statistik total MEMBER AKTIF per komunitas (Revisi R2 #7) ====
 $statsKom = [];
 try {
+    // Revisi R6 (Juli 2026) — hitung member aktif per komunitas dari gabungan
+    // tabel pivot user_komunitas DAN kolom lama users.komunitas_id, agar data
+    // lama (sebelum migrasi pivot) juga terhitung.
     $statsKom = db_all("
+        WITH pairs AS (
+            SELECT user_id, komunitas_id FROM user_komunitas
+            UNION
+            SELECT id AS user_id, komunitas_id FROM users WHERE komunitas_id IS NOT NULL
+        )
         SELECT k.id, k.nama,
-               COUNT(DISTINCT CASE
-                   WHEN COALESCE(u.aktif::text,'t') IN ('t','true','1','y','yes') THEN u.id
-               END) AS total_aktif,
+               COUNT(DISTINCT u.id) FILTER (
+                 WHERE u.id IS NOT NULL
+                   AND COALESCE(u.aktif::text,'t') IN ('t','true','1','y','yes')
+               ) AS total_aktif,
                COUNT(DISTINCT u.id) AS total_all
         FROM komunitas k
-        LEFT JOIN user_komunitas uk ON uk.komunitas_id = k.id
-        LEFT JOIN users u ON u.id = uk.user_id AND u.role <> 'admin'
+        LEFT JOIN pairs p  ON p.komunitas_id = k.id
+        LEFT JOIN users u  ON u.id = p.user_id AND u.role <> 'admin'
         GROUP BY k.id, k.nama
         ORDER BY total_aktif DESC, k.nama
     ");
@@ -478,7 +487,7 @@ include __DIR__.'/../includes/header.php'; ?>
   <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-warning"><i class="bi bi-shield-check"></i> Reset</button></div>
 </form></div></div>
 
-<div class="modal fade" id="edt<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="post" class="modal-content">
+<div class="modal fade" id="edt<?= $u['id'] ?>" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form method="post" class="modal-content">
   <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="edit"><input type="hidden" name="id" value="<?= $u['id'] ?>">
   <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Member</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">

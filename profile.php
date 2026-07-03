@@ -311,7 +311,7 @@ include __DIR__.'/includes/header.php';
         <span class="pill">⭐ <?= $xp ?> XP</span></div>
       <?php /* Revisi R4 (Juli 2026) — Paket Member + Masa Aktif (auto downgrade jika expired) */ ?>
       <div class="mt-2"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($me)) ?></div>
-      <div class="mt-1"><?= paket_expiry_label($me) ?></div>
+      <div class="mt-1"><span class="small text-muted">Masa Expire:</span> <?= paket_expiry_label($me) ?></div>
       <?php /* Revisi R2 (Juli 2026) — Tampilkan komunitas member (mendukung multi-komunitas). */ ?>
       <?php
         $__mkl = [];
