@@ -1,4 +1,7 @@
 <?php
+// Revisi R2 (Juli 2026) — buffer output supaya warning/notice PHP tidak
+// mencemari body JSON (penyebab '<br />' di dalam JSON parse client-side).
+if (!ob_get_level()) ob_start();
 /**
  * Revisi 16 Juni 2026 — Endpoint AI umum (Google Gemini 2.5 Flash).
  * Task yang didukung:
@@ -13,6 +16,18 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/ai_gemini.php';
 require_login();
 header('Content-Type: application/json');
+register_shutdown_function(function(){
+    $e = error_get_last();
+    if ($e && in_array($e['type'] ?? 0, [E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR], true)) {
+        if (ob_get_level()) ob_end_clean();
+        echo json_encode(['ok'=>false,'err'=>'PHP fatal: '.$e['message']]);
+    } elseif (ob_get_level()) {
+        // buang sisa buffer jika belum di-flush
+        @ob_end_flush();
+    }
+});
+// bersihkan buffer sekali sebelum output JSON utama (buang notice/warning).
+if (ob_get_level()) { ob_clean(); }
 
 $u = current_user(); $uid = (int)$u['id'];
 

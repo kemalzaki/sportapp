@@ -312,6 +312,25 @@ include __DIR__.'/includes/header.php';
       <?php /* Revisi R4 (Juli 2026) — Paket Member + Masa Aktif (auto downgrade jika expired) */ ?>
       <div class="mt-2"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($me)) ?></div>
       <div class="mt-1"><?= paket_expiry_label($me) ?></div>
+      <?php /* Revisi R2 (Juli 2026) — Tampilkan komunitas member (mendukung multi-komunitas). */ ?>
+      <?php
+        $__mkl = [];
+        try {
+          $__mkl = db_all("SELECT k.nama FROM user_komunitas uk JOIN komunitas k ON k.id=uk.komunitas_id WHERE uk.user_id=$1 ORDER BY k.nama", [(int)$me['id']]);
+        } catch (Throwable $e) {}
+        if (!$__mkl && !empty($me['komunitas_id'])) {
+          try { $__mkl = db_all("SELECT nama FROM komunitas WHERE id=$1", [(int)$me['komunitas_id']]); } catch (Throwable $e) {}
+        }
+      ?>
+      <?php if ($__mkl): ?>
+        <div class="mt-2">
+          <span class="small text-muted d-block mb-1"><i class="bi bi-people-fill text-success"></i> Komunitas Saya:</span>
+          <?php foreach($__mkl as $__k): ?>
+            <span class="badge bg-success-subtle text-success border me-1"><i class="bi bi-people-fill"></i> <?= htmlspecialchars($__k['nama']) ?></span>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
       <?php if (paket_user($me) !== 'komunitas'): ?>
         <div class="mt-1"><a class="btn btn-sm btn-outline-primary" href="/paket_upgrade.php"><i class="bi bi-stars"></i> Upgrade / Perpanjang</a></div>
       <?php else: ?>

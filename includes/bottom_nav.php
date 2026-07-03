@@ -212,7 +212,7 @@ body{ padding-bottom: calc(6rem + env(safe-area-inset-bottom,0px)) !important; }
    Fallback: browser lama tetap berjalan normal (nav re-render seperti biasa).
    ================================================================ */ ?>
 <style>
-@view-transition { navigation: auto; }
+/* Revisi R2 Juli 2026: nonaktifkan MPA View Transitions agar konten tidak sempat "blank" saat pindah halaman; bottom nav tetap terlihat karena position:fixed. */
 @media (max-width: 991.98px){
   .gj-nav { view-transition-name: gj-bottom-nav; }
   .gj-topbar { view-transition-name: gj-topbar; }

@@ -186,7 +186,7 @@ function _gemini_call(array $parts, array $opts = []) {
     $postBody = json_encode($body, JSON_UNESCAPED_UNICODE);
 
     $lastErr = ''; $lastJson = null; $lastKind = '';
-    error_log("===== GEMINI KEYS =====");
+    // error_log("===== GEMINI KEYS ====="); // Revisi R2: dimatikan
     foreach ($keys as $keyIdx => $key) {
         $kind = _gemini_key_kind($key);
         $lastKind = $kind;
@@ -229,12 +229,12 @@ function _gemini_call(array $parts, array $opts = []) {
             $cerr = curl_error($ch);
 
             // DEBUG
-            error_log("===== GEMINI DEBUG =====");
-            error_log("URL      : ".$url);
-            error_log("HTTP     : ".$code);
-            error_log("MODEL    : ".$model);
-            error_log("KEY TYPE : ".$kind);
-            error_log("RESP     : ".$resp);
+            // error_log("===== GEMINI DEBUG =====");
+            // error_log("URL      : ".$url);
+            // error_log("HTTP     : ".$code);
+            // error_log("MODEL    : ".$model);
+            // error_log("KEY TYPE : ".$kind);
+            // error_log("RESP     : ".$resp);
 
             curl_close($ch);
             $transient = ($resp===false) || ($code>=500 && $code<600);

@@ -163,6 +163,23 @@ include __DIR__.'/includes/header.php';
       <span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($user)) ?>
       <span class="ms-2"><?= paket_expiry_label($user) ?></span>
     </div>
+    <?php /* Revisi R2 (Juli 2026) — Tampilkan komunitas dari user publik. */ ?>
+    <?php
+      $__ukl = [];
+      try { $__ukl = db_all("SELECT k.nama FROM user_komunitas uk JOIN komunitas k ON k.id=uk.komunitas_id WHERE uk.user_id=$1 ORDER BY k.nama", [(int)$id]); } catch (Throwable $e) {}
+      if (!$__ukl) {
+        try { $__ukl = db_all("SELECT k.nama FROM komunitas k JOIN users u ON u.komunitas_id=k.id WHERE u.id=$1", [(int)$id]); } catch (Throwable $e) {}
+      }
+    ?>
+    <?php if ($__ukl): ?>
+      <div class="mt-1">
+        <span class="small text-muted"><i class="bi bi-people-fill text-success"></i> Komunitas:</span>
+        <?php foreach($__ukl as $__k): ?>
+          <span class="badge bg-success-subtle text-success border"><?= htmlspecialchars($__k['nama']) ?></span>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
     <?php if(!empty($user['strava_account'])):
       $sv = trim($user['strava_account']);
       // Revisi 19 Juni 2026 (R2) — selalu arahkan ke domain strava.com (jangan ke Google).
