@@ -119,21 +119,25 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   <li class="breadcrumb-item active">Upgrade Paket</li>
 </ol></nav>
 
-<div class="paket-hero shadow-sm mb-3">
-  <img src="/assets/img/paket_hero.jpg" alt="" class="paket-hero-bg">
+<div class="paket-hero shadow-lg mb-3">
+  <img src="/assets/img/paket_hero.jpg" alt="Pelari" class="paket-hero-bg">
   <div class="paket-hero-overlay"></div>
   <div class="paket-hero-body">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-      <h3 class="mb-0 text-white"><i class="bi bi-stars"></i> Upgrade Paket Member</h3>
+    <div class="paket-hero-brand mb-3">
+      <img src="/assets/img/logo_kawan_keringat.png" alt="Kawan Keringat" class="paket-hero-logo">
+    </div>
+    <span class="paket-hero-eyebrow"><i class="bi bi-stars"></i> Upgrade Keanggotaan</span>
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-2">
+      <h3 class="mb-0 text-white fw-bold display-6">Naik Level, Raih Lebih</h3>
       <div class="small text-white-50">Paket saat ini: <?= paket_badge($curPaket) ?></div>
     </div>
-    <p class="text-white-50 small mb-0">
+    <p class="text-white-50 small mb-0" style="max-width:640px">
       Pilih paket lalu klik <strong class="text-white">Bayar via WhatsApp</strong>. Anda akan diarahkan ke chat
       admin dengan data pesanan sudah terisi otomatis — cukup kirim untuk mendapat instruksi
       pembayaran &amp; aktivasi paket.
     </p>
     <?php if (!empty($_SESSION['flash'])): ?>
-      <div class="alert alert-light mt-2 mb-0 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
+      <div class="alert alert-light mt-3 mb-0 small"><?= htmlspecialchars($_SESSION['flash']) ?></div>
       <?php unset($_SESSION['flash']); ?>
     <?php endif; ?>
   </div>
@@ -260,12 +264,15 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
 <?php endif; ?>
 
 <style>
-  /* Revisi R4 (Juli 2026) — tampilan paket_upgrade.php dibuat sesuai tema (teal/cyan). */
-  :root{ --pk-teal:#0ea5e9; --pk-teal-dark:#0369a1; --pk-ink:#0f172a; --pk-soft:#f1f5f9; }
-  .paket-hero{ position:relative; border-radius:1rem; overflow:hidden; background:var(--pk-ink); min-height:170px; }
-  .paket-hero-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.85; }
-  .paket-hero-overlay{ position:absolute; inset:0; background:linear-gradient(120deg, rgba(3,105,161,.85) 0%, rgba(15,23,42,.55) 60%, rgba(15,23,42,.15) 100%); }
-  .paket-hero-body{ position:relative; padding:1.5rem 1.25rem; z-index:2; }
+  /* Revisi Juli 2026 — tampilan paket_upgrade.php dibuat elegan nuansa BIRU. */
+  :root{ --pk-teal:#1d4ed8; --pk-teal-dark:#0a2472; --pk-ink:#0a1633; --pk-soft:#eef2ff; }
+  .paket-hero{ position:relative; border-radius:1.25rem; overflow:hidden; background:var(--pk-ink); min-height:260px; }
+  .paket-hero-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:right center; opacity:.95; }
+  .paket-hero-overlay{ position:absolute; inset:0; background:linear-gradient(105deg, rgba(10,22,51,.96) 0%, rgba(10,36,114,.82) 42%, rgba(29,78,216,.30) 72%, rgba(10,22,51,.15) 100%); }
+  .paket-hero-body{ position:relative; padding:1.75rem 1.5rem; z-index:2; }
+  .paket-hero-logo{ height:64px; width:auto; filter:drop-shadow(0 4px 12px rgba(0,0,0,.4)); }
+  .paket-hero-eyebrow{ display:inline-block; background:rgba(255,255,255,.14); backdrop-filter:blur(4px); color:#dbeafe; font-size:.72rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase; padding:.35rem .8rem; border-radius:999px; }
+  .paket-hero h3{ text-shadow:0 2px 16px rgba(0,0,0,.35); }
   .paket-card{
     transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     border:1px solid #e2e8f0 !important; border-radius:1rem; background:#fff;

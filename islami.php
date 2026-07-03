@@ -331,56 +331,82 @@ $pageSkeleton = 'feed';
 
 <!-- KOMPAS KIBLAT dihapus sesuai revisi 6 Juni 2026 -->
 
-<div class="row g-3 mb-3">
-  <!-- Revisi 27 Juni 2026 #8 — Kalender Hijriyah dipindah ke atas Al-Qur'an Digital -->
-  <div class="col-6 col-md-3"><a href="/kalender_hijriyah.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-calendar3 fs-2 text-success"></i><div class="fw-semibold mt-1">Kalender Hijriyah</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/quran.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-success"></i><div class="fw-semibold mt-1">Al-Qur'an Digital</div></div></a></div>
+<?php
+/* Revisi Juli 2026 — menu Hub Islami dirapikan per KATEGORI.
+   Setiap item: [href, label, ikon bootstrap, warna, border, deskripsi]. */
+$isAdmin  = (!empty($u) && in_array(strtolower($u['role'] ?? ''), ['admin','koordinator','pic'], true));
+$isSuper  = (!empty($u) && ($u['role'] ?? '') === 'admin');
 
-  <!-- R17 #3-#6: setelah Al-Qur'an Digital → Ensiklopedia Hadist, Belajar Tajwid, Sejarah Nabi & Rasul, lalu Tata Cara Wudhu/Shalat/Rawatib/Duha-Tahajud -->
-  <div class="col-6 col-md-3"><a href="/hadist.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Ensiklopedia Hadist</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/tajwid.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-mic-fill fs-2 text-success"></i><div class="fw-semibold mt-1">Belajar Tajwid</div><div class="small text-muted">Hukum nun sukun, mim, mad, qalqalah</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/sejarah_nabi.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-book fs-2 text-warning"></i><div class="fw-semibold mt-1">Sejarah Nabi &amp; Rasul</div><div class="small text-muted">25 Nabi &amp; Rasul</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/wudhu_tatacara.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-droplet-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Tata Cara Wudhu</div><div class="small text-muted">Bacaan &amp; tuntunan</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/shalat_tatacara.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-person-arms-up fs-2 text-primary"></i><div class="fw-semibold mt-1">Tata Cara Shalat</div><div class="small text-muted">Bacaan &amp; tuntunan</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/shalat_rawatib.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-stars fs-2 text-warning"></i><div class="fw-semibold mt-1">Shalat Sunnah Rawatib</div><div class="small text-muted">12 rakaat mengiringi fardhu</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/shalat_sunnah.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-sun fs-2 text-info"></i><div class="fw-semibold mt-1">Shalat Duha &amp; Tahajud</div><div class="small text-muted">Sunnah penambah pahala</div></div></a></div>
-  <!-- Revisi (28 Juni 2026) — Menu BARU: Panduan Shalat Jama' (di bawah Shalat Duha & Tahajud). -->
-  <div class="col-6 col-md-3"><a href="/panduan_shalat_jama.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-arrow-left-right fs-2 text-warning"></i><div class="fw-semibold mt-1">Panduan Shalat Jama'</div><div class="small text-muted">Saat berkegiatan / di lapangan</div></div></a></div>
-  <!-- Revisi 27 Juni 2026 — Monitoring Tahajud & Duha Bulanan dipindah ke halaman tersendiri agar islami.php tetap ringkas -->
-  <div class="col-6 col-md-3"><a href="/monitoring_tahajud.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-calendar2-check-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Monitoring Tahajud &amp; Duha</div><div class="small text-muted">Rekap bulanan shalat sunnah</div></div></a></div>
+$islamiKategori = [
+  'Kitab' => [
+    ['/quran.php','Al-Qur\'an Digital','bi-book','success','',''],
+    ['/hadist.php','Ensiklopedia Hadist','bi-book-half','success','',''],
+  ],
+  'Pengingat Harian' => [
+    ['/jadwal_sholat.php','Jadwal Shalat','bi-clock-history','primary','border-primary','Waktu shalat 5 waktu'],
+    ['/artikel_sunnah.php','Artikel Sunnah','bi-journal-text','success','',''],
+    ['/feed_islami.php','Feed Quote Komunitas','bi-chat-dots','warning','',''],
+    ['/doa.php','Doa Harian','bi-chat-quote','warning','',''],
+    ['/dzikir.php','Dzikir Pagi & Petang','bi-brightness-high','info','',''],
+  ],
+  'Monitoring Harian' => [
+    ['/catatan_hafalan.php','Catatan Hafalan','bi-bookmark-heart','success','border-success','Catat &amp; pantau hafalan Qur\'an / Hadist'],
+    ['/catatan_baca_buku.php','Catatan Baca Buku','bi-journal-check','info','border-info','Pantau progress baca dari Kajian Literatur'],
+    ['/monitoring_tahajud.php','Monitoring Tahajud & Duha','bi-calendar2-check-fill','info','border-info','Rekap bulanan shalat sunnah'],
+    ['/tilawah_harian.php','Monitoring Tilawah Harian','bi-book-half','success','border-success','Diri sendiri / keluarga'],
+    ['/silat_lidah.php','Monitoring Silat Lidah','bi-chat-square-quote-fill','info','border-info','Latih komunikasi ke teman sebaya'],
+  ],
+  'Panduan / Tata Cara' => [
+    ['/shalat_rawatib.php','Shalat Sunnah Rawatib','bi-stars','warning','border-warning','12 rakaat mengiringi fardhu'],
+    ['/shalat_sunnah.php','Shalat Duha & Tahajud','bi-sun','info','border-info','Sunnah penambah pahala'],
+    ['/panduan_shalat_jama.php','Panduan Shalat Jama\'','bi-arrow-left-right','warning','border-warning','Saat berkegiatan / di lapangan'],
+    ['/panduan_adzan.php','Panduan Adzan','bi-megaphone-fill','primary','border-primary','Lafadz, terjemah, cara menjawab'],
+    ['/wudhu_tatacara.php','Tata Cara Wudhu','bi-droplet-fill','info','border-info','Bacaan &amp; tuntunan'],
+    ['/shalat_tatacara.php','Tata Cara Shalat','bi-person-arms-up','primary','border-primary','Bacaan &amp; tuntunan'],
+  ],
+  'Literatur / Bacaan' => [
+    ['/sejarah_nabi.php','Sejarah Nabi &amp; Rasul','bi-book','warning','','25 Nabi &amp; Rasul'],
+    ['/kajian.php','Kajian Literatur Buku','bi-journal-bookmark','info','',''],
+    ['/rukun_islam.php','Rukun Islam','bi-bricks','success','border-success','5 Pilar · Syarat Sah &amp; Wajib'],
+    ['/jam_tidur_islami.php','Jam Tidur Disarankan &amp; Dilarang','bi-moon-fill','info','border-info','Sunnah tidur Rasulullah &#65018;'],
+  ],
+  'Fitur Lainnya' => [
+    ['/kalender_hijriyah.php','Kalender Hijriyah','bi-calendar3','success','border-success',''],
+    ['/leaderboard_islami.php','Leaderboard Amal','bi-bar-chart-line','danger','',''],
+    ['/statistik_islami.php','Statistik & Streak','bi-graph-up','primary','',''],
+    ['/doa_antar_member.php','Saling Mendoakan','bi-heart','danger','',''],
+    ['/challenge.php','Challenge Islami','bi-trophy','warning','',''],
+    ['/tajwid.php','Belajar Tajwid','bi-mic-fill','success','border-success','Hukum nun sukun, mim, mad, qalqalah'],
+  ],
+];
 
-  <!-- Revisi (28 Juni 2026) — Menu BARU: Panduan Adzan (disimpan di atas Jadwal Sholat). -->
-  <div class="col-6 col-md-3"><a href="/panduan_adzan.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-megaphone-fill fs-2 text-primary"></i><div class="fw-semibold mt-1">Panduan Adzan</div><div class="small text-muted">Lafadz, terjemah, cara menjawab</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/jadwal_sholat.php" class="card text-decoration-none h-100 border-primary"><div class="card-body text-center"><i class="bi bi-clock-history fs-2 text-primary"></i><div class="fw-semibold mt-1">Jadwal Sholat</div><div class="small text-muted">Waktu sholat 5 waktu</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/doa.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-chat-quote fs-2 text-warning"></i><div class="fw-semibold mt-1">Doa Harian</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/catatan_hafalan.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-bookmark-heart fs-2 text-success"></i><div class="fw-semibold mt-1">Catatan Hafalan</div><div class="small text-muted">Catat &amp; pantau hafalan Qur'an / Hadist</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/kajian.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-journal-bookmark fs-2 text-info"></i><div class="fw-semibold mt-1">Kajian Literatur Buku</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/catatan_baca_buku.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-journal-check fs-2 text-info"></i><div class="fw-semibold mt-1">Catatan Baca Buku</div><div class="small text-muted">Pantau progress baca dari Kajian Literatur</div></div></a></div>
+// Kategori Khusus Admin (hanya tampil sesuai role)
+$adminItems = [];
+if ($isAdmin) $adminItems[] = ['/pantau_progress_member.php','Pantau Progress Islami Member','bi-graph-up-arrow','danger','border-danger','Admin · Tahajud, Doa, Hafalan, Buku'];
+if ($isSuper) $adminItems[] = ['/admin/challenge.php','Kelola Challenge Islami','bi-trophy-fill','warning','border-warning','Admin · CRUD Challenge'];
+if ($adminItems) $islamiKategori['Khusus Admin'] = $adminItems;
 
-  <div class="col-6 col-md-3"><a href="/dzikir.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-brightness-high fs-2 text-info"></i><div class="fw-semibold mt-1">Dzikir Pagi & Petang</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/challenge.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-trophy fs-2 text-warning"></i><div class="fw-semibold mt-1">Challenge Islami</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/leaderboard_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-bar-chart-line fs-2 text-danger"></i><div class="fw-semibold mt-1">Leaderboard Amal</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/statistik_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-graph-up fs-2 text-primary"></i><div class="fw-semibold mt-1">Statistik & Streak</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/artikel_sunnah.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-journal-text fs-2 text-success"></i><div class="fw-semibold mt-1">Artikel Sunnah</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/feed_islami.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-chat-dots fs-2 text-warning"></i><div class="fw-semibold mt-1">Feed Quote Komunitas</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/doa_antar_member.php" class="card text-decoration-none h-100"><div class="card-body text-center"><i class="bi bi-heart fs-2 text-danger"></i><div class="fw-semibold mt-1">Saling Mendoakan</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/rukun_islam.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-bricks fs-2 text-success"></i><div class="fw-semibold mt-1">Rukun Islam</div><div class="small text-muted">5 Pilar · Syarat Sah &amp; Wajib</div></div></a></div>
+$renderKartu = function(array $it) {
+  [$href,$label,$ikon,$warna,$border,$desc] = $it;
+  $b = $border ? ' '.$border : '';
+  echo '<div class="col-6 col-md-3"><a href="'.$href.'" class="card text-decoration-none h-100'.$b.'"><div class="card-body text-center">';
+  echo '<i class="bi '.$ikon.' fs-2 text-'.$warna.'"></i>';
+  echo '<div class="fw-semibold mt-1">'.$label.'</div>';
+  if ($desc !== '') echo '<div class="small text-muted">'.$desc.'</div>';
+  echo '</div></a></div>';
+};
+?>
+<?php foreach ($islamiKategori as $namaKat => $items): ?>
+  <div class="islami-kategori mb-2 mt-3">
+    <h2 class="h6 fw-bold text-success mb-2 d-flex align-items-center gap-2">
+      <i class="bi bi-grid-3x3-gap-fill"></i> <?= htmlspecialchars($namaKat, ENT_QUOTES) ?>
+    </h2>
+    <div class="row g-3">
+      <?php foreach ($items as $it) $renderKartu($it); ?>
+    </div>
+  </div>
+<?php endforeach; ?>
 
-  <!-- Revisi R26 (28 Juni 2026) — Menu BARU: Jam Tidur yang Disarankan & Dilarang (sunnah Rasul). -->
-  <div class="col-6 col-md-3"><a href="/jam_tidur_islami.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-moon-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Jam Tidur Disarankan &amp; Dilarang</div><div class="small text-muted">Sunnah tidur Rasulullah ﷺ</div></div></a></div>
-
-  <!-- Revisi Juli 2026 — Monitoring Tilawah Harian & Silat Lidah. -->
-  <div class="col-6 col-md-3"><a href="/tilawah_harian.php" class="card text-decoration-none h-100 border-success"><div class="card-body text-center"><i class="bi bi-book-half fs-2 text-success"></i><div class="fw-semibold mt-1">Monitoring Tilawah Harian</div><div class="small text-muted">Diri sendiri / keluarga</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="/silat_lidah.php" class="card text-decoration-none h-100 border-info"><div class="card-body text-center"><i class="bi bi-chat-square-quote-fill fs-2 text-info"></i><div class="fw-semibold mt-1">Monitoring Silat Lidah</div><div class="small text-muted">Latih komunikasi ke teman sebaya</div></div></a></div>
-
-  <?php if (!empty($u) && in_array(strtolower($u['role'] ?? ''), ['admin','koordinator','pic'], true)): ?>
-  <div class="col-6 col-md-3"><a href="/pantau_progress_member.php" class="card text-decoration-none h-100 border-danger"><div class="card-body text-center"><i class="bi bi-graph-up-arrow fs-2 text-danger"></i><div class="fw-semibold mt-1">Pantau Progress Islami Member</div><div class="small text-muted">Admin · Tahajud, Doa, Hafalan, Buku</div></div></a></div>
-  <?php endif; ?>
-
-  <?php if (!empty($u) && ($u['role'] ?? '') === 'admin'): ?>
-  <div class="col-6 col-md-3"><a href="/admin/challenge.php" class="card text-decoration-none h-100 border-warning"><div class="card-body text-center"><i class="bi bi-trophy-fill fs-2 text-warning"></i><div class="fw-semibold mt-1">Kelola Challenge Islami</div><div class="small text-muted">Admin · CRUD Challenge</div></div></a></div>
-  <?php endif; ?>
-</div>
 
 <!-- Revisi 15 Juni 2026: Panel TATA CARA SHALAT, RAWATIB, DUHA/TAHAJUD, RUKUN ISLAM
      dipindah ke halaman tersendiri (lihat icon-card di grid atas). -->
