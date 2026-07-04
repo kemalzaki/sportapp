@@ -668,10 +668,60 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!_installBtn) return;
   _installBtn.addEventListener('click', async () => {
     if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; }
-    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon KawanKeringat akan muncul di home screen HP kamu.'); }
+    else { const m = document.getElementById('pwaInstallModal'); if (m) new bootstrap.Modal(m).show(); }
   });
 });
 </script>
+
+<!-- Revisi R8 Juli 2026 — Popup "Tambahkan Pintasan ke HP" (Bootstrap modal, URL tidak ditampilkan) -->
+<div class="modal fade" id="pwaInstallModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:22px;overflow:hidden;border:0;box-shadow:0 20px 40px -18px rgba(15,23,42,.4)">
+      <div class="modal-header border-0 pb-1" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.4rem;"><i class="bi bi-phone-fill"></i></div>
+          <div>
+            <h5 class="modal-title mb-0" style="font-weight:800;letter-spacing:-.01em;">Pasang ke Layar Utama</h5>
+            <div style="font-size:.8rem;opacity:.88;">KawanKeringat siap dipakai seperti aplikasi</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body pt-3">
+        <p class="small text-muted mb-3">Ikuti langkah di bawah agar ikon aplikasi muncul di layar utama HP kamu.</p>
+
+        <div class="mb-3 p-3" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-android2 text-success fs-4"></i>
+            <strong>Android · Chrome / Edge</strong>
+          </div>
+          <ol class="small mb-0 ps-3">
+            <li>Ketuk tombol menu <i class="bi bi-three-dots-vertical"></i> di pojok kanan atas browser.</li>
+            <li>Pilih <strong>“Tambahkan ke Layar Utama”</strong> atau <strong>“Install app”</strong>.</li>
+            <li>Konfirmasi. Ikon KawanKeringat akan muncul di home screen.</li>
+          </ol>
+        </div>
+
+        <div class="mb-1 p-3" style="background:#fdf4ff;border:1px solid #f5d0fe;border-radius:14px;">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-apple text-dark fs-4"></i>
+            <strong>iPhone / iPad · Safari</strong>
+          </div>
+          <ol class="small mb-0 ps-3">
+            <li>Ketuk tombol <strong>Bagikan</strong> <i class="bi bi-box-arrow-up"></i> di bagian bawah Safari.</li>
+            <li>Gulir dan pilih <strong>“Tambahkan ke Layar Utama”</strong>.</li>
+            <li>Ketuk <strong>Tambah</strong>. Ikon aplikasi akan muncul.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal" style="border-radius:12px;padding:.7rem 1rem;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#6366f1);border:0;">
+          <i class="bi bi-check2-circle me-1"></i> Mengerti
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Section "Info & Wawasan" dipindah ke Menu Navigasi Mobile (revisi 12 Juni 2026). -->
 

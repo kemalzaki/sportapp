@@ -8,7 +8,7 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
 send_security_headers();
-require_role(['admin']);
+require_role(['superadmin']);
 
 try {
     db_exec("CREATE TABLE IF NOT EXISTS komunitas_data (

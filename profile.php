@@ -111,28 +111,33 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         db_exec("UPDATE users SET nickname=NULL WHERE id=$1", [(int)$u['id']]);
     } elseif ($a==='pertemanan_add') {
         // Revisi Juli 2026 — Fitur Pertemananku
+        // Revisi R8 (Juli 2026) — tambah kolom tanggal_terakhir_ketemu
+        try { db_exec("ALTER TABLE pertemanan ADD COLUMN IF NOT EXISTS tanggal_terakhir_ketemu DATE"); } catch (Throwable $e) {}
         $nm  = mb_substr(trim($_POST['nama'] ?? ''), 0, 120);
         $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal_kenalan'] ?? '') ? $_POST['tanggal_kenalan'] : null;
+        $tkt = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal_terakhir_ketemu'] ?? '') ? $_POST['tanggal_terakhir_ketemu'] : null;
         $kd  = max(0, min(5, (int)($_POST['kedekatan'] ?? 0)));
         $ct  = mb_substr(trim($_POST['catatan'] ?? ''), 0, 500);
         if ($nm !== '') {
             try {
-                db_exec("INSERT INTO pertemanan(user_id,nama,tanggal_kenalan,kedekatan,catatan)
-                         VALUES($1,$2,$3,NULLIF($4,0),NULLIF($5,''))",
-                    [(int)$u['id'], $nm, $tgl, $kd, $ct]);
+                db_exec("INSERT INTO pertemanan(user_id,nama,tanggal_kenalan,tanggal_terakhir_ketemu,kedekatan,catatan)
+                         VALUES($1,$2,$3,$4,NULLIF($5,0),NULLIF($6,''))",
+                    [(int)$u['id'], $nm, $tgl, $tkt, $kd, $ct]);
             } catch (Throwable $e) {}
         }
     } elseif ($a==='pertemanan_update') {
+        try { db_exec("ALTER TABLE pertemanan ADD COLUMN IF NOT EXISTS tanggal_terakhir_ketemu DATE"); } catch (Throwable $e) {}
         $id  = (int)($_POST['id'] ?? 0);
         $nm  = mb_substr(trim($_POST['nama'] ?? ''), 0, 120);
         $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal_kenalan'] ?? '') ? $_POST['tanggal_kenalan'] : null;
+        $tkt = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal_terakhir_ketemu'] ?? '') ? $_POST['tanggal_terakhir_ketemu'] : null;
         $kd  = max(0, min(5, (int)($_POST['kedekatan'] ?? 0)));
         $ct  = mb_substr(trim($_POST['catatan'] ?? ''), 0, 500);
         if ($id && $nm !== '') {
             try {
-                db_exec("UPDATE pertemanan SET nama=$1, tanggal_kenalan=$2, kedekatan=NULLIF($3,0), catatan=NULLIF($4,'')
-                         WHERE id=$5 AND user_id=$6",
-                    [$nm, $tgl, $kd, $ct, $id, (int)$u['id']]);
+                db_exec("UPDATE pertemanan SET nama=$1, tanggal_kenalan=$2, tanggal_terakhir_ketemu=$3, kedekatan=NULLIF($4,0), catatan=NULLIF($5,'')
+                         WHERE id=$6 AND user_id=$7",
+                    [$nm, $tgl, $tkt, $kd, $ct, $id, (int)$u['id']]);
             } catch (Throwable $e) {}
         }
     } elseif ($a==='pertemanan_delete') {
@@ -522,13 +527,14 @@ include __DIR__.'/includes/header.php';
       <h6 class="fw-semibold mb-2"><i class="bi bi-people-fill text-info"></i> Pertemananku
         <span class="badge bg-info-subtle text-info-emphasis ms-1"><?= count($ptRows) ?></span>
       </h6>
-      <p class="small text-muted mb-2">Catat teman-teman Anda: nama, tanggal kenalan, dan level kedekatan (1 = sekilas, 5 = sahabat karib).</p>
+      <p class="small text-muted mb-2">Catat teman-teman Anda: nama, tanggal kenalan, tanggal terakhir ketemu, dan level kedekatan (1 = sekilas, 5 = sahabat karib).</p>
 
       <form method="post" class="row g-1 mb-2">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="pertemanan_add">
-        <div class="col-md-4"><input class="form-control form-control-sm" name="nama" maxlength="120" placeholder="Nama teman *" required></div>
-        <div class="col-md-3"><input type="date" class="form-control form-control-sm" name="tanggal_kenalan"></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="nama" maxlength="120" placeholder="Nama teman *" required></div>
+        <div class="col-md-2"><input type="date" class="form-control form-control-sm" name="tanggal_kenalan" title="Kenal sejak"></div>
+        <div class="col-md-2"><input type="date" class="form-control form-control-sm" name="tanggal_terakhir_ketemu" title="Tanggal terakhir ketemu"></div>
         <div class="col-md-2">
           <select class="form-select form-select-sm" name="kedekatan">
             <option value="0">Level –</option>
@@ -544,23 +550,33 @@ include __DIR__.'/includes/header.php';
       </form>
 
       <div class="table-responsive" style="max-height:360px; overflow:auto;">
-        <table class="table table-sm mb-0 align-middle" style="min-width:760px;">
+        <table class="table table-sm mb-0 align-middle" style="min-width:860px;">
           <thead class="table-light" style="position:sticky;top:0;z-index:2;">
             <tr>
-              <th style="min-width:180px">Nama</th>
-              <th style="min-width:120px">Kenal Sejak</th>
-              <th style="min-width:120px">Kedekatan</th>
-              <th style="min-width:220px">Catatan</th>
+              <th style="min-width:160px">Nama</th>
+              <th style="min-width:110px">Kenal Sejak</th>
+              <th style="min-width:130px">Terakhir Ketemu</th>
+              <th style="min-width:110px">Kedekatan</th>
+              <th style="min-width:200px">Catatan</th>
               <th style="width:110px" class="text-end"></th>
             </tr>
           </thead>
           <tbody>
           <?php if (!$ptRows): ?>
-            <tr><td colspan="5" class="text-center text-muted small py-3">Belum ada teman tercatat.</td></tr>
-          <?php else: foreach ($ptRows as $p): ?>
+            <tr><td colspan="6" class="text-center text-muted small py-3">Belum ada teman tercatat.</td></tr>
+          <?php else: foreach ($ptRows as $p): 
+            $tkt = $p['tanggal_terakhir_ketemu'] ?? null;
+            $tktLabel = '-'; $tktCls = 'text-muted';
+            if ($tkt) {
+              $days = (int) floor((time() - strtotime($tkt)) / 86400);
+              $tktLabel = htmlspecialchars(date('d M Y', strtotime($tkt))) . ' <span class="text-muted">(' . ($days<=0?'hari ini':($days.' hari lalu')) . ')</span>';
+              $tktCls = $days > 180 ? 'text-danger' : ($days > 60 ? 'text-warning' : 'text-success');
+            }
+          ?>
             <tr>
               <td class="fw-semibold"><?= htmlspecialchars($p['nama']) ?></td>
               <td class="small"><?= htmlspecialchars($p['tanggal_kenalan'] ?? '-') ?></td>
+              <td class="small <?= $tktCls ?>"><?= $tktLabel ?></td>
               <td class="small"><?= $p['kedekatan'] ? str_repeat('★', (int)$p['kedekatan']) : '-' ?></td>
               <td class="small text-muted"><?= htmlspecialchars($p['catatan'] ?? '') ?></td>
               <td class="text-end">
@@ -575,13 +591,14 @@ include __DIR__.'/includes/header.php';
               </td>
             </tr>
             <tr class="collapse" id="ptEdit<?= (int)$p['id'] ?>">
-              <td colspan="5">
+              <td colspan="6">
                 <form method="post" class="row g-1">
                   <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                   <input type="hidden" name="_action" value="pertemanan_update">
                   <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
-                  <div class="col-md-4"><input class="form-control form-control-sm" name="nama" maxlength="120" value="<?= htmlspecialchars($p['nama']) ?>" required></div>
-                  <div class="col-md-3"><input type="date" class="form-control form-control-sm" name="tanggal_kenalan" value="<?= htmlspecialchars($p['tanggal_kenalan'] ?? '') ?>"></div>
+                  <div class="col-md-3"><input class="form-control form-control-sm" name="nama" maxlength="120" value="<?= htmlspecialchars($p['nama']) ?>" required></div>
+                  <div class="col-md-2"><input type="date" class="form-control form-control-sm" name="tanggal_kenalan" value="<?= htmlspecialchars($p['tanggal_kenalan'] ?? '') ?>" title="Kenal sejak"></div>
+                  <div class="col-md-2"><input type="date" class="form-control form-control-sm" name="tanggal_terakhir_ketemu" value="<?= htmlspecialchars($p['tanggal_terakhir_ketemu'] ?? '') ?>" title="Terakhir ketemu"></div>
                   <div class="col-md-2">
                     <select class="form-select form-select-sm" name="kedekatan">
                       <?php for($k=0;$k<=5;$k++): ?>

@@ -12,7 +12,7 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 send_security_headers();
-require_role('admin');
+require_role(['superadmin']);
 
 $pageTitle = 'Cek Sistem';
 

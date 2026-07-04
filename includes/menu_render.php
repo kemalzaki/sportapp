@@ -60,9 +60,22 @@ if (!function_exists('nav_menu_items')) {
                 $tgt   = ($it['target']==='_blank') ? ' target="_blank" rel="noopener"' : '';
                 // Revisi 27 Juni 2026 — render label paket di samping nama menu (jika di-set di admin/menu.php)
                 // Revisi 29 Juni 2026 — paket dapat berisi multi nilai dipisah koma (mis. "pro,komunitas").
+                // Revisi R8 Juli 2026 — sembunyikan badge "komunitas" jika paket user = pro
+                //   DAN item menu memiliki paket pro & komunitas sekaligus (redundant).
                 $badge = '';
                 $pkRaw = strtolower((string)($it['paket'] ?? ''));
                 $pks   = array_values(array_filter(array_map('trim', explode(',', $pkRaw))));
+                // Deteksi paket user saat ini
+                $userPaket = 'gratis';
+                try {
+                    if (function_exists('paket_user')) {
+                        $userPaket = paket_user(current_user());
+                    }
+                } catch (Throwable $e) {}
+                if ($userPaket === 'pro' && in_array('pro', $pks, true) && in_array('komunitas', $pks, true)) {
+                    // user sudah PRO — buang label komunitas biar tidak redundan
+                    $pks = array_values(array_diff($pks, ['komunitas']));
+                }
                 $map = [
                     'gratis'    => ['secondary', '🆓 Gratis'],
                     'pro'       => ['warning',   '⭐ PRO'],

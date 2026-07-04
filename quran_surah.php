@@ -298,19 +298,39 @@ $ayatTo   = min($totalAyat, $page*$perPage);
     }
     container.innerHTML = html;
 
-    // REVISI: hanya pakai Tafsir Ibnu Katsir (Bahasa Indonesia) dari spa5k/tafsir_api.
-    // Tafsir Kemenag tidak digunakan lagi.
+    // Revisi R8 Juli 2026 — Tafsir Ibnu Katsir (Bahasa Indonesia) via API publik:
+    //   1) spa5k/tafsir_api (CDN jsDelivr) — endpoint utama & alternatif.
+    //   2) Fallback: Quran.com API v4 (proxy id 169 = Ibnu Katsir Indonesia).
+    // Semua panggilan client-side dan hanya READ. Aman untuk running lokal.
     var tafsirCache = {};
     async function loadTafsir(no){
       if (tafsirCache[no]) return tafsirCache[no];
-      var base = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir';
-      // Endpoint utama: id-tafisr-ibn-kathir (ejaan asli repo spa5k)
-      var ik = await fetchJSON(base + '/id-tafisr-ibn-kathir/' + s + '/' + no + '.json');
-      // Fallback ejaan alternatif kalau endpoint utama gagal
-      if (!ik || !ik.text) {
-        ik = await fetchJSON(base + '/id-tafsir-ibn-kathir/' + s + '/' + no + '.json');
+      var text = '';
+      var source = '';
+
+      // Sumber #1: spa5k/tafsir_api via jsDelivr CDN
+      try {
+        var base = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir';
+        var ik = await fetchJSON(base + '/id-tafisr-ibn-kathir/' + s + '/' + no + '.json');
+        if (!ik || !ik.text) ik = await fetchJSON(base + '/id-tafsir-ibn-kathir/' + s + '/' + no + '.json');
+        if (ik && ik.text) { text = ik.text; source = 'spa5k/tafsir_api'; }
+      } catch (e) {}
+
+      // Sumber #2 (fallback): api.quran.com v4 — tafsir id 169 (Ibnu Katsir - Indonesia)
+      if (!text) {
+        try {
+          var qc = await fetchJSON('https://api.quran.com/api/v4/tafsirs/169/by_ayah/' + s + ':' + no);
+          if (qc && qc.tafsir && qc.tafsir.text) {
+            // Strip HTML sederhana agar rapi
+            var tmp = document.createElement('div');
+            tmp.innerHTML = qc.tafsir.text;
+            text = (tmp.textContent || tmp.innerText || '').trim();
+            source = 'quran.com';
+          }
+        } catch (e) {}
       }
-      tafsirCache[no] = { ibnu_id: (ik && ik.text) || '' };
+
+      tafsirCache[no] = { ibnu_id: text, source: source };
       return tafsirCache[no];
     }
 
@@ -318,6 +338,9 @@ $ayatTo   = min($totalAyat, $page*$perPage);
       var html = '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>';
       if (d.ibnu_id) {
         html += '<div class="tafsir-body mt-2">'+formatTafsir(d.ibnu_id)+'</div>';
+        if (d.source) {
+          html += '<div class="small text-muted mt-1" style="font-size:.75rem;opacity:.7">Sumber: '+d.source+'</div>';
+        }
       } else {
         html += '<div class="small text-muted mt-1">Tafsir Ibnu Katsir belum tersedia untuk ayat ini.</div>';
       }

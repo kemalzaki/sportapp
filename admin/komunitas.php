@@ -8,7 +8,7 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
 send_security_headers();
-require_role(['admin']);
+require_role(['superadmin']);
 
 // Idempotent migration
 try {

@@ -75,24 +75,43 @@ body{
   min-height:100dvh; display:flex; flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom,0);
 }
-/* Revisi 1 Jun 2026: hero pakai foto olahraga (AI). */
+/* Revisi R8 Juli 2026: hero slideshow 5 gambar dengan efek fade. */
 .lg-hero{
   position:relative; min-height:32dvh;
-  background:
-    linear-gradient(180deg, rgba(15,23,42,.30) 0%, rgba(15,23,42,.78) 100%),
-    url('/assets/img/sport-auth-hero-2.jpg') center/cover no-repeat,
-    linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
+  background: linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
   color:#fff; padding:2.2rem 1.5rem 1.8rem;
   border-bottom-left-radius:36px; border-bottom-right-radius:36px;
-  overflow:hidden;
+  overflow:hidden; isolation:isolate;
+}
+.lg-hero-bg{
+  position:absolute; inset:0; z-index:-2; overflow:hidden;
+  border-bottom-left-radius:36px; border-bottom-right-radius:36px;
+}
+.lg-hero-bg .slide{
+  position:absolute; inset:0; background-size:cover; background-position:center;
+  opacity:0; animation:lgFade 25s infinite;
+}
+.lg-hero-bg .slide.s1{ background-image:url('/assets/img/sport-auth-hero-2.jpg'); animation-delay:0s; }
+.lg-hero-bg .slide.s2{ background-image:url('/assets/img/sport-auth-hero-3.jpg'); animation-delay:5s; }
+.lg-hero-bg .slide.s3{ background-image:url('/assets/img/sport-auth-hero-4.jpg'); animation-delay:10s; }
+.lg-hero-bg .slide.s4{ background-image:url('/assets/img/sport-auth-hero-5.jpg'); animation-delay:15s; }
+.lg-hero-bg .slide.s5{ background-image:url('/assets/img/sport-auth-hero-6.jpg'); animation-delay:20s; }
+@keyframes lgFade{
+  0%   { opacity:0; }
+  4%   { opacity:1; }
+  20%  { opacity:1; }
+  24%  { opacity:0; }
+  100% { opacity:0; }
 }
 .lg-hero::after{
-  content:""; position:absolute; right:-60px; top:-60px; width:240px; height:240px;
-  background:radial-gradient(circle, rgba(255,255,255,.45) 0%, transparent 65%); opacity:.30; border-radius:50%;
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:linear-gradient(180deg, rgba(15,23,42,.30) 0%, rgba(15,23,42,.78) 100%);
+  border-bottom-left-radius:36px; border-bottom-right-radius:36px;
 }
-.lg-hero::before{
-  content:""; position:absolute; left:-40px; bottom:-40px; width:200px; height:200px;
+.lg-hero .lg-glow{
+  position:absolute; left:-40px; bottom:-40px; width:200px; height:200px;
   background:radial-gradient(circle, rgba(14,165,233,.45) 0%, transparent 65%); opacity:.45; border-radius:50%;
+  pointer-events:none;
 }
 .lg-logo{
   width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.14);
@@ -152,6 +171,10 @@ body{
 <body>
 <div class="lg-wrap">
   <header class="lg-hero">
+    <div class="lg-hero-bg" aria-hidden="true">
+      <div class="slide s1"></div><div class="slide s2"></div><div class="slide s3"></div><div class="slide s4"></div><div class="slide s5"></div>
+    </div>
+    <span class="lg-glow" aria-hidden="true"></span>
     <div class="lg-logo"><i class="bi bi-person-plus-fill"></i></div>
     <h1 class="lg-title">Buat akun baru 🚀</h1>
     <p class="lg-sub">Daftar untuk mulai olahraga, pesan jajan, & gabung komunitas KawanKeringat.</p>

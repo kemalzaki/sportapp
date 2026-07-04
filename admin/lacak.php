@@ -2,7 +2,7 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
-require_role('admin');
+require_role(['superadmin']);
 $pageTitle = 'Lacak HP Member';
 $rows = db_all("SELECT u.id, u.nama, u.role, u.foto_url, u.nomor_wa, d.lat, d.lng, d.accuracy_m, d.device_label, d.updated_at
                 FROM users u LEFT JOIN device_locations d ON d.user_id=u.id

@@ -102,25 +102,44 @@ body{
   min-height:100dvh; display:flex; flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom,0);
 }
-/* Revisi 1 Jun 2026: hero pakai gambar olahraga bertema AI (silhouette atlet). */
+/* Revisi R8 Juli 2026: hero slideshow 5 gambar dengan efek fade. */
 .lg-hero{
   position:relative; min-height:42dvh;
-  background:
-    linear-gradient(180deg, rgba(15,23,42,.35) 0%, rgba(15,23,42,.78) 100%),
-    url('/assets/img/sport-auth-hero.jpg') center/cover no-repeat,
-    linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
+  background: linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%);
   color:#fff; padding:2.4rem 1.5rem 2rem;
   border-bottom-left-radius:36px; border-bottom-right-radius:36px;
-  overflow:hidden;
+  overflow:hidden; isolation:isolate;
+}
+.lg-hero-bg{
+  position:absolute; inset:0; z-index:-2; overflow:hidden;
+  border-bottom-left-radius:36px; border-bottom-right-radius:36px;
+}
+.lg-hero-bg .slide{
+  position:absolute; inset:0; background-size:cover; background-position:center;
+  opacity:0; transition:opacity 1.6s ease-in-out;
+  animation:lgFade 25s infinite;
+}
+.lg-hero-bg .slide.s1{ background-image:url('/assets/img/sport-auth-hero1.jpg'); animation-delay:0s; }
+.lg-hero-bg .slide.s2{ background-image:url('/assets/img/sport-auth-hero2.jpg'); animation-delay:5s; }
+.lg-hero-bg .slide.s3{ background-image:url('/assets/img/sport-auth-hero3.jpg'); animation-delay:10s; }
+.lg-hero-bg .slide.s4{ background-image:url('/assets/img/sport-auth-hero4.jpg'); animation-delay:15s; }
+.lg-hero-bg .slide.s5{ background-image:url('/assets/img/sport-auth-hero5.jpg'); animation-delay:20s; }
+@keyframes lgFade{
+  0%   { opacity:0; }
+  4%   { opacity:1; }
+  20%  { opacity:1; }
+  24%  { opacity:0; }
+  100% { opacity:0; }
 }
 .lg-hero::after{
-  content:""; position:absolute; right:-60px; top:-60px; width:240px; height:240px;
-  background:radial-gradient(circle, rgba(255,255,255,.45) 0%, transparent 65%); opacity:.30; border-radius:50%;
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:linear-gradient(180deg, rgba(15,23,42,.35) 0%, rgba(15,23,42,.78) 100%);
+  border-bottom-left-radius:36px; border-bottom-right-radius:36px;
 }
-.lg-hero::before{
-  /* Glow olahraga di pojok kiri-bawah */
+.lg-hero .lg-glow{
   content:""; position:absolute; left:-40px; bottom:-40px; width:200px; height:200px;
   background:radial-gradient(circle, rgba(14,165,233,.45) 0%, transparent 65%); opacity:.4; border-radius:50%;
+  pointer-events:none;
 }
 .lg-logo{
   width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.14);
@@ -187,6 +206,10 @@ body{
 <body>
 <div class="lg-wrap">
   <header class="lg-hero">
+    <div class="lg-hero-bg" aria-hidden="true">
+      <div class="slide s1"></div><div class="slide s2"></div><div class="slide s3"></div><div class="slide s4"></div><div class="slide s5"></div>
+    </div>
+    <span class="lg-glow" aria-hidden="true"></span>
     <div class="lg-logo"><i class="bi bi-lightning-charge-fill"></i></div>
     <h1 class="lg-title">Ayo Olahraga<br>Bareng 🏃‍♂️⚽</h1>
     <p class="lg-sub">Masuk untuk lanjut lari, futsal, badminton, kalistenik, & jajan bareng komunitas KawanKeringat.</p>
@@ -304,7 +327,7 @@ document.getElementById('loginForm').addEventListener('submit', function(){
   attachLoader(document.getElementById('btnGuest'), 'Memproses…');
 })();
 </script>
-<!-- Revisi: Pintasan ke HP (PWA install) — sama seperti tombol di index.php -->
+<!-- Revisi R8 Juli 2026: Popup PWA install (modal) — URL website disembunyikan -->
 <script>
 let _deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); _deferredInstall = e; });
@@ -313,10 +336,51 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!_installBtn) return;
   _installBtn.addEventListener('click', async () => {
     if (_deferredInstall) { _deferredInstall.prompt(); _deferredInstall = null; }
-    else { alert('Buka menu browser (⋮) lalu pilih "Tambahkan ke Layar Utama / Install app". Setelah itu, ikon KawanKeringat akan muncul di home screen HP kamu.'); }
+    else { const m = document.getElementById('pwaInstallModal'); if (m) new bootstrap.Modal(m).show(); }
   });
 });
 </script>
+
+<div class="modal fade" id="pwaInstallModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:22px;overflow:hidden;border:0;box-shadow:0 20px 40px -18px rgba(15,23,42,.4)">
+      <div class="modal-header border-0 pb-1" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.4rem;"><i class="bi bi-phone-fill"></i></div>
+          <div>
+            <h5 class="modal-title mb-0" style="font-weight:800;letter-spacing:-.01em;">Pasang ke Layar Utama</h5>
+            <div style="font-size:.8rem;opacity:.88;">KawanKeringat siap dipakai seperti aplikasi</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body pt-3">
+        <p class="small text-muted mb-3">Ikuti langkah di bawah agar ikon aplikasi muncul di layar utama HP kamu.</p>
+        <div class="mb-3 p-3" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;">
+          <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-android2 text-success fs-4"></i><strong>Android · Chrome / Edge</strong></div>
+          <ol class="small mb-0 ps-3">
+            <li>Ketuk tombol menu <i class="bi bi-three-dots-vertical"></i> di pojok kanan atas browser.</li>
+            <li>Pilih <strong>“Tambahkan ke Layar Utama”</strong> atau <strong>“Install app”</strong>.</li>
+            <li>Konfirmasi. Ikon KawanKeringat akan muncul di home screen.</li>
+          </ol>
+        </div>
+        <div class="mb-1 p-3" style="background:#fdf4ff;border:1px solid #f5d0fe;border-radius:14px;">
+          <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-apple text-dark fs-4"></i><strong>iPhone / iPad · Safari</strong></div>
+          <ol class="small mb-0 ps-3">
+            <li>Ketuk tombol <strong>Bagikan</strong> <i class="bi bi-box-arrow-up"></i> di bagian bawah Safari.</li>
+            <li>Gulir dan pilih <strong>“Tambahkan ke Layar Utama”</strong>.</li>
+            <li>Ketuk <strong>Tambah</strong>. Ikon aplikasi akan muncul.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal" style="border-radius:12px;padding:.7rem 1rem;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#6366f1);border:0;">
+          <i class="bi bi-check2-circle me-1"></i> Mengerti
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Revisi 2 Juli 2026 #6: Popup Kebijakan Privasi & UU PDP -->
 <div class="modal fade" id="privasiModal" tabindex="-1" aria-hidden="true">

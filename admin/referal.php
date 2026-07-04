@@ -4,7 +4,7 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
 require __DIR__.'/../includes/islami_migrations.php'; // ensure referal_codes exists
-require_role('admin');
+require_role(['superadmin']);
 $pageTitle='CRUD Kode Referal';
 $u=current_user();
 if($_SERVER['REQUEST_METHOD']==='POST'){ csrf_check();

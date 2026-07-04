@@ -8,7 +8,7 @@ require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/security.php';
 require_login();
 $me = current_user();
-if (($me['role'] ?? '') !== 'admin') { http_response_code(403); exit('Khusus admin.'); }
+if (($me['role'] ?? '') !== 'superadmin') { http_response_code(403); exit('Akses ditolak. Halaman ini khusus superadmin.'); }
 
 try {
     db_exec("CREATE TABLE IF NOT EXISTS paket_pesanan (
