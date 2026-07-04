@@ -109,7 +109,12 @@ $rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                   LEFT JOIN komunitas k ON k.id=j.komunitas_id
                   WHERE ($1 = 1 OR j.komunitas_id = ANY($2::int[]))
                   ORDER BY tanggal DESC", [$__isSuper?1:0, $__scopeKomArr]);
-$admins = db_all("SELECT id,nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
+// Revisi R7 #2 (Juli 2026) — daftar koordinator dibatasi pada admin/superadmin
+// yang berada di komunitas admin login (super-scope: lihat semua).
+$admins = db_all("SELECT id,nama FROM users
+                  WHERE role IN ('admin','superadmin')
+                    AND id = ANY($1::int[])
+                  ORDER BY nama", [scope_user_ids_sql_array()]);
 $jenisRows = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 $jenisList = array_column($jenisRows, 'nama');
 if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang','Lainnya']; $jenisRows = []; }

@@ -8,6 +8,7 @@ require_once __DIR__ . '/migrations_v7.php';
 require_once __DIR__ . '/migrations_v8.php';
 require_once __DIR__ . '/migrations_v9.php';
 require_once __DIR__ . '/paket_helpers.php';
+require_once __DIR__ . '/scope.php'; // Revisi R7 #6 (Juli 2026)
 
 /* ============================================================
  * Revisi 30 Jun 2026 — Lock badge untuk menu Pro / Komunitas.
@@ -754,7 +755,7 @@ if (empty($pageSkeleton)) {
         <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a>
 
 
-        <?php if ($u['role']==='admin'): ?>
+        <?php if (in_array($u['role'], ['admin','superadmin'], true)): $__isSuperNav = scope_is_super(); ?>
           <div class="px-3 pt-3 pb-1 small text-muted text-uppercase fw-bold" style="letter-spacing:.06em">Admin</div>
 
           <?php /* Admin > Giat Olahraga */ ?>
@@ -768,7 +769,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/tim.php"><i class="bi bi-people-fill"></i> Pengaturan Tim</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/tempat.php"><i class="bi bi-geo-alt-fill"></i> CRUD Tempat</a>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/tempat_survei.php"><i class="bi bi-hourglass-split text-warning"></i> Usulan Tempat (Survei)</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a>
+            <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/jenis.php"><i class="bi bi-tags"></i> Jenis Olahraga</a><?php endif; ?>
           </div>
 
           <?php /* Admin > Event Organize */ ?>
@@ -786,25 +787,28 @@ if (empty($pageSkeleton)) {
           </a>
           <div class="collapse" id="grpMember">
             <a class="list-group-item list-group-item-action ps-4" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal Pendaftaran</a>
+            <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal Pendaftaran</a><?php endif; ?>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a>
+            <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a><?php endif; ?>
             <?php /* Revisi Juli 2026 R3 — Pantau Progress Islami Member */ ?>
-            <a class="list-group-item list-group-item-action ps-4" href="/admin/paket_pesanan.php"><i class="bi bi-receipt-cutoff text-success"></i> Pesanan Paket Member</a>
+            <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/paket_pesanan.php"><i class="bi bi-receipt-cutoff text-success"></i> Pesanan Paket Member</a><?php endif; ?>
             <a class="list-group-item list-group-item-action ps-4" href="/pantau_progress_member.php"><i class="bi bi-graph-up-arrow text-danger"></i> Pantau Progress Islami</a>
             <?php /* Revisi 15 Juni 2026: menu "Riwayat Login Member" dihapus sesuai permintaan. */ ?>
           </div>
 
-          <?php /* Admin > Komunitas Organize (Revisi Jul 2026) */ ?>
+          <?php /* Admin > Komunitas Organize (Revisi Jul 2026) — super-only */ ?>
+          <?php if ($__isSuperNav): ?>
           <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpKomunitas" role="button" aria-expanded="false">
             <span><i class="bi bi-people text-success"></i> Komunitas Organize</span><i class="bi bi-chevron-down small"></i>
           </a>
           <div class="collapse" id="grpKomunitas">
             <a class="list-group-item list-group-item-action ps-4" href="/admin/komunitas.php"><i class="bi bi-people-fill text-success"></i> Komunitas</a>
           </div>
+          <?php endif; ?>
 
 
-          <?php /* Admin > Pengaturan Lainnya */ ?>
+          <?php /* Admin > Pengaturan Lainnya — super-only */ ?>
+          <?php if ($__isSuperNav): ?>
           <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpLainnya" role="button" aria-expanded="false">
             <span><i class="bi bi-gear-fill text-secondary"></i> Pengaturan Lainnya</span><i class="bi bi-chevron-down small"></i>
           </a>
@@ -817,6 +821,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/keywords.php"><i class="bi bi-funnel-fill text-primary"></i> Kata Kunci Filter Video</a>
             <?php /* Revisi Juli 2026 — Menu "Pengaturan Paket Member" (admin/paket_member.php) dan "Navigasi Menu" (admin/menu.php) DIHAPUS dari drawer. */ ?>
           </div>
+          <?php endif; /* Pengaturan Lainnya super-only */ ?>
 
         <?php endif; ?>
 
@@ -899,7 +904,7 @@ if (empty($pageSkeleton)) {
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark<?= nav_lock_badge_for('bookmark.php') ?></a></li>
           <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a></li>
         <?php endif; ?>
-        <?php if ($u && $u['role']==='admin'): ?>
+        <?php if ($u && in_array($u['role'], ['admin','superadmin'], true)): $__isSuperNav2 = scope_is_super(); ?>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-shield-lock"></i> Admin</a>
             <ul class="dropdown-menu dropdown-menu-end shadow">
@@ -913,15 +918,15 @@ if (empty($pageSkeleton)) {
               <li><a class="dropdown-item" href="/admin/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga</a></li>
               <li><a class="dropdown-item" href="/admin/event.php">Event / Tournament</a></li>
               <li><a class="dropdown-item" href="/admin/stats.php">📊 Statistik Pintar</a></li>
-              <li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li>
-              <li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li>
+              <?php if ($__isSuperNav2): ?><li><a class="dropdown-item" href="/admin/jenis.php">Jenis Olahraga</a></li><?php endif; ?>
+              <?php if ($__isSuperNav2): ?><li><a class="dropdown-item" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal</a></li><?php endif; ?>
               <li><a class="dropdown-item" href="/admin/reports.php"><i class="bi bi-flag text-danger"></i> Laporan Postingan</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">CMS &amp; Pengaturan</h6></li>
               <li><a class="dropdown-item" href="/admin/privasi.php"><i class="bi bi-shield-check text-success"></i> Kebijakan Privasi (UU PDP)</a></li>
               <li><hr class="dropdown-divider"></li>
-                                                                                    <li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li>
+                                                                                    <?php if ($__isSuperNav2): ?><li><a class="dropdown-item" href="/admin/lacak.php"><i class="bi bi-broadcast-pin text-danger"></i> Lacak HP Member</a></li><?php endif; ?>
               <li><hr class="dropdown-divider"></li>
               <li><h6 class="dropdown-header">Export Data</h6></li>
               <li><a class="dropdown-item" href="/export.php?type=members&format=csv">Member · Excel</a></li>

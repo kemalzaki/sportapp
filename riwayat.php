@@ -146,7 +146,8 @@ if ($period === 'weekly') $periodSql = "j.tanggal >= CURRENT_DATE - INTERVAL '7 
 if ($period === 'all')    $periodSql = "TRUE";
 $uPeriodSql = str_replace('j.tanggal','uh.tanggal',$periodSql);
 // Revisi R7 #5 — scope komunitas: sisipkan filter user_id ke setiap leaderboard.
-$__scopeFrag = " AND u.id = ANY('".pg_escape_string($__vids)."'::int[])";
+// Revisi Juli 2026 #8/#9 — pg_escape_string tanpa argumen koneksi = Deprecated (PHP 8.1+).
+$__scopeFrag = " AND u.id = ANY('".pg_escape_string(db(), $__vids)."'::int[])";
 $uPeriodSql .= $__scopeFrag;
 $periodSql  .= $__scopeFrag;
 

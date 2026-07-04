@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $detailId = (int)($_GET['id'] ?? 0);
 // Revisi R7 #5 — batasi event ke event yang dibuat member komunitas user (superadmin lihat semua).
 $events = db_all("SELECT e.*, (SELECT COUNT(*) FROM event_peserta p WHERE p.event_id=e.id) AS jml FROM event e
-                  WHERE (e.created_by IS NULL OR e.created_by = ANY($1::int[]))
+                  WHERE e.created_by = ANY($1::int[])
                   ORDER BY e.tanggal_mulai DESC", [$__vids]);
 // Guard detail: cegah IDOR akses event komunitas lain via ?id=
 if ($detailId) {

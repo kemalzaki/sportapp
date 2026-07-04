@@ -27,12 +27,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action'] ?? '')==='move' &&
 
 $events = db_all("SELECT j.id,j.tanggal,j.jenis,j.tempat,j.jam_mulai,j.jam_selesai,j.durasi_menit,j.catatan,j.konten_obrolan, u.nama AS koord
                   FROM jadwal j LEFT JOIN users u ON u.id=j.koordinator_id
-                  WHERE ($1 = 1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY($2::int[]))
+                  WHERE ($1 = 1 OR j.komunitas_id = ANY($2::int[]))
                   ORDER BY j.tanggal", [$__isSuper, $__vkoms]);
 $upcoming = db_all("SELECT j.id,j.tanggal,j.jenis,j.tempat,j.jam_mulai,j.jam_selesai
                     FROM jadwal j
                     WHERE j.tanggal >= CURRENT_DATE
-                      AND ($1 = 1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY($2::int[]))
+                      AND ($1 = 1 OR j.komunitas_id = ANY($2::int[]))
                     ORDER BY j.tanggal ASC LIMIT 8", [$__isSuper, $__vkoms]);
 include __DIR__.'/includes/header.php'; ?>
 

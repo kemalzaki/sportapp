@@ -215,7 +215,10 @@ if ($page > $totalPage) $page = $totalPage;
 $offset    = ($page-1) * $perPage;
 
 $rows = db_all("SELECT t.*, jo.nama AS jenis_nama, u.nama AS pic_nama, u.foto_url AS pic_foto, u.nomor_wa AS pic_wa,
-                $distExpr AS distance_km
+                $distExpr AS distance_km,
+                COALESCE((SELECT string_agg(k.nama, ', ' ORDER BY k.nama)
+                          FROM user_komunitas uk JOIN komunitas k ON k.id=uk.komunitas_id
+                          WHERE uk.user_id=t.pic_user_id), '') AS pic_komunitas
                 FROM tempat t LEFT JOIN jenis_olahraga jo ON jo.id=t.jenis_id
                 LEFT JOIN users u ON u.id=t.pic_user_id
                 LEFT JOIN run_routes rr ON rr.id=t.run_route_id $wsql
@@ -297,7 +300,13 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
           </div>
         <?php endif; ?>
         <p class="small text-muted mb-2"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($r['alamat'] ?? '—') ?></p>
-        <?php if($r['pic_nama']): ?><div class="small mb-2">PIC: <?= user_name_with_avatar($r['pic_foto']??null,$r['pic_nama'],false,22) ?></div><?php endif; ?>
+        <?php if($r['pic_nama']): ?><div class="small mb-2">PIC: <?= user_name_with_avatar($r['pic_foto']??null,$r['pic_nama'],false,22) ?>
+              <?php if(!empty($r['pic_komunitas'])): ?>
+                <span class="badge bg-success-subtle text-success-emphasis ms-1" title="Komunitas PIC">
+                  <i class="bi bi-people-fill"></i> <?= htmlspecialchars($r['pic_komunitas']) ?>
+                </span>
+              <?php endif; ?>
+            </div><?php endif; ?>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-outline-primary"
             onclick='showTempatDetail(<?= json_encode($popup, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>

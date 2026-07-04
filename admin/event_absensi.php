@@ -11,6 +11,7 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
 require __DIR__.'/../includes/security.php';
+require __DIR__.'/../includes/scope.php'; // Revisi R7 #3 (Juli 2026)
 require_role(['admin','superadmin']);
 $pageTitle = 'Input Absensi Event';
 
@@ -90,7 +91,13 @@ if ($eventId) {
                           WHERE et.event_id=$1 ORDER BY et.id", [$eventId]);
     } catch (Throwable $e) { $tamuList = []; }
 }
-$eventList = db_all("SELECT id,nama,tanggal_mulai,jenis FROM event ORDER BY tanggal_mulai DESC");
+// Revisi R7 #3 (Juli 2026) — event yang dipilih dibatasi hanya event yang dibuat
+// member komunitas admin login (superadmin lihat semua).
+$__vidsEvA = scope_user_ids_sql_array();
+$eventList = db_all(
+  "SELECT id,nama,tanggal_mulai,jenis FROM event
+   WHERE (created_by IS NULL OR created_by = ANY($1::int[]))
+   ORDER BY tanggal_mulai DESC", [$__vidsEvA]);
 include __DIR__.'/../includes/header.php'; ?>
 
 <h2 class="mb-3"><i class="bi bi-clipboard2-check text-warning"></i> Input Absensi Event</h2>
