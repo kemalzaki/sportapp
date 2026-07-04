@@ -2,7 +2,9 @@
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/helpers.php';
+require __DIR__.'/../includes/scope.php'; // Revisi Juli 2026 #7 — opsi tempat per komunitas
 require_role(['admin','superadmin']);
+
 $pageTitle='Manajemen Tempat';
 
 /* ============================================================
@@ -229,6 +231,13 @@ $where = []; $params = []; $i = 1;
 if ($q !== '')      { $where[] = "(t.nama ILIKE \$$i OR t.alamat ILIKE \$$i)"; $params[] = "%$q%"; $i++; }
 if ($fStatus !== ''){ $where[] = "t.status_booking = \$$i"; $params[] = $fStatus; $i++; }
 if ($fJenis !== '') { $where[] = "t.jenis_id = \$$i"; $params[] = (int)$fJenis; $i++; }
+// Revisi Juli 2026 #7 — scope per komunitas: tampilkan tempat yang PIC-nya
+// berada di scope komunitas admin, atau tempat yg belum berkoordinator (NULL)
+// tetap ditampilkan agar bisa dikelola. Super-scope melihat semua.
+if (!scope_is_super()) {
+    $where[] = "(t.pic_user_id IS NULL OR t.pic_user_id = ANY(\$$i::int[]))";
+    $params[] = scope_user_ids_sql_array(); $i++;
+}
 $whereSql = $where ? ('WHERE '.implode(' AND ',$where)) : '';
 
 $rows = db_all("SELECT t.*, u.nama AS pic_nama, u.foto_url AS pic_foto, jo.nama AS jenis_nama
@@ -238,8 +247,12 @@ $rows = db_all("SELECT t.*, u.nama AS pic_nama, u.foto_url AS pic_foto, jo.nama 
                 $whereSql
                 ORDER BY $sortSql $dir NULLS LAST", $params);
 
-$admins = db_all("SELECT id, nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
+// Revisi Juli 2026 #7 — dropdown PIC hanya menampilkan admin di scope komunitas.
+$admins = db_all("SELECT id, nama FROM users
+                  WHERE role IN ('admin','superadmin') AND id = ANY($1::int[])
+                  ORDER BY nama", [scope_user_ids_sql_array()]);
 $jenisList = db_all("SELECT id, nama FROM jenis_olahraga ORDER BY nama");
+
 $statuses = ['tersedia','booked','renovasi','tutup'];
 
 /* Revisi 21 Juni 2026 R4 — Tampilkan SEMUA rute tersimpan dari run.php

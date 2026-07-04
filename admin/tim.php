@@ -10,8 +10,10 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
+require __DIR__.'/../includes/scope.php'; // Revisi Juli 2026 #6 — list per komunitas
 send_security_headers(); enforce_session_timeout();
 require_role(['admin','superadmin']);
+
 
 $u = current_user();
 $uid = (int)$u['id'];
@@ -129,23 +131,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash_ok  = $_SESSION['flash_ok']  ?? null; unset($_SESSION['flash_ok']);
 $flash_err = $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 
+// Revisi Juli 2026 #6 — jadwal & user difilter per komunitas admin login.
+$__vids  = scope_user_ids_sql_array();
+$__vkids = scope_kom_ids_sql_array();
+$__jadwalScopeSql = scope_is_super() ? '' : ' AND (j.komunitas_id IS NULL OR j.komunitas_id = ANY($1::int[]))';
+$__jadwalScopeParams = scope_is_super() ? [] : [$__vkids];
 $jadwals = db_all("SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.tim_id, t.nama AS tim_nama
                    FROM jadwal j LEFT JOIN tim t ON t.id=j.tim_id
-                   WHERE j.tanggal >= CURRENT_DATE - INTERVAL '30 days'
-                   ORDER BY j.tanggal DESC LIMIT 50");
+                   WHERE j.tanggal >= CURRENT_DATE - INTERVAL '30 days' $__jadwalScopeSql
+                   ORDER BY j.tanggal DESC LIMIT 50", $__jadwalScopeParams);
 
 $selTim = (int)($_GET['tim'] ?? 0);
 $tim = $selTim ? db_one("SELECT * FROM tim WHERE id=$1", [$selTim]) : null;
 $tjadwal = $selTim ? db_one("SELECT * FROM jadwal WHERE tim_id=$1 ORDER BY tanggal DESC LIMIT 1", [$selTim]) : null;
 $members = $selTim ? db_all("SELECT tm.*, u.nama, u.foto_url, u.nomor_wa FROM tim_member tm JOIN users u ON u.id=tm.user_id WHERE tm.tim_id=$1 ORDER BY u.nama", [$selTim]) : [];
 $externals = $selTim ? db_all("SELECT * FROM tim_external WHERE tim_id=$1 ORDER BY id DESC", [$selTim]) : [];
-$allUsers = db_all("SELECT id, nama FROM users WHERE role IN ('member','admin','superadmin') ORDER BY nama");
+// Dropdown "user komunitas" hanya menampilkan user dalam scope komunitas admin.
+$allUsers = db_all("SELECT id, nama FROM users
+                    WHERE role IN ('member','admin','superadmin')
+                      AND id = ANY($1::int[])
+                    ORDER BY nama", [$__vids]);
+
 
 /* Revisi 22 Juni 2026 R12 — Daftar pemain eksternal diambil dari `member_eksternal`
    (tamu yang sudah terdaftar via admin/absensi.php). Tampilkan nama unik beserta
    info siapa yang membawa & jadwal terakhirnya. */
 $externalTamuList = [];
 try {
+    // Revisi Juli 2026 #6 — filter daftar tamu per komunitas (via komunitas jadwal
+    // atau via user pembawa yang berada di scope komunitas admin).
     $externalTamuList = db_all("
         SELECT DISTINCT ON (LOWER(TRIM(me.nama_tamu)))
                me.nama_tamu AS nama,
@@ -156,9 +170,12 @@ try {
         LEFT JOIN users u  ON u.id = me.dibawa_oleh_id
         LEFT JOIN jadwal j ON j.id = me.jadwal_id
         WHERE me.nama_tamu IS NOT NULL AND TRIM(me.nama_tamu) <> ''
+          AND ( me.dibawa_oleh_id = ANY($1::int[])
+             OR j.komunitas_id    = ANY($2::int[]) )
         ORDER BY LOWER(TRIM(me.nama_tamu)), me.id DESC
-    ");
+    ", [$__vids, $__vkids]);
 } catch (Throwable $e) { $externalTamuList = []; }
+
 
 include __DIR__.'/../includes/header.php';
 ?>

@@ -459,6 +459,45 @@ include __DIR__.'/includes/header.php';
       </form>
     </div></div>
 
+    <?php /* Revisi Juli 2026 — Ubah Password Pribadi DIPINDAH ke paling atas (di atas Pertemananku) */ ?>
+    <div class="card shadow-sm mt-3" id="ubahPassword">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-shield-lock text-primary"></i> Ubah Password Pribadi</span>
+        <span class="small text-muted">Akun: <?= htmlspecialchars($u['email'] ?? '') ?></span>
+      </div>
+      <div class="card-body">
+        <?php if(!empty($_SESSION['flash_ok'])): ?>
+          <div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash_ok']) ?></div>
+          <?php unset($_SESSION['flash_ok']); ?>
+        <?php endif; ?>
+        <?php if(!empty($_SESSION['flash_err'])): ?>
+          <div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div>
+          <?php unset($_SESSION['flash_err']); ?>
+        <?php endif; ?>
+        <form method="post" class="row g-2" autocomplete="off">
+          <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+          <input type="hidden" name="_action" value="update_password">
+          <div class="col-md-4">
+            <label class="form-label small mb-1">Password Sekarang</label>
+            <input type="password" name="current_password" class="form-control form-control-sm" required autocomplete="current-password">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small mb-1">Password Baru (min. 6 karakter)</label>
+            <input type="password" name="new_password" class="form-control form-control-sm" minlength="6" required autocomplete="new-password">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small mb-1">Konfirmasi Password Baru</label>
+            <input type="password" name="confirm_password" class="form-control form-control-sm" minlength="6" required autocomplete="new-password">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary btn-sm"><i class="bi bi-shield-check"></i> Simpan Password Baru</button>
+            <div class="form-text small">Password Anda tersimpan dalam bentuk hash (bcrypt). Admin tidak dapat melihat password Anda.</div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
     <!-- Revisi Juli 2026 — Fitur "Pertemananku" (CRUD), diletakkan DI ATAS Akun Strava.
          SQL tambahan:
            CREATE TABLE IF NOT EXISTS pertemanan (
@@ -1151,42 +1190,7 @@ if ($waSelf && !$cntPerl) {
 })();
 </script>
 
-<?php /* Revisi R7 #4 — Ubah Password Pribadi (setiap akun bisa ubah passwordnya sendiri) */ ?>
-<div class="card shadow-sm mb-3" id="ubahPassword">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-shield-lock text-primary"></i> Ubah Password Pribadi</span>
-    <span class="small text-muted">Akun: <?= htmlspecialchars($u['email'] ?? '') ?></span>
-  </div>
-  <div class="card-body">
-    <?php if(!empty($_SESSION['flash_ok'])): ?>
-      <div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash_ok']) ?></div>
-      <?php unset($_SESSION['flash_ok']); ?>
-    <?php endif; ?>
-    <?php if(!empty($_SESSION['flash_err'])): ?>
-      <div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_err']) ?></div>
-      <?php unset($_SESSION['flash_err']); ?>
-    <?php endif; ?>
-    <form method="post" class="row g-2" autocomplete="off">
-      <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-      <input type="hidden" name="_action" value="update_password">
-      <div class="col-md-4">
-        <label class="form-label small mb-1">Password Sekarang</label>
-        <input type="password" name="current_password" class="form-control form-control-sm" required autocomplete="current-password">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label small mb-1">Password Baru (min. 6 karakter)</label>
-        <input type="password" name="new_password" class="form-control form-control-sm" minlength="6" required autocomplete="new-password">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label small mb-1">Konfirmasi Password Baru</label>
-        <input type="password" name="confirm_password" class="form-control form-control-sm" minlength="6" required autocomplete="new-password">
-      </div>
-      <div class="col-12">
-        <button class="btn btn-primary btn-sm"><i class="bi bi-shield-check"></i> Simpan Password Baru</button>
-        <div class="form-text small">Password Anda tersimpan dalam bentuk hash (bcrypt). Admin tidak dapat melihat password Anda.</div>
-      </div>
-    </form>
-  </div>
-</div>
+<?php /* Revisi Juli 2026 — Blok Ubah Password Pribadi telah DIPINDAH ke bagian atas (di atas Pertemananku). */ ?>
+
 
 <?php include __DIR__.'/includes/footer.php'; ?>

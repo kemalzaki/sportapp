@@ -219,12 +219,13 @@ if ($cat === 'konsisten') {
                   ORDER BY skor DESC LIMIT 20");
 }
 
+/* Revisi Juli 2026 #3 — Riwayat Sesi difilter per komunitas: hanya jadwal
+   yang komunitas_id-nya termasuk dalam scope user login. */
+$__vkids = scope_kom_ids_sql_array();
+$__jadwalScopeSql = scope_is_super() ? '' : ' WHERE (j.komunitas_id IS NULL OR j.komunitas_id = ANY($1::int[]))';
+$__jadwalScopeParams = scope_is_super() ? [] : [$__vkids];
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
-                          -- Revisi — Jenis Kegiatan (Tim Kantor KK / Tim Public KK) dari tabel jenis_jadwal
                           jj.nama AS jj_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text,
-                          -- Revisi 22 Juni 2026 R6 — DISTINCT user_id supaya 'hadir' & 'total'
-                          -- tidak menggelembung saat absensi punya baris ganda (data lama
-                          -- tanpa UNIQUE). Telat tetap dihitung sebagai user unik.
                           (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id AND a.hadir=1) AS hadir,
                           (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id AND a.status='telat') AS telat,
                           (SELECT COUNT(DISTINCT a.user_id) FROM absensi a WHERE a.jadwal_id=j.id) AS total,
@@ -232,7 +233,9 @@ $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                    FROM jadwal j
                    LEFT JOIN users u ON u.id=j.koordinator_id
                    LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
-                   ORDER BY j.tanggal DESC LIMIT 50");
+                   $__jadwalScopeSql
+                   ORDER BY j.tanggal DESC LIMIT 50", $__jadwalScopeParams);
+
 
 $sesiDetail = [];
 $jids = array_map(fn($r)=>(int)$r['id'], $riwayat);
@@ -240,20 +243,25 @@ if ($jids) {
     $inList = implode(',', $jids);
     // Revisi 22 Juni 2026 R5 — DISTINCT ON (jadwal_id,user_id) supaya nama tidak
     // double saat data absensi punya baris ganda untuk satu jadwal+user (data lama).
+    // Revisi Juli 2026 #3 — Detail Sesi (anggota) DIFILTER per komunitas:
+    // hanya user yang berada di scope komunitas user login.
+    $__scopeCsv = implode(',', array_map('intval', scope_visible_user_ids())) ?: '0';
     try {
       $absRows = db_all("SELECT DISTINCT ON (a.jadwal_id, a.user_id)
                                 a.jadwal_id, a.hadir, a.status, a.keterangan, u.id AS uid, u.nama, u.foto_url
                          FROM absensi a JOIN users u ON u.id=a.user_id
                          WHERE a.jadwal_id IN ($inList)
+                           AND u.id IN ($__scopeCsv)
                          ORDER BY a.jadwal_id, a.user_id, a.id DESC");
     } catch (Throwable $e) {
-      // Fallback jika kolom 'status' belum ada
       $absRows = db_all("SELECT DISTINCT ON (a.jadwal_id, a.user_id)
                                 a.jadwal_id, a.hadir, a.keterangan, u.id AS uid, u.nama, u.foto_url
                          FROM absensi a JOIN users u ON u.id=a.user_id
                          WHERE a.jadwal_id IN ($inList)
+                           AND u.id IN ($__scopeCsv)
                          ORDER BY a.jadwal_id, a.user_id, a.id DESC");
     }
+
     // Sortir akhir di PHP supaya tetap urut hadir-dulu lalu nama
     usort($absRows, function($a,$b){
         if ($a['jadwal_id'] != $b['jadwal_id']) return $a['jadwal_id'] <=> $b['jadwal_id'];
@@ -268,12 +276,14 @@ if ($jids) {
     foreach ($tamuRows as $tr) $sesiDetail[(int)$tr['jadwal_id']]['tamu'][] = $tr;
 }
 
-/* ---------- (1) Monitoring upload harian — yg BELUM olahraga 1× / 7 hari ---------- */
+/* ---------- (1) Monitoring upload harian — yg BELUM olahraga 1× / 7 hari ----------
+   Revisi Juli 2026 #3 — DIFILTER per komunitas (scope). */
 $belumOlahraga = db_all("
   SELECT u.id, u.nama, u.foto_url, u.nomor_wa,
          (SELECT MAX(uh.tanggal) FROM upload_harian uh WHERE uh.user_id=u.id) AS terakhir
   FROM users u
-  WHERE TRUE  -- Revisi 11 Juni 2026 (rev-2): kolom u.aktif tidak ada di tabel users; filter dilonggarkan
+  WHERE TRUE
+    AND u.id = ANY($1::int[])
     AND NOT EXISTS (
       SELECT 1 FROM upload_harian uh
        WHERE uh.user_id=u.id
@@ -281,9 +291,10 @@ $belumOlahraga = db_all("
     )
   ORDER BY terakhir NULLS FIRST, u.nama
   LIMIT 100
-");
+", [$__vids]);
 
-/* ---------- Aktivitas publik dengan like/comment count ---------- */
+/* ---------- Aktivitas publik dengan like/comment count ----------
+   Revisi Juli 2026 #3 — Riwayat Aktivitas Publik DIFILTER per komunitas. */
 $publicActs = db_all("
   SELECT uh.id,uh.tanggal,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.file_path,uh.deskripsi,
          u.id AS uid,u.nama,u.foto_url,
@@ -291,7 +302,9 @@ $publicActs = db_all("
          (SELECT COUNT(*) FROM upload_harian_comments c WHERE c.upload_id=uh.id) AS comment_count,
          ".($u? "(SELECT 1 FROM upload_harian_likes l WHERE l.upload_id=uh.id AND l.user_id=".(int)$u['id'].") " : "NULL ")."AS liked
   FROM upload_harian uh JOIN users u ON u.id=uh.user_id
-  ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 30");
+  WHERE u.id = ANY($1::int[])
+  ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 30", [$__vids]);
+
 
 $myActs = $u ? db_all("SELECT id,tanggal,jenis,durasi_menit,jarak_km,kalori,file_path,deskripsi
                        FROM upload_harian WHERE user_id=$1 ORDER BY tanggal DESC LIMIT 30", [(int)$u['id']]) : [];

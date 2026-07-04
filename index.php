@@ -369,30 +369,31 @@ if ($jadwalTerdekat) {
     } catch (Throwable $e) {}
   }
 }
-// Member baru 7 hari terakhir (sapa) — sembunyikan yg sudah disapa user ini, dan honor pref hide_sapa per akun
+// Member baru 7 hari terakhir (sapa) — DIFILTER per komunitas (Revisi Juli 2026 #2)
+// Hanya menampilkan member baru dari komunitas yang sama dengan user login.
 $newMembers = [];
 $hideSapaForMe = 0;
 if ($u) {
   $_p = islami_pref((int)$u['id']);
   $hideSapaForMe = (int)($_p['hide_sapa'] ?? 0);
   if (!$hideSapaForMe) {
+    $__sapaVids = scope_user_ids_sql_array(); // int[] literal komunitas scope
     $newMembers = db_all(
       "SELECT id, nama, foto_url, created_at FROM users
        WHERE created_at >= NOW() - INTERVAL '7 days'
          AND role IN ('member','admin')
          AND id <> $1
+         AND id = ANY($2::int[])
          AND id NOT IN (SELECT target_user_id FROM sapa_log WHERE sender_user_id=$1)
        ORDER BY created_at DESC LIMIT 10",
-      [(int)$u['id']]
+      [(int)$u['id'], $__sapaVids]
     );
   }
 } else {
-  $newMembers = db_all(
-    "SELECT id, nama, foto_url, created_at FROM users
-     WHERE created_at >= NOW() - INTERVAL '7 days' AND role IN ('member','admin')
-     ORDER BY created_at DESC LIMIT 10"
-  );
+  // Guest: tidak ada scope komunitas → tampilkan kosong (privasi antar-komunitas).
+  $newMembers = [];
 }
+
 
 // === Kabari Member (Koordinator PIC):
 // Tampil untuk admin/PIC. Daftar = SEMUA user yang pic_admin_id = id admin yang login
