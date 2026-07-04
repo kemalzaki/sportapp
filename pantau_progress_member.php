@@ -124,49 +124,59 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </form>
 
-<div class="card shadow-sm">
-  <div class="card-header bg-light"><strong>Rekap Bulan <?= htmlspecialchars(date('F Y', strtotime($start))) ?></strong> · <?= count($members) ?> member · <?= $days ?> hari</div>
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-gradient bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div><i class="bi bi-calendar3"></i> <strong>Rekap Bulan <?= htmlspecialchars(date('F Y', strtotime($start))) ?></strong></div>
+    <div class="small">
+      <span class="badge bg-light text-primary me-1"><i class="bi bi-people-fill"></i> <?= count($members) ?> member</span>
+      <span class="badge bg-light text-primary"><i class="bi bi-calendar-week"></i> <?= $days ?> hari</span>
+    </div>
+  </div>
   <div class="card-body p-0">
-    <div class="table-responsive" style="max-height:600px; overflow-y:auto;">
-      <table class="table table-sm mb-0 align-middle">
-        <thead class="table-light" style="position:sticky;top:0;z-index:2;">
-          <tr>
-            <th style="width:40px">#</th>
-            <th>Member</th>
-            <th class="text-center" style="width:110px">Tahajud</th>
-            <th class="text-center" style="width:110px">Duha</th>
-            <th class="text-center" style="width:110px">Doa Harian</th>
-            <th class="text-center" style="width:110px">Hafalan</th>
-            <th class="text-center" style="width:110px">Baca Buku</th>
+    <div class="table-responsive" style="max-height:620px; overflow-y:auto;">
+      <table class="table table-sm table-striped table-hover mb-0 align-middle text-nowrap">
+        <thead class="table-dark" style="position:sticky;top:0;z-index:2;">
+          <tr class="text-center">
+            <th style="width:44px">#</th>
+            <th class="text-start">Member</th>
+            <th style="width:110px"><i class="bi bi-moon-stars text-info"></i> Tahajud</th>
+            <th style="width:110px"><i class="bi bi-sun text-warning"></i> Duha</th>
+            <th style="width:110px"><i class="bi bi-hand-thumbs-up text-success"></i> Doa</th>
+            <th style="width:110px"><i class="bi bi-journal-check text-primary"></i> Hafalan</th>
+            <th style="width:110px"><i class="bi bi-book text-secondary"></i> Buku</th>
+            <th style="width:90px" class="bg-success text-white"><i class="bi bi-trophy"></i> Total</th>
           </tr>
         </thead>
         <tbody>
         <?php if (!$members): ?>
-          <tr><td colspan="7" class="text-center text-muted small py-4">Tidak ada member.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted small py-4"><i class="bi bi-inbox"></i> Tidak ada member.</td></tr>
         <?php else: foreach ($members as $i => $m):
           $s = $stat[(int)$m['id']] ?? ['tahajud'=>0,'duha'=>0,'doa'=>0,'hafalan'=>0,'buku'=>0];
+          $total = (int)$s['tahajud'] + (int)$s['duha'] + (int)$s['doa'] + (int)$s['hafalan'] + (int)$s['buku'];
         ?>
           <tr>
-            <td class="text-muted small"><?= $i+1 ?></td>
+            <td class="text-center text-muted small fw-bold"><?= $i+1 ?></td>
             <td>
               <div class="fw-semibold"><?= htmlspecialchars($m['nama'] ?? '-') ?></div>
-              <div class="small text-muted"><?= htmlspecialchars($m['email'] ?? '') ?></div>
+              <div class="small text-muted"><i class="bi bi-envelope"></i> <?= htmlspecialchars($m['email'] ?? '-') ?></div>
             </td>
-            <td class="text-center"><span class="badge bg-primary-subtle text-primary"><?= (int)$s['tahajud'] ?> / <?= $days ?></span></td>
-            <td class="text-center"><span class="badge bg-warning-subtle text-warning-emphasis"><?= (int)$s['duha'] ?> / <?= $days ?></span></td>
-            <td class="text-center"><span class="badge bg-success-subtle text-success-emphasis"><?= (int)$s['doa'] ?></span></td>
-            <td class="text-center"><span class="badge bg-info-subtle text-info-emphasis"><?= (int)$s['hafalan'] ?></span></td>
-            <td class="text-center"><span class="badge bg-secondary-subtle text-secondary-emphasis"><?= (int)$s['buku'] ?></span></td>
+            <td class="text-center"><span class="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle px-2"><?= (int)$s['tahajud'] ?><span class="opacity-50"> / <?= $days ?></span></span></td>
+            <td class="text-center"><span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2"><?= (int)$s['duha'] ?><span class="opacity-50"> / <?= $days ?></span></span></td>
+            <td class="text-center"><span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle px-2"><?= (int)$s['doa'] ?></span></td>
+            <td class="text-center"><span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle px-2"><?= (int)$s['hafalan'] ?></span></td>
+            <td class="text-center"><span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-2"><?= (int)$s['buku'] ?></span></td>
+            <td class="text-center fw-bold text-success"><?= $total ?></td>
           </tr>
         <?php endforeach; endif; ?>
         </tbody>
       </table>
     </div>
   </div>
+  <div class="card-footer bg-light small text-muted d-flex justify-content-between flex-wrap gap-2">
+    <span><i class="bi bi-info-circle"></i> Badge menampilkan jumlah entri pada bulan berjalan. Kolom Tahajud &amp; Duha ditampilkan sebagai <em>x / total hari</em>.</span>
+    <span><i class="bi bi-trophy text-success"></i> Kolom <strong>Total</strong> = jumlah seluruh aktivitas.</span>
+  </div>
 </div>
 
-<p class="text-muted small mt-2"><i class="bi bi-info-circle"></i>
-  Kolom yang menampilkan angka 0 pada semua member bisa jadi tabel sumbernya belum ada atau nama kolomnya berbeda. Sesuaikan query di file ini jika perlu.
-</p>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

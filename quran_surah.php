@@ -101,7 +101,8 @@ include __DIR__.'/includes/header.php';
 <div class="alert alert-info py-2 small mb-3">
   <i class="bi bi-info-circle"></i> Klik kata Arab untuk lihat <strong>tafsir per-kata (Bahasa Indonesia)</strong>.
   Tombol <i class="bi bi-lightbulb"></i> menampilkan <strong>Tafsir Ibnu Katsir (Bahasa Indonesia)</strong>.
-  Tombol <i class="bi bi-journal-bookmark"></i> menampilkan <strong>Makna Ayat</strong>.
+  Tombol <i class="bi bi-journal-bookmark"></i> menampilkan <strong>Makna Ayat (AI)</strong>.
+  Tombol <i class="bi bi-stars"></i> menampilkan <strong>Tafsir Kontemporer (AI)</strong>.
   Ayat dengan ikon <i class="bi bi-journal-text text-warning"></i> memiliki riwayat <strong>Asbabun Nuzul</strong>.
 </div>
 
@@ -158,15 +159,19 @@ $ayatTo   = min($totalAyat, $page*$perPage);
 .word-arab .ar{font-family:'Amiri','Scheherazade New',serif;font-size:1.9rem;line-height:1.4;display:block;}
 .word-arab .tr{font-size:.72rem;color:var(--bs-secondary-color,#64748b);display:block;text-align:center;max-width:140px;word-wrap:break-word;white-space:normal;}
 .ayat-block{padding:1rem 0;border-bottom:1px solid var(--bs-border-color,#e5e7eb);}
-.tafsir-box,.asbab-box,.makna-box{background:var(--bs-tertiary-bg,#f8fafc);border-left:4px solid #16a34a;padding:.85rem 1rem;border-radius:6px;margin-top:.5rem;display:none;}
+.tafsir-box,.asbab-box,.makna-box,.kontemporer-box{background:var(--bs-tertiary-bg,#f8fafc);border-left:4px solid #16a34a;padding:.85rem 1rem;border-radius:6px;margin-top:.5rem;display:none;}
 .asbab-box{border-left-color:#f59e0b;}
 .makna-box{border-left-color:#0ea5e9;}
+.kontemporer-box{border-left-color:#8b5cf6;background:linear-gradient(180deg,rgba(139,92,246,.07),transparent);}
 .ayat-block.show-tafsir .tafsir-box,
 .ayat-block.show-asbab .asbab-box,
-.ayat-block.show-makna .makna-box{display:block;}
+.ayat-block.show-makna .makna-box,
+.ayat-block.show-kontemporer .kontemporer-box{display:block;}
 .tafsir-tab{font-weight:600;color:#16a34a;margin-top:.25rem;font-size:.95rem;}
 .tafsir-body{line-height:1.75;font-size:.95rem;text-align:justify;color:var(--bs-body-color);}
 .tafsir-body p{margin:0 0 .65rem 0;}
+.kontemporer-body h3{font-size:1rem;font-weight:700;color:#6d28d9;margin:.75rem 0 .25rem;}
+.kontemporer-body{line-height:1.7;font-size:.93rem;text-align:justify;}
 </style>
 
 <script>
@@ -274,8 +279,9 @@ $ayatTo   = min($totalAyat, $page*$perPage);
         '<div class="d-flex justify-content-between align-items-center mb-2">' +
           '<span class="badge bg-success">Ayat '+no+'</span>' +
           '<div class="btn-group btn-group-sm">' +
-            '<button type="button" class="btn btn-outline-info btn-sm js-toggle-makna" data-no="'+no+'" title="Makna ayat"><i class="bi bi-journal-bookmark"></i> Makna</button>' +
+            '<button type="button" class="btn btn-outline-info btn-sm js-toggle-makna" data-no="'+no+'" title="Makna Ayat (AI)"><i class="bi bi-journal-bookmark"></i> Makna</button>' +
             '<button type="button" class="btn btn-outline-success btn-sm js-toggle-tafsir" data-no="'+no+'" title="Tafsir Ibnu Katsir (Bahasa Indonesia)"><i class="bi bi-lightbulb"></i> Tafsir</button>' +
+            '<button type="button" class="btn btn-sm js-toggle-kontemporer" data-no="'+no+'" title="Tafsir Kontemporer (AI)" style="background:#8b5cf6;border-color:#8b5cf6;color:#fff"><i class="bi bi-stars"></i> Tafsir Kontemporer</button>' +
             (hasAsbab ? '<button type="button" class="btn btn-warning btn-sm js-toggle-asbab" data-no="'+no+'" title="Asbabun Nuzul"><i class="bi bi-journal-text"></i> Asbab</button>' : '') +
             '<form method="post" style="display:inline"><input type="hidden" name="csrf" value="'+csrf+'"><input type="hidden" name="_action" value="last_read"><input type="hidden" name="ayat" value="'+no+'"><button class="btn btn-outline-primary btn-sm" title="Tandai last read"><i class="bi bi-bookmark-check"></i></button></form>' +
             '<form method="post" style="display:inline"><input type="hidden" name="csrf" value="'+csrf+'"><input type="hidden" name="_action" value="'+(isBm?'unbookmark':'bookmark')+'"><input type="hidden" name="ayat" value="'+no+'"><button class="btn btn-'+(isBm?'warning':'outline-warning')+' btn-sm" title="Bookmark"><i class="bi bi-star'+(isBm?'-fill':'')+'"></i></button></form>' +
@@ -283,8 +289,9 @@ $ayatTo   = min($totalAyat, $page*$perPage);
         '</div>' +
         perKata +
         '<div class="small mt-2"><strong>Terjemah:</strong> '+esc(rabbify(ay.teksIndonesia))+'</div>' +
-        '<div class="makna-box"><strong><i class="bi bi-journal-bookmark text-info"></i> Makna Ayat:</strong><div class="mt-1 js-makna">Memuat…</div></div>' +
+        '<div class="makna-box"><strong><i class="bi bi-journal-bookmark text-info"></i> Makna Ayat <span class="badge bg-info-subtle text-info-emphasis ms-1">AI</span>:</strong><div class="mt-1 js-makna">Klik tombol Makna untuk memuat.</div></div>' +
         '<div class="tafsir-box"><div class="js-tafsir">Klik tombol Tafsir untuk memuat.</div></div>' +
+        '<div class="kontemporer-box"><strong style="color:#6d28d9"><i class="bi bi-stars"></i> Tafsir Kontemporer <span class="badge ms-1" style="background:#8b5cf6;color:#fff">AI</span>:</strong><div class="mt-1 js-kontemporer kontemporer-body">Klik tombol Tafsir Kontemporer untuk memuat.</div></div>' +
         (hasAsbab ? '<div class="asbab-box"><strong><i class="bi bi-journal-text text-warning"></i> Asbabun Nuzul:</strong><p class="mb-0 mt-1" style="white-space:pre-wrap">'+esc(asbabMap[no])+'</p></div>' : '') +
         (isBm && bmMap[no] ? '<div class="small fst-italic mt-1">📝 '+esc(bmMap[no])+'</div>' : '') +
         '</div>';
@@ -317,13 +324,38 @@ $ayatTo   = min($totalAyat, $page*$perPage);
       return html;
     }
 
-    function renderMakna(d, teksIndonesia){
-      var src = rabbify(d.ibnu_id || teksIndonesia || '');
-      src = stripTags(src);
-      if (!src) return '<span class="text-muted">Makna belum tersedia.</span>';
-      var sentences = src.split(/(?<=[\.\!\?])\s+/).slice(0, 3).join(' ');
-      if (sentences.length > 600) sentences = sentences.slice(0, 600) + '…';
-      return '<span style="white-space:pre-wrap">'+esc(sentences)+'</span>';
+    // Revisi Juli 2026 — Makna & Tafsir Kontemporer di-generate oleh AI (api_ai.php).
+    var suratNama = <?= json_encode($info[0], JSON_UNESCAPED_UNICODE) ?>;
+    var aiCache = { makna:{}, kontemporer:{} };
+    async function aiGenerate(task, no, ay){
+      var fd = new FormData();
+      fd.append('csrf', csrf);
+      fd.append('task', task);
+      fd.append('surah', suratNama);
+      fd.append('ayat', String(no));
+      if (ay && ay.teksArab) fd.append('arab', ay.teksArab);
+      if (ay && ay.teksIndonesia) fd.append('terjemah', ay.teksIndonesia);
+      try {
+        var r = await fetch('/api_ai.php', {method:'POST', body: fd, credentials:'same-origin'});
+        var txt = await r.text();
+        try { return JSON.parse(txt); } catch(e){ return {ok:false, err:'response tidak valid'}; }
+      } catch(e){ return {ok:false, err:e.message}; }
+    }
+    // Render sederhana untuk markdown ringan (### heading + paragraf)
+    function mdLite(text){
+      var t = (text||'').toString().trim();
+      if (!t) return '';
+      var lines = t.split(/\r?\n/); var out = ''; var para = [];
+      function flush(){ if (para.length){ out += '<p>'+esc(para.join(' '))+'</p>'; para=[]; } }
+      for (var i=0;i<lines.length;i++){
+        var ln = lines[i].trim();
+        if (!ln){ flush(); continue; }
+        var mh = ln.match(/^#{1,6}\s+(.+)$/);
+        if (mh){ flush(); out += '<h3>'+esc(mh[1])+'</h3>'; continue; }
+        para.push(ln);
+      }
+      flush();
+      return out;
     }
 
     container.querySelectorAll('.js-toggle-tafsir').forEach(function(b){
@@ -347,9 +379,37 @@ $ayatTo   = min($totalAyat, $page*$perPage);
           var no = parseInt(block.dataset.no, 10);
           var ay = ayatList.find(function(x){ return x.nomorAyat === no; });
           var box = block.querySelector('.js-makna');
-          box.innerHTML = 'Memuat…';
-          var d = await loadTafsir(no);
-          box.innerHTML = renderMakna(d, ay ? ay.teksIndonesia : '');
+          if (aiCache.makna[no]) { box.innerHTML = aiCache.makna[no]; return; }
+          box.innerHTML = '<span class="text-muted"><div class="spinner-border spinner-border-sm"></div> AI sedang menyusun makna ayat…</span>';
+          var r = await aiGenerate('makna_ayat', no, ay);
+          if (r && r.ok) {
+            var html = '<div style="white-space:pre-wrap;line-height:1.7">'+esc(rabbify(r.text||'')).replace(/\n/g,'<br>')+'</div>';
+            aiCache.makna[no] = html;
+            box.innerHTML = html;
+          } else {
+            box.innerHTML = '<span class="text-danger small">Gagal memuat makna: '+esc((r&&r.err)||'error')+'</span>';
+          }
+        }
+      });
+    });
+    container.querySelectorAll('.js-toggle-kontemporer').forEach(function(b){
+      b.addEventListener('click', async function(){
+        var block = b.closest('.ayat-block');
+        block.classList.toggle('show-kontemporer');
+        if (block.classList.contains('show-kontemporer')) {
+          var no = parseInt(block.dataset.no, 10);
+          var ay = ayatList.find(function(x){ return x.nomorAyat === no; });
+          var box = block.querySelector('.js-kontemporer');
+          if (aiCache.kontemporer[no]) { box.innerHTML = aiCache.kontemporer[no]; return; }
+          box.innerHTML = '<span class="text-muted"><div class="spinner-border spinner-border-sm"></div> AI sedang menyusun tafsir kontemporer…</span>';
+          var r = await aiGenerate('tafsir_kontemporer', no, ay);
+          if (r && r.ok) {
+            var html = mdLite(rabbify(r.text||''));
+            aiCache.kontemporer[no] = html;
+            box.innerHTML = html;
+          } else {
+            box.innerHTML = '<span class="text-danger small">Gagal memuat tafsir kontemporer: '+esc((r&&r.err)||'error')+'</span>';
+          }
         }
       });
     });

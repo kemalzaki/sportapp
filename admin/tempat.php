@@ -293,7 +293,14 @@ include __DIR__.'/../includes/header.php'; ?>
   <div class="alert alert-danger py-2 small"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($_SESSION['flash_err']) ?></div>
   <?php unset($_SESSION['flash_err']); endif; ?>
 
-<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Tempat</div>
+<div class="card shadow-sm mb-3">
+  <div class="card-header p-0">
+    <button class="btn btn-link w-100 text-start text-decoration-none py-2 px-3 d-flex justify-content-between align-items-center collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tambahTempatBody" aria-expanded="false" aria-controls="tambahTempatBody">
+      <span><i class="bi bi-plus-circle me-1 text-primary"></i> <strong>Tambah Tempat</strong> <small class="text-muted">(klik untuk buka/tutup)</small></span>
+      <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+  <div class="collapse" id="tambahTempatBody">
 <div class="card-body">
   <form method="post" class="row g-2" enctype="multipart/form-data" id="newForm" data-trail-form="1">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
@@ -382,7 +389,7 @@ include __DIR__.'/../includes/header.php'; ?>
 
     <div class="col-12"><button class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</button></div>
   </form>
-</div></div>
+</div></div></div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -428,6 +435,18 @@ function setupMapPicker(mapId, latId, lngId, queryId, btnId, resultsId, initialL
 }
 document.addEventListener('DOMContentLoaded', function(){
   setupMapPicker('newMap','newLat','newLng','newPlaceQuery','newSearchBtn','newSearchResults','','');
+  // Revisi Juli 2026 — Tambah Tempat sekarang spoiler; refresh ukuran peta saat dibuka.
+  var tambahBody = document.getElementById('tambahTempatBody');
+  if (tambahBody) {
+    tambahBody.addEventListener('shown.bs.collapse', function(){
+      var m = document.getElementById('newMap');
+      if (m && m._leaflet_id) {
+        try { L.DomUtil.get('newMap'); } catch(e){}
+      }
+      // panggil invalidateSize via event resize (setupMapPicker sudah pasang map ke elemen)
+      window.dispatchEvent(new Event('resize'));
+    });
+  }
   // setup edit map picker ketika modal dibuka
   document.querySelectorAll('.modal[id^="tpE"]').forEach(function(m){
     m.addEventListener('shown.bs.modal', function(){

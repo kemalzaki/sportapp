@@ -296,6 +296,50 @@ switch ($task) {
         echo json_encode($r); exit;
     }
 
+    /* ---------- Makna Ayat (Al-Qur'an) — Revisi Juli 2026 ---------- */
+    case 'makna_ayat': {
+        $surah = trim((string)($_POST['surah'] ?? ''));
+        $ayat  = (int)($_POST['ayat'] ?? 0);
+        $arab  = trim((string)($_POST['arab'] ?? ''));
+        $terj  = trim((string)($_POST['terjemah'] ?? ''));
+        if ($surah === '' || $ayat < 1) { echo json_encode(['ok'=>false,'err'=>'surah/ayat kosong']); exit; }
+        $sys = "Anda ahli tafsir Al-Qur'an. Jelaskan MAKNA singkat ayat berikut dalam Bahasa Indonesia yang mudah ".
+               "dipahami umat awam. Fokus: pesan utama ayat, kata kunci penting, dan pelajaran praktis. ".
+               "Maksimal 3 paragraf pendek (total ± 120–180 kata). Sopan, netral madzhab, tidak polemis. ".
+               "Tanpa fence markdown, tanpa judul. Langsung isi penjelasan.";
+        $p = "Surah: $surah\nAyat ke-$ayat\n".
+             ($arab!=='' ? "Teks Arab: $arab\n" : '').
+             ($terj!=='' ? "Terjemahan: $terj\n" : '').
+             "\nJelaskan makna ayat ini.";
+        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>1024]);
+        echo json_encode($r); exit;
+    }
+
+    /* ---------- Tafsir Kontemporer (Al-Qur'an) — Revisi Juli 2026 ---------- */
+    case 'tafsir_kontemporer': {
+        $surah = trim((string)($_POST['surah'] ?? ''));
+        $ayat  = (int)($_POST['ayat'] ?? 0);
+        $arab  = trim((string)($_POST['arab'] ?? ''));
+        $terj  = trim((string)($_POST['terjemah'] ?? ''));
+        if ($surah === '' || $ayat < 1) { echo json_encode(['ok'=>false,'err'=>'surah/ayat kosong']); exit; }
+        $sys = "Anda 'Mufassir Kontemporer' — ahli tafsir Al-Qur'an dengan pendekatan kontekstual modern ".
+               "(rujukan gaya: M. Quraish Shihab 'Al-Mishbah', Wahbah Az-Zuhaili 'Al-Munir', Sayyid Qutb 'Fi Zhilalil Qur'an', ".
+               "dan tafsir maudhu'i modern). Tugas: berikan TAFSIR KONTEMPORER ayat berikut yang menghubungkan pesan Qur'an ".
+               "dengan realitas kehidupan hari ini (sosial, teknologi, ekonomi, keluarga, lingkungan, etika digital, dsb). ".
+               "Struktur (gunakan sub-judul markdown ###):\n".
+               "### Konteks Ayat\n(1–2 kalimat latar belakang)\n".
+               "### Pesan Inti\n(inti pesan ayat)\n".
+               "### Relevansi Kontemporer\n(3–5 contoh aplikatif di kehidupan modern)\n".
+               "### Renungan\n(1 paragraf pendek ajakan aksi)\n".
+               "Bahasa Indonesia, sopan, netral madzhab, hindari polemik. Total ± 250–400 kata. Akhiri dengan 'Wallahu a'lam.'";
+        $p = "Surah: $surah\nAyat ke-$ayat\n".
+             ($arab!=='' ? "Teks Arab: $arab\n" : '').
+             ($terj!=='' ? "Terjemahan: $terj\n" : '').
+             "\nBerikan tafsir kontemporer ayat ini.";
+        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>2048]);
+        echo json_encode($r); exit;
+    }
+
     /* ---------- Chat free-form ---------- */
     default: {
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
