@@ -125,19 +125,39 @@ $rows = db_all("SELECT p.*, j.tanggal AS j_tgl, j.jenis AS j_jenis, j.tempat AS 
 // Total agregat seluruh (bukan hanya halaman aktif) — supaya rekap akurat
 $totalAgg = (int) db_val("SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran_kegiatan p $where", $params);
 
-$jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal ORDER BY tanggal DESC LIMIT 200");
-// Revisi 24 Juni 2026 — Daftar bulan unik (dari tanggal jadwal + tanggal pengeluaran) untuk dropdown filter Per Bulan.
-$bulanRows = db_all("
-  SELECT bulan FROM (
-    SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM jadwal
-    UNION
-    SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM pengeluaran_kegiatan
-  ) x WHERE bulan IS NOT NULL ORDER BY bulan DESC LIMIT 60");
-// Revisi R7 (Juli 2026) #3 — Daftar unik "Dana Dari" untuk dropdown filter.
-$danaRows = db_all("
-  SELECT DISTINCT dana_dari FROM pengeluaran_kegiatan
-  WHERE dana_dari IS NOT NULL AND btrim(dana_dari) <> ''
-  ORDER BY dana_dari ASC LIMIT 200");
+// Revisi Juli 2026 R8 #6 — filter Jadwal / Jadwal Spesifik / Dana Dari per komunitas.
+$__vkidsPg = scope_kom_ids_sql_array();
+$__vidsPg  = scope_user_ids_sql_array();
+if (scope_is_super()) {
+    $jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal ORDER BY tanggal DESC LIMIT 200");
+    $bulanRows = db_all("
+      SELECT bulan FROM (
+        SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM jadwal
+        UNION
+        SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS bulan FROM pengeluaran_kegiatan
+      ) x WHERE bulan IS NOT NULL ORDER BY bulan DESC LIMIT 60");
+    $danaRows = db_all("
+      SELECT DISTINCT dana_dari FROM pengeluaran_kegiatan
+      WHERE dana_dari IS NOT NULL AND btrim(dana_dari) <> ''
+      ORDER BY dana_dari ASC LIMIT 200");
+} else {
+    $jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal
+                          WHERE komunitas_id IS NULL OR komunitas_id = ANY(\$1::int[])
+                          ORDER BY tanggal DESC LIMIT 200", [$__vkidsPg]);
+    $bulanRows = db_all("
+      SELECT bulan FROM (
+        SELECT DISTINCT to_char(j.tanggal,'YYYY-MM') AS bulan FROM jadwal j
+          WHERE j.komunitas_id IS NULL OR j.komunitas_id = ANY(\$1::int[])
+        UNION
+        SELECT DISTINCT to_char(p.tanggal,'YYYY-MM') AS bulan FROM pengeluaran_kegiatan p
+          WHERE p.created_by IS NULL OR p.created_by = ANY(\$2::int[])
+      ) x WHERE bulan IS NOT NULL ORDER BY bulan DESC LIMIT 60", [$__vkidsPg, $__vidsPg]);
+    $danaRows = db_all("
+      SELECT DISTINCT dana_dari FROM pengeluaran_kegiatan p
+      WHERE dana_dari IS NOT NULL AND btrim(dana_dari) <> ''
+        AND (p.created_by IS NULL OR p.created_by = ANY(\$1::int[]))
+      ORDER BY dana_dari ASC LIMIT 200", [$__vidsPg]);
+}
 
 /* Revisi 22 Juni 2026 R12 — AJAX fragment: kembalikan hanya bagian tabel + pagination. */
 if (!empty($_GET['ajax_table'])) {

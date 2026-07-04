@@ -278,9 +278,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     header('Location: /index.php#feed'); exit;
 }
 
-$totalSesi    = (int) db_val("SELECT COUNT(*) FROM jadwal");
-$totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1");
-$totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
+// Revisi Juli 2026 R8 #2 — semua statistik & daftar DIFILTER per komunitas user login.
+require_once __DIR__ . '/includes/scope.php';
+$__vids  = scope_user_ids_sql_array();
+$__vkids = scope_kom_ids_sql_array();
+$__isSuper = scope_is_super();
+$totalSesi    = (int) db_val(
+    "SELECT COUNT(*) FROM jadwal j WHERE (\$1=1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY(\$2::int[]))",
+    [$__isSuper?1:0, $__vkids]);
+$totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1 AND user_id = ANY($1::int[])", [$__vids]);
+$totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND id = ANY($1::int[])", [$__vids]);
 // Revisi 13 Juni 2026 (fix 2): hitung member aktif & non-aktif.
 // Auto-migrasi kolom aktif/nonaktif_catatan jika belum ada.
 // Catatan: di beberapa instalasi lama, kolom "aktif" ter-create sebagai SMALLINT
@@ -293,8 +300,8 @@ try {
 
 // Ekspresi tahan-tipe: aman untuk kolom BOOLEAN maupun SMALLINT/INT.
 $aktifExpr = "(LOWER(COALESCE(aktif::text,'true')) IN ('1','t','true','y','yes'))";
-$memberAktif    = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND $aktifExpr");
-$memberNonaktif = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND NOT $aktifExpr");
+$memberAktif    = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND id = ANY($1::int[]) AND $aktifExpr", [$__vids]);
+$memberNonaktif = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND id = ANY($1::int[]) AND NOT $aktifExpr", [$__vids]);
 
 // ====== REVISI 31 Mei 2026: Total Visitor ======
 // Tabel auto-create (tidak menghapus data lama). Lihat catatan SQL di README.
@@ -408,7 +415,11 @@ if ($u) {
   // Jadwal terdekat (1 item) untuk template pesan WA
   $jadwalDekat1 = db_one(
     "SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.jam_selesai
-     FROM jadwal j WHERE j.tanggal >= CURRENT_DATE ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1"
+     FROM jadwal j
+     WHERE j.tanggal >= CURRENT_DATE
+       AND (\$1=1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY(\$2::int[]))
+     ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1",
+    [$__isSuper?1:0, $__vkids]
   );
   $isPic = (int) db_val("SELECT COUNT(*) FROM users WHERE pic_admin_id=$1", [(int)$u['id']]);
   $isPicAdmin = ($u['role'] === 'admin') || ($isPic > 0);
@@ -427,12 +438,14 @@ if ($u) {
     // Fallback admin: jika belum ada member yang ditunjuk sebagai PIC-nya,
     // tampilkan semua member sebagai daftar awal supaya PIC bisa menghubungi.
     if ($u['role'] === 'admin' && !$kabariKawan) {
+      // Revisi Juli 2026 R8 #2 — fallback list Kabari Member DIFILTER per komunitas.
       $kabariKawan = db_all(
         "SELECT id, nama, foto_url,
                 COALESCE(NULLIF(wa,''), NULLIF(nomor_wa,'')) AS nomor_wa
          FROM users
-         WHERE role = 'member'
-         ORDER BY nama LIMIT 200"
+         WHERE role = 'member' AND id = ANY(\$1::int[])
+         ORDER BY nama LIMIT 200",
+        [$__vids]
       );
     }
   }
@@ -470,14 +483,17 @@ if ($_jids) {
     } catch (Throwable $e) {}
 }
 $onlineMembers = db_all("SELECT id, nama, foto_url, last_seen FROM users
-                         WHERE last_seen IS NOT NULL AND last_seen >= NOW() - INTERVAL '2 minutes' ORDER BY nama");
+                         WHERE last_seen IS NOT NULL AND last_seen >= NOW() - INTERVAL '2 minutes'
+                           AND id = ANY($1::int[]) ORDER BY nama", [$__vids]);
 
 // Forum: ambil top-level + replies, plus aggregate like/dislike
+// Revisi Juli 2026 R8 #2 — Forum Komunitas hanya menampilkan chat dari user dalam scope komunitas.
 $chats = db_all("SELECT c.*, u.nama, u.foto_url,
                    COALESCE((SELECT SUM(CASE WHEN val=1 THEN 1 ELSE 0 END) FROM chat_reactions r WHERE r.chat_id=c.id),0) AS likes,
                    COALESCE((SELECT SUM(CASE WHEN val=-1 THEN 1 ELSE 0 END) FROM chat_reactions r WHERE r.chat_id=c.id),0) AS dislikes
                  FROM chat_forum c LEFT JOIN users u ON u.id=c.user_id
-                 ORDER BY c.created_at DESC LIMIT 60");
+                 WHERE c.user_id IS NULL OR c.user_id = ANY(\$1::int[])
+                 ORDER BY c.created_at DESC LIMIT 60", [$__vids]);
 // kelompokkan reply per parent
 $top = []; $replies = [];
 foreach ($chats as $c) {
@@ -487,13 +503,15 @@ foreach ($chats as $c) {
 
 // Social feed
 $uidMe = (int)($u['id'] ?? 0);
+// Revisi Juli 2026 R8 #2 — Story Hari Ini per komunitas.
 $stories = db_all("SELECT p.*, u.nama, u.foto_url AS user_foto,
                           (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
-                          (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id AND pl.user_id=$1) AS liked_by_me,
+                          (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id AND pl.user_id=\$1) AS liked_by_me,
                           (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments
                    FROM posts p JOIN users u ON u.id=p.user_id
                    WHERE p.jenis='story' AND (p.expired_at IS NULL OR p.expired_at > now())
-                   ORDER BY p.created_at DESC LIMIT 20", [$uidMe]);
+                     AND p.user_id = ANY(\$2::int[])
+                   ORDER BY p.created_at DESC LIMIT 20", [$uidMe, $__vids]);
 // Revisi 19 Juni 2026 Part Q — komentar untuk Story Hari Ini (untuk modal interaksi)
 $storyCommentsByPost = [];
 if ($stories) {
@@ -508,21 +526,23 @@ if ($stories) {
 // === Revisi: Social feed pagination — 2 data per halaman (server-side) ===
 $feedPerPage = 2;
 $feedPage = max(1, (int)($_GET['fp'] ?? 1));
-$feedTotal = (int) db_val("SELECT COUNT(*) FROM posts WHERE jenis='post'");
+$feedTotal = (int) db_val("SELECT COUNT(*) FROM posts WHERE jenis='post' AND user_id = ANY($1::int[])", [$__vids]);
 $feedPages = max(1, (int)ceil($feedTotal / $feedPerPage));
 if ($feedPage > $feedPages) $feedPage = $feedPages;
 $feedOffset = ($feedPage - 1) * $feedPerPage;
 // Revisi 21 Juni 2026 R4 — pastikan kolom images_json ada lalu sertakan dalam SELECT
 try { db_exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS images_json TEXT"); } catch (Throwable $e) {}
+// Revisi Juli 2026 R8 #2 — Social Feed per komunitas.
 $feed = db_all("SELECT p.id, p.user_id, p.caption, p.foto_url AS post_foto, p.jenis,
                   COALESCE(p.media_type,'image') AS media_type, p.images_json, p.created_at,
                   u.nama, u.foto_url AS user_foto,
                   (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id=p.id) AS likes,
                   (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id=p.id) AS comments,
-                  (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=$1) AS liked_by_me
+                  (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id=p.id AND pl2.user_id=\$1) AS liked_by_me
                 FROM posts p JOIN users u ON u.id=p.user_id
-                WHERE p.jenis='post' ORDER BY p.created_at DESC LIMIT $2 OFFSET $3",
-                [$uidMe, $feedPerPage, $feedOffset]);
+                WHERE p.jenis='post' AND p.user_id = ANY(\$4::int[])
+                ORDER BY p.created_at DESC LIMIT \$2 OFFSET \$3",
+                [$uidMe, $feedPerPage, $feedOffset, $__vids]);
 
 // Komentar per post (untuk ditampilkan inline)
 $feedIds = array_map(fn($x)=>(int)$x['id'], $feed);

@@ -17,7 +17,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     // melempar halaman HTML dari set_exception_handler. Pesan tampil di flash.
     try {
         /* Revisi R18 (26 Jun 2026) — CRUD Jenis Jadwal (Tim Kantor KK / Tim Public KK).
+         * Revisi Juli 2026 R8 #3 — hanya superadmin / komunitas SuperDuperAdmin.
          * Action: jj_create / jj_edit / jj_delete. */
+        if (in_array($a, ['jj_create','jj_edit','jj_delete'], true) && !$__isSuper) {
+            http_response_code(403);
+            $_SESSION['flash_err'] = 'Akses ditolak: Jenis Jadwal hanya untuk superadmin / komunitas SuperDuperAdmin.';
+            header('Location: jadwal.php'); exit;
+        }
         if ($a === 'jj_create') {
             db_exec("INSERT INTO jenis_jadwal(nama, warna_bg, warna_text) VALUES($1,$2,$3)",
                 [trim($_POST['nama'] ?? ''), $_POST['warna_bg'] ?? '#0ea5e9', $_POST['warna_text'] ?? '#ffffff']);
@@ -108,6 +114,8 @@ require_once __DIR__.'/../includes/header.php';
 <?php if (!empty($_SESSION['flash_err'])): ?><div class="alert alert-danger"><?= htmlspecialchars($_SESSION['flash_err']) ?></div><?php unset($_SESSION['flash_err']); endif; ?>
 
 <!-- ============ Revisi R18 (26 Jun 2026) — CRUD Jenis Jadwal ============ -->
+<!-- Revisi Juli 2026 R8 #3 — hanya superadmin / komunitas SuperDuperAdmin. -->
+<?php if ($__isSuper): ?>
 <div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center">
   <span><i class="bi bi-tags-fill me-1 text-info"></i> Jenis Jadwal (Tim Kantor KK / Tim Public KK)</span>
   <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#jjPanel"><i class="bi bi-gear"></i> Kelola</button>
@@ -167,6 +175,7 @@ require_once __DIR__.'/../includes/header.php';
   </form>
 </div></div>
 <?php endforeach; ?>
+<?php endif; /* end $__isSuper Jenis Jadwal */ ?>
 
 <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Jadwal</div>
 <div class="card-body">
@@ -182,6 +191,7 @@ require_once __DIR__.'/../includes/header.php';
       <select name="jenis" class="form-select">
         <?php foreach($jenisList as $j): ?><option><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
       </select></div>
+    <?php if ($__isSuper): ?>
     <div class="col-md-4"><label class="form-label small fw-semibold">Jenis Jadwal</label>
       <select name="jenis_jadwal_id" class="form-select">
         <option value="">— Pilih (opsional) —</option>
@@ -189,6 +199,7 @@ require_once __DIR__.'/../includes/header.php';
           <option value="<?= (int)$jj['id'] ?>"><?= htmlspecialchars($jj['nama']) ?></option>
         <?php endforeach; ?>
       </select></div>
+    <?php endif; ?>
     <div class="col-md-4"><label class="form-label small fw-semibold">Tempat</label>
       <select name="tempat_id" class="form-select" required>
         <option value="">— Pilih Tempat —</option>
@@ -284,6 +295,7 @@ require_once __DIR__.'/../includes/header.php';
               <?php foreach($jenisList as $j): ?><option <?= $r['jenis']===$j?'selected':'' ?>><?= htmlspecialchars($j) ?></option><?php endforeach; ?>
               <?php if (!in_array($r['jenis'], $jenisList, true)): ?><option selected><?= htmlspecialchars($r['jenis']) ?></option><?php endif; ?>
             </select></div>
+          <?php if ($__isSuper): ?>
           <div class="col-md-4"><label class="form-label small fw-semibold">Jenis Jadwal</label>
             <select name="jenis_jadwal_id" class="form-select">
               <option value="">— Pilih (opsional) —</option>
@@ -291,6 +303,7 @@ require_once __DIR__.'/../includes/header.php';
                 <option value="<?= (int)$jj['id'] ?>" <?= ((int)($r['jenis_jadwal_id']??0))===(int)$jj['id']?'selected':'' ?>><?= htmlspecialchars($jj['nama']) ?></option>
               <?php endforeach; ?>
             </select></div>
+          <?php endif; ?>
           <div class="col-md-4"><label class="form-label small fw-semibold">Koordinator (admin)</label>
             <select name="koordinator_id" class="form-select">
               <option value="">— Pilih —</option>

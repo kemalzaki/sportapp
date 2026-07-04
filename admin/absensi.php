@@ -82,14 +82,17 @@ if ($jadwalId) {
     $tamu = db_all("SELECT * FROM member_eksternal WHERE jadwal_id=$1", [$jadwalId]);
 }
 // Revisi 24 Juni 2026 — Filter bulanan agar dropdown jadwal tidak memanjang ke bawah.
-$blnList = db_all("SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS ym FROM jadwal ORDER BY ym DESC");
+// Revisi Juli 2026 R8 #5 — dropdown jadwal & bulan DIFILTER per komunitas admin.
+$__isSuper = scope_is_super();
+$__vkidsAbs = scope_kom_ids_sql_array();
+$__komFilter = $__isSuper ? '' : " AND (komunitas_id IS NULL OR komunitas_id = ANY('".pg_escape_string($__vkidsAbs)."'::int[]))";
+$blnList = db_all("SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS ym FROM jadwal WHERE TRUE $__komFilter ORDER BY ym DESC");
 $blnSel = (string)($_GET['bln'] ?? '');
-// Bila tidak memilih bulan & belum memilih jadwal, default ke bulan terbaru agar ringkas.
 if ($blnSel === '' && !$jadwalId && $blnList) { $blnSel = $blnList[0]['ym']; }
 if ($blnSel !== '' && preg_match('/^\d{4}-\d{2}$/', $blnSel)) {
-    $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal WHERE to_char(tanggal,'YYYY-MM')=$1 ORDER BY tanggal DESC", [$blnSel]);
+    $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal WHERE to_char(tanggal,'YYYY-MM')=\$1 $__komFilter ORDER BY tanggal DESC", [$blnSel]);
 } else {
-    $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal ORDER BY tanggal DESC");
+    $jadwalList = db_all("SELECT id,tanggal,jenis,tempat FROM jadwal WHERE TRUE $__komFilter ORDER BY tanggal DESC");
 }
 $bulanNama = [1=>'Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 $fmtBln = function($ym) use ($bulanNama){ [$y,$m]=explode('-',$ym); return ($bulanNama[(int)$m] ?? $m).' '.$y; };

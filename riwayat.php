@@ -310,12 +310,14 @@ $myActs = $u ? db_all("SELECT id,tanggal,jenis,durasi_menit,jarak_km,kalori,file
                        FROM upload_harian WHERE user_id=$1 ORDER BY tanggal DESC LIMIT 30", [(int)$u['id']]) : [];
 
 /* ---------- (2) Data kalender (last 90 days) ---------- */
+// Revisi Juli 2026 R8 #1 — Kalender Aktivitas Publik DIFILTER per komunitas.
 $publicDays = db_all("
   SELECT to_char(uh.tanggal,'YYYY-MM-DD') AS d, COUNT(*) AS n,
          COUNT(DISTINCT uh.user_id) AS users
   FROM upload_harian uh
   WHERE uh.tanggal >= CURRENT_DATE - INTERVAL '90 days'
-  GROUP BY uh.tanggal ORDER BY uh.tanggal");
+    AND uh.user_id = ANY(\$1::int[])
+  GROUP BY uh.tanggal ORDER BY uh.tanggal", [$__vids]);
 $myDays = $u ? db_all("
   SELECT to_char(tanggal,'YYYY-MM-DD') AS d, COUNT(*) AS n
   FROM upload_harian WHERE user_id=$1
@@ -325,10 +327,12 @@ $myDays = $u ? db_all("
 /* Revisi 24 Juni 2026 — Tren Kehadiran Mingguan SEMUA ANGGOTA (dipindah dari monitoring.php). */
 $wkAllLabels = []; $wkAllVals = [];
 try {
+  // Revisi Juli 2026 R8 #1 — Tren Kehadiran Mingguan DIFILTER per komunitas.
   $wkRows = db_all("SELECT to_char(date_trunc('week', j.tanggal), 'IYYY-\"W\"IW') AS wk, COUNT(*) AS c
                     FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id
                     WHERE a.hadir=1 AND j.tanggal >= CURRENT_DATE - INTERVAL '12 weeks'
-                    GROUP BY 1 ORDER BY 1");
+                      AND a.user_id = ANY(\$1::int[])
+                    GROUP BY 1 ORDER BY 1", [$__vids]);
   foreach ($wkRows as $r) { $wkAllLabels[] = $r['wk']; $wkAllVals[] = (int)$r['c']; }
 } catch (Throwable $e) {}
 

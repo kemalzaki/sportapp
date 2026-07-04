@@ -8,11 +8,40 @@
  * Fallback: bila tabel kosong, kembalikan string kosong.
  */
 if (!function_exists('nav_menu_items')) {
+    /** Revisi Juli 2026 R8 #10-#15 — daftar URL menu yang hanya boleh
+     *  tampil di drawer untuk superadmin / komunitas SuperDuperAdmin. */
+    function nav_menu_super_only_urls(): array {
+        return [
+            '/admin/jenis.php',           // Jenis Olahraga
+            '/admin/referal.php',         // Kode Referal Pendaftaran
+            '/admin/lacak.php',           // Lacak HP Member
+            '/admin/paket_pesanan.php',   // Pesanan Paket Member
+            '/admin/paket_member.php',    // Pesanan Paket Member (varian)
+            '/admin/komunitas.php',       // Komunitas Organize
+            '/admin/komunitas_data.php',  // Komunitas Organize (varian)
+            '/admin/sistem.php',          // Pengaturan Lainnya
+        ];
+    }
     function nav_menu_items(string $posisi = 'drawer'): array {
         try {
             // Revisi 27 Juni 2026 — auto-migrasi kolom paket bila admin/menu.php belum pernah dibuka.
             try { db_exec("ALTER TABLE nav_menu ADD COLUMN IF NOT EXISTS paket VARCHAR(20)"); } catch (Throwable $e) {}
-            return db_all("SELECT * FROM nav_menu WHERE aktif=true AND posisi=$1 ORDER BY COALESCE(parent_id,0), urutan, id", [$posisi]);
+            $rows = db_all("SELECT * FROM nav_menu WHERE aktif=true AND posisi=$1 ORDER BY COALESCE(parent_id,0), urutan, id", [$posisi]);
+            // Revisi Juli 2026 R8 #10-#15 — sembunyikan item admin-super khusus
+            // dari drawer untuk non-super. Halaman-halaman ini sendiri sudah
+            // di-guard di server (require_role); ini murni kosmetik navigasi.
+            try {
+                require_once __DIR__ . '/scope.php';
+                if (!scope_is_super()) {
+                    $blocked = nav_menu_super_only_urls();
+                    $rows = array_values(array_filter($rows, function($r) use ($blocked) {
+                        $u = (string)($r['url'] ?? '');
+                        foreach ($blocked as $b) { if (strpos($u, $b) !== false) return false; }
+                        return true;
+                    }));
+                }
+            } catch (Throwable $e) { /* fallback: biarkan */ }
+            return $rows;
         } catch (Throwable $e) { return []; }
     }
     function nav_menu_html(string $posisi = 'drawer', string $wrapClass = 'list-group list-group-flush'): string {
