@@ -52,12 +52,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db_exec("UPDATE jadwal SET tanggal=$1, bulan=$2, minggu_ke=$3, jenis=$4, tempat=$5,
                                        tempat_id=$6, durasi_menit=$7, koordinator_id=$8,
                                        konten_obrolan=$9, catatan=$10, jam_mulai=$11, jam_selesai=$12,
-                                       jenis_jadwal_id=$13
-                     WHERE id=$14",
+                                       jenis_jadwal_id=$13, komunitas_id=$14
+                     WHERE id=$15",
                     [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama,
                      $tempatId, ((int)($_POST['durasi_menit'] ?? 0) ?: null),
                      (int)($_POST['koordinator_id'] ?? 0) ?: null,
-                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $jenisJadwalId, $id]);
+                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $jenisJadwalId,
+                     // Revisi R10 Juli 2026 #1 — pilih komunitas jadwal.
+                     // Non-super dipaksa ke komunitas primernya, super boleh memilih.
+                     ($__isSuper ? ((int)($_POST['komunitas_id'] ?? 0) ?: null) : scope_primary_kom_id()),
+                     $id]);
             $_SESSION['flash_ok'] = 'Jadwal diperbarui.';
         } else {
             $tgl   = $_POST['tanggal'];
@@ -70,7 +74,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $js = $_POST['jam_selesai'] ?: null;
             $jenisJadwalId = (int)($_POST['jenis_jadwal_id'] ?? 0) ?: null;
             // Revisi R9 Juli 2026 — jadwal baru langsung ter-tag komunitas admin login.
-            $komIdIns = scope_primary_kom_id();
+            // Revisi R10 Juli 2026 #1 — super boleh pilih komunitas via form.
+            $komIdIns = $__isSuper
+                ? ((int)($_POST['komunitas_id'] ?? 0) ?: scope_primary_kom_id())
+                : scope_primary_kom_id();
             db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai,jenis_jadwal_id,komunitas_id)
                      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
                     [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama, $tempatId,
@@ -94,10 +101,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 $rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
-                          jj.nama AS jenis_jadwal_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text
+                          jj.nama AS jenis_jadwal_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text,
+                          k.nama AS kom_nama, k.warna AS kom_warna
                   FROM jadwal j
                   LEFT JOIN users u ON u.id=j.koordinator_id
                   LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
+                  LEFT JOIN komunitas k ON k.id=j.komunitas_id
                   WHERE ($1 = 1 OR j.komunitas_id = ANY($2::int[]))
                   ORDER BY tanggal DESC", [$__isSuper?1:0, $__scopeKomArr]);
 $admins = db_all("SELECT id,nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
@@ -107,6 +116,8 @@ if (!$jenisList) { $jenisList = ['Jogging','Badminton','Futsal','Senam','Renang'
 $tempatList = db_all("SELECT id,nama,jenis_id FROM tempat ORDER BY nama");
 /* Revisi R18 — daftar Jenis Jadwal (Tim Kantor KK / Tim Public KK / dst.) */
 $jenisJadwalList = db_all("SELECT id, nama, warna_bg, warna_text FROM jenis_jadwal ORDER BY nama");
+/* Revisi R10 Juli 2026 #1 — daftar komunitas untuk dropdown CRUD jadwal. */
+$komList = db_all("SELECT id, nama, warna FROM komunitas ORDER BY nama");
 require_once __DIR__.'/../includes/header.php';
 ?>
 
@@ -179,8 +190,17 @@ require_once __DIR__.'/../includes/header.php';
 <?php endforeach; ?>
 <?php endif; /* end $__isSuper Jenis Jadwal */ ?>
 
-<div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Jadwal</div>
-<div class="card-body">
+<?php /* Revisi R10 Juli 2026 #2 — Tambah Data dibuat spoiler (collapse). */ ?>
+<div class="card shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-plus-circle me-1 text-primary"></i> Tambah Jadwal</span>
+    <button class="btn btn-sm btn-outline-primary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#tambahJadwalPanel"
+            aria-expanded="false" aria-controls="tambahJadwalPanel">
+      <i class="bi bi-chevron-down"></i> Buka / Tutup
+    </button>
+  </div>
+<div class="collapse" id="tambahJadwalPanel"><div class="card-body">
   <form method="post" class="row g-2">
     <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
     <div class="col-md-2"><label class="form-label small fw-semibold">Tanggal</label>
@@ -202,6 +222,17 @@ require_once __DIR__.'/../includes/header.php';
         <?php endforeach; ?>
       </select></div>
     <?php endif; ?>
+    <?php /* Revisi R10 Juli 2026 #1 — pilih Komunitas untuk kegiatan (super only). */ ?>
+    <?php if ($__isSuper): ?>
+    <div class="col-md-4"><label class="form-label small fw-semibold">Komunitas</label>
+      <select name="komunitas_id" class="form-select">
+        <option value="">— Pilih Komunitas —</option>
+        <?php foreach($komList as $k): ?>
+          <option value="<?= (int)$k['id'] ?>"><?= htmlspecialchars($k['nama']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <small class="text-muted">Ditampilkan di kartu <i>Jadwal Terdekat</i> pada Beranda.</small></div>
+    <?php endif; ?>
     <div class="col-md-4"><label class="form-label small fw-semibold">Tempat</label>
       <select name="tempat_id" class="form-select" required>
         <option value="">— Pilih Tempat —</option>
@@ -221,9 +252,10 @@ require_once __DIR__.'/../includes/header.php';
       <textarea name="catatan" data-wysiwyg placeholder="Kondisi, cedera, izin, dll..."></textarea></div>
   </form>
 </div></div>
+</div>
 
 <div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0" data-paginate="5">
-  <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jam</th><th>Bulan</th><th>W</th><th>Jenis</th><th>Tempat</th><th>Durasi</th><th>Koordinator</th><th class="text-end">Aksi</th></tr></thead>
+  <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jam</th><th>Bulan</th><th>W</th><th>Jenis</th><th>Komunitas</th><th>Tempat</th><th>Durasi</th><th>Koordinator</th><th class="text-end">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $i=>$r): ?>
     <tr>
@@ -237,6 +269,13 @@ require_once __DIR__.'/../includes/header.php';
         <?= htmlspecialchars($r['jenis']) ?>
         <?php if(!empty($r['jenis_jadwal_nama'])): ?>
           <div class="mt-1"><span class="badge" style="background:<?= htmlspecialchars($r['jj_bg']) ?>;color:<?= htmlspecialchars($r['jj_text']) ?>"><?= htmlspecialchars($r['jenis_jadwal_nama']) ?></span></div>
+        <?php endif; ?>
+      </td>
+      <td>
+        <?php if(!empty($r['kom_nama'])): ?>
+          <span class="badge" style="background:<?= htmlspecialchars($r['kom_warna'] ?: '#0ea5e9') ?>;color:#fff"><i class="bi bi-people-fill"></i> <?= htmlspecialchars($r['kom_nama']) ?></span>
+        <?php else: ?>
+          <span class="text-muted small">—</span>
         <?php endif; ?>
       </td>
       <td><?= htmlspecialchars($r['tempat']) ?></td>
@@ -303,6 +342,16 @@ require_once __DIR__.'/../includes/header.php';
               <option value="">— Pilih (opsional) —</option>
               <?php foreach($jenisJadwalList as $jj): ?>
                 <option value="<?= (int)$jj['id'] ?>" <?= ((int)($r['jenis_jadwal_id']??0))===(int)$jj['id']?'selected':'' ?>><?= htmlspecialchars($jj['nama']) ?></option>
+              <?php endforeach; ?>
+            </select></div>
+          <?php endif; ?>
+          <?php /* Revisi R10 Juli 2026 #1 — edit Komunitas kegiatan (super only). */ ?>
+          <?php if ($__isSuper): ?>
+          <div class="col-md-4"><label class="form-label small fw-semibold">Komunitas</label>
+            <select name="komunitas_id" class="form-select">
+              <option value="">— Pilih Komunitas —</option>
+              <?php foreach($komList as $k): ?>
+                <option value="<?= (int)$k['id'] ?>" <?= ((int)($r['komunitas_id']??0))===(int)$k['id']?'selected':'' ?>><?= htmlspecialchars($k['nama']) ?></option>
               <?php endforeach; ?>
             </select></div>
           <?php endif; ?>

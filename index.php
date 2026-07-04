@@ -1030,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="card shadow-sm mb-3" id="sec-jadwal-terdekat"><div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-calendar3 me-1 text-primary"></i> Jadwal Terdekat</span><a href="/calendar.php" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-week"></i> Semua Jadwal</a></div>
       <div data-live="jadwal">
       <div class="table-responsive"><table class="table table-hover align-middle table-stack mb-0" data-paginate="5">
-        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th>Absensi Saya</th><th class="text-end">Absen</th></tr></thead><tbody>
+        <thead><tr><th style="width:32px"></th><th>Tanggal</th><th>Jenis</th><th>Komunitas</th><th>Tempat</th><th>Lokasi</th><th>Koordinator</th><th>Absensi Saya</th><th class="text-end">Absen</th></tr></thead><tbody>
         <?php foreach($jadwalTerdekat as $j):
           $jid=(int)$j['id']; $absList = $absByJadwal[$jid] ?? [];
           $cnt = ['hadir'=>0,'telat'=>0,'izin'=>0,'sakit'=>0,'absen'=>0];
@@ -1065,7 +1065,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="mt-1"><span class="badge" style="background:<?= htmlspecialchars($j['jj_bg']) ?>;color:<?= htmlspecialchars($j['jj_text']) ?>"><?= htmlspecialchars($j['jj_nama']) ?></span></div>
               <?php endif; ?>
             </td>
-            <?php /* Revisi R7 #7 — kolom "Komunitas" pada Jadwal Terdekat dihapus */ ?>
+            <?php /* Revisi R10 Juli 2026 #1 — kolom "Komunitas" pada Jadwal Terdekat dimunculkan kembali. */ ?>
+            <td data-label="Komunitas">
+              <?php if(!empty($j['kom_nama'])): ?>
+                <span class="kom-chip" style="background:<?= htmlspecialchars($j['kom_warna'] ?: '#0ea5e9') ?>">
+                  <i class="bi bi-people-fill"></i> <?= htmlspecialchars($j['kom_nama']) ?>
+                </span>
+                <?php if(!empty($j['kom_kota'])): ?><div class="small text-muted"><i class="bi bi-geo"></i> <?= htmlspecialchars($j['kom_kota']) ?></div><?php endif; ?>
+              <?php else: ?>
+                <span class="kom-chip no"><i class="bi bi-dash-circle"></i> Tanpa Komunitas</span>
+              <?php endif; ?>
+            </td>
             <td data-label="Tempat"><i class="bi bi-geo-alt text-muted"></i> <?= htmlspecialchars($j['tempat']) ?></td>
              <td data-label="Lokasi">
                <?php
@@ -1112,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
           </tr>
           <tr class="collapse" id="jdetail<?= $jid ?>">
-            <td colspan="9" class="bg-light">
+            <td colspan="10" class="bg-light">
               <?php if(!$absList): ?>
                 <div class="text-muted small">Belum ada data absensi untuk sesi ini.</div>
               <?php else: ?>
