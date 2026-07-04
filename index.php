@@ -28,9 +28,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     // supaya tidak putus di tengah jalan (penyebab "Failed to fetch" di klien).
     $isVideoPost = ($a === 'post_new' && !empty($_FILES['video']['name']));
     $isAjaxPost  = !empty($_POST['_ajax']) || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest');
-    if ($isVideoPost) {
+    // Revisi Juli 2026 R9 — naikkan batas juga untuk multi-image (fotos[])
+    // supaya upload beberapa foto ke ImageKit tidak putus (penyebab "Failed to fetch").
+    if ($a === 'post_new') {
         @ini_set('memory_limit', '512M');
         @set_time_limit(300);
+        @ignore_user_abort(true);
     }
     $postNewErr = ''; $postNewOk = false;
     if ($a === 'chat_post') {
@@ -104,27 +107,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         }
 
         if (!empty($allFiles)) {
-            require_once __DIR__.'/config/imagekit.php';
-            global $imageKit;
-            foreach ($allFiles as $idx => $fImg) {
-                [$ok, $extOrErr] = validate_image_upload($fImg);
-                if (!$ok) { $postNewErr = $postNewErr ?: ('Gambar #'.($idx+1).': '.$extOrErr); continue; }
-                $name = preg_replace('/[^a-z0-9]/i','_', $u['nama']).'-'.$jenis.'-'.time().'-'.$idx.'-'.bin2hex(random_bytes(3)).'.'.$extOrErr;
-                try {
-                    $uploadFile = $imageKit->uploadFile([
-                        'file' => base64_encode(file_get_contents($fImg['tmp_name'])),
-                        'fileName' => $name,
-                        'folder' => '/sportapp/social/'.date('F_Y'),
-                    ]);
-                    if (!$uploadFile->error && !empty($uploadFile->result->url)) {
-                        $imagesUrls[] = $uploadFile->result->url;
-                    }
-                } catch (Throwable $e) { /* lewati gambar yang gagal */ }
+            $imageKit = null;
+            try {
+                require_once __DIR__.'/config/imagekit.php';
+                global $imageKit;
+            } catch (Throwable $e) {
+                $postNewErr = 'Konfigurasi upload gambar (ImageKit) belum lengkap: '.$e->getMessage();
             }
-            if (!empty($imagesUrls)) {
-                $fotoUrl = $imagesUrls[0]; // first image jadi cover (kompatibilitas mundur)
-                $mediaType = 'image';
-                $postNewErr = ''; // sukses paling tidak satu gambar terupload
+            if ($imageKit) {
+                foreach ($allFiles as $idx => $fImg) {
+                    [$ok, $extOrErr] = validate_image_upload($fImg);
+                    if (!$ok) { $postNewErr = $postNewErr ?: ('Gambar #'.($idx+1).': '.$extOrErr); continue; }
+                    $name = preg_replace('/[^a-z0-9]/i','_', $u['nama']).'-'.$jenis.'-'.time().'-'.$idx.'-'.bin2hex(random_bytes(3)).'.'.$extOrErr;
+                    try {
+                        $uploadFile = $imageKit->uploadFile([
+                            'file' => base64_encode(file_get_contents($fImg['tmp_name'])),
+                            'fileName' => $name,
+                            'folder' => '/sportapp/social/'.date('F_Y'),
+                        ]);
+                        if (!$uploadFile->error && !empty($uploadFile->result->url)) {
+                            $imagesUrls[] = $uploadFile->result->url;
+                        } else {
+                            $errMsg = is_object($uploadFile->error ?? null) ? json_encode($uploadFile->error) : 'unknown';
+                            $postNewErr = $postNewErr ?: ('Gambar #'.($idx+1).' gagal upload: '.$errMsg);
+                        }
+                    } catch (Throwable $e) {
+                        $postNewErr = $postNewErr ?: ('Gambar #'.($idx+1).' error: '.$e->getMessage());
+                    }
+                }
+                if (!empty($imagesUrls)) {
+                    $fotoUrl = $imagesUrls[0]; // first image jadi cover (kompatibilitas mundur)
+                    $mediaType = 'image';
+                    $postNewErr = ''; // sukses paling tidak satu gambar terupload
+                }
             }
         }
 
@@ -150,7 +165,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                     : '📝 '.$u['nama'].' membuat postingan baru';
                 $isiNotif = $caption !== '' ? mb_substr($caption, 0, 120) : 'Buka aplikasi untuk melihatnya.';
                 $urlNotif = $jenis === 'story' ? '/index.php#feed' : '/index.php#social';
-                $targets = db_all("SELECT id FROM users WHERE role IN ('member','admin') AND id <> $1", [(int)$u['id']]);
+                // Revisi Juli 2026 R9 — notifikasi HANYA ke anggota komunitas yang sama dengan pembuat post.
+                require_once __DIR__.'/includes/scope.php';
+                $senderKomIds = scope_current_user_kom_ids();
+                if ($senderKomIds) {
+                    $kArr = '{'.implode(',', array_map('intval', $senderKomIds)).'}';
+                    $targets = db_all(
+                        "SELECT DISTINCT u.id FROM users u
+                         LEFT JOIN user_komunitas uk ON uk.user_id = u.id
+                         WHERE u.role IN ('member','admin')
+                           AND (u.komunitas_id = ANY($1::int[]) OR uk.komunitas_id = ANY($1::int[]))
+                           AND u.id <> $2",
+                        [$kArr, (int)$u['id']]);
+                } else {
+                    // pembuat post tidak punya komunitas → kirim hanya ke dirinya (skip)
+                    $targets = [];
+                }
                 foreach ($targets as $t) {
                     notify((int)$t['id'], $jenis === 'story' ? 'story' : 'post', $judulNotif, $isiNotif, $urlNotif);
                 }
@@ -1535,7 +1565,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <select name="jenis" class="form-select mb-2"><option value="post">Post (feed)</option><option value="story">Story (24 jam)</option></select>
       <!-- Revisi 21 Juni 2026 R4 — Multi-image post (mengganti posting video) -->
       <label class="form-label small">Foto (boleh pilih beberapa, maks 10)</label>
-      <input type="file" name="fotos[]" accept="image/*" multiple class="form-control mb-1" id="postFotosInput">
+      <input type="file" name="fotos[]" accept="image/*" multiple class="form-control mb-1" id="postFotosInput" data-compress-multi>
+      <input type="hidden" name="_ajax" value="1">
       <div class="form-text small">Pilih satu atau beberapa gambar sekaligus. Akan ditampilkan sebagai slider di feed bila lebih dari satu.</div>
       <div id="postFotosPreview" class="d-flex flex-wrap gap-2 mb-2"></div>
       <div id="postFotosInfo" class="small text-muted"></div>

@@ -2,7 +2,7 @@
 // admin/iptv.php — CRUD channel IPTV + import dari playlist M3U
 require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
-require_role('admin');
+require_role('superadmin');
 $pageTitle = 'Kelola Channel IPTV';
 
 $DEFAULT_PLAYLIST = 'https://raw.githubusercontent.com/riotryulianto/iptv-playlists/main/playlist.m3u';

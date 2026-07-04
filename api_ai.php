@@ -340,6 +340,22 @@ switch ($task) {
         echo json_encode($r); exit;
     }
 
+    /* ---------- Terjemah teks ke Bahasa Indonesia — Revisi Juli 2026 R9 ----------
+     * Dipakai quran_surah.php untuk memastikan Tafsir Ibnu Katsir selalu tampil
+     * dalam Bahasa Indonesia (jika API sumber mengembalikan versi bahasa lain). */
+    case 'translate_id': {
+        $text = trim((string)($_POST['text'] ?? $prompt));
+        if ($text === '') { echo json_encode(['ok'=>false,'err'=>'text kosong']); exit; }
+        if (mb_strlen($text) > 12000) $text = mb_substr($text, 0, 12000);
+        $sys = "Anda penerjemah profesional teks tafsir Al-Qur'an. Terjemahkan teks berikut ke Bahasa Indonesia ".
+               "yang baik, lugas, dan mudah dipahami umat awam. Pertahankan kutipan ayat Arab, kata Arab ".
+               "(seperti Allah, Rasulullah, taqwa, dsb) apa adanya. Jangan menambahkan pengantar, jangan ".
+               "menyebut proses terjemah — langsung sajikan hasil terjemahan saja. Pertahankan pembagian ".
+               "paragraf. Jika teks sudah berbahasa Indonesia, kembalikan apa adanya.";
+        $r = gemini_text($text, ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>4096]);
+        echo json_encode($r); exit;
+    }
+
     /* ---------- Chat free-form ---------- */
     default: {
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }

@@ -41,7 +41,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                      VALUES($1,$2,$3,$4,$5,'booked',$6,$7,$8)",
                      [$tempat,(int)$u['id'],$d,$j1,$j2,$rec,$until,substr($_POST['catatan'] ?? '',0,200)]);
         }
-        notify_all('booking', '📅 Booking lapangan baru', "Tanggal $tgl jam $j1-$j2", '/tempat.php');
+        // Revisi Juli 2026 R9 — notifikasi booking HANYA ke anggota komunitas admin login.
+        $bkKom = scope_primary_kom_id();
+        if ($bkKom) {
+            notify_all_komunitas($bkKom, 'booking', '📅 Booking lapangan baru', "Tanggal $tgl jam $j1-$j2", '/tempat.php');
+        }
     } elseif ($a==='cancel') {
         db_exec("UPDATE booking SET status='canceled' WHERE id=$1", [(int)$_POST['id']]);
     }

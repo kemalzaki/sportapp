@@ -52,7 +52,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 }
             }
         }
-        notify_all('event', '🎉 Event baru: '.$_POST['nama'], 'Detail di menu Event.', '/event.php?id='.$newId);
+        // Revisi Juli 2026 R9 — notifikasi event HANYA ke anggota komunitas admin login.
+        $evKom = scope_primary_kom_id();
+        if ($evKom) {
+            notify_all_komunitas($evKom, 'event', '🎉 Event baru: '.$_POST['nama'], 'Detail di menu Event.', '/event.php?id='.$newId);
+        }
     } elseif ($a==='delete') {
         db_exec("DELETE FROM event WHERE id=$1", [(int)$_POST['id']]);
     } elseif ($a==='update') {

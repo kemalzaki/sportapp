@@ -482,6 +482,32 @@ document.addEventListener('change', async function(ev){
   if (btnC)  btnC.disabled = false;
 });
 
+/* Revisi Juli 2026 R9 — kompresi client-side untuk input file MULTI-file (fotos[]),
+ * agar upload Posting/Story tidak putus di jaringan lambat (penyebab "Failed to fetch"). */
+document.addEventListener('change', async function(ev){
+  const inp = ev.target;
+  if(!(inp instanceof HTMLInputElement)) return;
+  if(inp.type!=='file' || !inp.hasAttribute('data-compress-multi')) return;
+  if(!inp.files || !inp.files.length) return;
+  const formC = inp.closest('form');
+  const btnC  = formC && formC.querySelector('button[type=submit],button:not([type])');
+  if (formC) formC.setAttribute('data-compressing','1');
+  if (btnC)  btnC.disabled = true;
+  const info = document.getElementById('postFotosInfo');
+  if (info) info.textContent = 'Mengoptimasi '+inp.files.length+' gambar...';
+  const dt = new DataTransfer();
+  let totalKB = 0;
+  for (let i=0; i<inp.files.length; i++){
+    let f = inp.files[i];
+    try { f = await window.compressImageFile(f, {maxW:1600, quality:0.8, thresholdKB:400}); } catch(e){}
+    dt.items.add(f);
+    totalKB += f.size/1024;
+  }
+  inp.files = dt.files;
+  if (info) info.textContent = dt.files.length+' gambar siap · total '+(totalKB/1024).toFixed(2)+' MB (sudah dioptimasi)';
+  if (formC) formC.removeAttribute('data-compressing');
+  if (btnC)  btnC.disabled = false;
+
 /* ===== AJAX submit (forms[data-ajax]) =====
  * Submit tanpa reload page; trigger soft refresh region [data-live] terdekat.
  */
@@ -523,9 +549,18 @@ document.addEventListener('submit', async function(ev){
       cache:'no-store'
     });
     if(r.ok || r.redirected){
-      // Reuse body dari response (sudah halaman terbaru setelah redirect) → lebih cepat & pasti up-to-date
-      let html = null;
-      try { html = await r.text(); } catch(_) {}
+      // Revisi Juli 2026 R9 — jika server balas JSON (mis. post_new), hormati field ok/err.
+      const ct = (r.headers.get('content-type')||'').toLowerCase();
+      let html = null; let jsonResp = null;
+      if (ct.indexOf('application/json') >= 0) {
+        try { jsonResp = await r.json(); } catch(_) {}
+      } else {
+        try { html = await r.text(); } catch(_) {}
+      }
+      if (jsonResp && jsonResp.ok === false) {
+        alert('Gagal submit: ' + (jsonResp.err || 'unknown'));
+        return;
+      }
       try {
         if(typeof window.softRefresh==='function'){
           await window.softRefresh(html ? {html, force:true} : {force:true});

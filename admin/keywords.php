@@ -17,7 +17,7 @@ require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 send_security_headers(); require_login();
 $u = current_user();
-if (($u['role'] ?? '') !== 'admin') { http_response_code(403); exit('Forbidden'); }
+if (($u['role'] ?? '') !== 'superadmin') { http_response_code(403); exit('Forbidden'); }
 $pageTitle = 'Kata Terlarang Pencarian';
 
 @db_exec("CREATE TABLE IF NOT EXISTS search_keywords (

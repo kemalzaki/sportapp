@@ -3,7 +3,7 @@ require __DIR__.'/../config/db.php';
 require __DIR__.'/../includes/auth.php';
 require __DIR__.'/../includes/security.php';
 require __DIR__.'/../includes/helpers.php';
-send_security_headers(); require_role('admin');
+send_security_headers(); require_role('superadmin');
 $pageTitle = 'Laporan Postingan';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
