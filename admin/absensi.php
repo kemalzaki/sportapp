@@ -85,7 +85,8 @@ if ($jadwalId) {
 // Revisi Juli 2026 R8 #5 — dropdown jadwal & bulan DIFILTER per komunitas admin.
 $__isSuper = scope_is_super();
 $__vkidsAbs = scope_kom_ids_sql_array();
-$__komFilter = $__isSuper ? '' : " AND (komunitas_id IS NULL OR komunitas_id = ANY('".pg_escape_string($__vkidsAbs)."'::int[]))";
+// Revisi R9 Juli 2026 — jadwal absensi wajib per komunitas (drop NULL fallback).
+$__komFilter = $__isSuper ? '' : " AND (komunitas_id = ANY('".pg_escape_string($__vkidsAbs)."'::int[]))";
 $blnList = db_all("SELECT DISTINCT to_char(tanggal,'YYYY-MM') AS ym FROM jadwal WHERE TRUE $__komFilter ORDER BY ym DESC");
 $blnSel = (string)($_GET['bln'] ?? '');
 if ($blnSel === '' && !$jadwalId && $blnList) { $blnSel = $blnList[0]['ym']; }

@@ -222,7 +222,8 @@ if ($cat === 'konsisten') {
 /* Revisi Juli 2026 #3 — Riwayat Sesi difilter per komunitas: hanya jadwal
    yang komunitas_id-nya termasuk dalam scope user login. */
 $__vkids = scope_kom_ids_sql_array();
-$__jadwalScopeSql = scope_is_super() ? '' : ' WHERE (j.komunitas_id IS NULL OR j.komunitas_id = ANY($1::int[]))';
+// Revisi R9 Juli 2026 — Riwayat Sesi strict per komunitas (drop NULL fallback).
+$__jadwalScopeSql = scope_is_super() ? '' : ' WHERE (j.komunitas_id = ANY($1::int[]))';
 $__jadwalScopeParams = scope_is_super() ? [] : [$__vkids];
 $riwayat = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                           jj.nama AS jj_nama, jj.warna_bg AS jj_bg, jj.warna_text AS jj_text,

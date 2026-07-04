@@ -124,6 +124,18 @@ function scope_kom_ids_sql_array(): string {
 }
 
 /**
+ * Revisi Juli 2026 R9 — Ambil "primary" komunitas_id user saat ini.
+ * Dipakai saat INSERT jadwal/dll agar row baru langsung terikat pada komunitas
+ * user login (bukan NULL). Super-scope: kembalikan komunitas_id user itu sendiri
+ * bila ada; kalau tidak ada, kembalikan null (biarkan NULL — super lihat semua).
+ */
+function scope_primary_kom_id(): ?int {
+    $ids = scope_current_user_kom_ids();
+    if (!$ids) return null;
+    return (int)$ids[0];
+}
+
+/**
  * Guard: pastikan target user_id ada dalam scope user saat ini.
  * Bila tidak: hentikan dengan HTTP 403 (mencegah IDOR akses profil / data
  * milik komunitas lain).

@@ -101,9 +101,10 @@ if ($filterDana !== '') {
 // Revisi R7 #5 — Batasi ke jadwal komunitas user (jika bukan super).
 if (!scope_is_super()) {
     $params[] = scope_kom_ids_sql_array(); $pn++;
-    $conds[] = "(p.jadwal_id IS NULL OR EXISTS (SELECT 1 FROM jadwal jj2 WHERE jj2.id=p.jadwal_id AND (jj2.komunitas_id IS NULL OR jj2.komunitas_id = ANY(\$$pn::int[]))))";
+    // Revisi R9 Juli 2026 — pengeluaran wajib terhubung ke jadwal komunitas admin (drop NULL leak).
+    $conds[] = "EXISTS (SELECT 1 FROM jadwal jj2 WHERE jj2.id=p.jadwal_id AND jj2.komunitas_id = ANY(\$$pn::int[]))";
     $params[] = scope_user_ids_sql_array(); $pn++;
-    $conds[] = "(p.created_by IS NULL OR p.created_by = ANY(\$$pn::int[]))";
+    $conds[] = "(p.created_by = ANY(\$$pn::int[]))";
 }
 $where = $conds ? ('WHERE '.implode(' AND ', $conds)) : '';
 
@@ -142,20 +143,20 @@ if (scope_is_super()) {
       ORDER BY dana_dari ASC LIMIT 200");
 } else {
     $jadwalList = db_all("SELECT id, tanggal, jenis, tempat FROM jadwal
-                          WHERE komunitas_id IS NULL OR komunitas_id = ANY(\$1::int[])
+                          WHERE komunitas_id = ANY(\$1::int[])
                           ORDER BY tanggal DESC LIMIT 200", [$__vkidsPg]);
     $bulanRows = db_all("
       SELECT bulan FROM (
         SELECT DISTINCT to_char(j.tanggal,'YYYY-MM') AS bulan FROM jadwal j
-          WHERE j.komunitas_id IS NULL OR j.komunitas_id = ANY(\$1::int[])
+          WHERE j.komunitas_id = ANY(\$1::int[])
         UNION
         SELECT DISTINCT to_char(p.tanggal,'YYYY-MM') AS bulan FROM pengeluaran_kegiatan p
-          WHERE p.created_by IS NULL OR p.created_by = ANY(\$2::int[])
+          WHERE p.created_by = ANY(\$2::int[])
       ) x WHERE bulan IS NOT NULL ORDER BY bulan DESC LIMIT 60", [$__vkidsPg, $__vidsPg]);
     $danaRows = db_all("
       SELECT DISTINCT dana_dari FROM pengeluaran_kegiatan p
       WHERE dana_dari IS NOT NULL AND btrim(dana_dari) <> ''
-        AND (p.created_by IS NULL OR p.created_by = ANY(\$1::int[]))
+        AND (p.created_by = ANY(\$1::int[]))
       ORDER BY dana_dari ASC LIMIT 200", [$__vidsPg]);
 }
 

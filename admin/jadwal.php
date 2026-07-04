@@ -69,12 +69,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $jm = $_POST['jam_mulai'] ?: null;
             $js = $_POST['jam_selesai'] ?: null;
             $jenisJadwalId = (int)($_POST['jenis_jadwal_id'] ?? 0) ?: null;
-            db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai,jenis_jadwal_id)
-                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+            // Revisi R9 Juli 2026 — jadwal baru langsung ter-tag komunitas admin login.
+            $komIdIns = scope_primary_kom_id();
+            db_exec("INSERT INTO jadwal(tanggal,bulan,minggu_ke,jenis,tempat,tempat_id,durasi_menit,koordinator_id,konten_obrolan,catatan,jam_mulai,jam_selesai,jenis_jadwal_id,komunitas_id)
+                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
                     [$tgl, $bulan, $w, $_POST['jenis'], $tempatNama, $tempatId,
                      ((int)($_POST['durasi_menit'] ?? 0) ?: null),
                      (int)($_POST['koordinator_id'] ?? 0) ?: current_user()['id'],
-                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $jenisJadwalId]);
+                     $_POST['konten'] ?? '', $_POST['catatan'] ?? '', $jm, $js, $jenisJadwalId, $komIdIns]);
             $_SESSION['flash_ok'] = 'Jadwal ditambahkan.';
         }
     } catch (Throwable $e) {
@@ -96,7 +98,7 @@ $rows   = db_all("SELECT j.*, u.nama AS koord, u.foto_url AS koord_foto,
                   FROM jadwal j
                   LEFT JOIN users u ON u.id=j.koordinator_id
                   LEFT JOIN jenis_jadwal jj ON jj.id=j.jenis_jadwal_id
-                  WHERE ($1 = 1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY($2::int[]))
+                  WHERE ($1 = 1 OR j.komunitas_id = ANY($2::int[]))
                   ORDER BY tanggal DESC", [$__isSuper?1:0, $__scopeKomArr]);
 $admins = db_all("SELECT id,nama FROM users WHERE role IN ('admin','superadmin') ORDER BY nama");
 $jenisRows = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");

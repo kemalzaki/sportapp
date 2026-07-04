@@ -134,7 +134,8 @@ $flash_err = $_SESSION['flash_err'] ?? null; unset($_SESSION['flash_err']);
 // Revisi Juli 2026 #6 — jadwal & user difilter per komunitas admin login.
 $__vids  = scope_user_ids_sql_array();
 $__vkids = scope_kom_ids_sql_array();
-$__jadwalScopeSql = scope_is_super() ? '' : ' AND (j.komunitas_id IS NULL OR j.komunitas_id = ANY($1::int[]))';
+// Revisi R9 Juli 2026 — jadwal untuk pembuatan tim strict per komunitas.
+$__jadwalScopeSql = scope_is_super() ? '' : ' AND (j.komunitas_id = ANY($1::int[]))';
 $__jadwalScopeParams = scope_is_super() ? [] : [$__vkids];
 $jadwals = db_all("SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.tim_id, t.nama AS tim_nama
                    FROM jadwal j LEFT JOIN tim t ON t.id=j.tim_id
@@ -171,7 +172,7 @@ try {
         LEFT JOIN jadwal j ON j.id = me.jadwal_id
         WHERE me.nama_tamu IS NOT NULL AND TRIM(me.nama_tamu) <> ''
           AND ( me.dibawa_oleh_id = ANY($1::int[])
-             OR j.komunitas_id    = ANY($2::int[]) )
+             OR j.komunitas_id     = ANY($2::int[]) )
         ORDER BY LOWER(TRIM(me.nama_tamu)), me.id DESC
     ", [$__vids, $__vkids]);
 } catch (Throwable $e) { $externalTamuList = []; }

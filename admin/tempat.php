@@ -235,7 +235,8 @@ if ($fJenis !== '') { $where[] = "t.jenis_id = \$$i"; $params[] = (int)$fJenis; 
 // berada di scope komunitas admin, atau tempat yg belum berkoordinator (NULL)
 // tetap ditampilkan agar bisa dikelola. Super-scope melihat semua.
 if (!scope_is_super()) {
-    $where[] = "(t.pic_user_id IS NULL OR t.pic_user_id = ANY(\$$i::int[]))";
+    // Revisi R9 Juli 2026 — tempat wajib per komunitas (drop NULL PIC leak).
+    $where[] = "(t.pic_user_id = ANY(\$$i::int[]))";
     $params[] = scope_user_ids_sql_array(); $i++;
 }
 $whereSql = $where ? ('WHERE '.implode(' AND ',$where)) : '';

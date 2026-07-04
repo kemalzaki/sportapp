@@ -284,9 +284,16 @@ $__vids  = scope_user_ids_sql_array();
 $__vkids = scope_kom_ids_sql_array();
 $__isSuper = scope_is_super();
 $totalSesi    = (int) db_val(
-    "SELECT COUNT(*) FROM jadwal j WHERE (\$1=1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY(\$2::int[]))",
+    "SELECT COUNT(*) FROM jadwal j WHERE (\$1=1 OR j.komunitas_id = ANY(\$2::int[]))",
     [$__isSuper?1:0, $__vkids]);
-$totalHadir   = (int) db_val("SELECT COUNT(*) FROM absensi WHERE hadir=1 AND user_id = ANY($1::int[])", [$__vids]);
+// Revisi R9 Juli 2026 — Total Hadir dihitung dari absensi user scope PADA jadwal komunitas.
+$totalHadir   = (int) db_val(
+    "SELECT COUNT(*) FROM absensi a
+       JOIN jadwal j ON j.id=a.jadwal_id
+      WHERE a.hadir=1
+        AND a.user_id = ANY(\$1::int[])
+        AND (\$2=1 OR j.komunitas_id = ANY(\$3::int[]))",
+    [$__vids, $__isSuper?1:0, $__vkids]);
 $totalMember  = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin') AND id = ANY($1::int[])", [$__vids]);
 // Revisi 13 Juni 2026 (fix 2): hitung member aktif & non-aktif.
 // Auto-migrasi kolom aktif/nonaktif_catatan jika belum ada.
@@ -332,7 +339,7 @@ try {
 
 // Revisi R7 #5 — batasi Jadwal Terdekat sesuai komunitas user (superadmin lihat semua)
 require_once __DIR__ . '/includes/scope.php';
-$__jadwalKomFilter = scope_is_super() ? '' : ' AND (j.komunitas_id IS NULL OR j.komunitas_id = ANY($1::int[]))';
+$__jadwalKomFilter = scope_is_super() ? '' : ' AND (j.komunitas_id = ANY($1::int[]))';
 $__jadwalKomParams = scope_is_super() ? [] : [scope_kom_ids_sql_array()];
 $jadwalTerdekat = db_all("SELECT j.*, u.nama AS koordinator, u.foto_url AS koord_foto, t.nama AS tim_nama,
                           tp.lat AS tp_lat, tp.lng AS tp_lng, tp.nama AS tp_nama,
@@ -417,7 +424,7 @@ if ($u) {
     "SELECT j.id, j.tanggal, j.jenis, j.tempat, j.jam_mulai, j.jam_selesai
      FROM jadwal j
      WHERE j.tanggal >= CURRENT_DATE
-       AND (\$1=1 OR j.komunitas_id IS NULL OR j.komunitas_id = ANY(\$2::int[]))
+       AND (\$1=1 OR j.komunitas_id = ANY(\$2::int[]))
      ORDER BY j.tanggal ASC, j.jam_mulai ASC NULLS LAST LIMIT 1",
     [$__isSuper?1:0, $__vkids]
   );
