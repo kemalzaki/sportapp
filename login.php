@@ -119,11 +119,11 @@ body{
   opacity:0; transition:opacity 1.6s ease-in-out;
   animation:lgFade 25s infinite;
 }
-.lg-hero-bg .slide.s1{ background-image:url('/assets/img/sport-auth-hero1.jpg'); animation-delay:0s; }
-.lg-hero-bg .slide.s2{ background-image:url('/assets/img/sport-auth-hero2.jpg'); animation-delay:5s; }
-.lg-hero-bg .slide.s3{ background-image:url('/assets/img/sport-auth-hero3.jpg'); animation-delay:10s; }
-.lg-hero-bg .slide.s4{ background-image:url('/assets/img/sport-auth-hero4.jpg'); animation-delay:15s; }
-.lg-hero-bg .slide.s5{ background-image:url('/assets/img/sport-auth-hero5.jpg'); animation-delay:20s; }
+.lg-hero-bg .slide.s1{ background-image:url('/assets/img/sport-auth-hero1.png'); animation-delay:0s; }
+.lg-hero-bg .slide.s2{ background-image:url('/assets/img/sport-auth-hero2.png'); animation-delay:5s; }
+.lg-hero-bg .slide.s3{ background-image:url('/assets/img/sport-auth-hero3.png'); animation-delay:10s; }
+.lg-hero-bg .slide.s4{ background-image:url('/assets/img/sport-auth-hero4.png'); animation-delay:15s; }
+.lg-hero-bg .slide.s5{ background-image:url('/assets/img/sport-auth-hero5.png'); animation-delay:20s; }
 @keyframes lgFade{
   0%   { opacity:0; }
   4%   { opacity:1; }
