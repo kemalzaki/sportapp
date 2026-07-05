@@ -9,9 +9,11 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_helpers.php';
+require_once __DIR__.'/includes/scope.php';
 send_security_headers(); require_login();
 $pageTitle = 'Kajian Literatur Buku';
 $u = current_user();
+$IS_SUPER = scope_is_super();
 
 // === Auto-migration ringan (idempotent) ===
 try { db_exec("ALTER TABLE islami_kajian ADD COLUMN IF NOT EXISTS kategori VARCHAR(60) DEFAULT 'Umum'"); } catch (Throwable $e) {}
@@ -91,8 +93,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     $a = $_POST['_action'] ?? '';
     $kat = in_array($_POST['kategori'] ?? 'Umum', $KATEGORI, true) ? $_POST['kategori'] : 'Umum';
 
-    // === R14 #8: CRUD kategori (admin saja) ===
-    if ($a === 'kat_create' && $u['role']==='admin') {
+    // === R14 #8 / Revisi Juli 2026 — CRUD kategori hanya SUPERADMIN ===
+    if ($a === 'kat_create' && $IS_SUPER) {
         $nm = substr(trim($_POST['nama'] ?? ''),0,80);
         $wr = substr(trim($_POST['warna'] ?? 'secondary'),0,20);
         if ($nm !== '') {
@@ -102,12 +104,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
         }
         header('Location: /kajian.php#kat'); exit;
     }
-    if ($a === 'kat_delete' && $u['role']==='admin') {
+    if ($a === 'kat_delete' && $IS_SUPER) {
         $id = (int)$_POST['id'];
         try { db_exec("DELETE FROM kajian_kategori WHERE id=$1", [$id]); $_SESSION['flash']='Kategori dihapus.'; } catch(Throwable $e){}
         header('Location: /kajian.php#kat'); exit;
     }
-    if ($a === 'kat_edit' && $u['role']==='admin') {
+    if ($a === 'kat_edit' && $IS_SUPER) {
         $id = (int)$_POST['id'];
         $nm = substr(trim($_POST['nama'] ?? ''),0,80);
         $wr = substr(trim($_POST['warna'] ?? 'secondary'),0,20);
@@ -182,16 +184,25 @@ $total = (int)($totalRow['c'] ?? 0);
 $totalPages = max(1, (int)ceil($total/$perPage));
 if ($page > $totalPages) { $page = $totalPages; $offset = ($page-1)*$perPage; }
 
-$rows = db_all("SELECT k.*, u.nama FROM islami_kajian k LEFT JOIN users u ON u.id=k.user_id
+$rows = db_all("SELECT k.*, u.nama, kom.nama AS komunitas_nama
+                FROM islami_kajian k
+                LEFT JOIN users u ON u.id=k.user_id
+                LEFT JOIN komunitas kom ON kom.id=u.komunitas_id
                 $wsql ORDER BY k.created_at DESC LIMIT $perPage OFFSET $offset", $params);
 
-// Ambil pemilik untuk semua kajian di halaman ini (R14 #7)
+// Ambil pemilik untuk semua kajian di halaman ini (R14 #7) + komunitas member (Revisi Juli 2026)
 $pemilikMap = [];
 if ($rows) {
     $ids = array_map(fn($r)=>(int)$r['id'], $rows);
     $placeholders = implode(',', array_map(fn($n)=>'$'.($n+1), array_keys($ids)));
-    $pemilikRows = db_all("SELECT kp.kajian_id, COALESCE(us.nama, kp.nama_eksternal) AS nama, kp.user_id IS NOT NULL AS is_member, us.id AS user_id
-                           FROM kajian_pemilik kp LEFT JOIN users us ON us.id=kp.user_id
+    $pemilikRows = db_all("SELECT kp.kajian_id,
+                                  COALESCE(us.nama, kp.nama_eksternal) AS nama,
+                                  kp.user_id IS NOT NULL AS is_member,
+                                  us.id AS user_id,
+                                  kom.nama AS komunitas_nama
+                           FROM kajian_pemilik kp
+                           LEFT JOIN users us ON us.id=kp.user_id
+                           LEFT JOIN komunitas kom ON kom.id=us.komunitas_id
                            WHERE kp.kajian_id IN ($placeholders) ORDER BY kp.id", $ids);
     foreach ($pemilikRows as $pr) $pemilikMap[(int)$pr['kajian_id']][] = $pr;
 }
@@ -207,10 +218,15 @@ if ($editRow) {
 $editUserIds = array_filter(array_map(fn($x)=>(int)$x['user_id'], $editPemilik));
 $editExternal = implode(', ', array_filter(array_map(fn($x)=>(string)$x['nama_eksternal'], $editPemilik)));
 
-// Daftar member untuk dropdown pemilik
-// R15 fix: kolom users.aktif bertipe SMALLINT (1/0), bukan boolean.
-// COALESCE(aktif, TRUE) menyebabkan error "types smallint and boolean cannot be matched".
-$members = db_all("SELECT id, nama FROM users WHERE COALESCE(aktif, 1) <> 0 ORDER BY nama");
+// Daftar member untuk dropdown pemilik — dikelompokkan per KOMUNITAS
+// (Revisi Juli 2026 — Pemilik Literatur tampil per komunitas)
+$members = db_all("SELECT u.id, u.nama, COALESCE(k.nama,'(Tanpa Komunitas)') AS komunitas_nama, COALESCE(k.id,0) AS kom_id
+                   FROM users u
+                   LEFT JOIN komunitas k ON k.id=u.komunitas_id
+                   WHERE COALESCE(u.aktif, 1) <> 0
+                   ORDER BY komunitas_nama, u.nama");
+$membersByKom = [];
+foreach ($members as $mb) { $membersByKom[$mb['komunitas_nama']][] = $mb; }
 
 include __DIR__.'/includes/header.php';
 ?>
@@ -238,10 +254,10 @@ include __DIR__.'/includes/header.php';
   <?php if ($q || $kat): ?><div class="col-md-1"><a href="/kajian.php" class="btn btn-outline-secondary w-100">Reset</a></div><?php endif; ?>
 </form>
 
-<?php if ($u && $u['role']==='admin'): /* R14 #8: CRUD kategori (admin) */ ?>
+<?php if ($IS_SUPER): /* Revisi Juli 2026 — Kelola Kategori hanya SuperAdmin */ ?>
 <div class="card shadow-sm mb-3" id="kat">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-tags-fill text-warning"></i> <strong>Kelola Kategori Literatur</strong> <small class="text-muted">(admin)</small></span>
+    <span><i class="bi bi-tags-fill text-warning"></i> <strong>Kelola Kategori Literatur</strong> <small class="text-muted">(superadmin)</small></span>
     <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#katBody">Tampilkan/Sembunyikan</button>
   </div>
   <div class="collapse" id="katBody">
@@ -324,13 +340,17 @@ include __DIR__.'/includes/header.php';
 
     <!-- R14 #7: Pemilik literatur (member + eksternal) -->
     <div class="col-md-6">
-      <label class="small fw-semibold text-muted">Pemilik Literatur — Member (boleh pilih lebih dari 1)</label>
-      <select class="form-select" name="pemilik_user_ids[]" multiple size="5">
-        <?php foreach ($members as $mb): ?>
-          <option value="<?= (int)$mb['id'] ?>" <?= in_array((int)$mb['id'],$editUserIds,true)?'selected':'' ?>><?= htmlspecialchars($mb['nama']) ?></option>
+      <label class="small fw-semibold text-muted">Pemilik Literatur — Member per Komunitas (boleh pilih lebih dari 1)</label>
+      <select class="form-select" name="pemilik_user_ids[]" multiple size="8">
+        <?php foreach ($membersByKom as $komNama => $mbList): ?>
+          <optgroup label="🏷️ <?= htmlspecialchars($komNama) ?>">
+            <?php foreach ($mbList as $mb): ?>
+              <option value="<?= (int)$mb['id'] ?>" <?= in_array((int)$mb['id'],$editUserIds,true)?'selected':'' ?>><?= htmlspecialchars($mb['nama']) ?></option>
+            <?php endforeach; ?>
+          </optgroup>
         <?php endforeach; ?>
       </select>
-      <small class="text-muted">Tahan Ctrl/Cmd untuk pilih lebih dari 1.</small>
+      <small class="text-muted">Tahan Ctrl/Cmd untuk pilih lebih dari 1. Dikelompokkan per komunitas.</small>
     </div>
     <div class="col-md-6">
       <label class="small fw-semibold text-muted">Pemilik Eksternal (di luar member) — pisahkan dengan koma / baris baru</label>
@@ -361,13 +381,13 @@ include __DIR__.'/includes/header.php';
       </h6>
       <div class="small text-muted">
         <?php if(!empty($r['penulis'])): ?>oleh <strong><?= htmlspecialchars($r['penulis']) ?></strong> · <?php endif; ?>
-        Dibagikan <?= htmlspecialchars($r['nama'] ?? 'Anon') ?> · <?= htmlspecialchars($r['created_at']) ?>
+        Dibagikan <?= htmlspecialchars($r['nama'] ?? 'Anon') ?><?php if(!empty($r['komunitas_nama'])): ?> <span class="badge bg-light text-dark border">🏷️ <?= htmlspecialchars($r['komunitas_nama']) ?></span><?php endif; ?> · <?= htmlspecialchars($r['created_at']) ?>
       </div>
       <?php if ($pemiliks): ?>
         <div class="small mt-1"><i class="bi bi-people-fill text-info"></i> <strong>Pemilik:</strong>
-          <?php foreach ($pemiliks as $pe): ?>
-            <span class="badge bg-<?= ($pe['is_member']==='t'||$pe['is_member']===true||$pe['is_member']==1)?'info':'secondary' ?> me-1">
-              <?= ($pe['is_member']==='t'||$pe['is_member']===true||$pe['is_member']==1) ? '👤' : '🌐' ?> <?= htmlspecialchars($pe['nama']) ?>
+          <?php foreach ($pemiliks as $pe): $isMember = ($pe['is_member']==='t'||$pe['is_member']===true||$pe['is_member']==1); ?>
+            <span class="badge bg-<?= $isMember?'info':'secondary' ?> me-1">
+              <?= $isMember ? '👤' : '🌐' ?> <?= htmlspecialchars($pe['nama']) ?><?php if ($isMember && !empty($pe['komunitas_nama'])): ?> · <span class="opacity-75">🏷️ <?= htmlspecialchars($pe['komunitas_nama']) ?></span><?php endif; ?>
             </span>
           <?php endforeach; ?>
         </div>

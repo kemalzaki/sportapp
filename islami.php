@@ -335,7 +335,8 @@ $pageSkeleton = 'feed';
 /* Revisi Juli 2026 — menu Hub Islami dirapikan per KATEGORI.
    Setiap item: [href, label, ikon bootstrap, warna, border, deskripsi]. */
 $isAdmin  = (!empty($u) && in_array(strtolower($u['role'] ?? ''), ['admin','koordinator','pic'], true));
-$isSuper  = (!empty($u) && ($u['role'] ?? '') === 'admin');
+// Revisi Juli 2026 — "Kelola Challenge Islami" hanya untuk role SuperAdmin
+$isSuper  = (!empty($u) && strtolower($u['role'] ?? '') === 'superadmin');
 
 $islamiKategori = [
   'Kitab' => [

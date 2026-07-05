@@ -4,9 +4,12 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_helpers.php';
+require_once __DIR__.'/includes/scope.php';
 send_security_headers(); require_login();
 $pageTitle = 'Leaderboard Amal & Aktivitas Sehat';
 $pageSkeleton = 'table'; // Skeleton sesuai data: tabel leaderboard
+$__scopeUsers = scope_user_ids_sql_array();
+$__isSuper    = scope_is_super();
 
 // Sorting
 $sortOpts = [
@@ -24,19 +27,25 @@ $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = max(5, min(100, (int)($_GET['per'] ?? 10)));
 $offset  = ($page - 1) * $perPage;
 
-$total = (int) db_val("SELECT COUNT(*) FROM users WHERE role IN ('member','admin')");
-$totalPages = max(1, (int)ceil($total / $perPage));
+// Revisi Juli 2026 — Leaderboard difilter per komunitas user (superadmin lihat semua)
+$total = (int) db_val("SELECT COUNT(*) FROM users
+                       WHERE role IN ('member','admin','superadmin','koordinator','pic')
+                         AND id = ANY($1::int[])", [$__scopeUsers]);
+$totalPages = max(1, (int)ceil(max($total,1) / $perPage));
 
 $rows = db_all("SELECT u.id, u.nama, u.foto_url,
+                COALESCE(k.nama,'') AS komunitas_nama,
                 COALESCE(SUM(s.poin),0) AS poin_islami,
                 COALESCE((SELECT COUNT(*) FROM islami_streak s2 WHERE s2.user_id=u.id),0) AS hari_aktif,
                 COALESCE((SELECT COUNT(*) FROM absensi a WHERE a.user_id=u.id AND a.hadir=1),0) AS hadir_olahraga
                 FROM users u
+                LEFT JOIN komunitas k ON k.id=u.komunitas_id
                 LEFT JOIN islami_streak s ON s.user_id=u.id
-                WHERE u.role IN ('member','admin')
-                GROUP BY u.id, u.nama, u.foto_url
+                WHERE u.role IN ('member','admin','superadmin','koordinator','pic')
+                  AND u.id = ANY($1::int[])
+                GROUP BY u.id, u.nama, u.foto_url, k.nama
                 ORDER BY {$sortOpts[$sort]} $dir, u.id ASC
-                LIMIT $perPage OFFSET $offset");
+                LIMIT $perPage OFFSET $offset", [$__scopeUsers]);
 
 function sort_link($key, $label, $curSort, $curDir) {
     $newDir = ($curSort === $key && $curDir === 'DESC') ? 'asc' : 'desc';
@@ -50,6 +59,7 @@ include __DIR__.'/includes/header.php';
 <nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0"><li class="breadcrumb-item"><a href="/index.php">Beranda</a></li><li class="breadcrumb-item"><a href="/islami.php">Islami</a></li><li class="breadcrumb-item active">Leaderboard Amal & Aktivitas Sehat</li></ol></nav>
 
 <h4 class="mb-3"><i class="bi bi-bar-chart-line text-danger"></i> Leaderboard Amal & Aktivitas Sehat</h4>
+<div class="small text-muted mb-2">Menampilkan data <?= $__isSuper ? '<strong>semua komunitas</strong> (SuperAdmin)' : '<strong>komunitas Anda</strong>' ?>.</div>
 
 <form class="row g-2 mb-3" method="get">
   <div class="col-auto"><label class="small">Per halaman</label>
@@ -89,7 +99,7 @@ include __DIR__.'/includes/header.php';
   <?php foreach ($rows as $i=>$r): $rank = $offset + $i + 1; ?>
     <tr>
       <td><?= $rank ?> <?php if($rank<=3): ?><i class="bi bi-trophy-fill text-warning"></i><?php endif; ?></td>
-      <td><?= user_avatar($r['foto_url'] ?? null, $r['nama'], 28) ?> <?= htmlspecialchars($r['nama']) ?></td>
+      <td><?= user_avatar($r['foto_url'] ?? null, $r['nama'], 28) ?> <?= htmlspecialchars($r['nama']) ?><?php if(!empty($r['komunitas_nama'])): ?> <span class="badge bg-light text-dark border ms-1">🏷️ <?= htmlspecialchars($r['komunitas_nama']) ?></span><?php endif; ?></td>
       <td class="text-end"><span class="badge bg-success"><?= (int)$r['poin_islami'] ?></span></td>
       <td class="text-end"><?= (int)$r['hari_aktif'] ?></td>
       <td class="text-end"><?= (int)$r['hadir_olahraga'] ?></td>

@@ -48,7 +48,11 @@ $totalRows = (int)db_val("SELECT COUNT(*) FROM islami_artikel");
 $totalPages = max(1, (int)ceil($totalRows / $perPage));
 if ($page > $totalPages) $page = $totalPages;
 $offset = ($page - 1) * $perPage;
-$rows = db_all("SELECT a.*, u.nama FROM islami_artikel a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT $perPage OFFSET $offset");
+$rows = db_all("SELECT a.*, u.nama, k.nama AS komunitas_nama
+                FROM islami_artikel a
+                LEFT JOIN users u ON u.id=a.user_id
+                LEFT JOIN komunitas k ON k.id=u.komunitas_id
+                ORDER BY a.created_at DESC LIMIT $perPage OFFSET $offset");
 $editId = (int)($_GET['edit'] ?? 0);
 $editRow = ($editId && $u['role']==='admin') ? db_one("SELECT * FROM islami_artikel WHERE id=$1", [$editId]) : null;
 
@@ -78,7 +82,7 @@ include __DIR__.'/includes/header.php';
   <div class="d-flex justify-content-between">
     <div>
       <h6 class="m-0"><?= htmlspecialchars($r['judul']) ?></h6>
-      <div class="small text-muted">Oleh <?= htmlspecialchars($r['nama'] ?? 'Admin') ?> · <?= htmlspecialchars($r['created_at']) ?></div>
+      <div class="small text-muted">Oleh <?= htmlspecialchars($r['nama'] ?? 'Admin') ?><?php if(!empty($r['komunitas_nama'])): ?> <span class="badge bg-light text-dark border">🏷️ <?= htmlspecialchars($r['komunitas_nama']) ?></span><?php endif; ?> · <?= htmlspecialchars($r['created_at']) ?></div>
     </div>
     <?php if ($u && $u['role']==='admin'): ?>
     <div class="d-flex gap-1">

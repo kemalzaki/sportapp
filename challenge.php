@@ -4,9 +4,13 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/islami_helpers.php';
+require_once __DIR__.'/includes/scope.php';
 send_security_headers(); require_login();
 $pageTitle = 'Challenge Islami';
 $u = current_user();
+$__scopeUsers = scope_user_ids_sql_array();
+$__isSuper    = scope_is_super();
+$__komNama    = $u ? scope_kom_name((int)($u['komunitas_id'] ?? 0)) : '';
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     csrf_check();
@@ -30,6 +34,13 @@ $myLogs = $u ? db_all("SELECT challenge_key, COUNT(*) AS n, MAX(tanggal) AS last
 $counts = [];
 foreach ($myLogs as $r) $counts[$r['challenge_key']] = $r;
 
+// Revisi Juli 2026 — agregat challenge per KOMUNITAS user (superadmin lihat semua)
+$komLogs = db_all("SELECT challenge_key, COUNT(*) AS n, COUNT(DISTINCT user_id) AS peserta
+                   FROM challenge_log WHERE user_id = ANY($1::int[])
+                   GROUP BY challenge_key", [$__scopeUsers]);
+$komCounts = [];
+foreach ($komLogs as $r) $komCounts[$r['challenge_key']] = $r;
+
 // Ambil daftar challenge dari DB (CRUD via admin), fallback ke daftar bawaan
 $challenges = [];
 $dbRows = db_all("SELECT kunci,judul,deskripsi,icon,warna FROM challenge_master WHERE aktif=1 ORDER BY id");
@@ -51,6 +62,7 @@ include __DIR__.'/includes/header.php';
 
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash']) ?></div><?php unset($_SESSION['flash']); endif; ?>
 <h4 class="mb-3"><i class="bi bi-trophy text-warning"></i> Challenge Islami</h4>
+<div class="small text-muted mb-2">Statistik komunitas: <?= $__isSuper ? '<strong>semua komunitas</strong> (SuperAdmin)' : ('komunitas <strong>'.htmlspecialchars($__komNama ?: '-').'</strong>') ?>.</div>
 <div class="row g-3">
 <?php
 // === Validasi waktu puasa: disable tombol "catat hari ini" jika belum waktunya ===
@@ -79,14 +91,16 @@ function puasa_schedule_info(string $key): array {
 }
 foreach ($challenges as $c):
   $info = $counts[$c[0]] ?? null;
+  $kinfo = $komCounts[$c[0]] ?? null;
   [$bisaCatat, $puasaInfo] = (strpos($c[0],'puasa_')===0) ? puasa_schedule_info($c[0]) : [true,''];
 ?>
   <div class="col-md-6 col-lg-4"><div class="card h-100 border-<?= $c[4] ?>"><div class="card-body">
     <div class="d-flex align-items-center gap-2 mb-2"><i class="bi <?= $c[3] ?> fs-3 text-<?= $c[4] ?>"></i>
       <h5 class="m-0"><?= htmlspecialchars($c[1]) ?></h5></div>
     <div class="small text-muted mb-2"><?= htmlspecialchars($c[2]) ?></div>
-    <div class="small">Total: <strong><?= $info ? (int)$info['n'] : 0 ?>×</strong>
+    <div class="small">Saya: <strong><?= $info ? (int)$info['n'] : 0 ?>×</strong>
       <?php if($info): ?> · terakhir <?= htmlspecialchars($info['last']) ?><?php endif; ?></div>
+    <div class="small text-muted"><i class="bi bi-people-fill"></i> Komunitas: <strong><?= $kinfo ? (int)$kinfo['n'] : 0 ?>×</strong> oleh <strong><?= $kinfo ? (int)$kinfo['peserta'] : 0 ?></strong> peserta</div>
     <?php if (!$bisaCatat): ?>
       <div class="alert alert-warning py-1 px-2 small mt-2 mb-0"><i class="bi bi-info-circle"></i> <?= htmlspecialchars($puasaInfo) ?></div>
     <?php endif; ?>

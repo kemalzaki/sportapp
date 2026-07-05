@@ -37,8 +37,10 @@ $page      = max(1, (int)($_GET['page'] ?? 1));
 if ($page > $totalPage) $page = $totalPage;
 $offset    = ($page-1) * $PER_PAGE;
 
-$quotes = db_all("SELECT q.*, u.nama, u.foto_url
-                  FROM islami_quotes q LEFT JOIN users u ON u.id=q.user_id
+$quotes = db_all("SELECT q.*, u.nama, u.foto_url, k.nama AS komunitas_nama
+                  FROM islami_quotes q
+                  LEFT JOIN users u ON u.id=q.user_id
+                  LEFT JOIN komunitas k ON k.id=u.komunitas_id
                   ORDER BY q.created_at DESC
                   LIMIT $PER_PAGE OFFSET $offset");
 
@@ -65,7 +67,7 @@ include __DIR__.'/includes/header.php';
 <?php foreach ($quotes as $q): ?>
   <div class="card mb-2"><div class="card-body">
     <div class="d-flex justify-content-between">
-      <div class="d-flex align-items-center gap-2 small text-muted"><?= user_avatar($q['foto_url'] ?? null, $q['nama'] ?? '?', 24) ?> <?= htmlspecialchars($q['nama'] ?? 'Anonim') ?> · <?= htmlspecialchars($q['created_at']) ?></div>
+      <div class="d-flex align-items-center gap-2 small text-muted flex-wrap"><?= user_avatar($q['foto_url'] ?? null, $q['nama'] ?? '?', 24) ?> <strong><?= htmlspecialchars($q['nama'] ?? 'Anonim') ?></strong><?php if(!empty($q['komunitas_nama'])): ?> <span class="badge bg-light text-dark border">🏷️ <?= htmlspecialchars($q['komunitas_nama']) ?></span><?php endif; ?> · <?= htmlspecialchars($q['created_at']) ?></div>
       <?php if ($u && ((int)$q['user_id']===(int)$u['id'] || $u['role']==='admin')): ?>
       <form method="post" onsubmit="return confirm('Hapus?')">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
