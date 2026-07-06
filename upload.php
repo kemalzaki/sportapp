@@ -451,7 +451,9 @@ function showBukti(src, date){
         return;
       }
 
-      setField('fTanggal', toISODate(d.tanggal));
+      // Selalu pakai tanggal hari ini saat upload via AI (bukan tanggal dari screenshot).
+      var todayISO = new Date().toISOString().slice(0,10);
+      setField('fTanggal', todayISO);
       setField('fDurasi',  d.durasi_menit || 0);
       setField('fJarak',   d.jarak_km || 0);
       setField('fPace',    d.pace || '');
@@ -470,7 +472,7 @@ function showBukti(src, date){
       } catch(eFile){ /* fallback: user bisa lampirkan manual */ }
 
       prev.innerHTML = '<div class="border rounded p-2 bg-light">'+
-        '<div>Tanggal: <b>'+ toISODate(d.tanggal) +'</b></div>'+
+        '<div>Tanggal: <b>'+ todayISO +'</b> <span class="text-muted">(tanggal upload)</span></div>'+
         '<div>Durasi: <b>'+ (d.durasi_menit||0) +' menit</b></div>'+
         '<div>Jarak: <b>'+ (d.jarak_km||0) +' km</b></div>'+
         '<div>Pace: <b>'+ (d.pace||'-') +'</b></div>'+
