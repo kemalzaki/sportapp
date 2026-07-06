@@ -259,7 +259,7 @@ require_once __DIR__.'/../includes/header.php';
 </div></div>
 </div>
 
-<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0" data-paginate="5">
+<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
   <thead><tr><th>#</th><th>Tanggal</th><th>Hari</th><th>Jam</th><th>Bulan</th><th>W</th><th>Jenis</th><th>Komunitas</th><th>Tempat</th><th>Durasi</th><th>Koordinator</th><th class="text-end">Aksi</th></tr></thead>
   <tbody>
   <?php foreach($rows as $i=>$r): ?>
@@ -428,3 +428,23 @@ require_once __DIR__.'/../includes/header.php';
 </script>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>
+
+
+<style>
+/* Revisi R12 — modal edit jadwal: pastikan tombol footer tidak tertutup bottom nav mobile */
+@media (max-width: 991.98px){
+  #jadwal-page .modal .modal-dialog,
+  .modal.show[id^="editJ"] .modal-dialog,
+  .modal.show[id^="viewJ"] .modal-dialog{
+    margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal.show[id^="editJ"] .modal-content,
+  .modal.show[id^="viewJ"] .modal-content{
+    max-height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px));
+  }
+  .modal.show[id^="editJ"] .modal-footer,
+  .modal.show[id^="viewJ"] .modal-footer{
+    position: sticky; bottom: 0; background: var(--bs-body-bg, #fff); z-index: 2;
+  }
+}
+</style>

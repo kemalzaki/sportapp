@@ -1253,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
 
-<?php if ($u && in_array($u['role'] ?? '', ['member','admin'], true) && !$__hideSuper): /* R10 — sembunyikan dari komunitas SuperDuperAdmin */ ?>
+<?php if ($u && in_array($u['role'] ?? '', ['member','admin','superadmin'], true) && !$__hideSuper): /* R10 — sembunyikan dari komunitas SuperDuperAdmin */ ?>
     <div class="card shadow-sm" id="sec-social-feed"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
      <div class="card-body" data-live="feed">
       <?php foreach($feed as $p): ?>

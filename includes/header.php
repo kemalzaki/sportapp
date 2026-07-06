@@ -1057,9 +1057,23 @@ body[data-hf-loading="1"] main{visibility:hidden;}
     // Padding ekstra 8px agar skeleton tidak nempel persis ke nav atas.
     ov.style.top    = (top + 8) + 'px';
     ov.style.bottom = (bot + 4) + 'px';
-    ov.innerHTML = skeletonHtml(shape);
+    ov.innerHTML = skeletonHtml(shape) +
+      '<div id="hfReloadBox" style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);'+
+      'display:none;z-index:5;background:rgba(15,23,42,.92);color:#fff;padding:10px 14px;border-radius:999px;'+
+      'box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:.9rem;align-items:center;gap:.5rem;">'+
+      '<span>Memuat terlalu lama?</span>'+
+      '<button type="button" id="hfReloadBtn" class="btn btn-sm btn-warning" style="border-radius:999px;">'+
+      '<i class="bi bi-arrow-clockwise"></i> Muat ulang</button></div>';
     ov.classList.add('active');
     document.body.setAttribute('data-hf-loading','1');
+    // Revisi R12 — tampilkan tombol refresh jika loading > 6 detik
+    if (window._hfReloadTimer) clearTimeout(window._hfReloadTimer);
+    window._hfReloadTimer = setTimeout(function(){
+      var box = document.getElementById('hfReloadBox');
+      if (box) box.style.display = 'inline-flex';
+    }, 6000);
+    var btn = document.getElementById('hfReloadBtn');
+    if (btn) btn.addEventListener('click', function(){ try{ location.reload(); }catch(_){ } });
   }
 
   document.addEventListener('click', function(ev){
@@ -1084,6 +1098,7 @@ body[data-hf-loading="1"] main{visibility:hidden;}
 
   // Saat halaman baru load (incl back/forward), bersihkan overlay.
   window.addEventListener('pageshow', function(){
+    if (window._hfReloadTimer){ clearTimeout(window._hfReloadTimer); window._hfReloadTimer=null; }
     var ov = document.getElementById('hfPageTransOverlay'); if (ov) ov.classList.remove('active');
     var bar = document.getElementById('hfTransBar'); if (bar) bar.remove();
     document.body.removeAttribute('data-hf-loading');
@@ -1284,3 +1299,30 @@ body[data-hf-loading="1"] main{visibility:hidden;}
 .nav-lock-badge{ font-size:.68rem; font-weight:600; padding:.18rem .45rem; vertical-align:1px; }
 .nav-lock-badge .bi{ font-size:.72rem; margin-right:2px; }
 </style>
+
+
+<script>
+/* Revisi R12 — Watchdog global: jika halaman belum selesai memuat setelah 6 detik,
+   tampilkan tombol muat ulang di kanan bawah agar pengguna bisa refresh. */
+(function(){
+  if (window._hfInitWatch) return; window._hfInitWatch = 1;
+  var shown = false;
+  function ensureBtn(){
+    if (shown) return; shown = true;
+    var el = document.createElement('div');
+    el.id = 'hfLoadReloadFab';
+    el.style.cssText = 'position:fixed;right:14px;bottom:90px;z-index:10050;background:#f59e0b;color:#111;'
+      + 'padding:10px 14px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:.9rem;'
+      + 'display:inline-flex;align-items:center;gap:.5rem;cursor:pointer;font-weight:600;';
+    el.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Muat ulang halaman';
+    el.addEventListener('click', function(){ try{ location.reload(); }catch(_){ } });
+    document.body.appendChild(el);
+  }
+  setTimeout(function(){
+    if (document.readyState !== 'complete') ensureBtn();
+  }, 6000);
+  window.addEventListener('load', function(){
+    var el = document.getElementById('hfLoadReloadFab'); if (el) el.remove();
+  });
+})();
+</script>
