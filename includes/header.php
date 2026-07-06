@@ -54,6 +54,8 @@ if (!function_exists('nav_feature_paket_map')) {
             'paket_anak_10_12.php'    => ['pro'],
             'paket_lansia_55_69.php'  => ['pro'],
             'paket_lansia_70.php'     => ['pro'],
+            // Revisi Juli 2026 R10 — Paket Perokok (Jogging)
+            'paket_perokok_jogging.php' => ['pro'],
         ];
     }
 }
@@ -748,6 +750,14 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga <span class="badge bg-success ms-1">WA</span></a>
         </div>
 
+        <?php /* Revisi Juli 2026 R10 — Grup Paket Perokok (di bawah Paket Lansia) */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpPaketPerokok" role="button" aria-expanded="false">
+          <span><i class="bi bi-lungs-fill text-danger"></i> Paket Perokok</span><i class="bi bi-chevron-down small"></i>
+        </a>
+        <div class="collapse" id="grpPaketPerokok">
+          <a class="list-group-item list-group-item-action ps-4" href="/paket_perokok_jogging.php"><i class="bi bi-person-walking"></i> Jogging<?= nav_lock_badge_for('paket_perokok_jogging.php') ?></a>
+        </div>
+
         <?php /* Revisi 14 Juni 2026: shortcut Tempat/Pesan/Bookmark/Islami pindah ke bawah Info dan Wawasan */ ?>
         <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a>
         <?php /* Revisi 22 Juni 2026 R7 — menu drawer Pesan (dm.php) dihapus. */ ?>
@@ -867,12 +877,9 @@ if (empty($pageSkeleton)) {
             </ul>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-heart-pulse-fill"></i> Paket Lansia</a>
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false"><i class="bi bi-lungs-fill"></i> Paket Perokok</a>
             <ul class="dropdown-menu shadow">
-              <li><a class="dropdown-item" href="/paket_lansia_55_69.php"><i class="bi bi-person-walking"></i> Usia 55–69 Tahun<?= nav_lock_badge_for('paket_lansia_55_69.php') ?></a></li>
-              <li><a class="dropdown-item" href="/paket_lansia_70.php"><i class="bi bi-house-heart"></i> Usia 70+ Tahun<?= nav_lock_badge_for('paket_lansia_70.php') ?></a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="https://wa.me/6281386369207?text=Halo%20KawanKeringat%2C%20saya%20ingin%20memesan%20Pemandu%20Olahraga." target="_blank" rel="noopener"><i class="bi bi-person-badge-fill text-success"></i> Pesan / Pemandu Olahraga</a></li>
+              <li><a class="dropdown-item" href="/paket_perokok_jogging.php"><i class="bi bi-person-walking"></i> Jogging<?= nav_lock_badge_for('paket_perokok_jogging.php') ?></a></li>
             </ul>
           </li>
           <li class="nav-item"><a class="nav-link" href="/tempat_list.php"><i class="bi bi-geo-alt"></i> Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a></li>

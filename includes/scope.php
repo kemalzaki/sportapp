@@ -66,6 +66,26 @@ function scope_is_super(): bool {
 }
 
 /**
+ * Revisi Juli 2026 R10 — True bila user adalah anggota komunitas 'SuperDuperAdmin'
+ * DAN role-nya BUKAN 'superadmin'. Dipakai untuk MENYEMBUNYIKAN sejumlah widget
+ * publik (Story, Social Feed, Online, Forum Komunitas, Monitoring Upload,
+ * Kalender Aktivitas Publik/Saya, Leaderboard, Tren Kehadiran Mingguan,
+ * Riwayat Sesi) dari anggota komunitas admin bila mereka bukan superadmin.
+ * (Role superadmin tetap dapat melihat semua widget tersebut.)
+ */
+function scope_is_superduper_kom_member(): bool {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $u = current_user(); if (!$u) return $cache = false;
+    if (($u['role'] ?? '') === 'superadmin') return $cache = false;
+    try {
+        $superKomId = (int) db_val("SELECT id FROM komunitas WHERE slug=$1 LIMIT 1", [scope_super_kom_slug()]);
+    } catch (Throwable $e) { $superKomId = 0; }
+    if (!$superKomId) return $cache = false;
+    return $cache = in_array($superKomId, scope_current_user_kom_ids(), true);
+}
+
+/**
  * Daftar komunitas_id yang boleh dilihat user saat ini.
  * Untuk super-scope: kembalikan semua id komunitas yang aktif.
  */

@@ -17,6 +17,10 @@ require_login();
 $pageTitle = 'Riwayat & Leaderboard';
 $u = current_user();
 $__vids = scope_user_ids_sql_array();
+/* Revisi Juli 2026 R10 — anggota komunitas 'SuperDuperAdmin' (non-superadmin)
+   TIDAK boleh melihat: Monitoring Upload, Kalender Aktivitas Publik/Saya,
+   Leaderboard, Tren Kehadiran Mingguan, Riwayat Sesi. Superadmin tetap boleh. */
+$__hideSuper = scope_is_superduper_kom_member();
 
 /* ---------- Auto-migration: tabel like & comment untuk upload_harian ---------- */
 try {
@@ -396,6 +400,7 @@ include __DIR__.'/includes/header.php';
   </form>
 </div></div>
 
+<?php if(!$__hideSuper): /* R10 — hide dari komunitas SuperDuperAdmin */ ?>
 <!-- ====== (1) Monitoring upload harian — yang belum olahraga 1×/minggu ====== -->
 <div class="card shadow-sm mb-3 border-warning">
   <div class="card-header bg-warning-subtle text-warning-emphasis d-flex justify-content-between align-items-center">
@@ -435,6 +440,7 @@ include __DIR__.'/includes/header.php';
 </div>
 
 <!-- ====== (2) Kalender Aktivitas — per bulan, dengan pilihan bulan ====== -->
+
 <div class="row g-3 mb-3">
   <div class="col-md-6">
     <div class="card shadow-sm h-100">
@@ -465,9 +471,11 @@ include __DIR__.'/includes/header.php';
     </div>
   </div>
 </div>
+<?php endif; /* R10 hide superduper — Monitoring + Kalender */ ?>
 
 <div class="row g-3">
   <div class="col-lg-5">
+    <?php if(!$__hideSuper): /* R10 — sembunyikan Leaderboard */ ?>
     <div class="card shadow-sm" id="lbCard"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
     <ol class="list-group list-group-flush list-group-numbered">
       <?php foreach($lb as $i=>$row): ?>
@@ -496,9 +504,11 @@ include __DIR__.'/includes/header.php';
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
     </ol></div>
+    <?php endif; /* R10 endif Leaderboard */ ?>
   </div>
 
   <div class="col-lg-7">
+    <?php if(!$__hideSuper): /* R10 — sembunyikan Tren Kehadiran + Riwayat Sesi */ ?>
     <!-- Revisi 26 Juni 2026 #4 — Tren Kehadiran Mingguan dipindah ke ATAS Riwayat Sesi -->
     <div class="card shadow-sm mb-3">
       <div class="card-header"><i class="bi bi-people text-primary"></i> Tren Kehadiran Mingguan — Semua Anggota</div>
@@ -554,6 +564,7 @@ include __DIR__.'/includes/header.php';
       <?php endforeach; ?>
       </tbody></table></div>
     </div>
+    <?php endif; /* R10 endif Tren+Riwayat Sesi */ ?>
 
     <!-- ====== Riwayat Aktivitas Publik dengan Like/Comment/Share ====== -->
     <div class="card shadow-sm mb-3"><div class="card-header"><i class="bi bi-globe text-primary"></i> Riwayat Aktivitas Publik</div>

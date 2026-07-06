@@ -7,6 +7,7 @@ require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/migrations_v7.php';
 require __DIR__.'/includes/islami_helpers.php';
+require __DIR__.'/includes/scope.php'; // Revisi Juli 2026 R10 — helper superduper
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Beranda';
 $pageSkeleton = 'feed'; // Skeleton sesuai data: social feed + kartu
@@ -676,6 +677,54 @@ if (!function_exists('render_index_blok')) {
 include __DIR__.'/includes/header.php'; ?>
 <?php render_index_blok('top'); ?>
 
+<?php
+/* Revisi Juli 2026 R10 — flag anggota komunitas SuperDuperAdmin (non-superadmin)
+   yang WAJIB disembunyikan dari: Status Online, Story, Social Feed, Forum. */
+$__hideSuper = scope_is_superduper_kom_member();
+?>
+
+<?php /* Revisi Juli 2026 R10 — Sapa Member Baru dipindah ke PALING ATAS. */ ?>
+<?php if(!empty($newMembers)): ?>
+<div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
+  <?php if($u): ?>
+  <form method="post" action="/islami.php" class="m-0" onsubmit="return confirm('Sembunyikan widget Sapa untuk akun Anda? Member lain tetap melihatnya.')">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="hide_sapa">
+    <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan untuk akun saya saja"><i class="bi bi-x-lg"></i></button>
+  </form>
+  <?php endif; ?>
+</div>
+  <div class="card-body" data-live="newmembers">
+    <div class="row g-2">
+    <?php foreach($newMembers as $nm): ?>
+      <div class="col-md-6 col-lg-4">
+        <div class="border rounded p-2 h-100">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="text-decoration-none"><?= user_avatar($nm['foto_url']??null, $nm['nama'], 36) ?></a>
+            <div class="flex-grow-1">
+              <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($nm['nama']) ?></a>
+              <div class="small text-muted">Bergabung <?= date('d M', strtotime($nm['created_at'])) ?></div>
+            </div>
+            <span class="badge bg-success-subtle text-success">Baru</span>
+          </div>
+          <?php if($u): ?>
+          <form method="post" class="d-flex gap-1" data-ajax data-ajax-label="Mengirim sapaan...">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="sapa_send">
+            <input type="hidden" name="target_id" value="<?= (int)$nm['id'] ?>">
+            <input class="form-control form-control-sm" name="pesan" maxlength="500" placeholder="Sapa <?= htmlspecialchars($nm['nama']) ?>..." required>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
+          </form>
+          <?php else: ?><div class="small text-muted"><a href="/login.php">Login</a> untuk menyapa.</div><?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+
 <section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
   <div class="d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1" style="min-width:240px;">
@@ -908,7 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-<?php if($u): ?>
+<?php if($u && !$__hideSuper): /* Revisi R10 — sembunyikan Story dari komunitas SuperDuperAdmin (non-superadmin) */ ?>
 <div class="card shadow-sm mb-3" id="feed"><div class="card-header d-flex justify-content-between">
   <span><i class="bi bi-collection-play text-primary"></i> Story Hari Ini</span>
   <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#postModal"><i class="bi bi-plus-lg"></i> Posting</button>
@@ -970,46 +1019,9 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="row g-3">
   <div class="col-lg-7">
     <?php /* Sentuhan Islami Hari Ini & kata-katanya dihapus sesuai revisi. */ ?>
-    <?php if($newMembers): ?>
-    <div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
-      <?php if($u): ?>
-      <form method="post" action="/islami.php" class="m-0" onsubmit="return confirm('Sembunyikan widget Sapa untuk akun Anda? Member lain tetap melihatnya.')">
-        <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="hide_sapa">
-        <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan untuk akun saya saja"><i class="bi bi-x-lg"></i></button>
-      </form>
-      <?php endif; ?>
-    </div>
-      <div class="card-body" data-live="newmembers">
-        <div class="row g-2">
-        <?php foreach($newMembers as $nm): ?>
-          <div class="col-md-6">
-            <div class="border rounded p-2 h-100">
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="text-decoration-none"><?= user_avatar($nm['foto_url']??null, $nm['nama'], 36) ?></a>
-                <div class="flex-grow-1">
-                  <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($nm['nama']) ?></a>
-                  <div class="small text-muted">Bergabung <?= date('d M', strtotime($nm['created_at'])) ?></div>
-                </div>
-                <span class="badge bg-success-subtle text-success">Baru</span>
-              </div>
-              <?php if($u): ?>
-              <form method="post" class="d-flex gap-1" data-ajax data-ajax-label="Mengirim sapaan...">
-                <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-                <input type="hidden" name="_action" value="sapa_send">
-                <input type="hidden" name="target_id" value="<?= (int)$nm['id'] ?>">
-                <input class="form-control form-control-sm" name="pesan" maxlength="500" placeholder="Sapa <?= htmlspecialchars($nm['nama']) ?>..." required>
-                <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
-              </form>
-              <?php else: ?><div class="small text-muted"><a href="/login.php">Login</a> untuk menyapa.</div><?php endif; ?>
-            </div>
-          </div>
-        <?php endforeach; ?>
-        </div>
-      </div>
-    </div>
+    <?php /* Revisi Juli 2026 R10 — Sapa Member Baru sudah dipindah ke PALING ATAS. */ ?>
 
-    <?php endif; ?>
+
 
     <?php if (!empty($eventTerdekat)): ?>
     <div class="card shadow-sm mb-3" id="sec-event-terdekat"><div class="card-header d-flex justify-content-between align-items-center">
@@ -1281,7 +1293,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
 
-<?php if ($u && in_array($u['role'] ?? '', ['member','admin'], true)): ?>
+<?php if ($u && in_array($u['role'] ?? '', ['member','admin'], true) && !$__hideSuper): /* R10 — sembunyikan dari komunitas SuperDuperAdmin */ ?>
     <div class="card shadow-sm" id="sec-social-feed"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-images text-primary"></i> Social Feed</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
      <div class="card-body" data-live="feed">
       <?php foreach($feed as $p): ?>
@@ -1434,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </nav>
       <?php endif; ?>
     </div></div>
-<?php else: ?>
+<?php elseif (!$__hideSuper): ?>
     <div class="card shadow-sm"><div class="card-body text-center text-muted small py-4">
       <i class="bi bi-lock fs-3 d-block mb-2"></i>
       <strong>Social Feed</strong> hanya bisa ditampilkan untuk <strong>member / admin terdaftar</strong>.
@@ -1444,6 +1456,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 
   <div class="col-lg-5">
+    <?php if(!$__hideSuper): /* R10 — sembunyikan Online & Forum dari komunitas SuperDuperAdmin */ ?>
     <div class="card shadow-sm mb-3" id="sec-online"><div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-broadcast text-success me-1"></i> Online (<?= count($onlineMembers) ?>)</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
       <ul class="list-group list-group-flush" data-live="online">
         <?php foreach($onlineMembers as $om): ?>
@@ -1552,6 +1565,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <?php endforeach; if(!$top): ?><p class="text-muted text-center mb-0 small">Belum ada pesan.</p><?php endif; ?>
       </div>
     </div></div>
+    <?php endif; /* R10 hide superduper */ ?>
   </div>
 </div>
 

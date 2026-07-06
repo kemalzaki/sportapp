@@ -98,12 +98,22 @@ include __DIR__.'/includes/header.php';
   </form>
 </div></div>
 
-<div class="alert alert-info py-2 small mb-3">
-  <i class="bi bi-info-circle"></i> Klik kata Arab untuk lihat <strong>tafsir per-kata (Bahasa Indonesia)</strong>.
-  Tombol <i class="bi bi-lightbulb"></i> menampilkan <strong>Tafsir Ibnu Katsir (Bahasa Indonesia)</strong>.
-  Tombol <i class="bi bi-journal-bookmark"></i> menampilkan <strong>Makna Ayat (AI)</strong>.
-  Tombol <i class="bi bi-stars"></i> menampilkan <strong>Tafsir Kontemporer (AI)</strong>.
-  Ayat dengan ikon <i class="bi bi-journal-text text-warning"></i> memiliki riwayat <strong>Asbabun Nuzul</strong>.
+<div class="alert alert-info py-2 small mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <div class="flex-grow-1">
+    <i class="bi bi-info-circle"></i> Klik kata Arab untuk lihat <strong>tafsir per-kata (Bahasa Indonesia)</strong>.
+    Tombol <i class="bi bi-lightbulb"></i> menampilkan <strong>Tafsir Ibnu Katsir</strong>.
+    Tombol <i class="bi bi-journal-bookmark"></i> menampilkan <strong>Makna Ayat (AI)</strong>.
+    Tombol <i class="bi bi-stars"></i> menampilkan <strong>Tafsir Kontemporer (AI)</strong>.
+    Ayat dengan ikon <i class="bi bi-journal-text text-warning"></i> memiliki riwayat <strong>Asbabun Nuzul</strong>.
+  </div>
+  <?php /* Revisi Juli 2026 R10 — pilihan Bahasa Tafsir Ibnu Katsir */ ?>
+  <div class="d-flex align-items-center gap-1" style="white-space:nowrap">
+    <label for="tafsirLang" class="small fw-semibold mb-0"><i class="bi bi-translate"></i> Bahasa Tafsir:</label>
+    <select id="tafsirLang" class="form-select form-select-sm" style="width:auto">
+      <option value="id" selected>Bahasa Indonesia</option>
+      <option value="en">Bahasa Inggris</option>
+    </select>
+  </div>
 </div>
 
 <?php if ($asbabIdx): ?>
@@ -315,7 +325,12 @@ $ayatTo   = min($totalAyat, $page*$perPage);
     //   1) spa5k/tafsir_api (CDN jsDelivr) — endpoint utama & alternatif.
     //   2) Fallback: Quran.com API v4 (proxy id 169 = Ibnu Katsir Indonesia).
     // Semua panggilan client-side dan hanya READ. Aman untuk running lokal.
-    var tafsirCache = {};
+    var tafsirCache = { id:{}, en:{} };
+    // Revisi Juli 2026 R10 — bahasa tafsir Ibnu Katsir dapat diganti (id / en).
+    function currentLang(){
+      var el = document.getElementById('tafsirLang');
+      return (el && el.value === 'en') ? 'en' : 'id';
+    }
     // Heuristik cepat: apakah teks tampak berbahasa Inggris?
     function looksEnglish(t){
       if (!t) return false;
@@ -323,7 +338,6 @@ $ayatTo   = min($totalAyat, $page*$perPage);
       var markers = [' the ',' and ',' that ',' with ',' this ',' from ',' they ',' their ',' verse ',' allah ',' prophet ',' god ',' meaning ',' said ',' when ',' which ',' upon '];
       var hits = 0;
       for (var i=0;i<markers.length;i++) if (s.indexOf(markers[i])>=0) hits++;
-      // Kata Indonesia umum
       var idHits = 0;
       var idMarkers = [' yang ',' dan ',' dengan ',' dari ',' pada ',' ini ',' itu ',' adalah ',' tidak ',' mereka ',' allah swt ',' ayat ',' surah ',' berfirman ',' bersabda '];
       for (var j=0;j<idMarkers.length;j++) if (s.indexOf(idMarkers[j])>=0) idHits++;
@@ -341,22 +355,25 @@ $ayatTo   = min($totalAyat, $page*$perPage);
       } catch(e){}
       return text;
     }
-    async function loadTafsir(no){
-      if (tafsirCache[no]) return tafsirCache[no];
+    async function loadTafsir(no, lang){
+      lang = (lang === 'en') ? 'en' : 'id';
+      if (tafsirCache[lang][no]) return tafsirCache[lang][no];
       var text = '';
       var source = '';
 
-      // Sumber #1: spa5k/tafsir_api via jsDelivr CDN — repo Indonesia
+      // Sumber #1: spa5k/tafsir_api via jsDelivr CDN — repo id / en
       try {
         var base = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir';
-        var ik = await fetchJSON(base + '/id-tafisr-ibn-kathir/' + s + '/' + no + '.json');
-        if (ik && ik.text) { text = ik.text; source = 'spa5k/tafsir_api (id)'; }
+        var slug = (lang === 'en') ? 'en-tafisr-ibn-kathir' : 'id-tafisr-ibn-kathir';
+        var ik = await fetchJSON(base + '/' + slug + '/' + s + '/' + no + '.json');
+        if (ik && ik.text) { text = ik.text; source = 'spa5k/tafsir_api ('+lang+')'; }
       } catch (e) {}
 
-      // Sumber #2 (fallback): api.quran.com v4 — tafsir id 169 (Ibnu Katsir - Indonesia)
+      // Sumber #2 (fallback): api.quran.com v4 — id 169=Indonesia, 168=English abridged
       if (!text) {
         try {
-          var qc = await fetchJSON('https://api.quran.com/api/v4/tafsirs/169/by_ayah/' + s + ':' + no);
+          var tid = (lang === 'en') ? 168 : 169;
+          var qc = await fetchJSON('https://api.quran.com/api/v4/tafsirs/' + tid + '/by_ayah/' + s + ':' + no);
           if (qc && qc.tafsir && qc.tafsir.text) {
             var tmp = document.createElement('div');
             tmp.innerHTML = qc.tafsir.text;
@@ -366,21 +383,21 @@ $ayatTo   = min($totalAyat, $page*$perPage);
         } catch (e) {}
       }
 
-      // Revisi Juli 2026 R9 — jika teks tafsir terdeteksi Bahasa Inggris,
-      // otomatis terjemahkan ke Bahasa Indonesia via api_ai.php.
-      if (text && looksEnglish(text)) {
+      // Untuk bahasa Indonesia: bila teks terdeteksi bahasa Inggris, terjemahkan.
+      if (lang === 'id' && text && looksEnglish(text)) {
         var translated = await translateToId(text);
         if (translated) { text = translated; source = (source||'') + ' → diterjemahkan AI'; }
       }
 
-      tafsirCache[no] = { ibnu_id: text, source: source };
-      return tafsirCache[no];
+      tafsirCache[lang][no] = { ibnu: text, lang: lang, source: source };
+      return tafsirCache[lang][no];
     }
 
     function renderTafsir(d){
-      var html = '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir (Bahasa Indonesia)</div>';
-      if (d.ibnu_id) {
-        html += '<div class="tafsir-body mt-2">'+formatTafsir(d.ibnu_id)+'</div>';
+      var labelBahasa = (d.lang === 'en') ? 'Bahasa Inggris' : 'Bahasa Indonesia';
+      var html = '<div class="tafsir-tab"><i class="bi bi-book"></i> Tafsir Ibnu Katsir ('+labelBahasa+')</div>';
+      if (d.ibnu) {
+        html += '<div class="tafsir-body mt-2"'+ (d.lang==='en' ? ' lang="en"' : '') +'>'+formatTafsir(d.ibnu)+'</div>';
         if (d.source) {
           html += '<div class="small text-muted mt-1" style="font-size:.75rem;opacity:.7">Sumber: '+d.source+'</div>';
         }
@@ -430,12 +447,30 @@ $ayatTo   = min($totalAyat, $page*$perPage);
         if (block.classList.contains('show-tafsir')) {
           var no = parseInt(block.dataset.no, 10);
           var tafs = block.querySelector('.js-tafsir');
-          tafs.innerHTML = '<span class="text-muted"><div class="spinner-border spinner-border-sm"></div> Memuat tafsir Ibnu Katsir…</span>';
-          var d = await loadTafsir(no);
+          var lang = currentLang();
+          tafs.innerHTML = '<span class="text-muted"><div class="spinner-border spinner-border-sm"></div> Memuat tafsir Ibnu Katsir ('+(lang==='en'?'Bahasa Inggris':'Bahasa Indonesia')+')…</span>';
+          var d = await loadTafsir(no, lang);
           tafs.innerHTML = renderTafsir(d);
         }
       });
     });
+    // Revisi Juli 2026 R10 — muat ulang tafsir yang sedang terbuka saat bahasa diganti.
+    (function(){
+      var sel = document.getElementById('tafsirLang'); if (!sel) return;
+      sel.addEventListener('change', async function(){
+        var lang = currentLang();
+        var opens = container.querySelectorAll('.ayat-block.show-tafsir');
+        for (var i=0;i<opens.length;i++){
+          var block = opens[i];
+          var no = parseInt(block.dataset.no, 10);
+          var tafs = block.querySelector('.js-tafsir');
+          if (!tafs) continue;
+          tafs.innerHTML = '<span class="text-muted"><div class="spinner-border spinner-border-sm"></div> Memuat ulang ('+(lang==='en'?'Bahasa Inggris':'Bahasa Indonesia')+')…</span>';
+          var d = await loadTafsir(no, lang);
+          tafs.innerHTML = renderTafsir(d);
+        }
+      });
+    })();
     container.querySelectorAll('.js-toggle-makna').forEach(function(b){
       b.addEventListener('click', async function(){
         var block = b.closest('.ayat-block');
