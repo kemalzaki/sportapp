@@ -689,7 +689,7 @@ $__hideSuper = scope_is_superduper_kom_member();
   <div class="d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1" style="min-width:240px;">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> Komunitas KawanKeringat</span>
+        <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> KawanKeringat AppSport</span>
       </div>
       <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Halo, <?= htmlspecialchars($u['nama'] ?? 'Sobat') ?>! 👋</h1>
       <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">Selamat datang Mahasiswa &amp; Pecinta Olahraga.</p>

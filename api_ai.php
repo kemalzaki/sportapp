@@ -340,6 +340,71 @@ switch ($task) {
         echo json_encode($r); exit;
     }
 
+    /* ---------- Tafsir Lughawi (analisis bahasa / linguistik ayat) — Revisi Nov 2026 ---------- */
+    case 'tafsir_lughawi': {
+        $surah = trim((string)($_POST['surah'] ?? ''));
+        $ayat  = (int)($_POST['ayat'] ?? 0);
+        $arab  = trim((string)($_POST['arab'] ?? ''));
+        $terj  = trim((string)($_POST['terjemah'] ?? ''));
+        if ($surah === '' || $ayat < 1) { echo json_encode(['ok'=>false,'err'=>'surah/ayat kosong']); exit; }
+        $sys = "Anda 'Ahli Tafsir Lughawi' — pakar linguistik Al-Qur'an (balaghah, nahwu, sharaf, semantik). ".
+               "Tugas: berikan TAFSIR LUGHAWI (analisis bahasa Arab) untuk ayat berikut. Bahasa jawaban: Bahasa Indonesia, ".
+               "sopan, jelas, netral madzhab. Gunakan struktur markdown ### sebagai berikut:\n".
+               "### Analisis Kata Kunci\n(Ambil 3–6 kata Arab penting di ayat. Tulis: kata Arab — akar kata (root) — makna dasar — makna kontekstual.)\n".
+               "### Struktur Kalimat (Nahwu)\n(Jelaskan pola i'rab / kedudukan kata inti: mubtada, khabar, fi'il, fa'il, maf'ul, dsb.)\n".
+               "### Balaghah / Gaya Bahasa\n(Sebutkan majaz, tasybih, kinayah, taqdim-ta'khir, iltifat, penekanan, dsb. bila ada.)\n".
+               "### Nuansa Makna\n(Perbedaan halus makna antar sinonim, konotasi, mengapa Al-Qur'an memilih kata tsb.)\n".
+               "### Kesimpulan Bahasa\n(1 paragraf ringkas pesan yang muncul dari sisi bahasa.)\n".
+               "Total ± 300–500 kata. Sajikan kata Arab dalam huruf Arab dan transliterasi Latin. Akhiri dengan 'Wallahu a'lam.'";
+        $p = "Surah: $surah\nAyat ke-$ayat\n".
+             ($arab!=='' ? "Teks Arab: $arab\n" : '').
+             ($terj!=='' ? "Terjemahan Indonesia: $terj\n" : '').
+             "\nBerikan tafsir lughawi (analisis bahasa) ayat ini.";
+        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        echo json_encode($r); exit;
+    }
+
+    /* ---------- OCR Strava Screenshot → data upload (Revisi Nov 2026) ---------- */
+    case 'strava_ocr': {
+        @set_time_limit(120);
+        if (empty($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) {
+            echo json_encode(['ok'=>false,'err'=>'gambar belum diupload']); exit;
+        }
+        rate_limit_or_die('strava_ocr:'.$uid, 15, 600);
+        $sys = "Anda 'AI OCR Strava'. Anda menerima screenshot ringkasan aktivitas lari/jogging dari aplikasi ".
+               "Strava (atau smartwatch serupa: Garmin, Apple Watch, Nike Run). Ekstrak data numerik utamanya. ".
+               "Balas HANYA JSON tanpa fence, tanpa penjelasan tambahan, dalam format berikut:\n".
+               "{\"tanggal\":\"YYYY-MM-DD\",\"durasi_menit\":<int>,\"jarak_km\":<float>,\"kalori\":<int>,".
+               "\"pace\":\"m'ss\\\"/km\",\"deskripsi\":\"<judul aktivitas / catatan singkat, opsional>\"}\n".
+               "Aturan:\n".
+               "- Jika tanggal tidak terbaca, gunakan tanggal hari ini.\n".
+               "- Konversi jam ke menit (contoh 1:23:45 → 83 menit).\n".
+               "- pace dalam format menit'detik\"/km (contoh 5'42\"/km). Jika tidak ada, hitung dari durasi/jarak.\n".
+               "- Nilai wajib > 0. Jika field tidak terbaca sama sekali, isi 0 (untuk numeric) atau string kosong.\n".
+               "- Jika gambar BUKAN screenshot aktivitas lari, balas: {\"error\":\"bukan_strava\"}.";
+        $r = gemini_vision('Ekstrak data aktivitas jogging dari screenshot ini.', $_FILES['image']['tmp_name'],
+                ['system'=>$sys,'json'=>true,'temperature'=>0.1,'max_tokens'=>1024]);
+        if (!$r['ok']) { echo json_encode($r); exit; }
+        $obj = gemini_extract_json($r['text']);
+        if (!is_array($obj) || isset($obj['error'])) {
+            echo json_encode(['ok'=>false,'err'=>'Gambar tidak dikenali sebagai screenshot aktivitas Strava. Coba upload screenshot yang jelas.','raw'=>$r['text']]);
+            exit;
+        }
+        // Normalisasi
+        $today = date('Y-m-d');
+        $tgl = (string)($obj['tanggal'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tgl)) $tgl = $today;
+        echo json_encode(['ok'=>true,'data'=>[
+            'tanggal'      => $tgl,
+            'durasi_menit' => max(0, (int)($obj['durasi_menit'] ?? 0)),
+            'jarak_km'     => max(0, (float)($obj['jarak_km'] ?? 0)),
+            'kalori'       => max(0, (int)($obj['kalori'] ?? 0)),
+            'pace'         => (string)($obj['pace'] ?? ''),
+            'deskripsi'    => (string)($obj['deskripsi'] ?? ''),
+        ],'raw'=>$r['text']]);
+        exit;
+    }
+
     /* ---------- Terjemah teks ke Bahasa Indonesia — Revisi Juli 2026 R9 ----------
      * Dipakai quran_surah.php untuk memastikan Tafsir Ibnu Katsir selalu tampil
      * dalam Bahasa Indonesia (jika API sumber mengembalikan versi bahasa lain). */

@@ -21,30 +21,34 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     // Revisi 2 Jun 2026: wajib setuju Kebijakan Privasi (UU PDP)
     if (empty($_POST['agree_pdp'])) { $err = 'Anda harus menyetujui Kebijakan Privasi (UU PDP) terlebih dahulu.'; goto __after_post_register; }
     $nama = trim($_POST['nama'] ?? '');
+    $username = strtolower(trim($_POST['username'] ?? ''));
     $email = strtolower(trim($_POST['email'] ?? ''));
     $pass = $_POST['password'] ?? '';
     $jk   = $_POST['jenis_kelamin'] ?? '';
     $wa   = preg_replace('/[^0-9+]/','', trim($_POST['nomor_wa'] ?? ''));
     $ref  = strtoupper(preg_replace('/[^A-Z0-9_-]/i','', trim($_POST['kode_referal'] ?? '')));
     if (strlen($nama) < 2 || strlen($nama) > 80) $err = 'Nama 2-80 karakter.';
+    // Revisi Nov 2026 — validasi username (huruf/angka/underscore/titik, 3-40 karakter, unik).
+    elseif (!preg_match('/^[a-z0-9._]{3,40}$/', $username)) $err = 'Username hanya boleh huruf kecil, angka, titik & underscore (3-40 karakter).';
     elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $err = 'Email tidak valid.';
     elseif (strlen($pass) < 8) $err = 'Password minimal 8 karakter.';
     elseif (!in_array($jk, ['L','P'], true)) $err = 'Jenis kelamin wajib dipilih.';
     elseif (strlen($wa) < 8 || strlen($wa) > 20) $err = 'Nomor WhatsApp tidak valid.';
     elseif ($ref === '' || strlen($ref) < 3 || strlen($ref) > 32) $err = 'Kode referal wajib diisi (3-32 karakter). Hubungi admin Firdam via WhatsApp jika belum punya.';
     elseif (db_one("SELECT id FROM users WHERE LOWER(email)=$1", [$email])) $err = 'Email sudah terdaftar.';
+    elseif (db_one("SELECT id FROM users WHERE LOWER(username)=$1", [$username])) $err = 'Username sudah dipakai. Silakan pilih yang lain.';
     elseif (($_validRef = db_one("SELECT * FROM referal_codes WHERE UPPER(kode)=$1 AND aktif=1 AND (expired_at IS NULL OR expired_at >= CURRENT_DATE) AND (max_pakai IS NULL OR jumlah_terpakai < max_pakai)", [$ref])) === null
             && (int)db_val("SELECT COUNT(*) FROM referal_codes")>0) $err='Kode referal tidak valid / sudah habis kuota / kadaluarsa.';
     else {
         $hash = hash_password($pass);
         try {
-            db_exec("INSERT INTO users(nama,email,password_hash,role,jenis_kelamin,nomor_wa,referred_by_code,privasi_disetujui_at,privasi_versi_disetujui) VALUES($1,$2,$3,'member',$4,$5,$6,now(),$7)",
-                [$nama, $email, $hash, $jk, $wa, $ref, (string)(db_val("SELECT versi FROM kebijakan_privasi WHERE aktif=true ORDER BY id DESC LIMIT 1") ?? '1.0')]);
+            db_exec("INSERT INTO users(nama,username,email,password_hash,role,jenis_kelamin,nomor_wa,referred_by_code,privasi_disetujui_at,privasi_versi_disetujui) VALUES($1,$2,$3,$4,'member',$5,$6,$7,now(),$8)",
+                [$nama, $username, $email, $hash, $jk, $wa, $ref, (string)(db_val("SELECT versi FROM kebijakan_privasi WHERE aktif=true ORDER BY id DESC LIMIT 1") ?? '1.0')]);
             header('Location: /login.php'); exit;
         } catch (Throwable $e) {
             try {
-                db_exec("INSERT INTO users(nama,email,password,role,jenis_kelamin,nomor_wa,referred_by_code) VALUES($1,$2,$3,'member',$4,$5,$6)",
-                    [$nama,$email,$hash,$jk,$wa,$ref]);
+                db_exec("INSERT INTO users(nama,username,email,password,role,jenis_kelamin,nomor_wa,referred_by_code) VALUES($1,$2,$3,$4,'member',$5,$6,$7)",
+                    [$nama,$username,$email,$hash,$jk,$wa,$ref]);
                 header('Location: /login.php'); exit;
             } catch (Throwable $e2) { $err = 'Pendaftaran gagal: '.$e2->getMessage(); }
         }
@@ -196,6 +200,18 @@ body{
       <div class="mb-3">
         <label class="form-label">Nama Lengkap</label>
         <input class="lg-input" name="nama" required maxlength="80" value="<?= htmlspecialchars($_POST['nama'] ?? '') ?>" placeholder="cth: Andi Saputra">
+      </div>
+
+
+
+
+      <div class="mb-3">
+        <label class="form-label"><i class="bi bi-at"></i> Username</label>
+        <input class="lg-input" name="username" required minlength="3" maxlength="40"
+               pattern="[a-z0-9._]{3,40}"
+               value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+               placeholder="cth: andi.saputra" style="text-transform:lowercase">
+        <div class="lg-hint">Huruf kecil, angka, titik &amp; underscore. Dipakai untuk login.</div>
       </div>
 
       <div class="mb-3">

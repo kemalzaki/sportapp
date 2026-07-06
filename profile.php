@@ -5,6 +5,7 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/badges.php';
 require __DIR__.'/includes/notifications.php';
 require __DIR__.'/includes/migrations_v7.php';
+require __DIR__.'/includes/scope.php';
 require __DIR__.'/includes/paket_helpers.php'; // Revisi — badge Paket Member (gratis/pro/komunitas)
 send_security_headers(); enforce_session_timeout();
 require_login();
@@ -64,6 +65,37 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $_SESSION['flash_ok'] = 'Password berhasil diperbarui. Silakan gunakan password baru pada login berikutnya.';
         }
         header('Location: /profile.php#ubahPassword'); exit;
+    }
+    // Revisi Nov 2026 — edit inline Nama Lengkap.
+    if ($a==='update_nama') {
+        $nm = trim(substr($_POST['nama'] ?? '', 0, 80));
+        $isAjax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest');
+        if (mb_strlen($nm) < 2) {
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok'=>false,'err'=>'Nama minimal 2 karakter.']); exit; }
+            $_SESSION['flash_err'] = 'Nama minimal 2 karakter.';
+        } else {
+            db_exec("UPDATE users SET nama=$1 WHERE id=$2", [$nm, (int)$u['id']]);
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok'=>true,'nama'=>$nm]); exit; }
+        }
+        header('Location: /profile.php'); exit;
+    }
+    // Revisi Nov 2026 — edit inline Username.
+    if ($a==='update_username') {
+        $un = strtolower(trim($_POST['username'] ?? ''));
+        $isAjax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest');
+        if (!preg_match('/^[a-z0-9._]{3,40}$/', $un)) {
+            $msg = 'Username hanya boleh huruf kecil/angka/titik/underscore (3-40 karakter).';
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok'=>false,'err'=>$msg]); exit; }
+            $_SESSION['flash_err'] = $msg;
+        } elseif (db_one("SELECT id FROM users WHERE LOWER(username)=$1 AND id<>$2", [$un, (int)$u['id']])) {
+            $msg = 'Username sudah dipakai. Pilih yang lain.';
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok'=>false,'err'=>$msg]); exit; }
+            $_SESSION['flash_err'] = $msg;
+        } else {
+            db_exec("UPDATE users SET username=$1 WHERE id=$2", [$un, (int)$u['id']]);
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['ok'=>true,'username'=>$un]); exit; }
+        }
+        header('Location: /profile.php'); exit;
     }
     if ($a==='update_bio') {
         $bio = substr(trim($_POST['bio'] ?? ''), 0, 300);
@@ -272,8 +304,26 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $favList = db_all("SELECT id, nama FROM user_olahraga_favorit WHERE user_id=$1 ORDER BY nama ASC", [(int)$u['id']]);
 $kondisi = db_one("SELECT status,keterangan,updated_at FROM user_kondisi WHERE user_id=$1", [(int)$u['id']]) ?: ['status'=>'sehat','keterangan'=>null,'updated_at'=>null];
 $pengList = db_all("SELECT * FROM user_pengalaman WHERE user_id=$1 ORDER BY tanggal DESC NULLS LAST, id DESC", [(int)$u['id']]);
-// Daftar member lain untuk fitur "Lihat tampilan sebagai Member lain" (revisi 6 Juni 2026)
-$lihatMemberLain = db_all("SELECT id, nama FROM users WHERE id<>$1 AND role IN ('member','admin') ORDER BY nama", [(int)$u['id']]);
+// Revisi Nov 2026 — daftar member SATU KOMUNITAS saja (member di luar komunitas tidak muncul).
+$__kids = function_exists('scope_current_user_kom_ids') ? scope_current_user_kom_ids() : [];
+if ($__kids) {
+    $__arrK = '{'.implode(',', array_map('intval', $__kids)).'}';
+    try {
+        $lihatMemberLain = db_all(
+            "SELECT DISTINCT u.id, u.nama
+               FROM users u
+               LEFT JOIN user_komunitas uk ON uk.user_id = u.id
+              WHERE u.id <> $1
+                AND u.role IN ('member','admin')
+                AND (u.komunitas_id = ANY($2::int[]) OR uk.komunitas_id = ANY($2::int[]))
+              ORDER BY u.nama",
+            [(int)$u['id'], $__arrK]
+        );
+    } catch (Throwable $e) { $lihatMemberLain = []; }
+} else {
+    // Belum terikat komunitas manapun — tidak ada member lain yang boleh dilihat.
+    $lihatMemberLain = [];
+}
 $perlList = db_all("SELECT p.*, jo.nama AS jenis_resmi FROM user_perlengkapan p LEFT JOIN jenis_olahraga jo ON jo.id=p.jenis_olahraga_id WHERE p.user_id=$1 ORDER BY p.jenis_nama, p.nama", [(int)$u['id']]);
 $jenisOR = db_all("SELECT id,nama FROM jenis_olahraga ORDER BY nama");
 
@@ -331,8 +381,60 @@ include __DIR__.'/includes/header.php';
       <?php else: ?>
         <?= user_avatar(null, $me['nama'], 96) ?>
       <?php endif; ?>
-      <h4 class="mt-2 mb-0"><?= htmlspecialchars($me['nama']) ?></h4>
+      <h4 class="mt-2 mb-0 d-inline-flex align-items-center gap-1" style="justify-content:center;flex-wrap:wrap">
+        <span id="profNamaText"><?= htmlspecialchars($me['nama']) ?></span>
+        <button type="button" class="btn btn-sm btn-link p-0 text-secondary" id="btnEditNama"
+                title="Edit nama lengkap" style="line-height:1">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+      </h4>
+      <div class="small text-muted mt-1">
+        <i class="bi bi-at"></i><span id="profUsernameText"><?= htmlspecialchars($me['username'] ?? '(belum diatur)') ?></span>
+        <button type="button" class="btn btn-sm btn-link p-0 text-secondary ms-1" id="btnEditUsername"
+                title="Edit username" style="line-height:1">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+      </div>
       <div class="small text-muted"><?= htmlspecialchars($me['email']) ?></div>
+      <?php /* Revisi Nov 2026 — Inline edit Nama & Username via AJAX */ ?>
+      <script>
+      (function(){
+        var csrf = <?= json_encode(csrf_token()) ?>;
+        function postField(action, field, value){
+          var fd = new FormData();
+          fd.append('csrf', csrf); fd.append('_action', action); fd.append(field, value);
+          return fetch('/profile.php', {method:'POST', body: fd, credentials:'same-origin',
+                       headers:{'X-Requested-With':'XMLHttpRequest'}})
+            .then(r => r.json());
+        }
+        function inlineEdit(btnId, txtId, action, field, promptLabel, validator){
+          var btn = document.getElementById(btnId);
+          if (!btn) return;
+          btn.addEventListener('click', function(){
+            var cur = document.getElementById(txtId).textContent.trim();
+            if (cur === '(belum diatur)') cur = '';
+            var val = window.prompt(promptLabel, cur);
+            if (val === null) return;
+            val = val.trim();
+            var vErr = validator ? validator(val) : null;
+            if (vErr) { alert(vErr); return; }
+            btn.disabled = true;
+            postField(action, field, val).then(function(j){
+              if (j && j.ok) {
+                document.getElementById(txtId).textContent = j[field] || val;
+              } else {
+                alert((j && j.err) || 'Gagal menyimpan.');
+              }
+            }).catch(function(){ alert('Gagal jaringan.'); })
+              .finally(function(){ btn.disabled = false; });
+          });
+        }
+        inlineEdit('btnEditNama','profNamaText','update_nama','nama','Nama lengkap baru:',
+          function(v){ if (v.length<2 || v.length>80) return 'Nama 2-80 karakter.'; return null; });
+        inlineEdit('btnEditUsername','profUsernameText','update_username','username','Username baru (huruf kecil/angka/titik/underscore, 3-40):',
+          function(v){ if (!/^[a-z0-9._]{3,40}$/.test(v)) return 'Format username tidak valid.'; return null; });
+      })();
+      </script>
       <div class="mt-2"><span class="pill">Level <?= $level ?></span>
         <span class="pill" data-bs-toggle="tooltip" title="Streak (mgg) = jumlah minggu berturut-turut Anda upload aktivitas atau hadir di sesi. Reset jika 1 minggu kosong.">🔥 <?= (int)$me['streak_minggu'] ?> minggu</span>
         <span class="pill">⭐ <?= $xp ?> XP</span></div>

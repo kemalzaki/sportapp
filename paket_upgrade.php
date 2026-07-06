@@ -209,8 +209,12 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   <?php endforeach; ?>
 </div>
 
+<?php
+  // Revisi Nov 2026 — Tombol Bayar via WhatsApp hanya aktif untuk paket 'gratis'.
+  $bayarLocked = in_array($curPaket, ['pro','komunitas'], true);
+?>
 <!-- Ringkasan + tombol Bayar via WhatsApp -->
-<div class="card shadow-sm mb-4 d-none" id="paySummary">
+<div class="card shadow-sm mb-4 <?= $bayarLocked ? '' : 'd-none' ?>" id="paySummary">
   <div class="card-body">
     <h5 class="mb-2"><i class="bi bi-whatsapp text-success"></i> Ringkasan Pembayaran</h5>
     <div class="d-flex justify-content-between border-bottom py-1">
@@ -222,12 +226,18 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
     <div class="d-flex justify-content-between py-1">
       <span>Metode</span><strong>WhatsApp Admin (Manual)</strong>
     </div>
-    <button type="button" id="btnBayar" class="btn btn-success btn-lg w-100 mt-2">
+    <button type="button" id="btnBayar" class="btn btn-success btn-lg w-100 mt-2"
+            <?= $bayarLocked ? 'disabled' : '' ?>>
       <i class="bi bi-whatsapp"></i> Bayar via WhatsApp
     </button>
-    <div id="payMsg" class="small mt-2 text-muted">
-      Setelah tombol diklik, Anda akan diarahkan ke chat WhatsApp admin dengan data
-      pesanan sudah terisi. Admin akan meng-aktifkan paket setelah pembayaran diterima.
+    <div id="payMsg" class="small mt-2 <?= $bayarLocked ? 'text-warning' : 'text-muted' ?>">
+      <?php if ($bayarLocked): ?>
+        <i class="bi bi-lock-fill"></i> Tombol pembayaran dikunci karena akun Anda sudah berpaket
+        <strong><?= strtoupper($curPaket) ?></strong>. Tombol akan aktif kembali ketika paket Anda kembali ke <strong>Gratis</strong>.
+      <?php else: ?>
+        Setelah tombol diklik, Anda akan diarahkan ke chat WhatsApp admin dengan data
+        pesanan sudah terisi. Admin akan meng-aktifkan paket setelah pembayaran diterima.
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -328,7 +338,10 @@ $riwayat = db_all("SELECT kode,paket,harga,status,created_at,paid_at
   });
   if (defaultKey && prices[defaultKey]) selectPaket(defaultKey);
 
-  document.getElementById('btnBayar').addEventListener('click', function(){
+  var bayarLocked = <?= $bayarLocked ? 'true' : 'false' ?>;
+  var btnBayarEl = document.getElementById('btnBayar');
+  btnBayarEl.addEventListener('click', function(){
+    if (bayarLocked) { setMsg('Tombol pembayaran dikunci — paket Anda sudah <strong>'+<?= json_encode(strtoupper($curPaket)) ?>+'</strong>.', 'text-warning'); return; }
     if (!selected) { setMsg('Silakan pilih paket terlebih dahulu.', 'text-danger'); return; }
     var btn = this; btn.disabled = true;
     var oldHtml = btn.innerHTML;
