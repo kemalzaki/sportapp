@@ -9,16 +9,26 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require_once __DIR__.'/includes/scope.php';
 send_security_headers(); require_login();
 $u = current_user();
 $pageTitle = 'Pesan';
+// Revisi Juli 2026 — DM dibatasi hanya ke sesama anggota komunitas user.
+$__dmScopeIds = scope_visible_user_ids();
+if (!$__dmScopeIds) { $__dmScopeIds = [(int)$u['id']]; }
+$__dmScopeArr = '{'.implode(',', array_map('intval', $__dmScopeIds)).'}';
 
 $peerId = (int)($_GET['u'] ?? 0);
 if (!$peerId && !empty($_GET['username'])) {
     $row = db_one("SELECT id FROM users WHERE LOWER(username)=LOWER($1) OR LOWER(nama)=LOWER($1) LIMIT 1", [$_GET['username']]);
     if ($row) $peerId = (int)$row['id'];
 }
-$peer = $peerId ? db_one("SELECT id,nama,foto_url FROM users WHERE id=$1", [$peerId]) : null;
+// Hanya boleh chat dengan user yang berada pada scope komunitas yang sama.
+$peer = null;
+if ($peerId && in_array((int)$peerId, $__dmScopeIds, true) && (int)$peerId !== (int)$u['id']) {
+    $peer = db_one("SELECT id,nama,foto_url FROM users WHERE id=$1", [$peerId]);
+}
+$peerBlocked = ($peerId && !$peer);
 
 // Daftar percakapan: ambil partner terakhir
 $threads = db_all("
@@ -35,8 +45,9 @@ $threads = db_all("
   WHERE u.id IN (
     SELECT DISTINCT CASE WHEN sender_id=$1 THEN receiver_id ELSE sender_id END
       FROM dm_messages WHERE sender_id=$1 OR receiver_id=$1)
+    AND u.id = ANY($2::int[])
   ORDER BY last_at DESC NULLS LAST
-", [(int)$u['id']]);
+", [(int)$u['id'], $__dmScopeArr]);
 
 include __DIR__.'/includes/header.php';
 ?>
@@ -78,7 +89,11 @@ include __DIR__.'/includes/header.php';
     <?php if(!$peer): ?>
       <div class="card shadow-sm"><div class="card-body text-center text-muted py-5">
         <i class="bi bi-chat-square-text fs-1"></i>
-        <div class="mt-2">Pilih percakapan di sebelah kiri, atau mulai chat baru.</div>
+        <?php if(!empty($peerBlocked)): ?>
+          <div class="mt-2 text-danger"><i class="bi bi-shield-lock"></i> Anda hanya dapat mengirim pesan ke sesama anggota komunitas Anda.</div>
+        <?php else: ?>
+          <div class="mt-2">Pilih percakapan di sebelah kiri, atau mulai chat baru.</div>
+        <?php endif; ?>
       </div></div>
     <?php else: ?>
       <div class="card shadow-sm h-100">

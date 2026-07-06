@@ -43,7 +43,7 @@ $GERAKAN = [
       'Tarik napas dalam 4 hitungan – buang 6 hitungan.',
       'Jangan langsung joging tanpa pemanasan (paru perokok sensitif).',
     ],
-    'yt_id'=>'gPIib9cgmU8',
+    'yt_id'=>'Ks5dz69gsDk',
   ],
   'brisk_walk' => [
     'nama'=>'Jalan Cepat','icon'=>'bi-speedometer2','target'=>'Kardio ringan',
@@ -53,7 +53,7 @@ $GERAKAN = [
       'Pertahankan ritme napas hidung-mulut.',
       'Bila batuk / dada berat: turunkan ritme, JANGAN berhenti mendadak.',
     ],
-    'yt_id'=>'enYITYwvPAQ',
+    'yt_id'=>'ljNOCPSGSH0',
   ],
   'jog_slow' => [
     'nama'=>'Jog Lambat','icon'=>'bi-heart-pulse','target'=>'Kapasitas paru',
@@ -63,7 +63,7 @@ $GERAKAN = [
       'Bahu rileks, jangan menggenggam tangan.',
       'Bernapas ritmis: 3 langkah tarik, 2 langkah buang.',
     ],
-    'yt_id'=>'brFHyOtTwH4',
+    'yt_id'=>'XLalU-heZd4',
   ],
   'jog_easy' => [
     'nama'=>'Jog Ringan','edit'=>true,'icon'=>'bi-person-arms-up','target'=>'Efisiensi kardio',
@@ -83,7 +83,7 @@ $GERAKAN = [
       'Peregangan betis, paha belakang, dada & bahu (masing-masing 20 detik).',
       'Minum air hangat, hindari rokok / kafein tinggi selama 1 jam.',
     ],
-    'yt_id'=>'g_tea8ZNk5A',
+    'yt_id'=>'GH7DKYDCNxw',
   ],
   'breath_drill' => [
     'nama'=>'Latihan Napas Diafragma','icon'=>'bi-wind','target'=>'Kapasitas paru',
@@ -93,7 +93,7 @@ $GERAKAN = [
       'Tarik napas hidung 4 detik → tahan 2 detik → buang mulut 6 detik.',
       'Ulangi 8–12 siklus. Sangat baik dilakukan pagi & sebelum jog.',
     ],
-    'yt_id'=>'acUZdGd_3Dg',
+    'yt_id'=>'NJim3oaJXc4',
   ],
 ];
 
@@ -305,8 +305,8 @@ include __DIR__.'/includes/header.php'; ?>
       <?php endforeach; ?>
     </div>
 
-    <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
-      <table class="table table-sm table-bordered align-middle mb-0">
+    <div class="table-responsive" style="max-height:320px; overflow:auto; -webkit-overflow-scrolling:touch;">
+      <table class="table table-sm table-bordered align-middle mb-0" style="min-width:520px;">
         <thead class="table-light" style="position:sticky;top:0;z-index:2;">
           <tr><th style="width:130px">Tanggal</th><th style="width:200px">Level</th><th>Catatan</th></tr>
         </thead>

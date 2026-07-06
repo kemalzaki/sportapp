@@ -77,7 +77,13 @@ if (!function_exists('nav_lock_badge_for')) {
             try { $curPk = paket_user(function_exists('current_user') ? current_user() : null); } catch (Throwable $e) {}
         }
         if ($curPk === 'komunitas') return '';
-        if ($curPk === 'pro')       $req = array_values(array_intersect($req, ['komunitas']));
+        // Revisi Juli 2026 — user PRO: sembunyikan badge Komunitas untuk fitur
+        // yang juga tersedia untuk paket Pro (mis. Pro+Komunitas). Hanya
+        // fitur yang MURNI Komunitas (tanpa 'pro' di $req) yang masih di-badge.
+        if ($curPk === 'pro') {
+            if (in_array('pro', $req, true)) return '';
+            $req = array_values(array_intersect($req, ['komunitas']));
+        }
         if (!$req) return '';
 
         $defs = [

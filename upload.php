@@ -6,6 +6,7 @@ $pageTitle='Upload Aktivitas Harian';
 require_login();
 $msg=''; $err='';
 $u = current_user();
+try { db_exec("ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gear_sepatu VARCHAR(120)"); } catch (Throwable $e) {}
 
 // ---- Handle Delete ----
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='delete') {
@@ -33,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='edit') {
     $kalori  = (int)($_POST['kalori'] ?? 0);
     $pace    = trim($_POST['pace'] ?? '');
     $desk    = trim($_POST['deskripsi'] ?? '');
+    $gear    = trim($_POST['gear_sepatu'] ?? '');
 
     $old = db_one("SELECT * FROM upload_harian WHERE id=$1 AND user_id=$2", [$id, $u['id']]);
     if (!$old) { $err='Data tidak ditemukan.'; }
@@ -55,9 +57,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='edit') {
             } else { $err = 'Gagal upload file ke ImageKit.'; }
         }
         if (!$err) {
-            db_exec("UPDATE upload_harian SET tanggal=$1, jenis='Jogging', durasi_menit=$2, jarak_km=$3, kalori=$4, pace=$5, deskripsi=$6, file_path=$7, gdrive_url=$8
-                     WHERE id=$9 AND user_id=$10",
-                    [$tanggal, $durasi, $jarak, $kalori, $pace, $desk, $filePath, $gdriveUrl, $id, $u['id']]);
+            db_exec("UPDATE upload_harian SET tanggal=$1, jenis='Jogging', durasi_menit=$2, jarak_km=$3, kalori=$4, pace=$5, deskripsi=$6, file_path=$7, gdrive_url=$8, gear_sepatu=$9
+                     WHERE id=$10 AND user_id=$11",
+                    [$tanggal, $durasi, $jarak, $kalori, $pace, $desk, $filePath, $gdriveUrl, $gear, $id, $u['id']]);
             $msg='Aktivitas diperbarui.';
         }
     }
@@ -73,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !isset($_POST['_action'])) {
     $kalori    = (int)($_POST['kalori'] ?? 0);
     $pace      = trim($_POST['pace'] ?? '');
     $deskripsi = trim($_POST['deskripsi'] ?? '');
+    $gearSepatu = trim($_POST['gear_sepatu'] ?? '');
 
     $filePath = null; $gdriveUrl = null;
     if (!empty($_FILES['bukti']['name'])) {
@@ -93,9 +96,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !isset($_POST['_action'])) {
 
     if (!$err) {
         db_exec(
-          "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,pace,deskripsi,file_path,gdrive_url)
-           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-           [$u['id'], $tanggal, $jenis, $durasi, $jarak, $kalori, $pace, $deskripsi, $filePath, $gdriveUrl]
+          "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,pace,deskripsi,file_path,gdrive_url,gear_sepatu)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+           [$u['id'], $tanggal, $jenis, $durasi, $jarak, $kalori, $pace, $deskripsi, $filePath, $gdriveUrl, $gearSepatu]
         );
         $msg='Aktivitas berhasil dicatat.';
     }
@@ -193,6 +196,19 @@ include __DIR__.'/includes/header.php'; ?>
                 </datalist>
               </div>
             </div>
+            <div class="my-2"><label class="form-label small fw-semibold"><i class="bi bi-shoe-prints"></i> Gear Sepatu Jogging</label>
+              <input list="gearOpt" type="text" class="form-control" name="gear_sepatu" id="fGearSepatu" maxlength="120" placeholder="mis. Nike Pegasus 40, Adidas Adizero, Ortuseight Blitz...">
+              <datalist id="gearOpt">
+                <option value="Nike Pegasus 40"><option value="Nike Vomero 17"><option value="Nike Zoom Fly">
+                <option value="Adidas Adizero Boston"><option value="Adidas Ultraboost"><option value="Adidas Supernova">
+                <option value="Asics Novablast"><option value="Asics Gel-Nimbus"><option value="Asics Gel-Kayano">
+                <option value="New Balance Fresh Foam 1080"><option value="Hoka Clifton 9"><option value="Hoka Mach 6">
+                <option value="Saucony Endorphin Speed"><option value="Puma Velocity Nitro">
+                <option value="Ortuseight Blitz"><option value="Specs Overdrive"><option value="Mizuno Wave Rider">
+                <option value="Sepatu lokal / lainnya">
+              </datalist>
+              <small class="text-muted">Catat sepatu yang dipakai untuk memantau mileage & pergantian sepatu.</small>
+            </div>
             <div class="my-2"><label class="form-label small fw-semibold">Deskripsi</label><textarea class="form-control" name="deskripsi" id="fDeskripsi" rows="2" placeholder="Rute, perasaan, dll."></textarea></div>
             <div class="mb-3"><label class="form-label small fw-semibold">Bukti (screenshot smartwatch/Strava/foto)</label>
               <input type="file" class="form-control" name="bukti" accept="image/*"></div>
@@ -209,7 +225,7 @@ include __DIR__.'/includes/header.php'; ?>
       <span class="badge bg-primary rounded-pill"><?= count($mine) ?></span>
     </div>
       <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
-        <thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Pace</th><th>Kalori</th><th>Bukti</th><th class="text-end">Aksi</th></tr></thead>
+        <thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Pace</th><th>Kalori</th><th>Sepatu</th><th>Bukti</th><th class="text-end">Aksi</th></tr></thead>
         <tbody>
         <?php foreach($mine as $i=>$m): ?>
           <tr>
@@ -220,6 +236,7 @@ include __DIR__.'/includes/header.php'; ?>
             <td><?= htmlspecialchars($m['jarak_km']) ?> km</td>
             <td><?= htmlspecialchars($m['pace'] ?? '') ?: '-' ?></td>
             <td><?= (int)$m['kalori'] ?></td>
+            <td class="small"><?= htmlspecialchars($m['gear_sepatu'] ?? '') ?: '<span class="text-muted">–</span>' ?></td>
             <td>
               <?php if($m['file_path']): ?>
                 <button type="button" class="btn btn-sm btn-outline-primary"
@@ -239,7 +256,7 @@ include __DIR__.'/includes/header.php'; ?>
             </td>
           </tr>
         <?php endforeach; if(!$mine): ?>
-          <tr><td colspan="9" class="text-center text-muted py-3">Belum ada aktivitas. Ayo mulai jogging!</td></tr>
+          <tr><td colspan="10" class="text-center text-muted py-3">Belum ada aktivitas. Ayo mulai jogging!</td></tr>
         <?php endif; ?>
         </tbody>
       </table></div>
@@ -285,6 +302,8 @@ include __DIR__.'/includes/header.php'; ?>
           <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Kalori</label>
             <input list="kaloriOpt" type="number" name="kalori" class="form-control" value="<?= (int)$m['kalori'] ?>" placeholder="kkal"></div>
         </div>
+        <div class="my-2"><label class="form-label small fw-semibold"><i class="bi bi-shoe-prints"></i> Gear Sepatu Jogging</label>
+          <input list="gearOpt" type="text" name="gear_sepatu" class="form-control" maxlength="120" value="<?= htmlspecialchars($m['gear_sepatu'] ?? '') ?>" placeholder="mis. Nike Pegasus 40"></div>
         <div class="my-2"><label class="form-label small fw-semibold">Deskripsi</label><textarea name="deskripsi" class="form-control" rows="2"><?= htmlspecialchars($m['deskripsi'] ?? '') ?></textarea></div>
         <div class="mb-1"><label class="form-label small fw-semibold">Ganti Bukti (opsional)</label>
           <input type="file" class="form-control" name="bukti" accept="image/*"></div>
@@ -404,17 +423,11 @@ function showBukti(src, date){
         return;
       }
       var d = j.data || {};
-      setField('fTanggal',  d.tanggal);
-      setField('fDurasi',   d.durasi_menit > 0 ? d.durasi_menit : '');
-      setField('fJarak',    d.jarak_km    > 0 ? d.jarak_km    : '');
-      setField('fKalori',   d.kalori      > 0 ? d.kalori      : '');
-      setField('fPace',     d.pace);
-      if (d.deskripsi) {
-        var ta = document.getElementById('fDeskripsi');
-        if (ta && !ta.value) ta.value = d.deskripsi;
-      }
+      // Revisi Juli 2026 — auto-submit langsung ke server (tanpa perlu pindah
+      // ke tab Isi Manual & klik Simpan). Foto screenshot dikirim sebagai
+      // bukti aktivitas.
       msg.className='small mt-2 text-success';
-      msg.innerHTML = '<i class="bi bi-check-circle"></i> Data terisi. Silakan review di tab <strong>Isi Manual</strong> lalu klik <em>Simpan</em>.';
+      msg.innerHTML = '<i class="bi bi-check-circle"></i> Data terekstrak. Menyimpan otomatis...';
       prev.innerHTML = '<div class="border rounded p-2 bg-light">'+
         '<div>Tanggal: <b>'+ (d.tanggal||'-') +'</b></div>'+
         '<div>Durasi: <b>'+ (d.durasi_menit||0) +' menit</b></div>'+
@@ -422,9 +435,30 @@ function showBukti(src, date){
         '<div>Pace: <b>'+ (d.pace||'-') +'</b></div>'+
         '<div>Kalori: <b>'+ (d.kalori||0) +' kkal</b></div>'+
       '</div>';
-      // pindah otomatis ke tab manual
-      var tabMan = document.querySelector('[data-bs-target="#tabManual"]');
-      if (tabMan && window.bootstrap) new bootstrap.Tab(tabMan).show();
+      try {
+        var sd = new FormData();
+        sd.append('csrf', csrf);
+        sd.append('tanggal', d.tanggal || new Date().toISOString().slice(0,10));
+        sd.append('durasi', (d.durasi_menit||0));
+        sd.append('jarak',  (d.jarak_km||0));
+        sd.append('kalori', (d.kalori||0));
+        sd.append('pace',   d.pace || '');
+        sd.append('deskripsi', d.deskripsi || 'Diekstrak otomatis oleh AI dari screenshot Strava.');
+        sd.append('gear_sepatu', (document.getElementById('fGearSepatu')||{}).value || '');
+        sd.append('bukti', f, f.name);
+        var sr = await fetch(window.location.pathname, {method:'POST', body: sd, credentials:'same-origin'});
+        if (sr.ok || sr.redirected) {
+          msg.className='small mt-2 text-success';
+          msg.innerHTML = '<i class="bi bi-check-circle"></i> Aktivitas tersimpan. Memuat ulang...';
+          setTimeout(function(){ window.location.href = window.location.pathname; }, 700);
+        } else {
+          msg.className='small mt-2 text-danger';
+          msg.innerHTML = '<i class="bi bi-x-circle"></i> Gagal menyimpan otomatis (HTTP '+sr.status+'). Silakan pakai tab Isi Manual.';
+        }
+      } catch (e2) {
+        msg.className='small mt-2 text-danger';
+        msg.textContent = 'Gagal menyimpan otomatis: ' + (e2.message||'error');
+      }
     } catch (e) {
       msg.className='small mt-2 text-danger';
       msg.textContent = 'Gagal jaringan: ' + (e.message||'error');

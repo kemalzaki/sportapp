@@ -28,7 +28,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
     // Revisi 20 Juni 2026 R4 — upload video bisa besar; naikkan batas runtime
     // supaya tidak putus di tengah jalan (penyebab "Failed to fetch" di klien).
     $isVideoPost = ($a === 'post_new' && !empty($_FILES['video']['name']));
-    $isAjaxPost  = !empty($_POST['_ajax']) || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest');
+    // Revisi Juli 2026 R11 — hanya kembalikan JSON bila benar-benar XHR/fetch
+    // (header X-Requested-With). Hidden field '_ajax' saja tidak cukup: bila
+    // interceptor JS gagal berjalan, browser akan submit form biasa & JSON
+    // response terbuka sebagai halaman/tab baru. Sekarang default: redirect.
+    $xrw = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '');
+    $isAjaxPost  = in_array($xrw, ['xmlhttprequest','fetch'], true);
     // Revisi Juli 2026 R9 — naikkan batas juga untuk multi-image (fotos[])
     // supaya upload beberapa foto ke ImageKit tidak putus (penyebab "Failed to fetch").
     if ($a === 'post_new') {

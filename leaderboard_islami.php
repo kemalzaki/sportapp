@@ -29,7 +29,7 @@ $offset  = ($page - 1) * $perPage;
 
 // Revisi Juli 2026 — Leaderboard difilter per komunitas user (superadmin lihat semua)
 $total = (int) db_val("SELECT COUNT(*) FROM users
-                       WHERE role IN ('member','admin','superadmin','koordinator','pic')
+                       WHERE role::text IN ('member','admin','superadmin','koordinator','pic')
                          AND id = ANY($1::int[])", [$__scopeUsers]);
 $totalPages = max(1, (int)ceil(max($total,1) / $perPage));
 
@@ -41,7 +41,7 @@ $rows = db_all("SELECT u.id, u.nama, u.foto_url,
                 FROM users u
                 LEFT JOIN komunitas k ON k.id=u.komunitas_id
                 LEFT JOIN islami_streak s ON s.user_id=u.id
-                WHERE u.role IN ('member','admin','superadmin','koordinator','pic')
+                WHERE u.role::text IN ('member','admin','superadmin','koordinator','pic')
                   AND u.id = ANY($1::int[])
                 GROUP BY u.id, u.nama, u.foto_url, k.nama
                 ORDER BY {$sortOpts[$sort]} $dir, u.id ASC
