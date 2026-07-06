@@ -683,46 +683,6 @@ include __DIR__.'/includes/header.php'; ?>
 $__hideSuper = scope_is_superduper_kom_member();
 ?>
 
-<?php /* Revisi Juli 2026 R10 — Sapa Member Baru dipindah ke PALING ATAS. */ ?>
-<?php if(!empty($newMembers)): ?>
-<div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
-  <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
-  <?php if($u): ?>
-  <form method="post" action="/islami.php" class="m-0" onsubmit="return confirm('Sembunyikan widget Sapa untuk akun Anda? Member lain tetap melihatnya.')">
-    <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="hide_sapa">
-    <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan untuk akun saya saja"><i class="bi bi-x-lg"></i></button>
-  </form>
-  <?php endif; ?>
-</div>
-  <div class="card-body" data-live="newmembers">
-    <div class="row g-2">
-    <?php foreach($newMembers as $nm): ?>
-      <div class="col-md-6 col-lg-4">
-        <div class="border rounded p-2 h-100">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="text-decoration-none"><?= user_avatar($nm['foto_url']??null, $nm['nama'], 36) ?></a>
-            <div class="flex-grow-1">
-              <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($nm['nama']) ?></a>
-              <div class="small text-muted">Bergabung <?= date('d M', strtotime($nm['created_at'])) ?></div>
-            </div>
-            <span class="badge bg-success-subtle text-success">Baru</span>
-          </div>
-          <?php if($u): ?>
-          <form method="post" class="d-flex gap-1" data-ajax data-ajax-label="Mengirim sapaan...">
-            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
-            <input type="hidden" name="_action" value="sapa_send">
-            <input type="hidden" name="target_id" value="<?= (int)$nm['id'] ?>">
-            <input class="form-control form-control-sm" name="pesan" maxlength="500" placeholder="Sapa <?= htmlspecialchars($nm['nama']) ?>..." required>
-            <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
-          </form>
-          <?php else: ?><div class="small text-muted"><a href="/login.php">Login</a> untuk menyapa.</div><?php endif; ?>
-        </div>
-      </div>
-    <?php endforeach; ?>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
 
 
 <section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
@@ -1471,6 +1431,49 @@ document.addEventListener('DOMContentLoaded', () => {
           </li>
         <?php endforeach; if(!$onlineMembers): ?><li class="list-group-item text-muted small">Belum ada yang online.</li><?php endif; ?>
       </ul></div>
+
+    <?php /* Revisi Juli 2026 R11 — Sapa Member Baru dipindah ke BAWAH Status Online. */ ?>
+<?php /* Revisi Juli 2026 R10 — Sapa Member Baru dipindah ke PALING ATAS. */ ?>
+<?php if(!empty($newMembers)): ?>
+<div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
+  <?php if($u): ?>
+  <form method="post" action="/islami.php" class="m-0" onsubmit="return confirm('Sembunyikan widget Sapa untuk akun Anda? Member lain tetap melihatnya.')">
+    <input type="hidden" name="csrf" value="<?= csrf_token() ?>"><input type="hidden" name="_action" value="hide_sapa">
+    <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Sembunyikan untuk akun saya saja"><i class="bi bi-x-lg"></i></button>
+  </form>
+  <?php endif; ?>
+</div>
+  <div class="card-body" data-live="newmembers">
+    <div class="row g-2">
+    <?php foreach($newMembers as $nm): ?>
+      <div class="col-md-6 col-lg-4">
+        <div class="border rounded p-2 h-100">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="text-decoration-none"><?= user_avatar($nm['foto_url']??null, $nm['nama'], 36) ?></a>
+            <div class="flex-grow-1">
+              <a href="/user.php?id=<?= (int)$nm['id'] ?>" class="fw-semibold text-decoration-none"><?= htmlspecialchars($nm['nama']) ?></a>
+              <div class="small text-muted">Bergabung <?= date('d M', strtotime($nm['created_at'])) ?></div>
+            </div>
+            <span class="badge bg-success-subtle text-success">Baru</span>
+          </div>
+          <?php if($u): ?>
+          <form method="post" class="d-flex gap-1" data-ajax data-ajax-label="Mengirim sapaan...">
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="_action" value="sapa_send">
+            <input type="hidden" name="target_id" value="<?= (int)$nm['id'] ?>">
+            <input class="form-control form-control-sm" name="pesan" maxlength="500" placeholder="Sapa <?= htmlspecialchars($nm['nama']) ?>..." required>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i></button>
+          </form>
+          <?php else: ?><div class="small text-muted"><a href="/login.php">Login</a> untuk menyapa.</div><?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 
     <div class="card shadow-sm mb-3" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
     <div class="card-body" data-live="forum">

@@ -302,9 +302,15 @@ function tempat_render_cards($rows, $isAdmin, $page, $totalPage, $total){
         <p class="small text-muted mb-2"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($r['alamat'] ?? '—') ?></p>
         <?php if($r['pic_nama']): ?><div class="small mb-2">PIC: <?= user_name_with_avatar($r['pic_foto']??null,$r['pic_nama'],false,22) ?>
               <?php if(!empty($r['pic_komunitas'])): ?>
-                <span class="badge bg-success-subtle text-success-emphasis ms-1" title="Komunitas PIC">
-                  <i class="bi bi-people-fill"></i> <?= htmlspecialchars($r['pic_komunitas']) ?>
-                </span>
+                <?php /* Revisi Juli 2026 R11 — tampilkan tiap komunitas sebagai badge terpisah
+                       yang di-wrap ke baris baru agar tidak memanjang ke kanan. */ ?>
+                <div class="d-flex flex-wrap gap-1 mt-1" style="max-width:100%;">
+                  <?php foreach(array_filter(array_map('trim', explode(',', (string)$r['pic_komunitas']))) as $__knm): ?>
+                    <span class="badge bg-success-subtle text-success-emphasis" title="Komunitas PIC" style="white-space:normal;text-align:left;">
+                      <i class="bi bi-people-fill"></i> <?= htmlspecialchars($__knm) ?>
+                    </span>
+                  <?php endforeach; ?>
+                </div>
               <?php endif; ?>
             </div><?php endif; ?>
         <div class="d-flex gap-2">

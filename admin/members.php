@@ -55,6 +55,25 @@ function _user_komunitas_ids(int $uid): array {
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     csrf_check();
     $a = $_POST['_action'] ?? '';
+    // Revisi Juli 2026 R11 — Admin (non-super) TIDAK boleh mengedit/menghapus/mengubah
+    // user dengan role 'superadmin'. Guard di semua aksi yang menyentuh user tertentu.
+    if (!$__isSuper && in_array($a, ['update_role','update_pic','toggle_aktif','delete','reset_pwd','edit','upload_foto','delete_foto'], true)) {
+        $targetId = (int)($_POST['id'] ?? 0);
+        if ($targetId > 0) {
+            $targetRole = (string) db_val("SELECT role FROM users WHERE id=$1", [$targetId]);
+            if ($targetRole === 'superadmin') {
+                $_SESSION['flash_err'] = 'Aksi ditolak: Anda tidak berwenang mengubah data akun superadmin.';
+                $qs = isset($_GET['filter_komunitas']) ? ('?filter_komunitas='.(int)$_GET['filter_komunitas']) : '';
+                header('Location: members.php'.$qs); exit;
+            }
+        }
+        // Cegah admin men-set role user manapun menjadi 'superadmin' (defense in depth).
+        if ($a === 'update_role' && ($_POST['role'] ?? '') === 'superadmin') {
+            $_SESSION['flash_err'] = 'Aksi ditolak: hanya superadmin yang boleh menetapkan role superadmin.';
+            $qs = isset($_GET['filter_komunitas']) ? ('?filter_komunitas='.(int)$_GET['filter_komunitas']) : '';
+            header('Location: members.php'.$qs); exit;
+        }
+    }
     if ($a==='update_role') {
         // Revisi R7 #1/#2 — validasi role. 'superadmin' hanya boleh di-set oleh super-scope.
         $rolePosted = (string)($_POST['role'] ?? 'member');
@@ -446,7 +465,7 @@ include __DIR__.'/../includes/header.php'; ?>
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
           <input type="hidden" name="_action" value="update_pic">
           <input type="hidden" name="id" value="<?= $u['id'] ?>">
-          <select name="pic_admin_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:130px">
+          <select name="pic_admin_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:130px" <?= (($u["role"]??"")==="superadmin" && !$__isSuper)?"disabled":"" ?>>
             <option value="">— belum —</option>
             <?php foreach($admins as $ad): ?>
               <option value="<?= (int)$ad['id'] ?>" <?= (string)$u['pic_admin_id']===(string)$ad['id']?'selected':'' ?>><?= htmlspecialchars($ad['nama']) ?></option>
@@ -459,7 +478,7 @@ include __DIR__.'/../includes/header.php'; ?>
           <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
           <input type="hidden" name="_action" value="update_role">
           <input type="hidden" name="id" value="<?= $u['id'] ?>">
-          <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
+          <select name="role" class="form-select form-select-sm" onchange="this.form.submit()" <?= (($u["role"]??"")==="superadmin" && !$__isSuper)?"disabled":"" ?>>
             <?php foreach($__roleOpts as $r): ?><option <?= $u['role']===$r?'selected':'' ?>><?= $r ?></option><?php endforeach; ?>
           </select>
         </form>
@@ -476,7 +495,7 @@ include __DIR__.'/../includes/header.php'; ?>
             <input type="hidden" name="id" value="<?= $u['id'] ?>">
             <input type="hidden" name="aktif" value="0">
             <input type="hidden" name="nonaktif_catatan" value="Dinonaktifkan oleh admin">
-            <button class="btn btn-sm btn-success" title="Klik untuk non-aktifkan"><i class="bi bi-person-check-fill"></i> Aktif</button>
+            <button class="btn btn-sm btn-success" title="Klik untuk non-aktifkan" <?= (($u["role"]??"")==="superadmin" && !$__isSuper)?"disabled":"" ?>><i class="bi bi-person-check-fill"></i> Aktif</button>
           </form>
         <?php else: ?>
           <form method="post" class="d-inline">
@@ -484,17 +503,23 @@ include __DIR__.'/../includes/header.php'; ?>
             <input type="hidden" name="_action" value="toggle_aktif">
             <input type="hidden" name="id" value="<?= $u['id'] ?>">
             <input type="hidden" name="aktif" value="1">
-            <button class="btn btn-sm btn-outline-danger" title="Klik untuk aktifkan kembali"><i class="bi bi-person-x-fill"></i> Nonaktif</button>
+            <button class="btn btn-sm btn-outline-danger" title="Klik untuk aktifkan kembali" <?= (($u["role"]??"")==="superadmin" && !$__isSuper)?"disabled":"" ?>><i class="bi bi-person-x-fill"></i> Nonaktif</button>
           </form>
         <?php endif; ?>
       </td>
       <td><?= $on ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-secondary">Offline</span>' ?></td>
       <td class="text-end text-nowrap">
+        <?php // Revisi Juli 2026 R11 — sembunyikan tombol ubah data utk baris superadmin bila operator bukan super.
+              $__isTargetSuper = (($u['role'] ?? '') === 'superadmin');
+              $__lockRow = $__isTargetSuper && !$__isSuper; ?>
         <?php if($waDigits): ?>
           <a href="https://wa.me/<?= htmlspecialchars($waDigits) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success" title="Hubungi via WhatsApp"><i class="bi bi-whatsapp"></i></a>
         <?php else: ?>
           <button class="btn btn-sm btn-outline-secondary" disabled title="No. WA belum diisi"><i class="bi bi-whatsapp"></i></button>
         <?php endif; ?>
+        <?php if($__lockRow): ?>
+          <span class="badge bg-secondary" title="Hanya superadmin yang dapat mengubah akun superadmin"><i class="bi bi-shield-lock"></i> superadmin</span>
+        <?php else: ?>
         <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#foto<?= $u['id'] ?>" title="Foto"><i class="bi bi-image"></i></button>
         <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#pwd<?= $u['id'] ?>" title="Reset Password"><i class="bi bi-key"></i></button>
         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#edt<?= $u['id'] ?>" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -504,6 +529,7 @@ include __DIR__.'/../includes/header.php'; ?>
           <input type="hidden" name="id" value="<?= $u['id'] ?>">
           <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
         </form>
+        <?php endif; ?>
       </td>
     </tr>
   <?php endforeach; ?>

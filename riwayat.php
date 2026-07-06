@@ -102,11 +102,15 @@ if (($_GET['action'] ?? '') !== '' || ($_POST['action'] ?? '') !== '') {
       echo json_encode(['ok'=>true,'comments'=>$rows]); exit;
     }
     if ($act === 'day_public_detail') {
+      // Revisi Juli 2026 R11 — DIFILTER per komunitas (scope) supaya popup Aktivitas Publik
+      // tidak menampilkan aktivitas member dari komunitas lain.
       $d = $_GET['date'] ?? '';
+      $__vidsAjax = scope_user_ids_sql_array();
       $rows = db_all("SELECT uh.id,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.deskripsi,uh.file_path,
                              u.id AS uid,u.nama,u.foto_url
                       FROM upload_harian uh JOIN users u ON u.id=uh.user_id
-                      WHERE uh.tanggal=$1::date ORDER BY uh.id DESC",[$d]);
+                      WHERE uh.tanggal=$1::date AND uh.user_id = ANY($2::int[])
+                      ORDER BY uh.id DESC",[$d, $__vidsAjax]);
       echo json_encode(['ok'=>true,'rows'=>$rows]); exit;
     }
     if ($act === 'day_mine_detail') {
@@ -334,11 +338,18 @@ $myDays = $u ? db_all("
 $wkAllLabels = []; $wkAllVals = [];
 try {
   // Revisi Juli 2026 R8 #1 — Tren Kehadiran Mingguan DIFILTER per komunitas.
+  // Revisi Juli 2026 R11 — Tren Kehadiran Mingguan difilter per KEGIATAN (jadwal)
+  // dari komunitas user login, sehingga tidak lagi menghitung kehadiran pada
+  // kegiatan komunitas lain (walau usernya kebetulan tergabung di sana).
+  $__vkidsTren = scope_kom_ids_sql_array();
+  $__trenKomFilter = scope_is_super() ? '' : ' AND (j.komunitas_id = ANY($2::int[]))';
+  $__trenParams = scope_is_super() ? [$__vids] : [$__vids, $__vkidsTren];
   $wkRows = db_all("SELECT to_char(date_trunc('week', j.tanggal), 'IYYY-\"W\"IW') AS wk, COUNT(*) AS c
                     FROM absensi a JOIN jadwal j ON j.id=a.jadwal_id
                     WHERE a.hadir=1 AND j.tanggal >= CURRENT_DATE - INTERVAL '12 weeks'
                       AND a.user_id = ANY(\$1::int[])
-                    GROUP BY 1 ORDER BY 1", [$__vids]);
+                      $__trenKomFilter
+                    GROUP BY 1 ORDER BY 1", $__trenParams);
   foreach ($wkRows as $r) { $wkAllLabels[] = $r['wk']; $wkAllVals[] = (int)$r['c']; }
 } catch (Throwable $e) {}
 
