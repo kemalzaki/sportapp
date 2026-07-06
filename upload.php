@@ -423,42 +423,67 @@ function showBukti(src, date){
         return;
       }
       var d = j.data || {};
-      // Revisi Juli 2026 — auto-submit langsung ke server (tanpa perlu pindah
-      // ke tab Isi Manual & klik Simpan). Foto screenshot dikirim sebagai
-      // bukti aktivitas.
-      msg.className='small mt-2 text-success';
-      msg.innerHTML = '<i class="bi bi-check-circle"></i> Data terekstrak. Menyimpan otomatis...';
+      // Revisi Juli 2026 (fix R12) — auto-submit dengan mengisi form manual
+      // asli lalu memanggil form.submit() native. Ini menjamin alur upload
+      // (ImageKit + INSERT ke upload_harian) identik dengan submit manual,
+      // sehingga data pasti muncul di tabel "Aktivitas Saya".
+
+      // Normalisasi tanggal ke format YYYY-MM-DD (input type=date wajib ISO).
+      function toISODate(s){
+        if (!s) return new Date().toISOString().slice(0,10);
+        s = String(s).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        var m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+        if (m) {
+          var dd = ('0'+m[1]).slice(-2), mm = ('0'+m[2]).slice(-2);
+          var yy = m[3].length===2 ? ('20'+m[3]) : m[3];
+          return yy+'-'+mm+'-'+dd;
+        }
+        var t = Date.parse(s);
+        if (!isNaN(t)) return new Date(t).toISOString().slice(0,10);
+        return new Date().toISOString().slice(0,10);
+      }
+
+      var form = document.getElementById('formManual');
+      if (!form) {
+        msg.className='small mt-2 text-danger';
+        msg.textContent = 'Form manual tidak ditemukan.';
+        return;
+      }
+
+      setField('fTanggal', toISODate(d.tanggal));
+      setField('fDurasi',  d.durasi_menit || 0);
+      setField('fJarak',   d.jarak_km || 0);
+      setField('fPace',    d.pace || '');
+      setField('fKalori',  d.kalori || 0);
+      var desc = document.getElementById('fDeskripsi');
+      if (desc && !desc.value) desc.value = d.deskripsi || 'Diekstrak otomatis oleh AI dari screenshot Strava.';
+
+      // Set file bukti pada input asli via DataTransfer (semua browser modern).
+      try {
+        var buktiInp = form.querySelector('input[type="file"][name="bukti"]');
+        if (buktiInp) {
+          var dt = new DataTransfer();
+          dt.items.add(f);
+          buktiInp.files = dt.files;
+        }
+      } catch(eFile){ /* fallback: user bisa lampirkan manual */ }
+
       prev.innerHTML = '<div class="border rounded p-2 bg-light">'+
-        '<div>Tanggal: <b>'+ (d.tanggal||'-') +'</b></div>'+
+        '<div>Tanggal: <b>'+ toISODate(d.tanggal) +'</b></div>'+
         '<div>Durasi: <b>'+ (d.durasi_menit||0) +' menit</b></div>'+
         '<div>Jarak: <b>'+ (d.jarak_km||0) +' km</b></div>'+
         '<div>Pace: <b>'+ (d.pace||'-') +'</b></div>'+
         '<div>Kalori: <b>'+ (d.kalori||0) +' kkal</b></div>'+
       '</div>';
-      try {
-        var sd = new FormData();
-        sd.append('csrf', csrf);
-        sd.append('tanggal', d.tanggal || new Date().toISOString().slice(0,10));
-        sd.append('durasi', (d.durasi_menit||0));
-        sd.append('jarak',  (d.jarak_km||0));
-        sd.append('kalori', (d.kalori||0));
-        sd.append('pace',   d.pace || '');
-        sd.append('deskripsi', d.deskripsi || 'Diekstrak otomatis oleh AI dari screenshot Strava.');
-        sd.append('gear_sepatu', (document.getElementById('fGearSepatu')||{}).value || '');
-        sd.append('bukti', f, f.name);
-        var sr = await fetch(window.location.pathname, {method:'POST', body: sd, credentials:'same-origin'});
-        if (sr.ok || sr.redirected) {
-          msg.className='small mt-2 text-success';
-          msg.innerHTML = '<i class="bi bi-check-circle"></i> Aktivitas tersimpan. Memuat ulang...';
-          setTimeout(function(){ window.location.href = window.location.pathname; }, 700);
-        } else {
-          msg.className='small mt-2 text-danger';
-          msg.innerHTML = '<i class="bi bi-x-circle"></i> Gagal menyimpan otomatis (HTTP '+sr.status+'). Silakan pakai tab Isi Manual.';
-        }
-      } catch (e2) {
-        msg.className='small mt-2 text-danger';
-        msg.textContent = 'Gagal menyimpan otomatis: ' + (e2.message||'error');
-      }
+      msg.className='small mt-2 text-success';
+      msg.innerHTML = '<i class="bi bi-check-circle"></i> Data terekstrak. Menyimpan otomatis...';
+
+      // Submit native — melewati semua interceptor JS/preloader kustom.
+      setTimeout(function(){
+        try { HTMLFormElement.prototype.submit.call(form); }
+        catch(e3){ form.submit(); }
+      }, 250);
     } catch (e) {
       msg.className='small mt-2 text-danger';
       msg.textContent = 'Gagal jaringan: ' + (e.message||'error');
