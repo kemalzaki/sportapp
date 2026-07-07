@@ -176,10 +176,11 @@ if (empty($pageSkeleton)) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/app.css">
 <link rel="stylesheet" href="/assets/css/app-v3.css">
-<link rel="stylesheet" href="/assets/css/kk-redesign.css?v=nov2026">
 <link rel="stylesheet" href="/assets/css/desktop-fix.css">
 <!-- Revisi 4 Jun 2026: header atas biru-kehitaman (bukan hijau) -->
 <link rel="stylesheet" href="/assets/css/gojek-top.css?v=4jun2026">
+<!-- Revisi Nov 2026 — Global Theme Engine & UI modernization overlay -->
+<link rel="stylesheet" href="/assets/css/redesign-2026.css?v=nov2026">
 <!-- Revisi 4 Jun 2026: SFX klik di semua halaman -->
 <script defer src="/assets/js/sfx.js?v=4jun2026"></script>
 <style>

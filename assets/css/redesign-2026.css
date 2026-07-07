@@ -1,0 +1,317 @@
+/* =====================================================================
+   redesign-2026.css  —  Revisi Nov 2026
+   Global UI Modernization Layer untuk KawanKeringat.
+   Semua warna mengambil dari CSS Variable Global Theme Engine
+   (--primary, --primary-light, --primary-dark, --surface, dsb.)
+   yang di-inject oleh includes/theme_user.php.
+
+   Inspirasi: Strava, Nike Run Club, Samsung Health, Garmin, Google Fit.
+   TIDAK mengubah logika PHP / session / DB / API — hanya overlay UI.
+   ===================================================================== */
+
+/* --------- Base tone --------- */
+body{
+  background: var(--surface-alt) !important;
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans','Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a{ color: var(--primary); }
+a:hover{ color: var(--primary-dark); }
+
+/* --------- Cards --------- */
+.card{
+  background: var(--surface) !important;
+  border: 1px solid var(--border-soft) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.card .card-header{
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-soft);
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: .95rem 1.1rem;
+}
+.card .card-body{ padding: 1.1rem; }
+
+/* --------- Buttons --------- */
+.btn{ border-radius: 14px; font-weight: 600; transition: transform .15s ease, box-shadow .2s ease; }
+.btn:active{ transform: scale(.97); }
+.btn-primary{
+  background: var(--primary-gradient) !important;
+  border: 0 !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(var(--primary-rgb), .28);
+}
+.btn-primary:hover, .btn-primary:focus{ filter: brightness(1.05); color:#fff !important; }
+.btn-outline-primary{
+  border: 1.5px solid var(--primary) !important;
+  color: var(--primary) !important;
+  background: transparent !important;
+}
+.btn-outline-primary:hover{
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+.btn-light{ background: var(--surface-alt) !important; border-color: var(--border-soft) !important; color: var(--text-primary) !important; }
+
+/* --------- Badges / Pills --------- */
+.badge.bg-primary, .badge.text-bg-primary{
+  background: var(--primary) !important; color: #fff !important;
+}
+.badge-soft, .pill{
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  border-radius: var(--radius-pill);
+  padding: .28rem .75rem;
+  font-weight: 600;
+}
+
+/* --------- Text-primary --------- */
+.text-primary{ color: var(--primary) !important; }
+.bg-primary{ background: var(--primary) !important; }
+.border-primary{ border-color: var(--primary) !important; }
+
+/* --------- Form controls --------- */
+.form-control, .form-select{
+  border-radius: 12px;
+  border: 1.5px solid var(--border-strong);
+  padding: .6rem .85rem;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.form-control:focus, .form-select:focus{
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+.form-check-input:checked{
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+/* --------- Progress bar --------- */
+.progress{
+  background: var(--surface-alt);
+  border-radius: var(--radius-pill);
+  height: 10px;
+  overflow: hidden;
+}
+.progress-bar{
+  background: var(--primary-gradient) !important;
+  border-radius: var(--radius-pill);
+}
+
+/* --------- Header / Top bar (gojek-top overrides) --------- */
+.gt-top, .hero{
+  background: var(--primary-gradient) !important;
+  color: #fff !important;
+}
+.gt-top *, .hero *{ color: inherit; }
+
+/* --------- Drawer (side offcanvas) --------- */
+.offcanvas{ border: 0 !important; border-radius: 0 24px 24px 0; }
+.offcanvas-header{
+  background: var(--primary-gradient) !important;
+  color: #fff !important;
+  padding: 1.25rem 1.25rem;
+}
+.offcanvas-header .btn-close{ filter: invert(1) brightness(2); }
+.offcanvas-body a, .offcanvas-body .list-group-item{
+  border: 0 !important;
+  color: var(--text-primary);
+  padding: .8rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 2px;
+  display: flex; align-items: center; gap: .75rem;
+  transition: background .15s ease, color .15s ease;
+}
+.offcanvas-body a i, .offcanvas-body .list-group-item i{ color: var(--primary); width: 22px; text-align: center; }
+.offcanvas-body a:hover{ background: var(--primary-soft); color: var(--primary-dark); }
+.offcanvas-body a.active, .offcanvas-body .list-group-item.active{
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  font-weight: 700;
+  position: relative;
+}
+.offcanvas-body a.active::before, .offcanvas-body .list-group-item.active::before{
+  content:""; position:absolute; left:0; top:10%; bottom:10%;
+  width:4px; border-radius: 0 4px 4px 0; background: var(--primary);
+}
+
+/* --------- Bottom Navigation (premium Strava style) --------- */
+.gj-nav{
+  background: var(--surface) !important;
+  border-top: 1px solid var(--border-soft) !important;
+  border-radius: 20px 20px 0 0 !important;
+  box-shadow: 0 -6px 24px rgba(15,23,42,.08) !important;
+  min-height: 74px !important;
+  padding-top: 8px !important;
+}
+.gj-nav .gj-item{ color: var(--text-secondary) !important; transition: color .2s ease, transform .15s ease; }
+.gj-nav .gj-item .gj-ico{ color: var(--text-secondary) !important; transition: color .2s ease, transform .2s ease; }
+.gj-nav .gj-item .gj-label{ color: var(--text-secondary) !important; font-size: .7rem; }
+.gj-nav .gj-item:active{ transform: scale(.94); }
+.gj-nav .gj-item.active .gj-ico,
+.gj-nav .gj-item.active .gj-ico i{ color: var(--primary) !important; transform: translateY(-2px); }
+.gj-nav .gj-item.active .gj-label{ color: var(--primary) !important; font-weight: 700; }
+.gj-nav .gj-avatar-fb{ background: var(--primary-gradient) !important; }
+
+/* --------- Floating Action Button (Upload) —  Strava-style --------- */
+/* Selector fleksibel: menargetkan pola FAB umum di aplikasi */
+.gj-fab, .fab-upload, .floating-upload, .btn-fab, [data-fab="upload"]{
+  position: fixed !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  bottom: calc(46px + env(safe-area-inset-bottom, 0px)) !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  background: var(--primary-gradient) !important;
+  color: #fff !important;
+  border: 4px solid var(--surface) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.6rem !important;
+  box-shadow: var(--shadow-fab) !important;
+  z-index: 1090 !important;
+  transition: transform .18s ease, box-shadow .2s ease, filter .2s ease;
+}
+.gj-fab:hover, .fab-upload:hover, .floating-upload:hover, .btn-fab:hover{
+  filter: brightness(1.05); color:#fff !important;
+}
+.gj-fab:active, .fab-upload:active, .floating-upload:active, .btn-fab:active{
+  transform: translateX(-50%) scale(.92) !important;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb),.35) !important;
+}
+.gj-fab i, .fab-upload i, .floating-upload i, .btn-fab i{ color:#fff; }
+
+/* Beri ruang extra di bawah body agar FAB tidak menutup konten terakhir */
+body{ padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+
+/* --------- Icon aktif / nav item generic --------- */
+.nav-link.active, .nav-pills .nav-link.active{
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  border-radius: 12px;
+}
+
+/* --------- Card stat (dashboard style) --------- */
+.card-stat{ border-radius: var(--radius-card); }
+.card-stat .stat-icon{
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  width: 44px; height: 44px; border-radius: 14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size: 1.2rem;
+}
+.card-stat .stat-value{ font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; color: var(--text-primary); }
+.card-stat .stat-label{ font-size: .78rem; color: var(--text-secondary); font-weight: 500; }
+
+/* --------- Accordion / collapse (modern) --------- */
+.accordion-item{
+  border: 1px solid var(--border-soft) !important;
+  border-radius: var(--radius-lg) !important;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.accordion-button{
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600;
+  padding: 1rem 1.1rem;
+  transition: background .2s ease;
+}
+.accordion-button:not(.collapsed){
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  box-shadow: none !important;
+}
+.accordion-button:focus{ box-shadow: 0 0 0 4px var(--primary-soft) !important; }
+.accordion-button::after{ transition: transform .2s ease; }
+
+/* --------- Tabs pill --------- */
+.nav-tabs, .nav-pills{ gap: 6px; border: 0; }
+.nav-tabs .nav-link, .nav-pills .nav-link{
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  color: var(--text-secondary);
+  padding: .5rem 1rem;
+  font-weight: 600;
+}
+.nav-tabs .nav-link.active, .nav-pills .nav-link.active{
+  background: var(--primary) !important; color:#fff !important;
+}
+
+/* --------- Filter chips --------- */
+.chip{
+  display:inline-flex; align-items:center; gap:.35rem;
+  padding:.4rem .9rem; border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--text-secondary);
+  border:1.5px solid var(--border-strong); font-weight:600; font-size:.85rem;
+  cursor: pointer; transition: all .18s ease;
+}
+.chip:hover{ border-color: var(--primary); color: var(--primary); }
+.chip.active{ background: var(--primary); color:#fff; border-color: var(--primary); }
+
+/* --------- Table → keep, but soften --------- */
+.table{ border-radius: var(--radius-lg); overflow: hidden; }
+.table > :not(caption) > * > *{ background: var(--surface); }
+.table thead th{
+  background: var(--surface-alt) !important;
+  color: var(--text-secondary);
+  font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* --------- Hero profile card helper (opt-in) --------- */
+.rd-hero-profile{
+  border-radius: var(--radius-card);
+  background: var(--primary-gradient);
+  color: #fff;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-elevated);
+}
+.rd-hero-profile .rd-avatar{
+  width: 96px; height: 96px; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,.35);
+  object-fit: cover;
+}
+
+/* --------- Activity feed card (Strava-like) --------- */
+.rd-feed-card{
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.rd-feed-card .rd-feed-head{
+  display:flex; align-items:center; gap:.75rem; padding: .9rem 1rem;
+}
+.rd-feed-card .rd-feed-head img{ width:40px; height:40px; border-radius:50%; object-fit:cover; }
+.rd-feed-card .rd-feed-stats{
+  display:grid; grid-template-columns: repeat(3, 1fr);
+  padding: .8rem 1rem; border-top: 1px solid var(--border-soft);
+}
+.rd-feed-card .rd-feed-stats > div{ text-align:center; }
+.rd-feed-card .rd-feed-stats .v{ font-weight: 800; font-size: 1.1rem; color: var(--text-primary); }
+.rd-feed-card .rd-feed-stats .l{ font-size: .7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+
+/* --------- Animations --------- */
+@keyframes rdFadeIn{ from{opacity:0; transform: translateY(6px);} to{opacity:1; transform:none;} }
+.rd-fade{ animation: rdFadeIn .22s ease both; }
+.collapse.show, .accordion-collapse.show{ animation: rdFadeIn .2s ease both; }
+
+/* --------- No horizontal scroll --------- */
+html, body{ overflow-x: hidden; }
+.container, .container-fluid{ max-width: 100%; }
+
+/* --------- Responsive tweaks --------- */
+@media (max-width: 576px){
+  .card{ border-radius: 16px !important; }
+  .card .card-body{ padding: .95rem; }
+  .card-stat .stat-value{ font-size: 1.45rem; }
+}
