@@ -117,12 +117,12 @@ include __DIR__.'/includes/header.php'; ?>
 
 <div class="row g-3">
   <div class="col-lg-5">
-    <div class="card shadow-sm"><div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <span><i class="bi bi-plus-circle text-primary me-1"></i> Catat Aktivitas Baru</span>
-      <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#panduanUploadModal">
+    <details class="card shadow-sm" open><summary class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor:pointer;list-style:revert">
+      <span><i class="bi bi-plus-circle text-primary me-1"></i> Catat Aktivitas Baru <span class="text-muted small">(klik untuk buka/tutup)</span></span>
+      <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#panduanUploadModal" onclick="event.preventDefault();event.stopPropagation();">
         <i class="bi bi-question-circle"></i> Panduan Upload
       </button>
-    </div>
+    </summary>
     <div class="card-body">
       <div class="alert alert-info py-2 small mb-3">
         <i class="bi bi-megaphone"></i> <strong>Wajib:</strong> upload aktivitas <u>minimal 1 minggu 1 kali</u>.
@@ -216,7 +216,7 @@ include __DIR__.'/includes/header.php'; ?>
           </form>
         </div>
       </div>
-    </div></div>
+    </div></details>
   </div>
 
   <div class="col-lg-7">
@@ -224,7 +224,7 @@ include __DIR__.'/includes/header.php'; ?>
       <span><i class="bi bi-list-check text-primary me-1"></i> Aktivitas Saya</span>
       <span class="badge bg-primary rounded-pill"><?= count($mine) ?></span>
     </div>
-      <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="10">
+      <div class="table-responsive"><table class="table table-hover mb-0" data-paginate="5">
         <thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Durasi</th><th>Jarak</th><th>Pace</th><th>Kalori</th><th>Sepatu</th><th>Bukti</th><th class="text-end">Aksi</th></tr></thead>
         <tbody>
         <?php foreach($mine as $i=>$m): ?>

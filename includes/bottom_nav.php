@@ -43,19 +43,20 @@ if (!function_exists('_gj_active')) {
 }
 .gj-nav .gj-item .gj-ico{
   width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem; color:#0f172a; background:transparent;
+  font-size:1.25rem; color:var(--bs-body-color,#0f172a); background:transparent;
 }
-.gj-nav .gj-item .gj-ico i{ color:#0f172a; }
+.gj-nav .gj-item .gj-ico i{ color:inherit; }
 .gj-nav .gj-item .gj-label{
-  font-size:.7rem; line-height:1.05; color:#475569; max-width:100%;
+  font-size:.7rem; line-height:1.05; color:var(--bs-secondary-color,#475569); max-width:100%;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .gj-nav .gj-item.active .gj-ico,
-.gj-nav .gj-item.active .gj-ico i{ color:#0ea5e9 !important; }
-.gj-nav .gj-item.active .gj-label{ color:#0ea5e9; font-weight:600; }
+.gj-nav .gj-item.active .gj-ico i{ color:var(--bs-primary,#0ea5e9) !important; }
+.gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#0ea5e9); font-weight:600; }
 .gj-nav .gj-avatar{ width:24px; height:24px; border-radius:50%; object-fit:cover; }
 .gj-nav .gj-avatar-fb{
-  width:24px;height:24px;border-radius:50%;background:#0ea5e9;color:#fff;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--bs-primary,#0ea5e9);color:#fff;
   display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;
 }
 .gj-nav .gj-badge{
@@ -63,53 +64,34 @@ if (!function_exists('_gj_active')) {
   background:#ef4444; color:#fff; font-size:.6rem; font-weight:700;
   padding:1px 5px; border-radius:9px; line-height:1;
 }
-/* FAB Upload — Revisi 30 Juni 2026: polish ulang agar rapi & seimbang dengan item lain.
-   - Lingkaran 56px, gradient lembut + ring putih tipis, glow biru halus
-   - Posisi naik -18px (cukup menonjol tanpa menutup label item sekitarnya)
-   - Label "Upload" sejajar dengan label tab lain (baseline sama) */
+/* FAB Upload — Revisi Juli 2026: SEJAJAR dengan item lain (tidak menjurus ke atas),
+   warna mengikuti tema. Tetap elegan dgn ring halus & shadow lembut. */
 .gj-nav .gj-fab{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:6px; padding:0 2px 6px; text-decoration:none; color:#0ea5e9; position:relative;
-  z-index:1090;
+  gap:2px; padding:6px 2px; text-decoration:none;
+  color:var(--bs-primary,#0ea5e9); position:relative;
 }
 .gj-nav .gj-fab .gj-fab-inner{
-  width:56px; height:56px; border-radius:50%;
-  background:linear-gradient(160deg,#38bdf8 0%,#0ea5e9 60%,#0284c7 100%);
+  width:44px; height:44px; border-radius:50%;
+  background:var(--bs-primary,#0ea5e9);
   color:#fff; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.55rem; font-weight:700; line-height:1;
+  font-size:1.25rem; font-weight:700; line-height:1;
   box-shadow:
-    0 8px 18px rgba(14,165,233,.40),
-    0 2px 4px rgba(15,23,42,.12),
-    inset 0 1px 0 rgba(255,255,255,.45),
-    inset 0 -3px 6px rgba(2,132,199,.25);
-  border:3px solid #fff;
-  margin-top:-28px;
-  transition: transform .15s ease, box-shadow .15s ease;
-  position:relative;
+    0 4px 12px rgba(15,23,42,.18),
+    inset 0 1px 0 rgba(255,255,255,.35);
+  border:2px solid var(--bs-body-bg,#fff);
+  margin-top:0;
+  transition: transform .15s ease, filter .15s ease;
 }
-.gj-nav .gj-fab .gj-fab-inner::after{
-  content:""; position:absolute; inset:6px; border-radius:50%;
-  border:1px solid rgba(255,255,255,.35); pointer-events:none;
-}
-.gj-nav .gj-fab .gj-fab-inner::before{
-  content:""; position:absolute; inset:-8px; border-radius:50%;
-  background:radial-gradient(circle, rgba(14,165,233,.30) 0%, rgba(14,165,233,0) 70%);
-  z-index:-1; animation: gj-fab-pulse 2.6s ease-in-out infinite;
-}
-.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; transform:translateY(-1px); }
-.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-2px); }
+.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
+.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-1px); filter:brightness(1.05); }
 .gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
 .gj-nav .gj-fab .gj-fab-label{
-  font-size:.7rem; color:#0ea5e9; font-weight:700; line-height:1.05; letter-spacing:.02em;
-}
-@keyframes gj-fab-pulse {
-  0%,100%{ transform: scale(.94); opacity:.5; }
-  50%    { transform: scale(1.08); opacity:.9; }
+  font-size:.7rem; color:var(--bs-primary,#0ea5e9); font-weight:600; line-height:1.05;
 }
 [data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border-color:#0f172a; }
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-label{ color:#38bdf8; }
 /* Pastikan konten halaman tidak tertutup nav */
-body{ padding-bottom: calc(6rem + env(safe-area-inset-bottom,0px)) !important; }
+body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 
 [data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e293b; }
 [data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
@@ -117,7 +99,7 @@ body{ padding-bottom: calc(6rem + env(safe-area-inset-bottom,0px)) !important; }
 [data-bs-theme=dark] .gj-nav .gj-item .gj-label{ color:#cbd5e1; }
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i,
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color:#38bdf8 !important; }
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#38bdf8) !important; }
 
 /* Sembunyikan di desktop besar (≥992px) */
 @media (min-width: 992px){ .gj-nav{ display:none; } body{ padding-bottom:0 !important; } }

@@ -79,64 +79,8 @@ for ($d=1; $d<=$dim; $d++) {
 
 <h4 class="mb-3"><i class="bi bi-calendar3 text-success"></i> Kalender Hijriyah &amp; Puasa Sunnah</h4>
 
-<h5 class="mt-2"><i class="bi bi-droplet-half text-info"></i> Jenis Puasa Sunnah &amp; Countdown</h5>
-<div class="row g-3 mb-3">
-  <?php
-  $puasaCards = [
-    ['Senin / Kamis','Puasa setiap Senin & Kamis (HR. Tirmidzi). Amalan yang dicintai Rasulullah ﷺ.', $nextSK, 'success','bi-droplet'],
-    ['Ayyamul Bidh (13-14-15 Hijriyah)','Puasa "hari putih" 3 hari setiap bulan Hijriyah. Pahala seperti puasa setahun.', $nextAB, 'info','bi-moon'],
-    ['Puasa Daud','Puasa selang-seling: sehari puasa, sehari berbuka. Puasa paling dicintai Allah.', $nextDaud, 'warning','bi-arrow-left-right'],
-    ['Asyura (10 Muharram)','Menghapus dosa setahun yang lalu (HR. Muslim).', $asyura, 'primary','bi-calendar-event'],
-    ['Tasu\'a (9 Muharram)','Disunnahkan menyertai puasa Asyura agar berbeda dengan Yahudi.', $tasua, 'primary','bi-calendar2'],
-    ['Arafah (9 Dzulhijjah)','Bagi yang tidak haji — menghapus dosa setahun lalu &amp; setahun mendatang.', $arafah, 'danger','bi-sun'],
-    ['Nisfu Sya\'ban (15 Sya\'ban)','Memperbanyak puasa di bulan Sya\'ban (HR. Bukhari).', $nisfu, 'secondary','bi-stars'],
-    ['Syawal 6 hari','Setelah Idul Fitri — pahala seperti puasa setahun penuh.', $nextSyawal, 'success','bi-calendar-check'],
-  ];
-  foreach ($puasaCards as $idx => $pc):
-    $cdId = 'cdPuasa'.$idx;
-    $tgl = $pc[2];
-  ?>
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 border-<?= $pc[3] ?>"><div class="card-body">
-      <div class="d-flex align-items-center gap-2 mb-1">
-        <i class="bi <?= $pc[4] ?> fs-3 text-<?= $pc[3] ?>"></i>
-        <h6 class="m-0"><?= $pc[0] ?></h6>
-      </div>
-      <div class="small text-muted mb-2"><?= $pc[1] ?></div>
-      <?php if ($tgl): ?>
-        <div class="small">Jadwal terdekat: <strong><?= $tgl->format('l, d M Y') ?></strong></div>
-        <div class="small">Hijriyah: <?php $h=masehi_ke_hijriyah($tgl); ?><?= $h['hari'].' '.hijriyah_nama_bulan($h['bulan']).' '.$h['tahun'].' H' ?></div>
-        <div class="mt-1 fw-semibold text-<?= $pc[3] ?>" id="<?= $cdId ?>">…</div>
-      <?php endif; ?>
-    </div></div>
-  </div>
-  <?php endforeach; ?>
-</div>
-
-<h5 class="mt-4"><i class="bi bi-calendar-event text-danger"></i> Countdown Hari Raya Besar Islam</h5>
-<div class="row g-3 mb-3">
-  <?php
-  $holidays = [
-    ['Ramadhan',          $ramadhan, 'success', 'cdR'],
-    ['Idul Fitri',        $iedFitri, 'warning', 'cdF'],
-    ['Idul Adha',         $iedAdha,  'danger',  'cdI'],
-    ['Tahun Baru Hijriyah',$tahunBaru,'info',   'cdTH'],
-    ['Maulid Nabi',       $maulid,   'primary', 'cdM'],
-    ['Isra Mi\'raj',      $isra,     'info',    'cdIs'],
-    ['Nisfu Sya\'ban',    $nisfu,    'secondary','cdNS'],
-    ['Asyura',            $asyura,   'dark',    'cdAS'],
-    ['Arafah',            $arafah,   'warning', 'cdAR'],
-  ];
-  foreach ($holidays as $h): ?>
-    <div class="col-md-4 col-lg-3"><div class="card border-<?= $h[2] ?>"><div class="card-body py-2">
-      <div class="small text-muted">Countdown <?= $h[0] ?></div>
-      <div class="fw-bold"><?= $h[1]->format('d M Y') ?></div>
-      <div id="<?= $h[3] ?>" class="text-<?= $h[2] ?>">…</div>
-    </div></div></div>
-  <?php endforeach; ?>
-</div>
-
-<div class="card shadow-sm"><div class="card-header d-flex justify-content-between align-items-center">
+<!-- Revisi Juli 2026 — Kalender dipindah ke atas -->
+<div class="card shadow-sm mb-3"><div class="card-header d-flex justify-content-between align-items-center">
   <div>
     <a href="?y=<?= $month==1?$year-1:$year ?>&m=<?= $month==1?12:$month-1 ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
     <strong><?= $first->format('F Y') ?></strong>
@@ -167,6 +111,75 @@ for ($d=1; $d<=$dim; $d++) {
   </tbody>
 </table>
 </div></div>
+
+<!-- Revisi Juli 2026 — Jenis Puasa Sunnah & Countdown: setiap jenis puasa dijadikan spoiler -->
+<details class="mb-3" open>
+  <summary style="cursor:pointer;list-style:revert">
+    <h5 class="d-inline-block mb-0"><i class="bi bi-droplet-half text-info"></i> Jenis Puasa Sunnah &amp; Countdown</h5>
+    <span class="text-muted small ms-1">(klik untuk buka/tutup semua)</span>
+  </summary>
+  <div class="mt-2">
+  <?php
+  $puasaCards = [
+    ['Senin / Kamis','Puasa setiap Senin & Kamis (HR. Tirmidzi). Amalan yang dicintai Rasulullah ﷺ.', $nextSK, 'success','bi-droplet'],
+    ['Ayyamul Bidh (13-14-15 Hijriyah)','Puasa "hari putih" 3 hari setiap bulan Hijriyah. Pahala seperti puasa setahun.', $nextAB, 'info','bi-moon'],
+    ['Puasa Daud','Puasa selang-seling: sehari puasa, sehari berbuka. Puasa paling dicintai Allah.', $nextDaud, 'warning','bi-arrow-left-right'],
+    ['Asyura (10 Muharram)','Menghapus dosa setahun yang lalu (HR. Muslim).', $asyura, 'primary','bi-calendar-event'],
+    ['Tasu\'a (9 Muharram)','Disunnahkan menyertai puasa Asyura agar berbeda dengan Yahudi.', $tasua, 'primary','bi-calendar2'],
+    ['Arafah (9 Dzulhijjah)','Bagi yang tidak haji — menghapus dosa setahun lalu &amp; setahun mendatang.', $arafah, 'danger','bi-sun'],
+    ['Nisfu Sya\'ban (15 Sya\'ban)','Memperbanyak puasa di bulan Sya\'ban (HR. Bukhari).', $nisfu, 'secondary','bi-stars'],
+    ['Syawal 6 hari','Setelah Idul Fitri — pahala seperti puasa setahun penuh.', $nextSyawal, 'success','bi-calendar-check'],
+  ];
+  foreach ($puasaCards as $idx => $pc):
+    $cdId = 'cdPuasa'.$idx;
+    $tgl = $pc[2];
+  ?>
+  <details class="card border-<?= $pc[3] ?> mb-2">
+    <summary class="card-body py-2" style="cursor:pointer;list-style:revert">
+      <i class="bi <?= $pc[4] ?> text-<?= $pc[3] ?> me-1"></i>
+      <strong><?= $pc[0] ?></strong>
+      <?php if ($tgl): ?><span class="badge bg-<?= $pc[3] ?>-subtle text-<?= $pc[3] ?> ms-1"><?= $tgl->format('d M Y') ?></span><?php endif; ?>
+    </summary>
+    <div class="card-body pt-0">
+      <div class="small text-muted mb-2"><?= $pc[1] ?></div>
+      <?php if ($tgl): ?>
+        <div class="small">Jadwal terdekat: <strong><?= $tgl->format('l, d M Y') ?></strong></div>
+        <div class="small">Hijriyah: <?php $h=masehi_ke_hijriyah($tgl); ?><?= $h['hari'].' '.hijriyah_nama_bulan($h['bulan']).' '.$h['tahun'].' H' ?></div>
+        <div class="mt-1 fw-semibold text-<?= $pc[3] ?>" id="<?= $cdId ?>">…</div>
+      <?php endif; ?>
+    </div>
+  </details>
+  <?php endforeach; ?>
+  </div>
+</details>
+
+<details class="mb-3">
+  <summary style="cursor:pointer;list-style:revert">
+    <h5 class="d-inline-block mb-0"><i class="bi bi-calendar-event text-danger"></i> Countdown Hari Raya Besar Islam</h5>
+    <span class="text-muted small ms-1">(klik untuk buka/tutup)</span>
+  </summary>
+  <div class="row g-3 mt-1">
+    <?php
+    $holidays = [
+      ['Ramadhan',          $ramadhan, 'success', 'cdR'],
+      ['Idul Fitri',        $iedFitri, 'warning', 'cdF'],
+      ['Idul Adha',         $iedAdha,  'danger',  'cdI'],
+      ['Tahun Baru Hijriyah',$tahunBaru,'info',   'cdTH'],
+      ['Maulid Nabi',       $maulid,   'primary', 'cdM'],
+      ['Isra Mi\'raj',      $isra,     'info',    'cdIs'],
+      ['Nisfu Sya\'ban',    $nisfu,    'secondary','cdNS'],
+      ['Asyura',            $asyura,   'dark',    'cdAS'],
+      ['Arafah',            $arafah,   'warning', 'cdAR'],
+    ];
+    foreach ($holidays as $h): ?>
+      <div class="col-md-4 col-lg-3"><div class="card border-<?= $h[2] ?>"><div class="card-body py-2">
+        <div class="small text-muted">Countdown <?= $h[0] ?></div>
+        <div class="fw-bold"><?= $h[1]->format('d M Y') ?></div>
+        <div id="<?= $h[3] ?>" class="text-<?= $h[2] ?>">…</div>
+      </div></div></div>
+    <?php endforeach; ?>
+  </div>
+</details>
 
 <script src="/assets/js/islami.js" defer></script>
 <script>

@@ -52,20 +52,13 @@ include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur / Rute Realtime</h4>
 
-<!-- Revisi 16 Juni 2026 — Banner promosi video flyover yg sudah diperkaya (HUD popup, musik, ikon start/finish/km) -->
+<!-- Revisi Juli 2026 — Banner Flyover ringkas (keterangan widget dihapus) -->
 <a href="/flyover.php" class="text-decoration-none">
   <div class="card border-0 shadow-sm mb-3" style="background:linear-gradient(135deg,#0f172a,#1e293b);color:#f8fafc;border-radius:14px;overflow:hidden">
     <div class="card-body d-flex flex-wrap align-items-center gap-3 py-3 px-3">
       <div style="font-size:2.4rem;line-height:1"><i class="bi bi-camera-reels-fill text-warning"></i></div>
       <div class="flex-grow-1">
-        <div class="fw-bold" style="letter-spacing:.3px">Video Flyover 3D — Sekarang dengan Popup Detail, Musik &amp; Ikon!</div>
-        <div class="small opacity-75">
-          <i class="bi bi-broadcast text-success"></i> HUD statistik live ·
-          <i class="bi bi-music-note-beamed text-info"></i> musik latar ikut terekam ·
-          <i class="bi bi-flag-fill text-danger"></i> ikon Start/Finish ·
-          <i class="bi bi-1-circle text-warning"></i> marker per kilometer ·
-          <i class="bi bi-person-walking"></i> animasi runner.
-        </div>
+        <div class="fw-bold" style="letter-spacing:.3px">Video Flyover 3D</div>
       </div>
       <span class="btn btn-warning btn-sm fw-semibold"><i class="bi bi-play-fill"></i> Buka Flyover</span>
     </div>
@@ -140,10 +133,10 @@ include __DIR__.'/includes/header.php';
   </div>
 
   <div class="col-md-5">
-    <div class="card shadow-sm"><div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-clock-history"></i> Riwayat Tracking</span>
-      <small class="text-muted">Export: GPX / KML untuk Google Maps</small>
-    </div>
+    <details class="card shadow-sm"><summary class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
+      <span><i class="bi bi-clock-history"></i> Riwayat Tracking <span class="text-muted small">(klik buka/tutup)</span></span>
+      <small class="text-muted">Export: GPX / KML</small>
+    </summary>
     <div class="list-group list-group-flush">
       <?php if(!$history): ?><div class="p-3 small text-muted">Belum ada sesi lari.</div><?php endif; ?>
       <?php foreach($history as $h): ?>
@@ -172,7 +165,7 @@ include __DIR__.'/includes/header.php';
           </div>
         </div>
       <?php endforeach; ?>
-    </div></div>
+    </div></details>
     <div class="small text-muted mt-2">
       <i class="bi bi-info-circle"></i> File <strong>GPX</strong>/<strong>KML</strong> bisa diimpor ke
       <em>Google My Maps</em> (mymaps.google.com → Create new map → Import) atau <em>Strava</em>.
@@ -753,7 +746,11 @@ document.addEventListener('click', function(ev){
 <!-- ====== Revisi 15 Jun 2026: Eksplorasi Rute & Peta Canggih ======== -->
 <!-- ================================================================== -->
 <hr class="my-4">
-<h4 class="mb-3" id="eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
+<details id="eksplorasi" class="mb-3">
+  <summary style="cursor:pointer;list-style:revert">
+    <h4 class="d-inline-block mb-0"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
+    <span class="text-muted small ms-1">(klik untuk buka/tutup)</span>
+  </summary>
 
 <!-- Revisi 22 Juni 2026 R12 — Panel info dibungkus <details> (spoiler) -->
 <details class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
@@ -791,9 +788,6 @@ document.addEventListener('click', function(ev){
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="tab-heatmap-btn" data-bs-toggle="tab" data-bs-target="#tab-heatmap" type="button"><i class="bi bi-fire"></i> Heatmaps</button>
   </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="tab-offline-btn" data-bs-toggle="tab" data-bs-target="#tab-offline" type="button"><i class="bi bi-cloud-download"></i> Peta Offline</button>
-  </li>
 </ul>
 
 <div class="tab-content border border-top-0 rounded-bottom p-3 bg-body">
@@ -808,12 +802,12 @@ document.addEventListener('click', function(ev){
           <label class="btn btn-outline-primary" for="rbModeManual"><i class="bi bi-pencil-square"></i> Buat Sendiri</label>
           <!-- Revisi 15 Juni 2026: Mode AI — import rute dari gambar peta tanpa input titik manual -->
           <input type="radio" class="btn-check" name="rbMode" id="rbModeAI" value="ai">
-          <label class="btn btn-outline-success" for="rbModeAI"><i class="bi bi-robot"></i> AI Import dari Gambar</label>
+          <label class="btn btn-outline-success" for="rbModeAI"><i class="bi bi-robot"></i> Buat Rute oleh AI</label>
         </div>
 
         <!-- ===== Panel AI Import Rute — Revisi 19 Juni 2026: HANYA via prompt teks ===== -->
         <div id="rbAIPanel" class="border rounded p-2 mb-2 bg-success-subtle" style="display:none">
-          <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Buat Rute dari Prompt (AI Gemini)</div>
+          <div class="small fw-bold mb-1"><i class="bi bi-robot text-success"></i> Buat Rute oleh AI</div>
           <div class="small text-muted mb-2">
             Tulis kebutuhan Anda &mdash; AI akan menyusun daftar landmark/jalan lalu mengubahnya menjadi rute lari.
             Contoh: <em>"Buatkan rute lari 5 km yang aman dan minim tanjakan di Bandung"</em>.
@@ -888,12 +882,12 @@ document.addEventListener('click', function(ev){
       <div class="col-md-8">
         <div id="builderMap" style="height:420px;border-radius:10px;border:1px solid var(--bs-border-color,#e5e7eb)"></div>
 
-        <!-- Revisi 16 Juni 2026 (#2): Import rute dari screenshot Strava / gambar -->
-        <div class="card border-warning-subtle mt-3">
-          <div class="card-header py-2 bg-warning-subtle">
+        <!-- Revisi Juli 2026 — Import Rute dari Gambar dibungkus spoiler agar tidak memanjang -->
+        <details class="card border-warning-subtle mt-3">
+          <summary class="card-header py-2 bg-warning-subtle" style="cursor:pointer;list-style:revert">
             <strong class="small"><i class="bi bi-image text-warning"></i> Import Rute dari Gambar (screenshot Strava)</strong>
-            <span class="small text-muted ms-1">— ubah screenshot peta jadi rute pada peta interaktif</span>
-          </div>
+            <span class="small text-muted ms-1">— klik untuk buka/tutup</span>
+          </summary>
           <div class="card-body small">
             <ol class="ps-3 mb-2">
               <li>Upload screenshot lari (Strava / app sejenis) yang memperlihatkan garis rute berwarna.</li>
@@ -949,7 +943,7 @@ document.addEventListener('click', function(ev){
               </div>
             </div>
           </div>
-        </div>
+        </details>
 
         <div class="mt-2">
           <strong class="small">Rute tersimpan:</strong>
@@ -1007,47 +1001,26 @@ document.addEventListener('click', function(ev){
     </div>
   </div>
 
-  <!-- ============ TAB 3: PETA OFFLINE ============ -->
-  <div class="tab-pane fade" id="tab-offline" role="tabpanel">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label small">Pilih rute yang akan di-cache</label>
-        <select id="offRouteSel" class="form-select form-select-sm mb-2">
-          <option value="">— Pilih rute tersimpan —</option>
-          <?php foreach($savedRoutes as $r): ?>
-            <option value="<?= (int)$r['id'] ?>"><?= htmlspecialchars($r['nama']) ?> (<?= round(((float)$r['jarak_m'])/1000,2) ?> km)</option>
-          <?php endforeach; ?>
-        </select>
-        <label class="form-label small">Atau pakai riwayat sesi</label>
-        <select id="offSessSel" class="form-select form-select-sm mb-2">
-          <option value="">— Pilih riwayat lari —</option>
-          <?php foreach($history as $h): ?>
-            <option value="<?= (int)$h['id'] ?>"><?= date('d M H:i', strtotime($h['mulai_at'])) ?> · <?= round(((float)$h['jarak_m'])/1000,2) ?> km</option>
-          <?php endforeach; ?>
-        </select>
-        <label class="form-label small">Level zoom yang di-cache</label>
-        <select id="offZoom" class="form-select form-select-sm mb-2">
-          <option value="13">13 (area luas, ~kota)</option>
-          <option value="14" selected>14 (kecamatan)</option>
-          <option value="15">15 (kelurahan)</option>
-          <option value="16">16 (detail jalan)</option>
-        </select>
-        <div class="d-grid gap-2">
-          <button id="offDownload" class="btn btn-primary btn-sm" disabled><i class="bi bi-cloud-download"></i> Unduh Peta Offline</button>
-          <button id="offClear" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle"></i> Hapus Cache Offline</button>
-        </div>
-        <div id="offProg" class="small text-muted mt-2"></div>
-      </div>
-      <div class="col-md-8">
-        <div id="offMap" style="height:420px;border-radius:10px;border:1px solid var(--bs-border-color,#e5e7eb)"></div>
-        <div class="small text-muted mt-2">
-          <i class="bi bi-info-circle"></i> Tile peta akan disimpan di <code>CacheStorage</code> browser. Saat sinyal hilang, peta yang
-          sudah di-cache tetap terlihat (trail running / naik gunung). Hapus cache untuk membebaskan ruang.
-        </div>
-      </div>
-    </div>
+  <!-- Tab Peta Offline dihapus (Revisi Juli 2026) -->
+  <div id="tab-offline" class="d-none" role="tabpanel" aria-hidden="true">
+    <select id="offRouteSel" class="d-none"></select>
+    <select id="offSessSel" class="d-none"></select>
+    <select id="offZoom" class="d-none"><option value="14" selected>14</option></select>
+    <button id="offDownload" type="button" class="d-none" disabled></button>
+    <button id="offClear" type="button" class="d-none"></button>
+    <div id="offProg" class="d-none"></div>
+    <div id="offMap" class="d-none"></div>
   </div>
 </div>
+</details>
+<script>
+// Auto-buka spoiler Eksplorasi jika hash #eksplorasi
+(function(){
+  var d = document.getElementById('eksplorasi');
+  function openIfHash(){ if (d && location.hash === '#eksplorasi') { d.open = true; d.scrollIntoView({behavior:'smooth'}); } }
+  window.addEventListener('hashchange', openIfHash); openIfHash();
+})();
+</script>
 
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
@@ -1479,7 +1452,7 @@ document.addEventListener('click', function(ev){
       var prompt = (document.getElementById('aiPromptText').value || '').trim();
       var stat = document.getElementById('aiPromptStat');
       if (!prompt) { stat.textContent = 'Tulis prompt dulu (cth: "Buatkan rute lari 5 km di Bandung").'; return; }
-      stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gemini sedang menyusun rute…';
+      stat.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI sedang menyusun rute…';
       btnAIPrompt.disabled = true;
       try {
         var fd = new FormData();
@@ -1786,7 +1759,9 @@ document.addEventListener('click', function(ev){
     L.tileLayer(TILE,{maxZoom:19,attribution:'&copy; OSM (cache)'}).addTo(oMap);
     return oMap;
   }
-  document.getElementById('tab-offline-btn').addEventListener('shown.bs.tab', function(){
+  // Tab Peta Offline dihapus — listener dinonaktifkan
+  var _tabOffBtn = document.getElementById('tab-offline-btn');
+  if (_tabOffBtn) _tabOffBtn.addEventListener('shown.bs.tab', function(){
     ensureOffMap(); setTimeout(function(){ oMap.invalidateSize(); },100);
   });
 

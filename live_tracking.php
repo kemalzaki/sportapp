@@ -119,9 +119,12 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
 </p>
 
 
-<div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
-  <div class="card-body py-3">
-    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Live Tracking / Beacon</h6>
+<details class="card border-0 shadow-sm mb-3 border-start border-4 border-danger">
+  <summary class="card-body py-2" style="cursor:pointer;list-style:revert">
+    <strong><i class="bi bi-info-circle text-danger"></i> Cara Penggunaan Live Tracking / Beacon</strong>
+    <span class="text-muted small">(klik untuk buka/tutup)</span>
+  </summary>
+  <div class="card-body py-3 pt-0">
     <ol class="small mb-2 ps-3">
       <li><b>Tambahkan kontak darurat</b> di panel <em>Kontak Darurat</em> (Nama, No. WA, relasi).
         Kontak ini hanya disimpan untuk Anda — bisa dibagikan ulang cepat.</li>
@@ -143,7 +146,7 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
       <code>/run.php</code>). Jika layar mati, browser akan menjeda pengiriman GPS sampai layar nyala lagi.
     </div>
   </div>
-</div>
+</details>
 <div class="row g-3">
   <!-- KIRI: Kontrol sesi -->
   <div class="col-lg-5">
