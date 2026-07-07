@@ -176,6 +176,7 @@ if (empty($pageSkeleton)) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/app.css">
 <link rel="stylesheet" href="/assets/css/app-v3.css">
+<link rel="stylesheet" href="/assets/css/kk-redesign.css?v=nov2026">
 <link rel="stylesheet" href="/assets/css/desktop-fix.css">
 <!-- Revisi 4 Jun 2026: header atas biru-kehitaman (bukan hijau) -->
 <link rel="stylesheet" href="/assets/css/gojek-top.css?v=4jun2026">

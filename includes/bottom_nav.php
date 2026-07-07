@@ -1,9 +1,14 @@
 <?php
-// Sticky bottom nav (gaya Gojek) + floating upload button. Hanya tampil saat login.
-// Revisi 2 Jun 2026:
-//   - Tab "Event" diganti jadi "Berita" (berita.php). Halaman aktif memperhitungkan
-//     berita.php sebagai item aktif.
-// Revisi 1 Jun 2026: redesign menu navigasi seperti aplikasi Gojek di mobile.
+/**
+ * includes/bottom_nav.php — Revisi Design 2026
+ * Bottom Navigation premium (Strava/NRC-style) dengan Floating Upload
+ * yang MENYATU dengan bar (notched circle). Semua warna mengikuti tema
+ * aktif via CSS Variable (--primary, --primary-light, --primary-dark,
+ * --surface, --text-primary, --text-secondary) yang di-emit oleh
+ * includes/theme_user.php.
+ *
+ * TIDAK mengubah logika PHP/session/DB/API. Hanya UI/UX.
+ */
 if (defined('GJ_BOTTOM_NAV_RENDERED')) return;
 define('GJ_BOTTOM_NAV_RENDERED', true);
 $u = current_user();
@@ -21,124 +26,118 @@ if (!function_exists('_gj_active')) {
   }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
 <style>
-/* Revisi 28 Juni 2026 + R4 (Juli 2026) — Rapikan PWA Bottom Nav (mobile):
-   - Tinggi seragam, label tidak terpotong
-   - FAB Upload SELALU tampil di atas seluruh konten (z-index tinggi) & tidak terpotong
-   - Body diberi padding-bottom lebih besar agar FAB yang naik ke atas tidak menutup
-     konten terakhir halaman. */
+/* ============================================================
+   Bottom Navigation Premium — Strava-style w/ integrated FAB
+   ============================================================ */
 .gj-nav{
-  position:fixed; left:0; right:0; bottom:0; z-index:1080;
-  display:flex; align-items:flex-end; justify-content:space-around;
-  background:#fff; border-top:1px solid #e5e7eb;
-  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
-  box-shadow:0 -4px 16px rgba(15,23,42,.06);
-  min-height:68px;
-  overflow:visible;
+  position:fixed;left:0;right:0;bottom:0;z-index:1080;
+  display:flex;align-items:flex-end;justify-content:space-around;
+  background:var(--surface,#fff);
+  border-top:1px solid var(--border,#e5e7eb);
+  border-top-left-radius:22px;border-top-right-radius:22px;
+  padding:8px 6px calc(10px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -6px 24px rgba(15,23,42,.08);
+  min-height:76px;overflow:visible;
 }
 .gj-nav .gj-item{
-  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:2px; padding:6px 2px; min-width:0; text-decoration:none; color:#475569; position:relative;
+  flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  gap:3px;padding:6px 2px;min-width:0;text-decoration:none;
+  color:var(--text-secondary,#64748b);position:relative;
+  transition:transform .18s ease, color .2s ease;
 }
+.gj-nav .gj-item:active{transform:scale(.94);}
 .gj-nav .gj-item .gj-ico{
-  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem; color:var(--bs-body-color,#0f172a); background:transparent;
+  width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:1.35rem;color:var(--text-secondary,#94a3b8);transition:color .2s ease;
 }
-.gj-nav .gj-item .gj-ico i{ color:inherit; }
 .gj-nav .gj-item .gj-label{
-  font-size:.7rem; line-height:1.05; color:var(--bs-secondary-color,#475569); max-width:100%;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:.7rem;line-height:1.05;color:var(--text-secondary,#64748b);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;
 }
 .gj-nav .gj-item.active .gj-ico,
-.gj-nav .gj-item.active .gj-ico i{ color:var(--bs-primary,#0ea5e9) !important; }
-.gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#0ea5e9); font-weight:600; }
-.gj-nav .gj-avatar{ width:24px; height:24px; border-radius:50%; object-fit:cover; }
+.gj-nav .gj-item.active .gj-ico i{color:var(--primary,#0ea5e9)!important;}
+.gj-nav .gj-item.active .gj-label{color:var(--primary,#0ea5e9);font-weight:700;}
+.gj-nav .gj-item.active::before{
+  content:"";position:absolute;top:0;left:35%;right:35%;height:3px;
+  background:var(--primary,#0ea5e9);border-radius:0 0 3px 3px;
+}
+.gj-nav .gj-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;
+  border:2px solid transparent;}
+.gj-nav .gj-item.active .gj-avatar{border-color:var(--primary,#0ea5e9);}
 .gj-nav .gj-avatar-fb{
-  width:24px;height:24px;border-radius:50%;
-  background:var(--bs-primary,#0ea5e9);color:#fff;
+  width:26px;height:26px;border-radius:50%;
+  background:var(--primary,#0ea5e9);color:#fff;
   display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;
 }
 .gj-nav .gj-badge{
-  position:absolute; top:2px; right:18%;
-  background:#ef4444; color:#fff; font-size:.6rem; font-weight:700;
-  padding:1px 5px; border-radius:9px; line-height:1;
+  position:absolute;top:2px;right:18%;
+  background:#ef4444;color:#fff;font-size:.6rem;font-weight:700;
+  padding:1px 5px;border-radius:9px;line-height:1;
 }
-/* FAB Upload — Revisi Nov 2026: FLAT & SEJAJAR dengan item lain (tidak
-   menjurus ke atas). Ikuti tema aktif via var(--bs-primary). */
+
+/* Floating Upload — Strava-style, naik ~24px, menyatu dengan bar */
 .gj-nav .gj-fab{
-  flex:1 1 0 !important; display:flex !important; flex-direction:column !important;
-  align-items:center !important; justify-content:flex-end !important;
-  gap:2px !important; padding:6px 2px !important; text-decoration:none;
-  color:var(--bs-primary,#0ea5e9); position:relative;
-  top:auto !important; margin-top:0 !important; transform:none !important;
+  flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  text-decoration:none;color:var(--primary,#0ea5e9);position:relative;
 }
 .gj-nav .gj-fab .gj-fab-inner{
-  width:36px !important; height:36px !important; border-radius:50% !important;
-  background:var(--bs-primary,#0ea5e9) !important;
-  color:#fff !important; display:inline-flex !important; align-items:center !important;
-  justify-content:center !important;
-  font-size:1.05rem !important; font-weight:700 !important; line-height:1 !important;
-  box-shadow:0 2px 6px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.25) !important;
-  border:none !important;
-  margin:0 !important; top:auto !important; position:relative !important;
-  transition: transform .15s ease, filter .15s ease;
+  width:64px;height:64px;border-radius:50%;
+  background:var(--gradient-primary, linear-gradient(135deg,var(--primary-dark,#0369a1),var(--primary,#0ea5e9)));
+  color:#fff;display:inline-flex;align-items:center;justify-content:center;
+  font-size:1.55rem;font-weight:700;line-height:1;
+  box-shadow:
+    0 8px 22px -4px color-mix(in oklab, var(--primary,#0ea5e9) 60%, transparent),
+    0 0 0 5px var(--surface,#fff),
+    inset 0 1px 0 rgba(255,255,255,.35);
+  border:none;position:relative;top:-22px;margin-bottom:-14px;
+  transition:transform .18s ease, box-shadow .2s ease;
 }
-.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
-.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-1px); filter:brightness(1.05); }
-.gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
+.gj-nav .gj-fab:hover .gj-fab-inner{transform:translateY(-2px) scale(1.04);}
+.gj-nav .gj-fab:active .gj-fab-inner{transform:scale(.9);}
 .gj-nav .gj-fab .gj-fab-label{
-  font-size:.7rem; color:var(--bs-primary,#0ea5e9); font-weight:600; line-height:1.05;
+  font-size:.68rem;color:var(--primary,#0ea5e9);font-weight:700;line-height:1.05;margin-top:-8px;
 }
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border:none !important; }
-/* Revisi Nov 2026 — semua ikon di bottom nav (termasuk item aktif) ikut warna tema */
-.gj-nav .gj-item .gj-ico,
-.gj-nav .gj-item .gj-ico i{ color: var(--bs-primary,#0ea5e9) !important; }
-/* Revisi Nov 2026 — samakan warna ikon di DRAWER menu (sidebar kiri) ke warna tema.
-   Menetralkan ikon warna-warni (text-danger / text-success / dst) agar konsisten. */
+
+/* Drawer ikon ikuti tema */
 .gt-drawer .list-group-item i.bi,
-.gt-drawer .list-group-item .bi{
-  color: var(--bs-primary,#0ea5e9) !important;
-}
-/* Ikon chevron tetap netral */
+.gt-drawer .list-group-item .bi{color:var(--primary,#0ea5e9)!important;}
 .gt-drawer .list-group-item i.bi-chevron-down,
-.gt-drawer .list-group-item i.bi-chevron-up{
-  color: var(--bs-secondary-color,#64748b) !important;
+.gt-drawer .list-group-item i.bi-chevron-up{color:var(--text-secondary,#64748b)!important;}
+.gt-drawer .list-group-item.active,
+.gt-drawer .list-group-item[aria-current='true']{
+  background:var(--primary-soft, rgba(14,165,233,.12))!important;
+  color:var(--primary-dark,#0369a1)!important;
+  border-left:3px solid var(--primary,#0ea5e9)!important;
 }
-/* Pastikan konten halaman tidak tertutup nav */
-body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 
-[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e293b; }
-[data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
-[data-bs-theme=dark] .gj-nav .gj-item .gj-ico i{ color:#e2e8f0 !important; }
-[data-bs-theme=dark] .gj-nav .gj-item .gj-label{ color:#cbd5e1; }
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i,
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#38bdf8) !important; }
+/* Padding bawah body agar tidak tertutup nav */
+body{padding-bottom:calc(6rem + env(safe-area-inset-bottom,0px))!important;}
 
-/* Sembunyikan di desktop besar (≥992px) */
-@media (min-width: 992px){ .gj-nav{ display:none; } body{ padding-bottom:0 !important; } }
+[data-bs-theme=dark] .gj-nav{background:var(--surface,#0f172a);border-top-color:var(--border,#1e293b);}
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{box-shadow:0 8px 22px -4px rgba(0,0,0,.6),0 0 0 5px var(--surface,#0f172a);}
+
+@media (min-width: 992px){.gj-nav{display:none;} body{padding-bottom:0!important;}}
 </style>
 <nav class="gj-nav" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">
-    <span class="gj-ico gj-c-home"><i class="bi bi-house-door-fill"></i></span>
+    <span class="gj-ico"><i class="bi bi-house-door-fill"></i></span>
     <span class="gj-label">Beranda</span>
   </a>
   <a href="/riwayat.php" class="gj-item <?= _gj_active(['riwayat.php','statistik_islami.php'], $_cur) ?>">
-    <span class="gj-ico gj-c-stat"><i class="bi bi-bar-chart-fill"></i></span>
+    <span class="gj-ico"><i class="bi bi-activity"></i></span>
     <span class="gj-label">Aktivitas</span>
   </a>
   <a href="/upload.php" class="gj-fab" aria-label="Upload aktivitas">
     <span class="gj-fab-inner"><i class="bi bi-plus-lg"></i></span>
     <span class="gj-fab-label">Upload</span>
   </a>
-  <!-- Revisi 13 Juni 2026: dulu Berita, sekarang Kalori Mingguan (PWA) -->
   <a href="/kalori_mingguan.php" class="gj-item <?= _gj_active(['kalori_mingguan.php'], $_cur) ?>">
-    <span class="gj-ico gj-c-event"><i class="bi bi-egg-fried"></i></span>
+    <span class="gj-ico"><i class="bi bi-fire"></i></span>
     <span class="gj-label">Kalori</span>
   </a>
   <a href="/profile.php" class="gj-item position-relative <?= _gj_active(['profile.php','user.php'], $_cur) ?>">
-    <span class="gj-ico gj-c-me">
+    <span class="gj-ico">
       <?php if ($navFoto): ?>
         <img src="<?= htmlspecialchars($navFoto) ?>" alt="" class="gj-avatar">
       <?php else: ?>
@@ -150,28 +149,26 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
   </a>
 </nav>
 
-<?php /* Kompat lama: beberapa CSS/JS legacy masih cari .bottom-nav */ ?>
+<?php /* Kompat lama */ ?>
 <div class="bottom-nav d-none" aria-hidden="true"></div>
 
-<?php /* Revisi 18 Juni 2026 — Loading spinner kecil di samping teks item nav mobile saat di-klik */ ?>
 <style>
 .gj-nav .gj-item .gj-spin{
-  display:none; width:.85rem; height:.85rem; margin-left:4px; vertical-align:-1px;
-  border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
-  animation: gjspin .7s linear infinite;
+  display:none;width:.85rem;height:.85rem;margin-left:4px;vertical-align:-1px;
+  border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+  animation:gjspin .7s linear infinite;
 }
-.gj-nav .gj-item.is-loading .gj-spin{ display:inline-block; }
-.gj-nav .gj-item.is-loading{ opacity:.85; pointer-events:none; }
-.gj-nav .gj-item.is-loading .gj-label{ color:#0ea5e9; }
-@keyframes gjspin { to { transform: rotate(360deg); } }
-.gj-topbar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#0ea5e9,#22d3ee);
-  z-index:9999;transition:width .25s ease;box-shadow:0 0 8px #0ea5e9}
-.gj-topbar.active{width:80%}
+.gj-nav .gj-item.is-loading .gj-spin{display:inline-block;}
+.gj-nav .gj-item.is-loading{opacity:.85;pointer-events:none;}
+@keyframes gjspin{to{transform:rotate(360deg);}}
+.gj-topbar{position:fixed;top:0;left:0;height:3px;width:0;
+  background:var(--gradient-primary,linear-gradient(90deg,#0ea5e9,#22d3ee));
+  z-index:9999;transition:width .25s ease;box-shadow:0 0 8px var(--primary,#0ea5e9);}
+.gj-topbar.active{width:80%;}
 </style>
 <div class="gj-topbar" id="gjTopBar" aria-hidden="true"></div>
 <script>
 (function(){
-  // Inject placeholder spinner element ke setiap label item nav (sekali).
   document.querySelectorAll('.gj-nav .gj-item').forEach(function(it){
     var lab = it.querySelector('.gj-label');
     if (lab && !lab.querySelector('.gj-spin')){
@@ -180,7 +177,6 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
       lab.appendChild(s);
     }
     it.addEventListener('click', function(e){
-      // Abaikan kalau modifier key / target sama dengan halaman saat ini
       if (e.metaKey||e.ctrlKey||e.shiftKey||e.button) return;
       try {
         var here = (location.pathname||'').split('/').pop();
@@ -192,30 +188,17 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
       if (tb) tb.classList.add('active');
     });
   });
-  // Reset bila user kembali via back-forward cache
   window.addEventListener('pageshow', function(){
     document.querySelectorAll('.gj-nav .gj-item.is-loading').forEach(function(it){ it.classList.remove('is-loading'); });
     var tb = document.getElementById('gjTopBar'); if (tb) tb.classList.remove('active');
   });
 })();
 </script>
-
-<?php /* ================================================================
-   Revisi Juli 2026 — Bottom nav "tetap tampil" saat pindah halaman (mobile).
-   Menggunakan MPA View Transitions API sehingga elemen dengan
-   view-transition-name yang sama (bottom nav) di-morph antar halaman —
-   secara visual nav tidak ikut ter-refresh / berkedip.
-
-   Fallback: browser lama tetap berjalan normal (nav re-render seperti biasa).
-   ================================================================ */ ?>
 <style>
-/* Revisi R2 Juli 2026: nonaktifkan MPA View Transitions agar konten tidak sempat "blank" saat pindah halaman; bottom nav tetap terlihat karena position:fixed. */
 @media (max-width: 991.98px){
   .gj-nav { view-transition-name: gj-bottom-nav; }
   .gj-topbar { view-transition-name: gj-topbar; }
 }
 ::view-transition-old(gj-bottom-nav),
-::view-transition-new(gj-bottom-nav){
-  animation: none !important; mix-blend-mode: normal;
-}
+::view-transition-new(gj-bottom-nav){animation:none!important;mix-blend-mode:normal;}
 </style>
