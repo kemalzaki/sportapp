@@ -105,8 +105,13 @@ body{ padding-top: calc(var(--gt-h) + 56px) !important; }
   transition: all .15s ease;
 }
 [data-bs-theme=dark] .gt-chip{ background:#1e293b; color:#f8fafc; }
-.gt-chip i{ font-size: 1rem; color: var(--gt-brand); }
-.gt-chip.active{ background: rgba(14,165,233,.12); color: var(--gt-brand); border-color: rgba(14,165,233,.35); }
+.gt-chip i{ font-size: 1rem; color: var(--bs-primary, var(--gt-brand)); }
+.gt-chip.active{
+  background: color-mix(in oklab, var(--bs-primary, #0ea5e9) 14%, transparent);
+  color: var(--bs-primary, var(--gt-brand));
+  border-color: color-mix(in oklab, var(--bs-primary, #0ea5e9) 35%, transparent);
+}
+.gt-chip.active i{ color: var(--bs-primary, var(--gt-brand)); }
 .gt-chip:active{ transform: scale(.96); }
 
 /* Drawer */

@@ -694,7 +694,7 @@ $__hideSuper = scope_is_superduper_kom_member();
   <div class="d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1" style="min-width:240px;">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <span class="badge-soft" style="display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.95);color:#0369a1;border:1px solid rgba(255,255,255,.9);padding:.3rem .7rem;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.02em;box-shadow:0 2px 8px rgba(15,23,42,.12);"><i class="bi bi-stars"></i> KawanKeringat AppSport</span>
+        <span class="badge-soft" style="display:inline-flex !important;align-items:center;gap:.35rem;background:#ffffff !important;color:#0f172a !important;border:1px solid #ffffff !important;padding:.35rem .8rem;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em;box-shadow:0 2px 10px rgba(15,23,42,.18);"><i class="bi bi-stars" style="color:#f59e0b"></i> <span style="color:#0f172a">KawanKeringat AppSport</span></span>
       </div>
       <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Halo, <?= htmlspecialchars($u['nama'] ?? 'Sobat') ?>! 👋</h1>
       <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">Selamat datang Mahasiswa &amp; Pecinta Olahraga.</p>

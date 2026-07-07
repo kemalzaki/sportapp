@@ -1217,4 +1217,108 @@ window.addEventListener('load', function(){
   </div>
 </div>
 <!-- Inisialisasi modal zoom dilakukan oleh kmInitEditAndZoom() di atas (load-safe). -->
+
+<?php /* ================= Revisi Juli 2026 R3 =================
+   - Spoiler (collapsible) untuk section-section tertentu
+   - Reorder: "Catat Makanan" pindah tepat di bawah "Sisa Kalori Hari Ini"
+   - Hapus card "Defisit Kalori Minggu Ini"
+ ==========================================================*/ ?>
+<style>
+  .kk-spoiler-head{ cursor:pointer; user-select:none; }
+  .kk-spoiler-head .kk-chev{ transition: transform .2s ease; margin-left:.5rem; }
+  .kk-spoiler-head[aria-expanded="false"] .kk-chev{ transform: rotate(-90deg); }
+</style>
+<script>
+(function(){
+  var LABELS = [
+    'Sisa Kalori Hari Ini',
+    'Input Pembakaran Kalori Lain (AI)',
+    'Sumber Defisit Kalori',
+    'Aktivitas Pembakaran Minggu Ini',
+    'Statistik Konsumsi',
+    'Catat Makanan',
+    'Riwayat '
+  ];
+  function norm(s){ return (s||'').replace(/\s+/g,' ').trim(); }
+  function matchLabel(t){
+    t = norm(t);
+    return LABELS.some(function(l){ return t.indexOf(l) === 0 || t.indexOf(l) !== -1; });
+  }
+
+  function run(){
+    // 1) Hapus card "Defisit/Surplus Kalori Minggu Ini"
+    document.querySelectorAll('.card').forEach(function(card){
+      var t = norm(card.textContent).slice(0, 80);
+      if (/^(Defisit|Surplus) Kalori Minggu Ini/i.test(t) ||
+          t.indexOf('Defisit Kalori Minggu Ini') !== -1 && card.querySelector('.fs-3')) {
+        // Hapus wrapper col-* terdekat kalau ada
+        var col = card.closest('[class*="col-"]');
+        (col || card).remove();
+      }
+    });
+
+    // 2) Pindahkan "Catat Makanan" ke bawah "Sisa Kalori Hari Ini"
+    var catatCard = null;
+    document.querySelectorAll('.card').forEach(function(c){
+      var h = c.querySelector(':scope > .card-header');
+      if (h && norm(h.textContent).indexOf('Catat Makanan') !== -1) catatCard = c;
+    });
+    var sisaCard = null;
+    document.querySelectorAll('.card').forEach(function(c){
+      var h = c.querySelector(':scope > .card-header');
+      if (h && norm(h.textContent).indexOf('Sisa Kalori Hari Ini') !== -1) sisaCard = c;
+    });
+    if (catatCard && sisaCard) {
+      var catatCol = catatCard.closest('[class*="col-"]') || catatCard;
+      var sisaRow  = sisaCard.closest('.row') || sisaCard.parentElement;
+      // Bungkus dalam row baru supaya lebar penuh
+      var newRow = document.createElement('div');
+      newRow.className = 'row g-3 mb-3';
+      var newCol = document.createElement('div');
+      newCol.className = 'col-12';
+      newCol.appendChild(catatCard);
+      newRow.appendChild(newCol);
+      // sisipkan setelah row Sisa Kalori
+      sisaRow.parentNode.insertBefore(newRow, sisaRow.nextSibling);
+      // Hapus col-lg-5 lama kalau sekarang kosong
+      if (catatCol && catatCol !== catatCard && !catatCol.children.length) catatCol.remove();
+    }
+
+    // 3) Jadikan section berlabel sebagai spoiler
+    document.querySelectorAll('.card').forEach(function(card){
+      var h = card.querySelector(':scope > .card-header');
+      if (!h) return;
+      if (h.dataset.kkSpoiler === '1') return;
+      var t = norm(h.textContent);
+      if (!matchLabel(t)) return;
+      // Kumpulkan semua anak setelah header → bungkus dalam collapse
+      var kids = Array.from(card.children).filter(function(x){ return x !== h; });
+      if (!kids.length) return;
+      var id = 'kkspoil_' + Math.random().toString(36).slice(2,9);
+      var wrap = document.createElement('div');
+      wrap.className = 'collapse show';
+      wrap.id = id;
+      kids.forEach(function(k){ wrap.appendChild(k); });
+      card.appendChild(wrap);
+      h.classList.add('kk-spoiler-head');
+      h.setAttribute('role','button');
+      h.setAttribute('aria-expanded','true');
+      h.setAttribute('aria-controls', id);
+      var chev = document.createElement('i');
+      chev.className = 'bi bi-chevron-down kk-chev float-end';
+      h.appendChild(chev);
+      h.dataset.kkSpoiler = '1';
+      h.addEventListener('click', function(ev){
+        if (ev.target.closest('button, a, input, select, textarea, form')) return;
+        var open = wrap.classList.toggle('show');
+        h.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

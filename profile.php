@@ -424,7 +424,7 @@ include __DIR__.'/includes/header.php';
         </button>
       </div>
       <div class="small text-muted"><?= htmlspecialchars($me['email']) ?></div>
-      <?php /* Revisi Nov 2026 — Inline edit Nama & Username via AJAX */ ?>
+      <?php /* Revisi Juli 2026 R3 — Inline edit Nama & Username (prompt native + fetch) */ ?>
       <script>
       (function(){
         var csrf = <?= json_encode(csrf_token()) ?>;
@@ -432,53 +432,42 @@ include __DIR__.'/includes/header.php';
           var fd = new FormData();
           fd.append('csrf', csrf); fd.append('_action', action); fd.append(field, value);
           return fetch('/profile.php', {method:'POST', body: fd, credentials:'same-origin',
-                       headers:{'X-Requested-With':'XMLHttpRequest'}})
-            .then(r => r.json());
+                       headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}})
+            .then(function(r){ return r.json().catch(function(){ return {ok:false, err:'Respon server tidak valid.'}; }); });
         }
-        async function askValue(title, current, hint){
-          if (typeof Swal !== 'undefined'){
-            var r = await Swal.fire({
-              title: title,
-              input: 'text',
-              inputValue: current,
-              inputPlaceholder: hint || '',
-              showCancelButton: true,
-              confirmButtonText: 'Simpan',
-              cancelButtonText: 'Batal',
-              confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--bs-primary') || '#0ea5e9'
-            });
-            return r.isConfirmed ? (r.value||'').trim() : null;
-          }
-          var v = window.prompt(title, current);
-          return v === null ? null : v.trim();
-        }
-        function inlineEdit(btnId, txtId, action, field, promptLabel, validator){
+        function bindEdit(btnId, txtId, action, field, label, validator){
           var btn = document.getElementById(btnId);
-          if (!btn) return;
-          btn.addEventListener('click', async function(){
-            var cur = document.getElementById(txtId).textContent.trim();
+          if (!btn) { console.warn('[profile-edit] tombol tidak ditemukan:', btnId); return; }
+          btn.style.cursor = 'pointer';
+          btn.addEventListener('click', function(ev){
+            ev.preventDefault(); ev.stopPropagation();
+            var el = document.getElementById(txtId);
+            var cur = (el ? el.textContent : '').trim();
             if (cur === '(belum diatur)') cur = '';
-            var val = await askValue(promptLabel, cur);
+            var val = window.prompt(label, cur);
             if (val === null) return;
+            val = String(val).trim();
             var vErr = validator ? validator(val) : null;
-            if (vErr) { if (typeof Swal !== 'undefined') Swal.fire('Format salah', vErr, 'warning'); else alert(vErr); return; }
+            if (vErr) { alert(vErr); return; }
             btn.disabled = true;
             postField(action, field, val).then(function(j){
               if (j && j.ok) {
-                document.getElementById(txtId).textContent = j[field] || val;
-                if (typeof Swal !== 'undefined') Swal.fire({icon:'success', title:'Tersimpan', timer:1200, showConfirmButton:false});
+                if (el) el.textContent = j[field] || val;
+                if (typeof Swal !== 'undefined') { try { Swal.fire({icon:'success',title:'Tersimpan',timer:1100,showConfirmButton:false}); } catch(e){} }
               } else {
-                var msg = (j && j.err) || 'Gagal menyimpan.';
-                if (typeof Swal !== 'undefined') Swal.fire('Gagal', msg, 'error'); else alert(msg);
+                alert((j && j.err) || 'Gagal menyimpan.');
               }
-            }).catch(function(){ if (typeof Swal !== 'undefined') Swal.fire('Error', 'Gagal jaringan.', 'error'); else alert('Gagal jaringan.'); })
+            }).catch(function(e){ alert('Gagal jaringan: ' + (e && e.message ? e.message : e)); })
               .finally(function(){ btn.disabled = false; });
           });
         }
-        inlineEdit('btnEditNama','profNamaText','update_nama','nama','Nama lengkap baru:',
-          function(v){ if (v.length<2 || v.length>80) return 'Nama 2-80 karakter.'; return null; });
-        inlineEdit('btnEditUsername','profUsernameText','update_username','username','Username baru (huruf kecil/angka/titik/underscore, 3-40):',
-          function(v){ if (!/^[a-z0-9._]{3,40}$/.test(v)) return 'Format username tidak valid.'; return null; });
+        function init(){
+          bindEdit('btnEditNama','profNamaText','update_nama','nama','Nama lengkap baru:',
+            function(v){ if (v.length<2 || v.length>80) return 'Nama 2-80 karakter.'; return null; });
+          bindEdit('btnEditUsername','profUsernameText','update_username','username','Username baru (huruf kecil/angka/titik/underscore, 3-40):',
+            function(v){ if (!/^[a-z0-9._]{3,40}$/.test(v)) return 'Format username tidak valid.'; return null; });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
       })();
       </script>
       <div class="prof-badges">

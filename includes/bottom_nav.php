@@ -242,3 +242,36 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 }
 </style>
 
+<?php /* Revisi Juli 2026 R3 — FIX FAB Upload agar rapi & sejajar item lain,
+   dan bottom nav tetap tampil saat pindah halaman via MPA View Transitions. */ ?>
+<style id="gj-fab-fix-jul2026-r3">
+.gj-nav .gj-fab{
+  flex:1 1 0 !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; justify-content:flex-end !important;
+  gap:2px !important; padding:6px 2px !important;
+  top:auto !important; margin:0 !important; transform:none !important;
+  position:relative !important;
+}
+.gj-nav .gj-fab .gj-fab-inner{
+  width:30px !important; height:30px !important; border-radius:50% !important;
+  background:var(--bs-primary,#0ea5e9) !important;
+  color:#fff !important;
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  font-size:.95rem !important; line-height:1 !important;
+  box-shadow:0 1px 3px rgba(15,23,42,.15) !important;
+  border:0 !important; margin:0 !important;
+}
+.gj-nav .gj-fab .gj-fab-label{
+  font-size:.7rem !important; line-height:1.05 !important;
+  color:var(--bs-secondary-color,#475569) !important; font-weight:500 !important;
+}
+.gj-nav .gj-fab:hover .gj-fab-inner{ filter:brightness(1.05); }
+@view-transition { navigation: auto; }
+@keyframes gj-nav-stay { from{opacity:1} to{opacity:1} }
+::view-transition-old(gj-bottom-nav),
+::view-transition-new(gj-bottom-nav){
+  animation: gj-nav-stay .001s linear both !important;
+}
+</style>
+
