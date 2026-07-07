@@ -64,23 +64,24 @@ if (!function_exists('_gj_active')) {
   background:#ef4444; color:#fff; font-size:.6rem; font-weight:700;
   padding:1px 5px; border-radius:9px; line-height:1;
 }
-/* FAB Upload — Revisi Juli 2026: SEJAJAR dengan item lain (tidak menjurus ke atas),
-   warna mengikuti tema. Tetap elegan dgn ring halus & shadow lembut. */
+/* FAB Upload — Revisi Nov 2026: FLAT & SEJAJAR dengan item lain (tidak
+   menjurus ke atas). Ikuti tema aktif via var(--bs-primary). */
 .gj-nav .gj-fab{
-  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:2px; padding:6px 2px; text-decoration:none;
+  flex:1 1 0 !important; display:flex !important; flex-direction:column !important;
+  align-items:center !important; justify-content:flex-end !important;
+  gap:2px !important; padding:6px 2px !important; text-decoration:none;
   color:var(--bs-primary,#0ea5e9); position:relative;
+  top:auto !important; margin-top:0 !important; transform:none !important;
 }
 .gj-nav .gj-fab .gj-fab-inner{
-  width:44px; height:44px; border-radius:50%;
-  background:var(--bs-primary,#0ea5e9);
-  color:#fff; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem; font-weight:700; line-height:1;
-  box-shadow:
-    0 4px 12px rgba(15,23,42,.18),
-    inset 0 1px 0 rgba(255,255,255,.35);
-  border:2px solid var(--bs-body-bg,#fff);
-  margin-top:0;
+  width:36px !important; height:36px !important; border-radius:50% !important;
+  background:var(--bs-primary,#0ea5e9) !important;
+  color:#fff !important; display:inline-flex !important; align-items:center !important;
+  justify-content:center !important;
+  font-size:1.05rem !important; font-weight:700 !important; line-height:1 !important;
+  box-shadow:0 2px 6px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.25) !important;
+  border:none !important;
+  margin:0 !important; top:auto !important; position:relative !important;
   transition: transform .15s ease, filter .15s ease;
 }
 .gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
@@ -89,7 +90,21 @@ if (!function_exists('_gj_active')) {
 .gj-nav .gj-fab .gj-fab-label{
   font-size:.7rem; color:var(--bs-primary,#0ea5e9); font-weight:600; line-height:1.05;
 }
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border-color:#0f172a; }
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border:none !important; }
+/* Revisi Nov 2026 — semua ikon di bottom nav (termasuk item aktif) ikut warna tema */
+.gj-nav .gj-item .gj-ico,
+.gj-nav .gj-item .gj-ico i{ color: var(--bs-primary,#0ea5e9) !important; }
+/* Revisi Nov 2026 — samakan warna ikon di DRAWER menu (sidebar kiri) ke warna tema.
+   Menetralkan ikon warna-warni (text-danger / text-success / dst) agar konsisten. */
+.gt-drawer .list-group-item i.bi,
+.gt-drawer .list-group-item .bi{
+  color: var(--bs-primary,#0ea5e9) !important;
+}
+/* Ikon chevron tetap netral */
+.gt-drawer .list-group-item i.bi-chevron-down,
+.gt-drawer .list-group-item i.bi-chevron-up{
+  color: var(--bs-secondary-color,#64748b) !important;
+}
 /* Pastikan konten halaman tidak tertutup nav */
 body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 

@@ -52,18 +52,7 @@ include __DIR__.'/includes/header.php';
 ?>
 <h4 class="mb-3"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur / Rute Realtime</h4>
 
-<!-- Revisi Juli 2026 — Banner Flyover ringkas (keterangan widget dihapus) -->
-<a href="/flyover.php" class="text-decoration-none">
-  <div class="card border-0 shadow-sm mb-3" style="background:linear-gradient(135deg,#0f172a,#1e293b);color:#f8fafc;border-radius:14px;overflow:hidden">
-    <div class="card-body d-flex flex-wrap align-items-center gap-3 py-3 px-3">
-      <div style="font-size:2.4rem;line-height:1"><i class="bi bi-camera-reels-fill text-warning"></i></div>
-      <div class="flex-grow-1">
-        <div class="fw-bold" style="letter-spacing:.3px">Video Flyover 3D</div>
-      </div>
-      <span class="btn btn-warning btn-sm fw-semibold"><i class="bi bi-play-fill"></i> Buka Flyover</span>
-    </div>
-  </div>
-</a>
+<?php /* Revisi Nov 2026 — Widget "Video Flyover 3D" dihapus dari run.php sesuai permintaan. */ ?>
 
 <!-- Revisi 20 Juni 2026 R3 — Tombol cepat ke menu Eksplorasi (terutama untuk mobile / Jogging Progress) -->
 <a href="#eksplorasi" class="btn btn-outline-primary w-100 mb-3 d-md-none">

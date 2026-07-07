@@ -372,26 +372,54 @@ include __DIR__.'/includes/header.php';
 ?>
 <?php /* Tema Warna Aplikasi dipindahkan ke bagian bawah halaman sesuai revisi. */ ?>
 <h2 class="mb-3"><i class="bi bi-person-circle text-primary"></i> Profil Saya</h2>
+<?php /* Revisi Nov 2026 — Rapikan tampilan kartu profil (spacing, badge, tombol edit). */ ?>
+<style>
+  .profile-card .user-avatar,
+  .profile-card .avatar-fallback{
+    box-shadow: 0 4px 14px rgba(15,23,42,.08);
+    border: 3px solid var(--bs-body-bg,#fff);
+    outline: 1px solid rgba(15,23,42,.08);
+  }
+  .profile-card h4{ font-weight:700; }
+  .profile-card .prof-edit-btn{
+    width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%; border:1px solid var(--bs-border-color,#e5e7eb);
+    background:var(--bs-body-bg,#fff); color:var(--bs-primary,#0ea5e9);
+    transition:background .15s ease, color .15s ease, transform .15s ease;
+  }
+  .profile-card .prof-edit-btn:hover{
+    background:var(--bs-primary,#0ea5e9); color:#fff; transform:scale(1.05);
+  }
+  .profile-card .prof-badges{
+    display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; margin-top:.5rem;
+  }
+  .profile-card .prof-badges .pill{ margin:0 !important; }
+  .profile-card .prof-komunitas-wrap{
+    display:flex; flex-wrap:wrap; gap:.35rem; justify-content:center;
+  }
+  .profile-card .prof-actions .btn{ font-weight:600; }
+  .profile-card .prof-section{ padding-top:.75rem; margin-top:.75rem; border-top:1px dashed var(--bs-border-color,#e5e7eb); }
+</style>
 
 <div class="row g-3">
   <div class="col-lg-4">
-    <div class="card shadow-sm" data-live="profile-card-main"><div class="card-body text-center">
+    <div class="card shadow-sm profile-card" data-live="profile-card-main"><div class="card-body text-center">
       <?php if(!empty($me['foto_url'])): ?>
-        <img src="<?= htmlspecialchars($me['foto_url']) ?>" alt="" class="user-avatar zoomable" style="width:96px;height:96px;border-radius:50%;object-fit:cover;">
+        <img src="<?= htmlspecialchars($me['foto_url']) ?>" alt="" class="user-avatar zoomable" style="width:104px;height:104px;border-radius:50%;object-fit:cover;">
       <?php else: ?>
-        <?= user_avatar(null, $me['nama'], 96) ?>
+        <?= user_avatar(null, $me['nama'], 104) ?>
       <?php endif; ?>
-      <h4 class="mt-2 mb-0 d-inline-flex align-items-center gap-1" style="justify-content:center;flex-wrap:wrap">
+      <h4 class="mt-3 mb-1 d-inline-flex align-items-center gap-2" style="justify-content:center;flex-wrap:wrap">
         <span id="profNamaText"><?= htmlspecialchars($me['nama']) ?></span>
-        <button type="button" class="btn btn-sm btn-link p-0 text-secondary" id="btnEditNama"
-                title="Edit nama lengkap" style="line-height:1">
+        <button type="button" class="prof-edit-btn" id="btnEditNama"
+                title="Edit nama lengkap">
           <i class="bi bi-pencil-square"></i>
         </button>
       </h4>
-      <div class="small text-muted mt-1">
+      <div class="small text-muted mt-1 d-inline-flex align-items-center gap-1" style="justify-content:center;flex-wrap:wrap">
         <i class="bi bi-at"></i><span id="profUsernameText"><?= htmlspecialchars($me['username'] ?? '(belum diatur)') ?></span>
-        <button type="button" class="btn btn-sm btn-link p-0 text-secondary ms-1" id="btnEditUsername"
-                title="Edit username" style="line-height:1">
+        <button type="button" class="prof-edit-btn" id="btnEditUsername"
+                title="Edit username" style="width:22px;height:22px;font-size:.75rem">
           <i class="bi bi-pencil-square"></i>
         </button>
       </div>
@@ -407,25 +435,43 @@ include __DIR__.'/includes/header.php';
                        headers:{'X-Requested-With':'XMLHttpRequest'}})
             .then(r => r.json());
         }
+        async function askValue(title, current, hint){
+          if (typeof Swal !== 'undefined'){
+            var r = await Swal.fire({
+              title: title,
+              input: 'text',
+              inputValue: current,
+              inputPlaceholder: hint || '',
+              showCancelButton: true,
+              confirmButtonText: 'Simpan',
+              cancelButtonText: 'Batal',
+              confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--bs-primary') || '#0ea5e9'
+            });
+            return r.isConfirmed ? (r.value||'').trim() : null;
+          }
+          var v = window.prompt(title, current);
+          return v === null ? null : v.trim();
+        }
         function inlineEdit(btnId, txtId, action, field, promptLabel, validator){
           var btn = document.getElementById(btnId);
           if (!btn) return;
-          btn.addEventListener('click', function(){
+          btn.addEventListener('click', async function(){
             var cur = document.getElementById(txtId).textContent.trim();
             if (cur === '(belum diatur)') cur = '';
-            var val = window.prompt(promptLabel, cur);
+            var val = await askValue(promptLabel, cur);
             if (val === null) return;
-            val = val.trim();
             var vErr = validator ? validator(val) : null;
-            if (vErr) { alert(vErr); return; }
+            if (vErr) { if (typeof Swal !== 'undefined') Swal.fire('Format salah', vErr, 'warning'); else alert(vErr); return; }
             btn.disabled = true;
             postField(action, field, val).then(function(j){
               if (j && j.ok) {
                 document.getElementById(txtId).textContent = j[field] || val;
+                if (typeof Swal !== 'undefined') Swal.fire({icon:'success', title:'Tersimpan', timer:1200, showConfirmButton:false});
               } else {
-                alert((j && j.err) || 'Gagal menyimpan.');
+                var msg = (j && j.err) || 'Gagal menyimpan.';
+                if (typeof Swal !== 'undefined') Swal.fire('Gagal', msg, 'error'); else alert(msg);
               }
-            }).catch(function(){ alert('Gagal jaringan.'); })
+            }).catch(function(){ if (typeof Swal !== 'undefined') Swal.fire('Error', 'Gagal jaringan.', 'error'); else alert('Gagal jaringan.'); })
               .finally(function(){ btn.disabled = false; });
           });
         }
@@ -435,12 +481,16 @@ include __DIR__.'/includes/header.php';
           function(v){ if (!/^[a-z0-9._]{3,40}$/.test(v)) return 'Format username tidak valid.'; return null; });
       })();
       </script>
-      <div class="mt-2"><span class="pill">Level <?= $level ?></span>
+      <div class="prof-badges">
+        <span class="pill">Level <?= $level ?></span>
         <span class="pill" data-bs-toggle="tooltip" title="Streak (mgg) = jumlah minggu berturut-turut Anda upload aktivitas atau hadir di sesi. Reset jika 1 minggu kosong.">🔥 <?= (int)$me['streak_minggu'] ?> minggu</span>
-        <span class="pill">⭐ <?= $xp ?> XP</span></div>
+        <span class="pill">⭐ <?= $xp ?> XP</span>
+      </div>
       <?php /* Revisi R4 (Juli 2026) — Paket Member + Masa Aktif (auto downgrade jika expired) */ ?>
-      <div class="mt-2"><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($me)) ?></div>
-      <div class="mt-1"><span class="small text-muted">Masa Expire:</span> <?= paket_expiry_label($me) ?></div>
+      <div class="prof-section">
+        <div><span class="small text-muted">Paket Member:</span> <?= paket_badge(paket_user($me)) ?></div>
+        <div class="mt-1 small"><span class="text-muted">Masa Expire:</span> <?= paket_expiry_label($me) ?></div>
+      </div>
       <?php /* Revisi R2 (Juli 2026) — Tampilkan komunitas member (mendukung multi-komunitas). */ ?>
       <?php
         $__mkl = [];
@@ -452,21 +502,25 @@ include __DIR__.'/includes/header.php';
         }
       ?>
       <?php if ($__mkl): ?>
-        <div class="mt-2">
+        <div class="prof-section">
           <span class="small text-muted d-block mb-1"><i class="bi bi-people-fill text-success"></i> Komunitas Saya:</span>
-          <?php foreach($__mkl as $__k): ?>
-            <span class="badge bg-success-subtle text-success border me-1"><i class="bi bi-people-fill"></i> <?= htmlspecialchars($__k['nama']) ?></span>
-          <?php endforeach; ?>
+          <div class="prof-komunitas-wrap">
+            <?php foreach($__mkl as $__k): ?>
+              <span class="badge bg-success-subtle text-success border"><i class="bi bi-people-fill"></i> <?= htmlspecialchars($__k['nama']) ?></span>
+            <?php endforeach; ?>
+          </div>
         </div>
       <?php endif; ?>
 
-      <?php if (paket_user($me) !== 'komunitas'): ?>
-        <div class="mt-1"><a class="btn btn-sm btn-outline-primary" href="/paket_upgrade.php"><i class="bi bi-stars"></i> Upgrade / Perpanjang</a></div>
-      <?php else: ?>
-        <div class="mt-1"><a class="btn btn-sm btn-outline-success" href="/paket_upgrade.php"><i class="bi bi-arrow-repeat"></i> Perpanjang Paket</a></div>
-      <?php endif; ?>
-      <div class="xp-bar mt-2"><div style="width:<?= min(100,$xpInLevel/2) ?>%"></div></div>
-      <small class="text-muted">Butuh <?= $xpToNext ?> XP lagi ke Level <?= $level+1 ?></small>
+      <div class="prof-actions mt-3">
+        <?php if (paket_user($me) !== 'komunitas'): ?>
+          <a class="btn btn-sm btn-outline-primary" href="/paket_upgrade.php"><i class="bi bi-stars"></i> Upgrade / Perpanjang</a>
+        <?php else: ?>
+          <a class="btn btn-sm btn-outline-success" href="/paket_upgrade.php"><i class="bi bi-arrow-repeat"></i> Perpanjang Paket</a>
+        <?php endif; ?>
+      </div>
+      <div class="xp-bar mt-3"><div style="width:<?= min(100,$xpInLevel/2) ?>%"></div></div>
+      <small class="text-muted d-block mt-1">Butuh <?= $xpToNext ?> XP lagi ke Level <?= $level+1 ?></small>
 
       <div class="mt-3">
         <a href="/logout.php" class="btn btn-outline-danger w-100" onclick="return confirm('Keluar dari akun?')">

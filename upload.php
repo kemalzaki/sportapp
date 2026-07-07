@@ -497,4 +497,49 @@ function showBukti(src, date){
 })();
 </script>
 
+<?php /* Revisi Nov 2026 — Pagination 5 baris per halaman untuk tabel "Aktivitas Saya" */ ?>
+<script>
+(function(){
+  document.querySelectorAll('table[data-paginate]').forEach(function(tbl){
+    var n = parseInt(tbl.dataset.paginate||'0', 10); if (!n) return;
+    var tbody = tbl.tBodies[0]; if (!tbody) return;
+    var rows = Array.from(tbody.rows).filter(function(r){ return !r.classList.contains('pg-ctl'); });
+    if (rows.length <= n) return;
+    var pages = Math.ceil(rows.length / n);
+    var cur = 1;
+    var ctl = document.createElement('tr');
+    ctl.className = 'pg-ctl';
+    var td = document.createElement('td');
+    td.colSpan = (tbl.tHead && tbl.tHead.rows[0]) ? tbl.tHead.rows[0].cells.length : rows[0].cells.length;
+    td.className = 'text-center small bg-light';
+    ctl.appendChild(td); tbody.appendChild(ctl);
+    function render(){
+      rows.forEach(function(r,i){
+        var p = Math.floor(i / n) + 1;
+        r.style.display = (p === cur) ? '' : 'none';
+      });
+      var btns = '';
+      for (var p=1; p<=pages; p++){
+        btns += '<button type="button" class="btn btn-sm '+(p===cur?'btn-primary':'btn-outline-secondary')+' mx-1" data-pg="'+p+'">'+p+'</button>';
+      }
+      td.innerHTML =
+        '<button type="button" class="btn btn-sm btn-outline-secondary me-2" data-pg="prev" '+(cur===1?'disabled':'')+'>&laquo; Prev</button>'+
+        btns +
+        '<button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-pg="next" '+(cur===pages?'disabled':'')+'>Next &raquo;</button>'+
+        '<div class="text-muted mt-1">Halaman '+cur+' dari '+pages+' &middot; '+rows.length+' aktivitas</div>';
+      td.querySelectorAll('[data-pg]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var v = b.dataset.pg;
+          if (v === 'prev') cur = Math.max(1, cur-1);
+          else if (v === 'next') cur = Math.min(pages, cur+1);
+          else cur = parseInt(v,10)||1;
+          render();
+        });
+      });
+    }
+    render();
+  });
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

@@ -17,6 +17,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require __DIR__.'/includes/islami_helpers.php';
 send_security_headers(); require_login();
 $pageTitle = 'Monitoring Tahajud & Duha Bulanan';
 $u = current_user();
@@ -133,6 +134,7 @@ include __DIR__.'/includes/header.php'; ?>
         <thead class="table-light" style="position:sticky; top:0; z-index:2;">
           <tr>
             <th style="width:60px">Tgl</th>
+            <th style="width:150px">Tgl Hijriyah</th>
             <th style="width:110px">Tahajud 🌙</th>
             <th style="width:90px">Duha ☀️</th>
             <th style="min-width:160px">Catatan</th>
@@ -147,9 +149,13 @@ include __DIR__.'/includes/header.php'; ?>
             $isToday = $tgl === $ssToday;
             $isFuture= $tgl > $ssToday;
             $ev  = $evalMap[$tgl] ?? '';
+            // Revisi Nov 2026 — tampilkan tanggal Hijriyah paralel per baris.
+            $hij = masehi_ke_hijriyah(new DateTime($tgl));
+            $hijLabel = $hij['hari'].' '.hijriyah_nama_bulan($hij['bulan']).' '.$hij['tahun'].' H';
         ?>
           <tr class="<?= $isToday?'table-warning':'' ?>">
             <td class="fw-semibold"><?= $d ?><?php if($isToday): ?><br><small class="badge bg-warning text-dark">Hari ini</small><?php endif; ?></td>
+            <td class="small text-muted"><?= htmlspecialchars($hijLabel) ?></td>
             <td>
               <button type="button" class="btn btn-sm <?= $tj?'btn-primary':'btn-outline-secondary' ?> ss-btn"
                       data-jenis="tahajud" data-tgl="<?= $tgl ?>" <?= $isFuture?'disabled':'' ?>

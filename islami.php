@@ -155,10 +155,11 @@ $pageSkeleton = 'feed';
 
 <!-- Revisi 17 Juni 2026 — Tanya Jawab Islami (dipindah ke bawah sapaan, di atas grid menu) -->
 
-<div class="card shadow-sm mb-3 border-success">
-  <div class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
+<details class="card shadow-sm mb-3 border-success">
+  <summary class="card-header bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:revert">
     <span><i class="bi bi-patch-question-fill"></i> <strong>Tanya Jawab Islami</strong> &mdash; bertanya kepada AI berbasis Al-Qur'an &amp; Hadist</span>
-  </div>
+    <small class="text-muted">(klik untuk buka/tutup)</small>
+  </summary>
   <div class="card-body">
     <form id="tanyaForm" class="vstack gap-2 mb-2">
       <textarea id="tanyaInput" class="form-control" rows="3" placeholder="Contoh: Apa hukum shalat di kendaraan saat safar? atau Bagaimana adab makan menurut sunnah Rasulullah?" required></textarea>
@@ -199,7 +200,7 @@ $pageSkeleton = 'feed';
     </div>
     <?php endif; ?>
   </div>
-</div>
+</details>
 
 <!-- Revisi 22 Juni 2026 R12 — Pada tampilan MOBILE (<768px), countdown Hari Raya &
      Peristiwa dipindah ke atas (di bawah Tanya Jawab Islami). Di desktop tetap
@@ -218,8 +219,8 @@ $pageSkeleton = 'feed';
     ['Arafah (9 Dzulhijjah)',       hijri_event_to_gregorian(12,9), 'cdArafah', 'warning'],
   ];
 ?>
-<div class="card shadow-sm mb-3 d-md-none">
-  <div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya &amp; Peristiwa</div>
+<details class="card shadow-sm mb-3 d-md-none">
+  <summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya &amp; Peristiwa <small class="text-muted">(klik untuk buka/tutup)</small></summary>
   <div class="card-body">
     <?php foreach ($cdEvents as $e): ?>
       <div class="mb-1 small"><strong class="text-<?= $e[3] ?>"><?= $e[0] ?></strong>
@@ -227,7 +228,7 @@ $pageSkeleton = 'feed';
         <span id="<?= $e[2] ?>_m">…</span></div>
     <?php endforeach; ?>
   </div>
-</div>
+</details>
 <script>
 (function(){
   var form = document.getElementById('tanyaForm');
@@ -426,7 +427,7 @@ $renderKartu = function(array $it) {
   </div>
   <div class="col-md-5">
     <!-- Revisi 22 Juni 2026 R12 — Di mobile disembunyikan (sudah ada di atas). Di desktop tetap muncul. -->
-    <div class="card shadow-sm d-none d-md-block"><div class="card-header"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya & Peristiwa</div><div class="card-body">
+    <details class="card shadow-sm d-none d-md-block"><summary class="card-header" style="cursor:pointer;list-style:revert"><i class="bi bi-hourglass-split text-success"></i> Countdown Hari Raya & Peristiwa <small class="text-muted">(klik untuk buka/tutup)</small></summary><div class="card-body">
       <?php
         // $cdEvents sudah dideklarasikan di blok mobile sebelumnya.
         foreach ($cdEvents as $e): ?>
@@ -434,7 +435,7 @@ $renderKartu = function(array $it) {
             <span class="text-muted">(<?= $e[1]->format('d M Y') ?>)</span>:
             <span id="<?= $e[2] ?>">…</span></div>
       <?php endforeach; ?>
-    </div></div>
+    </div></details>
 
     <?php if ($u): ?>
     <div class="card shadow-sm mt-3"><div class="card-header"><i class="bi bi-sliders text-primary"></i> Preferensi</div><div class="card-body">
