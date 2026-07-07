@@ -694,7 +694,7 @@ $__hideSuper = scope_is_superduper_kom_member();
   <div class="d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1" style="min-width:240px;">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <span class="badge-soft" style="background:rgba(255,255,255,.18);color:#fff;"><i class="bi bi-stars me-1"></i> KawanKeringat AppSport</span>
+        <span class="badge-soft" style="display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.95);color:#0369a1;border:1px solid rgba(255,255,255,.9);padding:.3rem .7rem;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.02em;box-shadow:0 2px 8px rgba(15,23,42,.12);"><i class="bi bi-stars"></i> KawanKeringat AppSport</span>
       </div>
       <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Halo, <?= htmlspecialchars($u['nama'] ?? 'Sobat') ?>! 👋</h1>
       <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">Selamat datang Mahasiswa &amp; Pecinta Olahraga.</p>
@@ -880,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- REVISI 31 Mei 2026: Total Visitor -->
 <div class="row g-3 mb-3">
   <div class="col-12 col-md-6">
-    <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff;">
+    <div class="card shadow-sm border-0 text-white" style="background:linear-gradient(135deg,#22c55e,#0ea5e9) !important;color:#fff !important;border-radius:20px;overflow:hidden;">
       <div class="card-body d-flex align-items-center gap-3">
         <div style="font-size:2rem"><i class="bi bi-people"></i></div>
         <div class="flex-grow-1">

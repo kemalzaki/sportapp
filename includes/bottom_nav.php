@@ -22,7 +22,6 @@ if (!function_exists('_gj_active')) {
 }
 ?>
 <link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
-<link rel="stylesheet" href="/assets/css/redesign-2026.css?v=nov2026">
 <style>
 /* Revisi 28 Juni 2026 + R4 (Juli 2026) — Rapikan PWA Bottom Nav (mobile):
    - Tinggi seragam, label tidak terpotong
@@ -220,3 +219,26 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
   animation: none !important; mix-blend-mode: normal;
 }
 </style>
+
+<style id="gj-fab-fix-nov2026">
+/* Revisi Nov 2026 Batch 2 — perbaikan tampilan FAB Upload di bottom nav.
+   Menjamin FAB sejajar dgn item lain (tidak "melayang" menutup konten),
+   ikon terlihat kontras, dan label "Upload" tidak tertimpa lingkaran. */
+.gj-nav .gj-fab{
+  top:auto !important; margin-top:0 !important; transform:none !important;
+  padding:6px 2px !important; gap:3px !important;
+}
+.gj-nav .gj-fab .gj-fab-inner{
+  width:34px !important; height:34px !important;
+  border:0 !important; box-shadow:0 2px 6px rgba(15,23,42,.18) !important;
+  margin:0 !important; position:relative !important; top:auto !important;
+  background:var(--bs-primary,#0ea5e9) !important; color:#fff !important;
+  font-size:1rem !important;
+}
+.gj-nav .gj-fab .gj-fab-label{
+  color:var(--bs-primary,#0ea5e9) !important;
+  font-size:.7rem !important; font-weight:600 !important;
+  line-height:1.05 !important; white-space:nowrap;
+}
+</style>
+
