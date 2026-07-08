@@ -20,30 +20,16 @@ if (!function_exists('_gj_active')) {
   }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=r27-fab">
+<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=audit-nov2026">
+<?php /* Semua styling .gj-nav / .gj-fab / .gj-fab-inner / .gj-label ada di
+        gojek-nav.css (SOURCE OF TRUTH). Jangan tambahkan <style> lokal
+        yang menimpa selector di atas. */ ?>
 <style>
-/* Bottom nav tetap fixed & tidak tertutup konten (padding disinkronkan di gojek-nav.css) */
-.gj-nav{ position:fixed; left:0; right:0; bottom:0; z-index:1080; }
-
-
-
-/* Drawer menu — netralkan ikon ke warna tema */
+/* Drawer menu — netralkan ikon ke warna tema (bukan bagian bottom nav) */
 .gt-drawer .list-group-item i.bi,
-.gt-drawer .list-group-item .bi{ color: var(--bs-primary,#0ea5e9) !important; }
+.gt-drawer .list-group-item .bi{ color: var(--bs-primary,#0ea5e9); }
 .gt-drawer .list-group-item i.bi-chevron-down,
-.gt-drawer .list-group-item i.bi-chevron-up{ color: var(--bs-secondary-color,#64748b) !important; }
-
-/* Dark mode */
-[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e2937; }
-[data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
-[data-bs-theme=dark] .gj-nav .gj-item .gj-ico i{ color:#e2e8f0 !important; }
-[data-bs-theme=dark] .gj-nav .gj-item .gj-label{ color:#cbd5e1; }
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i,
-[data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#38bdf8) !important; }
-
-/* Sembunyikan di desktop besar */
-@media (min-width: 992px){ .gj-nav{ display:none; } body{ padding-bottom:0 !important; } }
+.gt-drawer .list-group-item i.bi-chevron-up{ color: var(--bs-secondary-color,#64748b); }
 </style>
 <nav class="gj-nav" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">
@@ -75,8 +61,8 @@ if (!function_exists('_gj_active')) {
   </a>
 </nav>
 
-<?php /* Kompat lama: beberapa CSS/JS legacy masih cari .bottom-nav */ ?>
-<div class="bottom-nav d-none" aria-hidden="true"></div>
+<?php /* Legacy .bottom-nav placeholder dihapus: semua CSS legacy sudah dibersihkan
+        (app-v3.css, mobile-shell.css, desktop-fix.css). */ ?>
 
 <?php /* Loading spinner kecil di samping teks item nav saat di-klik */ ?>
 <style>
@@ -91,7 +77,7 @@ if (!function_exists('_gj_active')) {
 .gj-nav .gj-item.is-loading,
 .gj-nav .gj-fab.is-loading{ opacity:.85; pointer-events:none; }
 .gj-nav .gj-item.is-loading .gj-label,
-.gj-nav .gj-fab.is-loading .gj-fab-label{ color:#0ea5e9; }
+.gj-nav .gj-fab.is-loading .gj-label{ color:#0ea5e9; }
 @keyframes gjspin { to { transform: rotate(360deg); } }
 .gj-topbar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#0ea5e9,#22d3ee);
   z-index:9999;transition:width .25s ease;box-shadow:0 0 8px #0ea5e9}
@@ -101,7 +87,7 @@ if (!function_exists('_gj_active')) {
 <script>
 (function(){
   document.querySelectorAll('.gj-nav .gj-item, .gj-nav .gj-fab').forEach(function(it){
-    var lab = it.querySelector('.gj-label, .gj-fab-label');
+    var lab = it.querySelector('.gj-label, .gj-label');
     if (lab && !lab.querySelector('.gj-spin')){
       var s = document.createElement('span');
       s.className = 'gj-spin'; s.setAttribute('aria-hidden','true');

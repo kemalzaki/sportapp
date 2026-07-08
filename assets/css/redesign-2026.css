@@ -139,77 +139,8 @@ a:hover{ color: var(--primary-dark); }
   width:4px; border-radius: 0 4px 4px 0; background: var(--primary);
 }
 
-/* --------- Bottom Navigation (premium Strava style) --------- */
-.gj-nav{
-  background: var(--surface) !important;
-  border-top: 1px solid var(--border-soft) !important;
-  border-radius: 20px 20px 0 0 !important;
-  box-shadow: 0 -6px 24px rgba(15,23,42,.08) !important;
-  min-height: 74px !important;
-  padding-top: 8px !important;
-}
-.gj-nav .gj-item{ color: var(--text-secondary) !important; transition: color .2s ease, transform .15s ease; }
-.gj-nav .gj-item .gj-ico{ color: var(--text-secondary) !important; transition: color .2s ease, transform .2s ease; }
-.gj-nav .gj-item .gj-label{ color: var(--text-secondary) !important; font-size: .7rem; }
-.gj-nav .gj-item:active{ transform: scale(.94); }
-.gj-nav .gj-item.active .gj-ico,
-.gj-nav .gj-item.active .gj-ico i{ color: var(--primary) !important; transform: translateY(-2px); }
-.gj-nav .gj-item.active .gj-label{ color: var(--primary) !important; font-weight: 700; }
-.gj-nav .gj-avatar-fb{ background: var(--primary-gradient) !important; }
-
-/* --------- Upload button di bottom nav — sejajar dengan item lain --------- */
-.gj-nav .gj-fab{
-  flex: 1 1 0 !important;
-  position: relative !important;
-  left: auto !important;
-  bottom: auto !important;
-  transform: none !important;
-  width: auto !important;
-  height: auto !important;
-  border-radius: 12px !important;
-  background: transparent !important;
-  color: var(--primary) !important;
-  border: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: .7rem !important;
-  box-shadow: none !important;
-  z-index: auto !important;
-  padding: 6px 4px !important;
-  gap: 2px !important;
-  transition: background .15s ease, transform .15s ease;
-}
-.gj-nav .gj-fab:hover{
-  background: var(--primary-soft) !important;
-  filter: none;
-  color: var(--primary) !important;
-}
-.gj-nav .gj-fab:active{ transform: scale(.94) !important; }
-.gj-nav .gj-fab .gj-fab-inner{
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 50% !important;
-  background: var(--primary-gradient) !important;
-  color: #fff !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 1rem !important;
-  box-shadow: var(--shadow-sm) !important;
-  border: none !important;
-}
-.gj-nav .gj-fab .gj-fab-label{
-  color: var(--primary) !important;
-  font-size: .7rem !important;
-  font-weight: 600 !important;
-  line-height: 1.05 !important;
-}
-.gj-nav .gj-fab i, .gj-nav .gj-fab .gj-fab-inner i{ color: #fff !important; }
-
-/* Ruang bawah body disesuaikan dengan tinggi nav */
-body{ padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+/* Bottom Navigation rules DIPINDAH ke gojek-nav.css (source of truth).
+   Jangan tambahkan rule .gj-nav / .gj-fab / .gj-fab-inner / .gj-label di sini. */
 
 
 /* --------- Icon aktif / nav item generic --------- */

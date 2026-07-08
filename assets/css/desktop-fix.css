@@ -61,7 +61,7 @@ pre, code {
 }
 
 /* Hindari elemen dengan posisi fixed meluap */
-[class*="position-fixed"], .fixed-top, .fixed-bottom, .bottom-nav {
+[class*="position-fixed"], .fixed-top, .fixed-bottom {
   max-width: 100vw;
 }
 

@@ -1,36 +1,7 @@
 /* SportApp v3 — additive styles (sticky bottom nav, FAB, swipe cards, etc.) */
 
-body { padding-bottom: 80px; }
 
-/* ---------- Sticky bottom nav ---------- */
-.bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
-  display: flex; justify-content: space-around; align-items: center;
-  background: #ffffffee; backdrop-filter: saturate(180%) blur(12px);
-  border-top: 1px solid #e2e8f0;
-  padding: .35rem .5rem calc(.35rem + env(safe-area-inset-bottom));
-  box-shadow: 0 -4px 16px rgba(15,23,42,.06);
-}
-.bn-item {
-  flex: 1; text-align: center; color: #475569; text-decoration: none;
-  font-size: .7rem; line-height: 1; padding: .3rem 0;
-}
-.bn-item i { display: block; font-size: 1.25rem; margin-bottom: 2px; }
-.bn-item:hover, .bn-item.active { color: #0ea5e9; }
-.bn-fab {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: linear-gradient(135deg,#0ea5e9,#6366f1); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; box-shadow: 0 8px 22px rgba(99,102,241,.45);
-  margin-top: -28px; text-decoration: none;
-  transition: transform .15s ease;
-}
-.bn-fab:hover { transform: translateY(-2px) scale(1.04); color:#fff; }
-.bn-badge {
-  position: absolute; top: 2px; right: 22%;
-  background: #ef4444; color: #fff; border-radius: 10px;
-  font-size: .6rem; padding: 1px 5px; min-width: 16px;
-}
+/* Bottom nav legacy (.bottom-nav / .bn-*) DIHAPUS — lihat gojek-nav.css */
 
 /* ---------- Swipe cards (horizontal scroll) ---------- */
 .swipe-row {
@@ -107,8 +78,6 @@ body { padding-bottom: 80px; }
 [data-bs-theme=dark] .text-muted, [data-bs-theme=dark] .text-secondary { color:#94a3b8 !important; }
 [data-bs-theme=dark] .pill, [data-bs-theme=dark] .chat-bubble { background:#1f2937; color:#e5e7eb; }
 [data-bs-theme=dark] .badge-soft { background:#1e3a8a33; color:#93c5fd; }
-[data-bs-theme=dark] .bottom-nav { background:#0f172aee; border-color:#1f2937; }
-[data-bs-theme=dark] .bn-item { color:#94a3b8; }
 [data-bs-theme=dark] .ql-toolbar, [data-bs-theme=dark] .ql-container { background:#0f172a; color:#e5e7eb; border-color:#1f2937; }
 [data-bs-theme=dark] .alert-info { background:#0c2a4a; color:#bfdbfe; border-color:#1e40af; }
 [data-bs-theme=dark] .alert-success { background:#052e1a; color:#86efac; border-color:#065f46; }

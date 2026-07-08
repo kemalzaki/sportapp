@@ -1,62 +1,107 @@
-/* Revisi R27 (Juli 2026) — gojek-nav.css
-   FAB Upload didesain ulang bergaya Strava:
-   - Satu lingkaran biru (~58px), TANPA background putih / glow / label di dalam
-   - Ikon "+" putih di tengah, shadow lembut
-   - Naik hanya 8px dari bar, menyatu visual dengan bottom navigation
-   - Label "Upload" hidup di baris label bar, sejajar item lain
-   - Tap membuka bottom sheet (lihat bottom_nav.php) */
-:root { --gj-h: 64px; --gj-fab-size: 58px; --gj-fab-lift: 8px; }
-html, body { min-height: 100%; }
-body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !important; }
+/* =============================================================
+ * gojek-nav.css — SINGLE SOURCE OF TRUTH untuk Bottom Navigation
+ * -------------------------------------------------------------
+ * Revisi Juli 2026 (audit BN):
+ *  - Semua rule .gj-nav / .gj-fab / .gj-fab-inner / .gj-label
+ *    HANYA berada di file ini. File lain (redesign-2026.css,
+ *    app-v3.css, mobile-shell.css, desktop-fix.css) tidak lagi
+ *    boleh menyentuh selector di atas.
+ *  - Tidak ada !important. Konflik diselesaikan dengan
+ *    membersihkan file lain, bukan menaikkan specificity.
+ *  - Layout Flexbox: 5 item lebar sama (flex:1 1 0), termasuk
+ *    tombol Upload. FAB = lingkaran biru 58px, shadow lembut,
+ *    label "Upload" sejajar dengan label menu lain.
+ * ============================================================= */
 
-.gj-nav{
-  position:fixed; left:0; right:0; bottom:0; z-index:1080;
-  height: var(--gj-h);
-  display:flex; align-items:stretch; justify-content:space-around;
-  background:#fff;
-  border-top:1px solid #e5e7eb;
-  box-shadow:0 -4px 16px rgba(15,23,42,.06);
-  padding: 4px 6px env(safe-area-inset-bottom, 0px);
+:root{
+  --gj-h: 64px;
+  --gj-fab-size: 58px;   /* diameter FAB (±56–60px sesuai spec) */
+  --gj-fab-lift: 8px;    /* seberapa naik dari bar */
+  --gj-color: #0ea5e9;
+  --gj-color-strong: #0284c7;
+  --gj-bg: #ffffff;
+  --gj-border: #e5e7eb;
+  --gj-muted: #64748b;
 }
-[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e2937; }
 
+html, body { min-height: 100%; }
+body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)); }
+
+/* ---------- Bar ---------- */
+.gj-nav{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 1080;
+  height: var(--gj-h);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;   /* 5 kolom sama lebar via flex:1 */
+  background: var(--gj-bg);
+  border-top: 1px solid var(--gj-border);
+  box-shadow: 0 -4px 16px rgba(15,23,42,.06);
+  padding: 4px 6px env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+
+/* ---------- Item (5 kolom, lebar sama) ---------- */
 .gj-nav .gj-item,
 .gj-nav .gj-fab{
-  flex:1 1 0; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:2px;
-  text-decoration:none; color:inherit; font-size:11px; line-height:1.1;
-  padding:6px 4px; border-radius:12px;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--gj-muted);
+  font-size: 11px;
+  line-height: 1.1;
+  background: transparent;
+  border: none;
 }
-.gj-nav .gj-item{ transition:background .15s ease; }
-.gj-nav .gj-item:hover{ background:rgba(14,165,233,.07); }
+.gj-nav .gj-item{ transition: background .15s ease, color .15s ease; }
+.gj-nav .gj-item:hover{ background: rgba(14,165,233,.07); }
 
 .gj-nav .gj-ico{
-  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem;
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  color: var(--gj-color);
 }
-.gj-nav .gj-ico i{ color:inherit; }
+.gj-nav .gj-ico i{ color: inherit; }
+
 .gj-nav .gj-label{
-  font-size:.7rem; line-height:1.05; max-width:100%;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size: .7rem;
+  line-height: 1.05;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gj-muted);
 }
 
-/* ===== FAB Upload — Strava style, tunggal & menyatu ===== */
+/* ---------- Active ---------- */
+.gj-nav .gj-item.active .gj-ico,
+.gj-nav .gj-item.active .gj-ico i{ color: var(--gj-color); }
+.gj-nav .gj-item.active .gj-label{ color: var(--gj-color); font-weight: 600; }
+
+/* ---------- FAB Upload (lingkaran biru, sejajar) ---------- */
 .gj-nav .gj-fab{
-  background: transparent !important;
-  color: var(--bs-primary,#0ea5e9);
-  justify-content: flex-end; /* label rapat ke bawah, ikon naik */
+  color: var(--gj-color);
+  justify-content: flex-end;   /* ikon naik, label rapat ke bawah */
   gap: 3px;
   padding-top: 0;
 }
-.gj-nav .gj-fab:hover{ background: transparent !important; }
-
 .gj-nav .gj-fab .gj-fab-inner{
   width: var(--gj-fab-size);
   height: var(--gj-fab-size);
   border-radius: 50%;
-  display:flex; align-items:center; justify-content:center;
-  background: #0284c7;                 /* biru Strava-esque */
-  color:#fff;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gj-color-strong);
+  color: #fff;
   margin-top: calc(-1 * var(--gj-fab-lift));
   box-shadow:
     0 6px 14px rgba(2,132,199,.28),
@@ -69,9 +114,10 @@ body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !imp
   font-size: 1.6rem;
   line-height: 1;
   font-weight: 700;
+  color: #fff;
 }
 .gj-nav .gj-fab:hover .gj-fab-inner{
-  background:#0369a1;
+  background: #0369a1;
   box-shadow:
     0 8px 18px rgba(2,132,199,.34),
     0 2px 6px rgba(15,23,42,.12);
@@ -81,99 +127,101 @@ body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !imp
 .gj-nav .gj-fab.is-pressed .gj-fab-inner{ transform: scale(.94); }
 
 .gj-nav .gj-fab .gj-label{
-  color: var(--bs-primary,#0ea5e9);
+  color: var(--gj-color);
   font-weight: 600;
 }
 
+/* ---------- Avatar item "Saya" ---------- */
+.gj-nav .gj-avatar,
+.gj-nav .gj-avatar-fb{
+  width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  object-fit: cover;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  color: #fff; font-weight: 700; font-size: .75rem;
+}
+
+/* ---------- Notif badge ---------- */
+.gj-nav .gj-badge{
+  position: absolute;
+  top: 4px; right: 22%;
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  background: #ef4444; color: #fff;
+  border-radius: 999px;
+  font-size: .6rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* ---------- Dark mode ---------- */
+[data-bs-theme=dark] .gj-nav{
+  background: #0f172a;
+  border-top-color: #1e2937;
+}
+[data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
+[data-bs-theme=dark] .gj-nav .gj-item .gj-ico i,
+[data-bs-theme=dark] .gj-nav .gj-item .gj-label{ color: #cbd5e1; }
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico,
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i,
+[data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color: #38bdf8; }
 [data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{
   background: #0ea5e9;
   box-shadow:
     0 6px 14px rgba(2,132,199,.45),
     0 2px 4px rgba(0,0,0,.35);
 }
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-label{ color:#7dd3fc; }
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-label{ color: #7dd3fc; }
 
-/* Warna aktif */
-.gj-nav .gj-item .gj-ico,
-.gj-nav .gj-item .gj-ico i{ color: var(--bs-primary,#0ea5e9) !important; }
-.gj-nav .gj-item.active .gj-ico,
-.gj-nav .gj-item.active .gj-ico i{ color:var(--bs-primary,#0ea5e9) !important; }
-.gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#0ea5e9); font-weight:600; }
-
-/* Avatar Profil */
-.gj-avatar{ width:24px; height:24px; border-radius:50%; object-fit:cover; }
-.gj-avatar-fb{
-  width:24px; height:24px; border-radius:50%; background:var(--bs-primary,#0ea5e9); color:#fff;
-  display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
-}
-.gj-badge{
-  position:absolute; top:4px; right:18%;
-  background:#dc3545; color:#fff; font-size:10px; line-height:1;
-  padding:3px 6px; border-radius:999px; min-width:18px; text-align:center;
-}
-
+/* ---------- Sembunyikan di desktop besar ---------- */
 @media (min-width: 992px){
-  .gj-nav{ display:none; }
-  body{ padding-bottom:0 !important; }
+  .gj-nav{ display: none; }
+  body{ padding-bottom: 0; }
 }
 
-/* ===== Bottom Sheet Upload ===== */
+/* ---------- Bottom sheet Upload (dipakai bottom_nav.php) ---------- */
 .gj-sheet-backdrop{
-  position:fixed; inset:0; background:rgba(15,23,42,.45);
-  opacity:0; pointer-events:none; transition:opacity .2s ease;
-  z-index:1090;
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,.45);
+  opacity: 0; transition: opacity .2s ease;
+  z-index: 1090;
 }
-.gj-sheet-backdrop.open{ opacity:1; pointer-events:auto; }
-
+.gj-sheet-backdrop.open{ opacity: 1; }
 .gj-sheet{
-  position:fixed; left:0; right:0; bottom:0; z-index:1091;
-  background:#fff; color:#0f172a;
-  border-top-left-radius:20px; border-top-right-radius:20px;
-  box-shadow:0 -12px 32px rgba(15,23,42,.18);
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 1091;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   transform: translateY(100%);
-  transition: transform .25s cubic-bezier(.22,.61,.36,1);
-  padding: 8px 16px calc(20px + env(safe-area-inset-bottom,0px));
-  max-height: 80vh; overflow:auto;
+  transition: transform .25s ease;
+  box-shadow: 0 -12px 32px rgba(15,23,42,.18);
 }
 .gj-sheet.open{ transform: translateY(0); }
-.gj-sheet .gj-sheet-handle{
-  width:44px; height:5px; border-radius:999px; background:#cbd5e1;
-  margin:8px auto 14px;
+.gj-sheet-handle{
+  width: 40px; height: 4px; margin: 0 auto 10px;
+  border-radius: 999px; background: #cbd5e1;
 }
-.gj-sheet .gj-sheet-title{
-  font-size:.95rem; font-weight:700; color:#0f172a; margin:0 4px 10px;
+.gj-sheet-title{ font-weight: 700; margin-bottom: 10px; }
+.gj-sheet-grid{
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
 }
-.gj-sheet .gj-sheet-grid{
-  display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
+.gj-sheet-item{
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; border-radius: 14px;
+  background: #f8fafc; text-decoration: none; color: inherit;
+  border: 1px solid #e2e8f0;
 }
-.gj-sheet .gj-sheet-item{
-  display:flex; align-items:center; gap:12px;
-  padding:14px; border-radius:14px;
-  background:#f1f5f9; color:#0f172a; text-decoration:none;
-  transition: background .15s ease, transform .15s ease;
+.gj-sheet-ic{
+  width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.1rem;
 }
-.gj-sheet .gj-sheet-item:hover{ background:#e2e8f0; }
-.gj-sheet .gj-sheet-item:active{ transform: scale(.97); }
-.gj-sheet .gj-sheet-ic{
-  width:40px; height:40px; border-radius:12px;
-  display:inline-flex; align-items:center; justify-content:center;
-  color:#fff; font-size:1.15rem; flex-shrink:0;
-}
-.gj-sheet .gj-sheet-ic.b1{ background:#0284c7; }
-.gj-sheet .gj-sheet-ic.b2{ background:#059669; }
-.gj-sheet .gj-sheet-ic.b3{ background:#db2777; }
-.gj-sheet .gj-sheet-ic.b4{ background:#d97706; }
-.gj-sheet .gj-sheet-txt{ display:flex; flex-direction:column; }
-.gj-sheet .gj-sheet-txt b{ font-size:.9rem; font-weight:700; line-height:1.15; }
-.gj-sheet .gj-sheet-txt span{ font-size:.75rem; color:#64748b; line-height:1.2; }
-
-[data-bs-theme=dark] .gj-sheet{ background:#0f172a; color:#e2e8f0; }
-[data-bs-theme=dark] .gj-sheet .gj-sheet-title{ color:#e2e8f0; }
-[data-bs-theme=dark] .gj-sheet .gj-sheet-handle{ background:#334155; }
-[data-bs-theme=dark] .gj-sheet .gj-sheet-item{ background:#1e293b; color:#e2e8f0; }
-[data-bs-theme=dark] .gj-sheet .gj-sheet-item:hover{ background:#243447; }
-[data-bs-theme=dark] .gj-sheet .gj-sheet-txt span{ color:#94a3b8; }
-
-@media (min-width: 992px){
-  .gj-sheet, .gj-sheet-backdrop{ display:none; }
-}
+.gj-sheet-ic.b1{ background:#0ea5e9; }
+.gj-sheet-ic.b2{ background:#22c55e; }
+.gj-sheet-ic.b3{ background:#a855f7; }
+.gj-sheet-ic.b4{ background:#f59e0b; }
+.gj-sheet-txt b{ display:block; font-size:.9rem; }
+.gj-sheet-txt span{ font-size:.75rem; color:#64748b; }
+[data-bs-theme=dark] .gj-sheet{ background:#0f172a; color:#e5e7eb; }
+[data-bs-theme=dark] .gj-sheet-item{ background:#111827; border-color:#1f2937; }
