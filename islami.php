@@ -390,7 +390,7 @@ $islamiKategori = [
 
 // Kategori Khusus Admin (hanya tampil sesuai role)
 $adminItems = [];
-if ($isAdmin) $adminItems[] = ['/pantau_progress_member.php','Pantau Progress Islami Member','bi-graph-up-arrow','danger','border-danger','Admin · Tahajud, Doa, Hafalan, Buku'];
+if ($isSuper) $adminItems[] = ['/pantau_progress_member.php','Pantau Progress Islami Member','bi-graph-up-arrow','danger','border-danger','Admin · Tahajud, Doa, Hafalan, Buku'];
 if ($isSuper) $adminItems[] = ['/admin/challenge.php','Kelola Challenge Islami','bi-trophy-fill','warning','border-warning','Admin · CRUD Challenge'];
 if ($adminItems) $islamiKategori['Khusus Admin'] = $adminItems;
 

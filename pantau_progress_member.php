@@ -20,7 +20,7 @@ $u = current_user();
 $pageTitle = 'Pantau Progress Islami Member';
 
 $role = strtolower($u['role'] ?? '');
-if (!in_array($role, ['admin','superadmin','koordinator','pic'], true)) {
+if ($role !== 'superadmin') {
     include __DIR__.'/includes/header.php';
     echo '<div class="alert alert-danger mt-3">Halaman ini khusus admin / koordinator.</div>';
     include __DIR__.'/includes/footer.php'; exit;

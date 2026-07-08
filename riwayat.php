@@ -1050,4 +1050,89 @@ function showEksternal(userId, nama){
 }
 </script>
 
+
+<!-- Revisi Juli 2026 — Reorder + spoiler untuk section riwayat -->
+<style>
+  .rv-spoiler-head{ cursor:pointer; user-select:none; }
+  .rv-spoiler-head .rv-chev{ transition: transform .2s ease; margin-left:.5rem; }
+  .rv-spoiler-head[aria-expanded="false"] .rv-chev{ transform: rotate(-90deg); }
+</style>
+<script>
+(function(){
+  function norm(t){ return (t||'').replace(/\s+/g,' ').trim().toLowerCase(); }
+
+  // Label yang ingin dibuat sebagai spoiler (default tertutup).
+  var SPOILER_LABELS = [
+    'monitoring upload harian',
+    'kalender aktivitas publik',
+    'kalender aktivitas saya',
+    'leaderboard',
+    'tren kehadiran mingguan',
+    'riwayat sesi',
+    'riwayat aktifitas saya',
+    'riwayat aktivitas saya'
+  ];
+
+  function matchLabel(txt){
+    return SPOILER_LABELS.some(function(l){ return txt.indexOf(l) !== -1; });
+  }
+
+  function findCardByHeader(includes){
+    var cards = document.querySelectorAll('.card');
+    for (var i=0;i<cards.length;i++){
+      var h = cards[i].querySelector(':scope > .card-header');
+      if (h && norm(h.textContent).indexOf(includes) !== -1) return cards[i];
+    }
+    return null;
+  }
+
+  function run(){
+    // 1) Pindahkan "Riwayat Aktivitas Publik" ke paling atas (tanpa spoiler)
+    var publicCard = findCardByHeader('riwayat aktivitas publik');
+    var h2 = document.querySelector('h2.mb-3');
+    if (publicCard && h2 && h2.parentNode){
+      // Bungkus supaya bisa memakai margin bawah standar
+      publicCard.classList.add('mb-3');
+      h2.parentNode.insertBefore(publicCard, h2.nextSibling);
+    }
+
+    // 2) Bungkus card lain menjadi spoiler default TERTUTUP
+    document.querySelectorAll('.card').forEach(function(card){
+      var h = card.querySelector(':scope > .card-header');
+      if (!h) return;
+      if (h.dataset.rvSpoiler === '1') return;
+      var t = norm(h.textContent);
+      if (!matchLabel(t)) return;
+      // Jangan spoiler kartu "Riwayat Aktivitas Publik"
+      if (t.indexOf('riwayat aktivitas publik') !== -1) return;
+
+      var kids = Array.from(card.children).filter(function(x){ return x !== h; });
+      if (!kids.length) return;
+      var id = 'rvspoil_' + Math.random().toString(36).slice(2,9);
+      var wrap = document.createElement('div');
+      wrap.className = 'collapse';
+      wrap.id = id;
+      kids.forEach(function(k){ wrap.appendChild(k); });
+      card.appendChild(wrap);
+      h.classList.add('rv-spoiler-head');
+      h.setAttribute('role','button');
+      h.setAttribute('aria-expanded','false');
+      h.setAttribute('aria-controls', id);
+      var chev = document.createElement('i');
+      chev.className = 'bi bi-chevron-down rv-chev float-end';
+      h.appendChild(chev);
+      h.dataset.rvSpoiler = '1';
+      h.addEventListener('click', function(ev){
+        if (ev.target.closest('button, a, input, select, textarea, form')) return;
+        var open = wrap.classList.toggle('show');
+        h.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>

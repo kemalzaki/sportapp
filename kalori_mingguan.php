@@ -1296,13 +1296,13 @@ window.addEventListener('load', function(){
       if (!kids.length) return;
       var id = 'kkspoil_' + Math.random().toString(36).slice(2,9);
       var wrap = document.createElement('div');
-      wrap.className = 'collapse show';
+      wrap.className = 'collapse';
       wrap.id = id;
       kids.forEach(function(k){ wrap.appendChild(k); });
       card.appendChild(wrap);
       h.classList.add('kk-spoiler-head');
       h.setAttribute('role','button');
-      h.setAttribute('aria-expanded','true');
+      h.setAttribute('aria-expanded','false');
       h.setAttribute('aria-controls', id);
       var chev = document.createElement('i');
       chev.className = 'bi bi-chevron-down kk-chev float-end';

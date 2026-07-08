@@ -810,7 +810,7 @@ if (empty($pageSkeleton)) {
             <?php /* Revisi Nov 2026 — Menu "Lacak HP Member" (drawer) DIHAPUS atas permintaan. */ ?>
             <?php /* Revisi Juli 2026 R3 — Pantau Progress Islami Member */ ?>
             <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/paket_pesanan.php"><i class="bi bi-receipt-cutoff text-success"></i> Pesanan Paket Member</a><?php endif; ?>
-            <a class="list-group-item list-group-item-action ps-4" href="/pantau_progress_member.php"><i class="bi bi-graph-up-arrow text-danger"></i> Pantau Progress Islami</a>
+            <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/pantau_progress_member.php"><i class="bi bi-graph-up-arrow text-danger"></i> Pantau Progress Islami</a><?php endif; ?>
             <?php /* Revisi 15 Juni 2026: menu "Riwayat Login Member" dihapus sesuai permintaan. */ ?>
           </div>
 
