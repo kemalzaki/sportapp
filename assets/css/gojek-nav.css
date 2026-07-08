@@ -1,13 +1,13 @@
-/* Revisi R26 (Juli 2026) — gojek-nav.css
-   FAB Upload didesain ulang bergaya premium (Strava/Google Fit/Instagram):
-   - Ukuran 62px, naik ~12px dari bottom nav
-   - Shadow lembut, tanpa glow putih
-   - Ikon "+" besar & tepat di tengah
-   - Label "Upload" hanya pada bar (bukan di dalam lingkaran)
-   - Animasi tekan scale(.95) 200ms */
-:root { --gj-h: 64px; --gj-fab-size: 62px; --gj-fab-lift: 12px; }
+/* Revisi R27 (Juli 2026) — gojek-nav.css
+   FAB Upload didesain ulang bergaya Strava:
+   - Satu lingkaran biru (~58px), TANPA background putih / glow / label di dalam
+   - Ikon "+" putih di tengah, shadow lembut
+   - Naik hanya 8px dari bar, menyatu visual dengan bottom navigation
+   - Label "Upload" hidup di baris label bar, sejajar item lain
+   - Tap membuka bottom sheet (lihat bottom_nav.php) */
+:root { --gj-h: 64px; --gj-fab-size: 58px; --gj-fab-lift: 8px; }
 html, body { min-height: 100%; }
-body { padding-bottom: calc(var(--gj-h) + var(--gj-fab-lift) + env(safe-area-inset-bottom, 0px)) !important; }
+body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !important; }
 
 .gj-nav{
   position:fixed; left:0; right:0; bottom:0; z-index:1080;
@@ -25,9 +25,11 @@ body { padding-bottom: calc(var(--gj-h) + var(--gj-fab-lift) + env(safe-area-ins
   flex:1 1 0; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:2px;
   text-decoration:none; color:inherit; font-size:11px; line-height:1.1;
-  padding:6px 4px; border-radius:12px; transition:background .15s ease;
+  padding:6px 4px; border-radius:12px;
 }
+.gj-nav .gj-item{ transition:background .15s ease; }
 .gj-nav .gj-item:hover{ background:rgba(14,165,233,.07); }
+
 .gj-nav .gj-ico{
   width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
   font-size:1.25rem;
@@ -38,59 +40,60 @@ body { padding-bottom: calc(var(--gj-h) + var(--gj-fab-lift) + env(safe-area-ins
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 
-/* ===== FAB Upload — Premium (Strava-like) ===== */
+/* ===== FAB Upload — Strava style, tunggal & menyatu ===== */
 .gj-nav .gj-fab{
-  position:relative;
-  color:var(--bs-primary,#0ea5e9);
-  padding-top:0;
-  background:transparent !important;
-  justify-content:flex-end;
-  gap:4px;
+  background: transparent !important;
+  color: var(--bs-primary,#0ea5e9);
+  justify-content: flex-end; /* label rapat ke bawah, ikon naik */
+  gap: 3px;
+  padding-top: 0;
 }
+.gj-nav .gj-fab:hover{ background: transparent !important; }
+
 .gj-nav .gj-fab .gj-fab-inner{
   width: var(--gj-fab-size);
   height: var(--gj-fab-size);
   border-radius: 50%;
   display:flex; align-items:center; justify-content:center;
-  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+  background: #0284c7;                 /* biru Strava-esque */
   color:#fff;
   margin-top: calc(-1 * var(--gj-fab-lift));
   box-shadow:
-    0 6px 14px rgba(2, 132, 199, .28),
-    0 2px 4px rgba(15, 23, 42, .10);
+    0 6px 14px rgba(2,132,199,.28),
+    0 2px 4px rgba(15,23,42,.10);
   border: none;
-  transition: transform .2s ease, box-shadow .2s ease;
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
   will-change: transform;
 }
 .gj-nav .gj-fab .gj-fab-inner i{
   font-size: 1.6rem;
   line-height: 1;
   font-weight: 700;
-  display:block;
 }
 .gj-nav .gj-fab:hover .gj-fab-inner{
+  background:#0369a1;
   box-shadow:
-    0 8px 18px rgba(2, 132, 199, .34),
-    0 2px 6px rgba(15, 23, 42, .12);
+    0 8px 18px rgba(2,132,199,.34),
+    0 2px 6px rgba(15,23,42,.12);
 }
 .gj-nav .gj-fab:active .gj-fab-inner,
-.gj-nav .gj-fab.is-loading .gj-fab-inner{
-  transform: scale(.95);
-}
-.gj-nav .gj-fab .gj-fab-label{
-  color:var(--bs-primary,#0ea5e9);
-  font-size:.7rem; font-weight:600; line-height:1.05;
-  white-space:nowrap;
-}
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{
-  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
-  box-shadow:
-    0 6px 14px rgba(2, 132, 199, .45),
-    0 2px 4px rgba(0, 0, 0, .35);
-}
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-label{ color:#7dd3fc; }
+.gj-nav .gj-fab.is-loading .gj-fab-inner,
+.gj-nav .gj-fab.is-pressed .gj-fab-inner{ transform: scale(.94); }
 
-/* Warna aktif & ikon mengikuti tema */
+.gj-nav .gj-fab .gj-label{
+  color: var(--bs-primary,#0ea5e9);
+  font-weight: 600;
+}
+
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{
+  background: #0ea5e9;
+  box-shadow:
+    0 6px 14px rgba(2,132,199,.45),
+    0 2px 4px rgba(0,0,0,.35);
+}
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-label{ color:#7dd3fc; }
+
+/* Warna aktif */
 .gj-nav .gj-item .gj-ico,
 .gj-nav .gj-item .gj-ico i{ color: var(--bs-primary,#0ea5e9) !important; }
 .gj-nav .gj-item.active .gj-ico,
@@ -109,9 +112,68 @@ body { padding-bottom: calc(var(--gj-h) + var(--gj-fab-lift) + env(safe-area-ins
   padding:3px 6px; border-radius:999px; min-width:18px; text-align:center;
 }
 
-/* Hanya tampil di mobile */
 @media (min-width: 992px){
   .gj-nav{ display:none; }
   body{ padding-bottom:0 !important; }
 }
 
+/* ===== Bottom Sheet Upload ===== */
+.gj-sheet-backdrop{
+  position:fixed; inset:0; background:rgba(15,23,42,.45);
+  opacity:0; pointer-events:none; transition:opacity .2s ease;
+  z-index:1090;
+}
+.gj-sheet-backdrop.open{ opacity:1; pointer-events:auto; }
+
+.gj-sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:1091;
+  background:#fff; color:#0f172a;
+  border-top-left-radius:20px; border-top-right-radius:20px;
+  box-shadow:0 -12px 32px rgba(15,23,42,.18);
+  transform: translateY(100%);
+  transition: transform .25s cubic-bezier(.22,.61,.36,1);
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  max-height: 80vh; overflow:auto;
+}
+.gj-sheet.open{ transform: translateY(0); }
+.gj-sheet .gj-sheet-handle{
+  width:44px; height:5px; border-radius:999px; background:#cbd5e1;
+  margin:8px auto 14px;
+}
+.gj-sheet .gj-sheet-title{
+  font-size:.95rem; font-weight:700; color:#0f172a; margin:0 4px 10px;
+}
+.gj-sheet .gj-sheet-grid{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
+}
+.gj-sheet .gj-sheet-item{
+  display:flex; align-items:center; gap:12px;
+  padding:14px; border-radius:14px;
+  background:#f1f5f9; color:#0f172a; text-decoration:none;
+  transition: background .15s ease, transform .15s ease;
+}
+.gj-sheet .gj-sheet-item:hover{ background:#e2e8f0; }
+.gj-sheet .gj-sheet-item:active{ transform: scale(.97); }
+.gj-sheet .gj-sheet-ic{
+  width:40px; height:40px; border-radius:12px;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:#fff; font-size:1.15rem; flex-shrink:0;
+}
+.gj-sheet .gj-sheet-ic.b1{ background:#0284c7; }
+.gj-sheet .gj-sheet-ic.b2{ background:#059669; }
+.gj-sheet .gj-sheet-ic.b3{ background:#db2777; }
+.gj-sheet .gj-sheet-ic.b4{ background:#d97706; }
+.gj-sheet .gj-sheet-txt{ display:flex; flex-direction:column; }
+.gj-sheet .gj-sheet-txt b{ font-size:.9rem; font-weight:700; line-height:1.15; }
+.gj-sheet .gj-sheet-txt span{ font-size:.75rem; color:#64748b; line-height:1.2; }
+
+[data-bs-theme=dark] .gj-sheet{ background:#0f172a; color:#e2e8f0; }
+[data-bs-theme=dark] .gj-sheet .gj-sheet-title{ color:#e2e8f0; }
+[data-bs-theme=dark] .gj-sheet .gj-sheet-handle{ background:#334155; }
+[data-bs-theme=dark] .gj-sheet .gj-sheet-item{ background:#1e293b; color:#e2e8f0; }
+[data-bs-theme=dark] .gj-sheet .gj-sheet-item:hover{ background:#243447; }
+[data-bs-theme=dark] .gj-sheet .gj-sheet-txt span{ color:#94a3b8; }
+
+@media (min-width: 992px){
+  .gj-sheet, .gj-sheet-backdrop{ display:none; }
+}

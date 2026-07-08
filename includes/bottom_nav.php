@@ -20,10 +20,11 @@ if (!function_exists('_gj_active')) {
   }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=r26-fab">
+<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=r27-fab">
 <style>
 /* Bottom nav tetap fixed & tidak tertutup konten (padding disinkronkan di gojek-nav.css) */
 .gj-nav{ position:fixed; left:0; right:0; bottom:0; z-index:1080; }
+
 
 
 /* Drawer menu — netralkan ikon ke warna tema */
@@ -53,9 +54,9 @@ if (!function_exists('_gj_active')) {
     <span class="gj-ico gj-c-stat"><i class="bi bi-bar-chart-fill"></i></span>
     <span class="gj-label">Aktivitas</span>
   </a>
-  <a href="/upload.php" class="gj-fab" aria-label="Upload aktivitas">
+  <a href="/upload.php" class="gj-fab" id="gjFabUpload" aria-label="Upload" aria-haspopup="dialog" aria-expanded="false">
     <span class="gj-fab-inner" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
-    <span class="gj-label gj-fab-label">Upload</span>
+    <span class="gj-label">Upload</span>
   </a>
   <a href="/kalori_mingguan.php" class="gj-item <?= _gj_active(['kalori_mingguan.php'], $_cur) ?>">
     <span class="gj-ico gj-c-event"><i class="bi bi-egg-fried"></i></span>
@@ -136,3 +137,77 @@ if (!function_exists('_gj_active')) {
   animation: none !important; mix-blend-mode: normal;
 }
 </style>
+
+<?php /* ===== Bottom Sheet Upload (Strava/Google Fit style) ===== */ ?>
+<div class="gj-sheet-backdrop" id="gjSheetBackdrop" hidden></div>
+<div class="gj-sheet" id="gjSheetUpload" role="dialog" aria-modal="true" aria-labelledby="gjSheetTitle" hidden>
+  <div class="gj-sheet-handle" aria-hidden="true"></div>
+  <div class="gj-sheet-title" id="gjSheetTitle">Apa yang ingin kamu unggah?</div>
+  <div class="gj-sheet-grid">
+    <a href="/upload.php" class="gj-sheet-item">
+      <span class="gj-sheet-ic b1"><i class="bi bi-activity"></i></span>
+      <span class="gj-sheet-txt"><b>Upload Aktivitas</b><span>Lari, sepeda, latihan</span></span>
+    </a>
+    <a href="/upload.php?type=foto" class="gj-sheet-item">
+      <span class="gj-sheet-ic b2"><i class="bi bi-image"></i></span>
+      <span class="gj-sheet-txt"><b>Upload Foto</b><span>Bagikan momenmu</span></span>
+    </a>
+    <a href="/upload.php?type=story" class="gj-sheet-item">
+      <span class="gj-sheet-ic b3"><i class="bi bi-camera-reels"></i></span>
+      <span class="gj-sheet-txt"><b>Story</b><span>Kilas 24 jam</span></span>
+    </a>
+    <a href="/checkin.php" class="gj-sheet-item">
+      <span class="gj-sheet-ic b4"><i class="bi bi-geo-alt-fill"></i></span>
+      <span class="gj-sheet-txt"><b>Check-in</b><span>Tandai lokasi</span></span>
+    </a>
+  </div>
+</div>
+<script>
+(function(){
+  var fab = document.getElementById('gjFabUpload');
+  var sheet = document.getElementById('gjSheetUpload');
+  var backdrop = document.getElementById('gjSheetBackdrop');
+  if (!fab || !sheet || !backdrop) return;
+
+  function open(){
+    sheet.hidden = false; backdrop.hidden = false;
+    // force reflow so transition triggers
+    void sheet.offsetWidth;
+    sheet.classList.add('open'); backdrop.classList.add('open');
+    fab.setAttribute('aria-expanded','true');
+    document.body.style.overflow = 'hidden';
+  }
+  function close(){
+    sheet.classList.remove('open'); backdrop.classList.remove('open');
+    fab.setAttribute('aria-expanded','false');
+    document.body.style.overflow = '';
+    setTimeout(function(){
+      if (!sheet.classList.contains('open')){ sheet.hidden = true; backdrop.hidden = true; }
+    }, 260);
+  }
+
+  fab.addEventListener('click', function(e){
+    if (e.metaKey||e.ctrlKey||e.shiftKey||e.button) return;
+    e.preventDefault();
+    // Batalkan efek loading/topbar dari handler navigasi umum
+    setTimeout(function(){
+      fab.classList.remove('is-loading');
+      var tb = document.getElementById('gjTopBar'); if (tb) tb.classList.remove('active');
+    }, 0);
+    fab.classList.add('is-pressed');
+    setTimeout(function(){ fab.classList.remove('is-pressed'); }, 180);
+    open();
+  });
+  backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+
+  // Swipe-down to dismiss
+  var startY = null;
+  sheet.addEventListener('touchstart', function(e){ startY = e.touches[0].clientY; }, {passive:true});
+  sheet.addEventListener('touchmove', function(e){
+    if (startY == null) return;
+    var dy = e.touches[0].clientY - startY;
+    if (dy > 60) { close(); startY = null; }
+  }, {passive:true});
+})();
+</script>
