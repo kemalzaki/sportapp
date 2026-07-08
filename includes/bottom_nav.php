@@ -20,11 +20,11 @@ if (!function_exists('_gj_active')) {
   }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=7jul2026">
+<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=r26-fab">
 <style>
-/* Bottom nav tetap fixed & tidak tertutup konten */
+/* Bottom nav tetap fixed & tidak tertutup konten (padding disinkronkan di gojek-nav.css) */
 .gj-nav{ position:fixed; left:0; right:0; bottom:0; z-index:1080; }
-body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
+
 
 /* Drawer menu — netralkan ikon ke warna tema */
 .gt-drawer .list-group-item i.bi,
@@ -54,8 +54,8 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
     <span class="gj-label">Aktivitas</span>
   </a>
   <a href="/upload.php" class="gj-fab" aria-label="Upload aktivitas">
-    <span class="gj-fab-inner"><i class="bi bi-plus-lg"></i></span>
-    <span class="gj-fab-label">Upload</span>
+    <span class="gj-fab-inner" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
+    <span class="gj-label gj-fab-label">Upload</span>
   </a>
   <a href="/kalori_mingguan.php" class="gj-item <?= _gj_active(['kalori_mingguan.php'], $_cur) ?>">
     <span class="gj-ico gj-c-event"><i class="bi bi-egg-fried"></i></span>

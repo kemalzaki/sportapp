@@ -1,9 +1,13 @@
-/* Revisi R25 (Juli 2026) — gojek-nav.css
-   Tombol Upload di bottom nav ditengah, pas, dan sejajar dengan menu lain.
-   FAB tidak lagi melayang/menonjol ke atas; ikon & label sejajar vertikal. */
-:root { --gj-h: 68px; }
+/* Revisi R26 (Juli 2026) — gojek-nav.css
+   FAB Upload didesain ulang bergaya premium (Strava/Google Fit/Instagram):
+   - Ukuran 62px, naik ~12px dari bottom nav
+   - Shadow lembut, tanpa glow putih
+   - Ikon "+" besar & tepat di tengah
+   - Label "Upload" hanya pada bar (bukan di dalam lingkaran)
+   - Animasi tekan scale(.95) 200ms */
+:root { --gj-h: 64px; --gj-fab-size: 62px; --gj-fab-lift: 12px; }
 html, body { min-height: 100%; }
-body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !important; }
+body { padding-bottom: calc(var(--gj-h) + var(--gj-fab-lift) + env(safe-area-inset-bottom, 0px)) !important; }
 
 .gj-nav{
   position:fixed; left:0; right:0; bottom:0; z-index:1080;
@@ -23,43 +27,68 @@ body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !imp
   text-decoration:none; color:inherit; font-size:11px; line-height:1.1;
   padding:6px 4px; border-radius:12px; transition:background .15s ease;
 }
-.gj-nav .gj-item:hover,
-.gj-nav .gj-fab:hover{ background:rgba(14,165,233,.07); }
-.gj-nav .gj-ico,
-.gj-nav .gj-fab .gj-fab-inner{
+.gj-nav .gj-item:hover{ background:rgba(14,165,233,.07); }
+.gj-nav .gj-ico{
   width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
   font-size:1.25rem;
 }
 .gj-nav .gj-ico i{ color:inherit; }
-.gj-nav .gj-label,
-.gj-nav .gj-fab .gj-fab-label{
+.gj-nav .gj-label{
   font-size:.7rem; line-height:1.05; max-width:100%;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 
-/* FAB Upload — sejajar dengan item lain, di tengah */
+/* ===== FAB Upload — Premium (Strava-like) ===== */
 .gj-nav .gj-fab{
+  position:relative;
   color:var(--bs-primary,#0ea5e9);
+  padding-top:0;
+  background:transparent !important;
+  justify-content:flex-end;
+  gap:4px;
 }
 .gj-nav .gj-fab .gj-fab-inner{
-  width:32px !important; height:32px !important; border-radius:50% !important;
-  background:var(--bs-primary,#0ea5e9) !important;
-  color:#fff !important;
-  font-size:1rem !important; font-weight:700 !important; line-height:1 !important;
-  box-shadow:0 2px 6px rgba(15,23,42,.18) !important;
-  border:none !important;
-  transition: transform .15s ease, filter .15s ease;
+  width: var(--gj-fab-size);
+  height: var(--gj-fab-size);
+  border-radius: 50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+  color:#fff;
+  margin-top: calc(-1 * var(--gj-fab-lift));
+  box-shadow:
+    0 6px 14px rgba(2, 132, 199, .28),
+    0 2px 4px rgba(15, 23, 42, .10);
+  border: none;
+  transition: transform .2s ease, box-shadow .2s ease;
+  will-change: transform;
 }
-.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
-.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-1px); filter:brightness(1.05); }
-.gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
+.gj-nav .gj-fab .gj-fab-inner i{
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 700;
+  display:block;
+}
+.gj-nav .gj-fab:hover .gj-fab-inner{
+  box-shadow:
+    0 8px 18px rgba(2, 132, 199, .34),
+    0 2px 6px rgba(15, 23, 42, .12);
+}
+.gj-nav .gj-fab:active .gj-fab-inner,
+.gj-nav .gj-fab.is-loading .gj-fab-inner{
+  transform: scale(.95);
+}
 .gj-nav .gj-fab .gj-fab-label{
-  color:var(--bs-primary,#0ea5e9) !important;
-  font-size:.7rem !important; font-weight:600 !important;
-  line-height:1.05 !important; white-space:nowrap;
+  color:var(--bs-primary,#0ea5e9);
+  font-size:.7rem; font-weight:600; line-height:1.05;
+  white-space:nowrap;
 }
-
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border:none; }
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{
+  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+  box-shadow:
+    0 6px 14px rgba(2, 132, 199, .45),
+    0 2px 4px rgba(0, 0, 0, .35);
+}
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-label{ color:#7dd3fc; }
 
 /* Warna aktif & ikon mengikuti tema */
 .gj-nav .gj-item .gj-ico,
@@ -85,3 +114,4 @@ body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !imp
   .gj-nav{ display:none; }
   body{ padding-bottom:0 !important; }
 }
+
