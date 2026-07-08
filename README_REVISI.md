@@ -1,17 +1,32 @@
-# Revisi R12 (fix upload.php AI auto-submit)
+# Revisi Bottom Navigation — R28 (Juli 2026)
 
-Perubahan hanya di **upload.php**:
-- Tombol "Ekstrak dengan AI" sekarang otomatis mengisi form manual (Tanggal, Durasi, Jarak, Pace, Kalori, Deskripsi) DAN memasukkan file screenshot ke input `bukti` via DataTransfer, lalu memanggil `form.submit()` native.
-- Alur upload jadi identik dengan submit manual (ImageKit + INSERT `upload_harian`), sehingga data pasti tampil di tabel "Aktivitas Saya".
-- Tanggal dari AI dinormalisasi ke format `YYYY-MM-DD` agar tidak gagal simpan.
-- Melewati interceptor `fetch` global / preloader kustom yang sebelumnya membuat data tidak tersimpan.
+## Masalah
+Di Firefox tombol Upload tampil normal (sejajar dengan menu lain).
+Di Chrome/Edge (Chromium) tombol Upload melayang & label turun / tidak konsisten.
+Penyebab: `margin-top` negatif + shadow besar + `view-transition-name` di
+`.gj-nav` menyebabkan Chromium menghitung tinggi flex item berbeda dari
+Firefox.
 
-## Catatan DB
-Tidak ada perubahan schema. Kolom `gear_sepatu` sudah ditambahkan otomatis pada R11:
-```sql
-ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gear_sepatu VARCHAR(120);
-```
+## Solusi
+Menyamakan tampilan di semua browser dengan FAB Upload INLINE
+(tidak melayang, tidak margin-top negatif). Satu sumber CSS: `gojek-nav.css`.
 
-## File dalam zip
-- upload.php  (diperbaiki di R12)
-- (file R11 lain disertakan agar konsisten: paket_perokok_jogging.php, includes/header.php, index.php, leaderboard_islami.php, dm.php, api_dm.php)
+## File yang direvisi (isi ZIP ini)
+- `assets/css/gojek-nav.css`  — ditulis ulang bersih, tanpa `!important`,
+  FAB berukuran 36px sejajar dengan ikon menu lain.
+- `includes/bottom_nav.php`   — inline `<style>` konflik dihapus,
+  `view-transition` dihapus, class `gj-fab-label` diganti `gj-label`,
+  placeholder `.bottom-nav.d-none` dihapus.
+
+## Cara pakai
+1. Backup dua file lama di project Anda.
+2. Timpa dengan file di ZIP ini (path sama persis).
+3. Hard-refresh browser (Ctrl+Shift+R). Cache buster CSS: `?v=r28-inline-fab`.
+
+## PostgreSQL
+Tidak ada perubahan skema. Tidak ada migration yang perlu dijalankan.
+
+## Verifikasi
+- Buka `/index.php` di Chrome & Firefox — bottom nav & tombol Upload
+  harus tampil identik: 5 item lebar sama, FAB biru bulat kecil di tengah,
+  label "Upload" sejajar dengan label lainnya.
