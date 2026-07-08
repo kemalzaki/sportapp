@@ -411,17 +411,9 @@ include __DIR__.'/includes/header.php';
       <?php endif; ?>
       <h4 class="mt-3 mb-1 d-inline-flex align-items-center gap-2" style="justify-content:center;flex-wrap:wrap">
         <span id="profNamaText"><?= htmlspecialchars($me['nama']) ?></span>
-        <button type="button" class="prof-edit-btn" id="btnEditNama"
-                title="Edit nama lengkap">
-          <i class="bi bi-pencil-square"></i>
-        </button>
       </h4>
       <div class="small text-muted mt-1 d-inline-flex align-items-center gap-1" style="justify-content:center;flex-wrap:wrap">
         <i class="bi bi-at"></i><span id="profUsernameText"><?= htmlspecialchars($me['username'] ?? '(belum diatur)') ?></span>
-        <button type="button" class="prof-edit-btn" id="btnEditUsername"
-                title="Edit username" style="width:22px;height:22px;font-size:.75rem">
-          <i class="bi bi-pencil-square"></i>
-        </button>
       </div>
       <div class="small text-muted"><?= htmlspecialchars($me['email']) ?></div>
       <?php /* Revisi Juli 2026 R3 — Inline edit Nama & Username (prompt native + fetch) */ ?>
@@ -646,6 +638,59 @@ include __DIR__.'/includes/header.php';
         </form>
       </div>
     </div>
+
+    <?php /* Revisi Nov 2026 — Edit Nama Lengkap & Username (menggantikan tombol pensil di header profil). */ ?>
+    <div class="card shadow-sm mt-3" id="editIdentitas">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-person-badge text-primary"></i> Edit Nama &amp; Username</span>
+        <span class="small text-muted">Akun: <?= htmlspecialchars($u['email'] ?? '') ?></span>
+      </div>
+      <div class="card-body">
+        <?php if(!empty($_SESSION['flash_ident_ok'])): ?>
+          <div class="alert alert-success py-2 small"><?= htmlspecialchars($_SESSION['flash_ident_ok']) ?></div>
+          <?php unset($_SESSION['flash_ident_ok']); ?>
+        <?php endif; ?>
+        <?php if(!empty($_SESSION['flash_ident_err'])): ?>
+          <div class="alert alert-danger py-2 small"><?= htmlspecialchars($_SESSION['flash_ident_err']) ?></div>
+          <?php unset($_SESSION['flash_ident_err']); ?>
+        <?php endif; ?>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <form method="post" class="row g-2" autocomplete="off">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="update_nama">
+              <div class="col-12">
+                <label class="form-label small mb-1"><i class="bi bi-person"></i> Nama Lengkap</label>
+                <input type="text" name="nama" class="form-control form-control-sm"
+                       minlength="2" maxlength="80" required
+                       value="<?= htmlspecialchars($me['nama'] ?? '') ?>">
+                <div class="form-text small">2–80 karakter.</div>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Simpan Nama</button>
+              </div>
+            </form>
+          </div>
+          <div class="col-md-6">
+            <form method="post" class="row g-2" autocomplete="off">
+              <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+              <input type="hidden" name="_action" value="update_username">
+              <div class="col-12">
+                <label class="form-label small mb-1"><i class="bi bi-at"></i> Username</label>
+                <input type="text" name="username" class="form-control form-control-sm"
+                       pattern="[a-z0-9._]{3,40}" minlength="3" maxlength="40" required
+                       value="<?= htmlspecialchars($me['username'] ?? '') ?>">
+                <div class="form-text small">Huruf kecil / angka / titik / underscore, 3–40 karakter.</div>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Simpan Username</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
 
     <!-- Revisi Juli 2026 — Fitur "Pertemananku" (CRUD), diletakkan DI ATAS Akun Strava.

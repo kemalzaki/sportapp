@@ -637,7 +637,7 @@ if (empty($pageSkeleton)) {
     <a class="gt-chip" href="/event.php" data-sfx="tap"><i class="bi bi-trophy-fill"></i>Event<?= nav_lock_badge_for('event.php') ?></a>
     <?php /* Revisi 6 Juni 2026: menu Check-in via barcode dihapus. */ ?>
     <?php /* Revisi 22 Juni 2026 R7 — chip Pesan (dm.php) dihapus dari menu. */ ?>
-    <a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami<?= nav_lock_badge_for('islami.php') ?></a>
+    <?php if (function_exists('scope_can_access_islami') && scope_can_access_islami()): ?><a class="gt-chip" href="/islami.php" data-sfx="tap"><i class="bi bi-stars"></i>Islami<?= nav_lock_badge_for('islami.php') ?></a><?php endif; ?>
     <a class="gt-chip" href="/kalkulator.php" data-sfx="tap"><i class="bi bi-calculator-fill"></i>Kalkulator<?= nav_lock_badge_for('kalkulator.php') ?></a>
   <?php else: ?>
     <a class="gt-chip" href="/login.php" data-sfx="tap"><i class="bi bi-box-arrow-in-right"></i>Masuk<?= nav_lock_badge_for('login.php') ?></a>
@@ -770,7 +770,7 @@ if (empty($pageSkeleton)) {
         <a class="list-group-item list-group-item-action" href="/tempat_list.php"><i class="bi bi-geo-alt-fill"></i> Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a>
         <?php /* Revisi 22 Juni 2026 R7 — menu drawer Pesan (dm.php) dihapus. */ ?>
         <a class="list-group-item list-group-item-action" href="/bookmark.php"><i class="bi bi-bookmark-star-fill"></i> Bookmark<?= nav_lock_badge_for('bookmark.php') ?></a>
-        <a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a>
+        <?php if (function_exists('scope_can_access_islami') && scope_can_access_islami()): ?><a class="list-group-item list-group-item-action" href="/islami.php"><i class="bi bi-stars"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a><?php endif; ?>
 
 
         <?php if (in_array($u['role'], ['admin','superadmin'], true)): $__isSuperNav = scope_is_super(); ?>
@@ -807,7 +807,7 @@ if (empty($pageSkeleton)) {
             <a class="list-group-item list-group-item-action ps-4" href="/admin/members.php"><i class="bi bi-people"></i> Member</a>
             <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/referal.php"><i class="bi bi-ticket-perforated"></i> Kode Referal Pendaftaran</a><?php endif; ?>
             <a class="list-group-item list-group-item-action ps-4" href="/admin/stats.php"><i class="bi bi-bar-chart"></i> Statistik</a>
-            <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/lacak.php"><i class="bi bi-broadcast-pin"></i> Lacak HP Member</a><?php endif; ?>
+            <?php /* Revisi Nov 2026 — Menu "Lacak HP Member" (drawer) DIHAPUS atas permintaan. */ ?>
             <?php /* Revisi Juli 2026 R3 — Pantau Progress Islami Member */ ?>
             <?php if ($__isSuperNav): ?><a class="list-group-item list-group-item-action ps-4" href="/admin/paket_pesanan.php"><i class="bi bi-receipt-cutoff text-success"></i> Pesanan Paket Member</a><?php endif; ?>
             <a class="list-group-item list-group-item-action ps-4" href="/pantau_progress_member.php"><i class="bi bi-graph-up-arrow text-danger"></i> Pantau Progress Islami</a>
@@ -917,7 +917,7 @@ if (empty($pageSkeleton)) {
           <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a></li>
           <?php /* Revisi 22 Juni 2026 R7 — nav-link Pesan (dm.php) dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark<?= nav_lock_badge_for('bookmark.php') ?></a></li>
-          <li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a></li>
+          <?php if (function_exists('scope_can_access_islami') && scope_can_access_islami()): ?><li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a></li><?php endif; ?>
         <?php endif; ?>
         <?php if ($u && in_array($u['role'], ['admin','superadmin'], true)): $__isSuperNav2 = scope_is_super(); ?>
           <li class="nav-item dropdown">

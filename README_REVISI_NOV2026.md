@@ -1,34 +1,31 @@
-# Revisi Nov 2026 — Ringkasan Perubahan
+# Revisi Nov 2026 — Batasi Islami, Hapus Lacak HP, Edit Nama/Username
 
-File yang direvisi (tinggal timpa di project lokal Anda):
+## File yang direvisi
+1. `includes/scope.php` — tambah helper `scope_can_access_islami()`.
+2. `includes/header.php` — sembunyikan menu Islami (chip mobile, drawer, navbar desktop) untuk member di luar komunitas yang diizinkan; hapus menu "Lacak HP Member" dari drawer SuperAdmin.
+3. `islami.php` — guard akses: user yang tidak berhak diarahkan ke `/index.php` dengan flash.
+4. `profile.php` — hapus ikon pensil di samping Nama & Username; tambah kartu "Edit Nama & Username" di bawah "Ubah Password Pribadi".
 
-1. `includes/bottom_nav.php`
-   - Tombol **Upload** di bottom nav dibuat FLAT/sejajar dengan menu Beranda-Aktivitas-Kalori-Saya (tidak lagi "menjurus ke atas").
-   - Warna semua ikon bottom nav (termasuk tombol Upload) mengikuti tema aktif (`--bs-primary`).
-   - CSS tambahan meng-override warna ikon di drawer/side menu supaya seragam tema (tidak warna-warni).
+## Ketentuan akses Islami
+Fitur Islami hanya tampil untuk:
+- Member yang tergabung di komunitas dengan slug: `kawankeringat-kantor`, `ladies-grup`, atau `superduperadmin`.
+- Role `superadmin` (tetap boleh, untuk keperluan operasional).
 
-2. `upload.php`
-   - Ditambahkan **pagination 5 baris per halaman** untuk tabel "Aktivitas Saya".
+## PostgreSQL — TIDAK ada perubahan schema
+- **Tidak perlu menjalankan SQL baru.** Helper baru hanya membaca kolom yang sudah ada di tabel `komunitas` (`id`, `slug`) dan pivot `user_komunitas` (atau fallback `users.komunitas_id`).
+- Pastikan tabel `komunitas` sudah berisi baris slug berikut (sudah ada di `sportapp.sql` yang lama):
+  - `kawankeringat-kantor` (id 1)
+  - `ladies-grup` (id 4)
+  - `superduperadmin` (id 5)
+- Jika di database lokal Anda slug berbeda (misal `ladiesgrup` tanpa strip), sesuaikan salah satu:
+  a. Ubah data: `UPDATE komunitas SET slug='ladies-grup' WHERE id=4;`
+  b. Atau ubah daftar slug di `includes/scope.php` fungsi `scope_can_access_islami()`.
 
-3. `run.php`
-   - Widget banner **Video Flyover 3D** dihapus.
+## Cara terapkan
+Timpa 4 file berikut ke folder proyek lokal Anda (backup dulu bila perlu):
+- `includes/scope.php`
+- `includes/header.php`
+- `islami.php`
+- `profile.php`
 
-4. `monitoring_tahajud.php`
-   - Ditambahkan kolom **Tgl Hijriyah** di tabel monitoring Tahajud & Duha.
-
-5. `islami.php`
-   - Kartu **"Tanya Jawab Islami"** dan **"Countdown Hari Raya & Peristiwa"** (mobile & desktop) dibungkus jadi **spoiler** (`<details>/<summary>`) — bisa klik buka/tutup.
-
-6. `profile.php`
-   - Tampilan kartu profil dirapikan (avatar dengan ring halus, badges rata dengan gap konsisten, section dipisah garis putus-putus, tombol edit lebih menarik berbentuk lingkaran).
-   - Fungsi **CRUD edit Nama & Username** (klik ikon pensil) sudah tersedia — sekarang menggunakan **SweetAlert** (jatuh kembali ke `prompt()` bila SweetAlert tidak ada). Endpoint AJAX `_action=update_nama` dan `_action=update_username` sudah ada pada file yang sama.
-
-## PostgreSQL
-
-**Tidak ada perubahan schema / SQL baru** yang diperlukan untuk paket revisi ini.
-Semua perubahan murni tampilan/UI dan JavaScript client-side. Data lama tetap
-aman dan langsung terpakai.
-
-Catatan: kolom-kolom yang sudah dipakai (`users.username`, `users.nama`,
-`shalat_sunnah_log`, `shalat_evaluasi_harian`) sudah ada dari revisi
-sebelumnya — tidak perlu di-migrate ulang.
+Tidak ada perubahan pada data, tidak ada file yang dihapus.

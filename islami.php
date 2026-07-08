@@ -9,6 +9,12 @@ require __DIR__.'/includes/islami_helpers.php';
 require __DIR__.'/includes/shalat_data.php';
 require __DIR__.'/includes/paket_helpers.php'; // R14 #1 — fitur PRO
 send_security_headers(); require_login();
+require_once __DIR__.'/includes/scope.php';
+/* Revisi Nov 2026 — Fitur Islami dibatasi ke komunitas KawanKeringat Kantor, Ladies Grup, SuperDuperAdmin. */
+if (!scope_can_access_islami()) {
+    $_SESSION['flash_err'] = 'Fitur Islami hanya tersedia untuk member komunitas KawanKeringat Kantor, Ladies Grup, atau SuperDuperAdmin.';
+    header('Location: /index.php'); exit;
+}
 $pageTitle = 'Hub Islami';
 $u = current_user();
 $IS_PRO = paket_is_pro($u);

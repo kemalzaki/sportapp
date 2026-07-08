@@ -194,3 +194,27 @@ function scope_kom_name(?int $kid): string {
     try { return (string) db_val("SELECT nama FROM komunitas WHERE id=$1", [(int)$kid]); }
     catch (Throwable $e) { return ''; }
 }
+
+/**
+ * Revisi Nov 2026 — Fitur Islami hanya untuk member komunitas
+ *   KawanKeringat Kantor, Ladies Grup, dan SuperDuperAdmin.
+ * Role 'superadmin' tetap dibolehkan.
+ */
+function scope_can_access_islami(): bool {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $u = current_user(); if (!$u) return $cache = false;
+    if (($u['role'] ?? '') === 'superadmin') return $cache = true;
+    $kids = scope_current_user_kom_ids();
+    if (!$kids) return $cache = false;
+    try {
+        $arr = '{'.implode(',', array_map('intval', $kids)).'}';
+        $row = db_one(
+          "SELECT 1 FROM komunitas
+             WHERE id = ANY($1::int[])
+               AND slug IN ('kawankeringat-kantor','ladies-grup','superduperadmin')
+             LIMIT 1", [$arr]);
+        return $cache = !empty($row);
+    } catch (Throwable $e) { return $cache = false; }
+}
+
