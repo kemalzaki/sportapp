@@ -1,52 +1,77 @@
-/* Revisi R24 (28 Juni 2026) — gojek-nav.css
-   Sebelumnya file ini hilang sehingga bottom-nav tampak default (FAB Upload
-   tumpang tindih dengan konten tabel — lihat lampiran user). File ini
-   mengembalikan styling fixed-bottom nav + padding-bottom body. */
-:root { --gj-h: 64px; --gj-fab: 56px; }
+/* Revisi R25 (Juli 2026) — gojek-nav.css
+   Tombol Upload di bottom nav ditengah, pas, dan sejajar dengan menu lain.
+   FAB tidak lagi melayang/menonjol ke atas; ikon & label sejajar vertikal. */
+:root { --gj-h: 68px; }
 html, body { min-height: 100%; }
-body { padding-bottom: calc(var(--gj-h) + 28px) !important; }
+body { padding-bottom: calc(var(--gj-h) + env(safe-area-inset-bottom, 0px)) !important; }
 
 .gj-nav{
-  position:fixed; left:0; right:0; bottom:0; z-index:1040;
+  position:fixed; left:0; right:0; bottom:0; z-index:1080;
   height: var(--gj-h);
   display:flex; align-items:stretch; justify-content:space-around;
   background:#fff;
   border-top:1px solid #e5e7eb;
-  box-shadow:0 -8px 24px -12px rgba(0,0,0,.18);
+  box-shadow:0 -4px 16px rgba(15,23,42,.06);
   padding: 4px 6px env(safe-area-inset-bottom, 0px);
 }
-[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1f2937; }
+[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e2937; }
 
-.gj-nav .gj-item{
+.gj-nav .gj-item,
+.gj-nav .gj-fab{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:2px;
   text-decoration:none; color:inherit; font-size:11px; line-height:1.1;
   padding:6px 4px; border-radius:12px; transition:background .15s ease;
 }
-.gj-nav .gj-item:hover{ background:rgba(14,165,233,.07); }
-.gj-nav .gj-ico{ font-size:20px; display:inline-flex; align-items:center; justify-content:center; }
-.gj-nav .gj-label{ font-size:11px; }
+.gj-nav .gj-item:hover,
+.gj-nav .gj-fab:hover{ background:rgba(14,165,233,.07); }
+.gj-nav .gj-ico,
+.gj-nav .gj-fab .gj-fab-inner{
+  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+  font-size:1.25rem;
+}
+.gj-nav .gj-ico i{ color:inherit; }
+.gj-nav .gj-label,
+.gj-nav .gj-fab .gj-fab-label{
+  font-size:.7rem; line-height:1.05; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 
-/* FAB Upload (tombol bulat menonjol di tengah) */
+/* FAB Upload — sejajar dengan item lain, di tengah */
 .gj-nav .gj-fab{
-  position:relative; flex:0 0 auto;
-  display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  width: calc(var(--gj-fab) + 16px); text-decoration:none; color:inherit;
+  color:var(--bs-primary,#0ea5e9);
 }
-.gj-nav .gj-fab-inner{
-  width: var(--gj-fab); height: var(--gj-fab); border-radius:50%;
-  background:linear-gradient(135deg,#0ea5e9,#2563eb);
-  color:#fff; display:flex; align-items:center; justify-content:center;
-  font-size:24px; box-shadow:0 8px 22px -6px rgba(14,165,233,.55);
-  transform: translateY(-18px); border:4px solid #fff;
+.gj-nav .gj-fab .gj-fab-inner{
+  width:32px !important; height:32px !important; border-radius:50% !important;
+  background:var(--bs-primary,#0ea5e9) !important;
+  color:#fff !important;
+  font-size:1rem !important; font-weight:700 !important; line-height:1 !important;
+  box-shadow:0 2px 6px rgba(15,23,42,.18) !important;
+  border:none !important;
+  transition: transform .15s ease, filter .15s ease;
 }
-[data-bs-theme=dark] .gj-nav .gj-fab-inner{ border-color:#0f172a; }
-.gj-nav .gj-fab-label{ font-size:11px; transform: translateY(-14px); color:#0ea5e9; font-weight:600; }
+.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
+.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-1px); filter:brightness(1.05); }
+.gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
+.gj-nav .gj-fab .gj-fab-label{
+  color:var(--bs-primary,#0ea5e9) !important;
+  font-size:.7rem !important; font-weight:600 !important;
+  line-height:1.05 !important; white-space:nowrap;
+}
+
+[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border:none; }
+
+/* Warna aktif & ikon mengikuti tema */
+.gj-nav .gj-item .gj-ico,
+.gj-nav .gj-item .gj-ico i{ color: var(--bs-primary,#0ea5e9) !important; }
+.gj-nav .gj-item.active .gj-ico,
+.gj-nav .gj-item.active .gj-ico i{ color:var(--bs-primary,#0ea5e9) !important; }
+.gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#0ea5e9); font-weight:600; }
 
 /* Avatar Profil */
 .gj-avatar{ width:24px; height:24px; border-radius:50%; object-fit:cover; }
 .gj-avatar-fb{
-  width:24px; height:24px; border-radius:50%; background:#0ea5e9; color:#fff;
+  width:24px; height:24px; border-radius:50%; background:var(--bs-primary,#0ea5e9); color:#fff;
   display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
 }
 .gj-badge{

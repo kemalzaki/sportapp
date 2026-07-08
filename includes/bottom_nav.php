@@ -1,9 +1,8 @@
 <?php
-// Sticky bottom nav (gaya Gojek) + floating upload button. Hanya tampil saat login.
-// Revisi 2 Jun 2026:
-//   - Tab "Event" diganti jadi "Berita" (berita.php). Halaman aktif memperhitungkan
-//     berita.php sebagai item aktif.
-// Revisi 1 Jun 2026: redesign menu navigasi seperti aplikasi Gojek di mobile.
+// Sticky bottom nav (gaya Gojek) + upload button di tengah sejajar dengan menu lain.
+// Revisi 7 Jul 2026:
+//   - Tombol Upload ditengah, pas, dan sejajar dengan menu lain.
+//   - Hapus style melayang (FAB besar) agar tidak menutupi konten.
 if (defined('GJ_BOTTOM_NAV_RENDERED')) return;
 define('GJ_BOTTOM_NAV_RENDERED', true);
 $u = current_user();
@@ -21,94 +20,20 @@ if (!function_exists('_gj_active')) {
   }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=2jun2026">
+<link rel="stylesheet" href="/assets/css/gojek-nav.css?v=7jul2026">
 <style>
-/* Revisi 28 Juni 2026 + R4 (Juli 2026) — Rapikan PWA Bottom Nav (mobile):
-   - Tinggi seragam, label tidak terpotong
-   - FAB Upload SELALU tampil di atas seluruh konten (z-index tinggi) & tidak terpotong
-   - Body diberi padding-bottom lebih besar agar FAB yang naik ke atas tidak menutup
-     konten terakhir halaman. */
-.gj-nav{
-  position:fixed; left:0; right:0; bottom:0; z-index:1080;
-  display:flex; align-items:flex-end; justify-content:space-around;
-  background:#fff; border-top:1px solid #e5e7eb;
-  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
-  box-shadow:0 -4px 16px rgba(15,23,42,.06);
-  min-height:68px;
-  overflow:visible;
-}
-.gj-nav .gj-item{
-  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-  gap:2px; padding:6px 2px; min-width:0; text-decoration:none; color:#475569; position:relative;
-}
-.gj-nav .gj-item .gj-ico{
-  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem; color:var(--bs-body-color,#0f172a); background:transparent;
-}
-.gj-nav .gj-item .gj-ico i{ color:inherit; }
-.gj-nav .gj-item .gj-label{
-  font-size:.7rem; line-height:1.05; color:var(--bs-secondary-color,#475569); max-width:100%;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.gj-nav .gj-item.active .gj-ico,
-.gj-nav .gj-item.active .gj-ico i{ color:var(--bs-primary,#0ea5e9) !important; }
-.gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#0ea5e9); font-weight:600; }
-.gj-nav .gj-avatar{ width:24px; height:24px; border-radius:50%; object-fit:cover; }
-.gj-nav .gj-avatar-fb{
-  width:24px;height:24px;border-radius:50%;
-  background:var(--bs-primary,#0ea5e9);color:#fff;
-  display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;
-}
-.gj-nav .gj-badge{
-  position:absolute; top:2px; right:18%;
-  background:#ef4444; color:#fff; font-size:.6rem; font-weight:700;
-  padding:1px 5px; border-radius:9px; line-height:1;
-}
-/* FAB Upload — Revisi Nov 2026: FLAT & SEJAJAR dengan item lain (tidak
-   menjurus ke atas). Ikuti tema aktif via var(--bs-primary). */
-.gj-nav .gj-fab{
-  flex:1 1 0 !important; display:flex !important; flex-direction:column !important;
-  align-items:center !important; justify-content:flex-end !important;
-  gap:2px !important; padding:6px 2px !important; text-decoration:none;
-  color:var(--bs-primary,#0ea5e9); position:relative;
-  top:auto !important; margin-top:0 !important; transform:none !important;
-}
-.gj-nav .gj-fab .gj-fab-inner{
-  width:36px !important; height:36px !important; border-radius:50% !important;
-  background:var(--bs-primary,#0ea5e9) !important;
-  color:#fff !important; display:inline-flex !important; align-items:center !important;
-  justify-content:center !important;
-  font-size:1.05rem !important; font-weight:700 !important; line-height:1 !important;
-  box-shadow:0 2px 6px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.25) !important;
-  border:none !important;
-  margin:0 !important; top:auto !important; position:relative !important;
-  transition: transform .15s ease, filter .15s ease;
-}
-.gj-nav .gj-fab .gj-fab-inner i{ line-height:1; }
-.gj-nav .gj-fab:hover .gj-fab-inner{ transform: translateY(-1px); filter:brightness(1.05); }
-.gj-nav .gj-fab:active .gj-fab-inner{ transform: scale(.94); }
-.gj-nav .gj-fab .gj-fab-label{
-  font-size:.7rem; color:var(--bs-primary,#0ea5e9); font-weight:600; line-height:1.05;
-}
-[data-bs-theme=dark] .gj-nav .gj-fab .gj-fab-inner{ border:none !important; }
-/* Revisi Nov 2026 — semua ikon di bottom nav (termasuk item aktif) ikut warna tema */
-.gj-nav .gj-item .gj-ico,
-.gj-nav .gj-item .gj-ico i{ color: var(--bs-primary,#0ea5e9) !important; }
-/* Revisi Nov 2026 — samakan warna ikon di DRAWER menu (sidebar kiri) ke warna tema.
-   Menetralkan ikon warna-warni (text-danger / text-success / dst) agar konsisten. */
-.gt-drawer .list-group-item i.bi,
-.gt-drawer .list-group-item .bi{
-  color: var(--bs-primary,#0ea5e9) !important;
-}
-/* Ikon chevron tetap netral */
-.gt-drawer .list-group-item i.bi-chevron-down,
-.gt-drawer .list-group-item i.bi-chevron-up{
-  color: var(--bs-secondary-color,#64748b) !important;
-}
-/* Pastikan konten halaman tidak tertutup nav */
+/* Bottom nav tetap fixed & tidak tertutup konten */
+.gj-nav{ position:fixed; left:0; right:0; bottom:0; z-index:1080; }
 body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 
-[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e293b; }
+/* Drawer menu — netralkan ikon ke warna tema */
+.gt-drawer .list-group-item i.bi,
+.gt-drawer .list-group-item .bi{ color: var(--bs-primary,#0ea5e9) !important; }
+.gt-drawer .list-group-item i.bi-chevron-down,
+.gt-drawer .list-group-item i.bi-chevron-up{ color: var(--bs-secondary-color,#64748b) !important; }
+
+/* Dark mode */
+[data-bs-theme=dark] .gj-nav{ background:#0f172a; border-top-color:#1e2937; }
 [data-bs-theme=dark] .gj-nav .gj-item .gj-ico,
 [data-bs-theme=dark] .gj-nav .gj-item .gj-ico i{ color:#e2e8f0 !important; }
 [data-bs-theme=dark] .gj-nav .gj-item .gj-label{ color:#cbd5e1; }
@@ -116,7 +41,7 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-ico i,
 [data-bs-theme=dark] .gj-nav .gj-item.active .gj-label{ color:var(--bs-primary,#38bdf8) !important; }
 
-/* Sembunyikan di desktop besar (≥992px) */
+/* Sembunyikan di desktop besar */
 @media (min-width: 992px){ .gj-nav{ display:none; } body{ padding-bottom:0 !important; } }
 </style>
 <nav class="gj-nav" aria-label="Navigasi utama">
@@ -132,7 +57,6 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
     <span class="gj-fab-inner"><i class="bi bi-plus-lg"></i></span>
     <span class="gj-fab-label">Upload</span>
   </a>
-  <!-- Revisi 13 Juni 2026: dulu Berita, sekarang Kalori Mingguan (PWA) -->
   <a href="/kalori_mingguan.php" class="gj-item <?= _gj_active(['kalori_mingguan.php'], $_cur) ?>">
     <span class="gj-ico gj-c-event"><i class="bi bi-egg-fried"></i></span>
     <span class="gj-label">Kalori</span>
@@ -153,16 +77,20 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 <?php /* Kompat lama: beberapa CSS/JS legacy masih cari .bottom-nav */ ?>
 <div class="bottom-nav d-none" aria-hidden="true"></div>
 
-<?php /* Revisi 18 Juni 2026 — Loading spinner kecil di samping teks item nav mobile saat di-klik */ ?>
+<?php /* Loading spinner kecil di samping teks item nav saat di-klik */ ?>
 <style>
-.gj-nav .gj-item .gj-spin{
+.gj-nav .gj-item .gj-spin,
+.gj-nav .gj-fab .gj-spin{
   display:none; width:.85rem; height:.85rem; margin-left:4px; vertical-align:-1px;
   border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
   animation: gjspin .7s linear infinite;
 }
-.gj-nav .gj-item.is-loading .gj-spin{ display:inline-block; }
-.gj-nav .gj-item.is-loading{ opacity:.85; pointer-events:none; }
-.gj-nav .gj-item.is-loading .gj-label{ color:#0ea5e9; }
+.gj-nav .gj-item.is-loading .gj-spin,
+.gj-nav .gj-fab.is-loading .gj-spin{ display:inline-block; }
+.gj-nav .gj-item.is-loading,
+.gj-nav .gj-fab.is-loading{ opacity:.85; pointer-events:none; }
+.gj-nav .gj-item.is-loading .gj-label,
+.gj-nav .gj-fab.is-loading .gj-fab-label{ color:#0ea5e9; }
 @keyframes gjspin { to { transform: rotate(360deg); } }
 .gj-topbar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#0ea5e9,#22d3ee);
   z-index:9999;transition:width .25s ease;box-shadow:0 0 8px #0ea5e9}
@@ -171,16 +99,14 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
 <div class="gj-topbar" id="gjTopBar" aria-hidden="true"></div>
 <script>
 (function(){
-  // Inject placeholder spinner element ke setiap label item nav (sekali).
-  document.querySelectorAll('.gj-nav .gj-item').forEach(function(it){
-    var lab = it.querySelector('.gj-label');
+  document.querySelectorAll('.gj-nav .gj-item, .gj-nav .gj-fab').forEach(function(it){
+    var lab = it.querySelector('.gj-label, .gj-fab-label');
     if (lab && !lab.querySelector('.gj-spin')){
       var s = document.createElement('span');
       s.className = 'gj-spin'; s.setAttribute('aria-hidden','true');
       lab.appendChild(s);
     }
     it.addEventListener('click', function(e){
-      // Abaikan kalau modifier key / target sama dengan halaman saat ini
       if (e.metaKey||e.ctrlKey||e.shiftKey||e.button) return;
       try {
         var here = (location.pathname||'').split('/').pop();
@@ -192,24 +118,15 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
       if (tb) tb.classList.add('active');
     });
   });
-  // Reset bila user kembali via back-forward cache
   window.addEventListener('pageshow', function(){
-    document.querySelectorAll('.gj-nav .gj-item.is-loading').forEach(function(it){ it.classList.remove('is-loading'); });
+    document.querySelectorAll('.gj-nav .gj-item.is-loading, .gj-nav .gj-fab.is-loading').forEach(function(it){ it.classList.remove('is-loading'); });
     var tb = document.getElementById('gjTopBar'); if (tb) tb.classList.remove('active');
   });
 })();
 </script>
 
-<?php /* ================================================================
-   Revisi Juli 2026 — Bottom nav "tetap tampil" saat pindah halaman (mobile).
-   Menggunakan MPA View Transitions API sehingga elemen dengan
-   view-transition-name yang sama (bottom nav) di-morph antar halaman —
-   secara visual nav tidak ikut ter-refresh / berkedip.
-
-   Fallback: browser lama tetap berjalan normal (nav re-render seperti biasa).
-   ================================================================ */ ?>
+<?php /* Bottom nav tetap terlihat saat pindah halaman (visual morph). */ ?>
 <style>
-/* Revisi R2 Juli 2026: nonaktifkan MPA View Transitions agar konten tidak sempat "blank" saat pindah halaman; bottom nav tetap terlihat karena position:fixed. */
 @media (max-width: 991.98px){
   .gj-nav { view-transition-name: gj-bottom-nav; }
   .gj-topbar { view-transition-name: gj-topbar; }
@@ -219,59 +136,3 @@ body{ padding-bottom: calc(5rem + env(safe-area-inset-bottom,0px)) !important; }
   animation: none !important; mix-blend-mode: normal;
 }
 </style>
-
-<style id="gj-fab-fix-nov2026">
-/* Revisi Nov 2026 Batch 2 — perbaikan tampilan FAB Upload di bottom nav.
-   Menjamin FAB sejajar dgn item lain (tidak "melayang" menutup konten),
-   ikon terlihat kontras, dan label "Upload" tidak tertimpa lingkaran. */
-.gj-nav .gj-fab{
-  top:auto !important; margin-top:0 !important; transform:none !important;
-  padding:6px 2px !important; gap:3px !important;
-}
-.gj-nav .gj-fab .gj-fab-inner{
-  width:34px !important; height:34px !important;
-  border:0 !important; box-shadow:0 2px 6px rgba(15,23,42,.18) !important;
-  margin:0 !important; position:relative !important; top:auto !important;
-  background:var(--bs-primary,#0ea5e9) !important; color:#fff !important;
-  font-size:1rem !important;
-}
-.gj-nav .gj-fab .gj-fab-label{
-  color:var(--bs-primary,#0ea5e9) !important;
-  font-size:.7rem !important; font-weight:600 !important;
-  line-height:1.05 !important; white-space:nowrap;
-}
-</style>
-
-<?php /* Revisi Juli 2026 R3 — FIX FAB Upload agar rapi & sejajar item lain,
-   dan bottom nav tetap tampil saat pindah halaman via MPA View Transitions. */ ?>
-<style id="gj-fab-fix-jul2026-r3">
-.gj-nav .gj-fab{
-  flex:1 1 0 !important;
-  display:flex !important; flex-direction:column !important;
-  align-items:center !important; justify-content:flex-end !important;
-  gap:2px !important; padding:6px 2px !important;
-  top:auto !important; margin:0 !important; transform:none !important;
-  position:relative !important;
-}
-.gj-nav .gj-fab .gj-fab-inner{
-  width:30px !important; height:30px !important; border-radius:50% !important;
-  background:var(--bs-primary,#0ea5e9) !important;
-  color:#fff !important;
-  display:inline-flex !important; align-items:center !important; justify-content:center !important;
-  font-size:.95rem !important; line-height:1 !important;
-  box-shadow:0 1px 3px rgba(15,23,42,.15) !important;
-  border:0 !important; margin:0 !important;
-}
-.gj-nav .gj-fab .gj-fab-label{
-  font-size:.7rem !important; line-height:1.05 !important;
-  color:var(--bs-secondary-color,#475569) !important; font-weight:500 !important;
-}
-.gj-nav .gj-fab:hover .gj-fab-inner{ filter:brightness(1.05); }
-@view-transition { navigation: auto; }
-@keyframes gj-nav-stay { from{opacity:1} to{opacity:1} }
-::view-transition-old(gj-bottom-nav),
-::view-transition-new(gj-bottom-nav){
-  animation: gj-nav-stay .001s linear both !important;
-}
-</style>
-

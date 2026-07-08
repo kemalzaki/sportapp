@@ -157,38 +157,60 @@ a:hover{ color: var(--primary-dark); }
 .gj-nav .gj-item.active .gj-label{ color: var(--primary) !important; font-weight: 700; }
 .gj-nav .gj-avatar-fb{ background: var(--primary-gradient) !important; }
 
-/* --------- Floating Action Button (Upload) —  Strava-style --------- */
-/* Selector fleksibel: menargetkan pola FAB umum di aplikasi */
-.gj-fab, .fab-upload, .floating-upload, .btn-fab, [data-fab="upload"]{
-  position: fixed !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  bottom: calc(46px + env(safe-area-inset-bottom, 0px)) !important;
-  width: 64px !important;
-  height: 64px !important;
+/* --------- Upload button di bottom nav — sejajar dengan item lain --------- */
+.gj-nav .gj-fab{
+  flex: 1 1 0 !important;
+  position: relative !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  color: var(--primary) !important;
+  border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: .7rem !important;
+  box-shadow: none !important;
+  z-index: auto !important;
+  padding: 6px 4px !important;
+  gap: 2px !important;
+  transition: background .15s ease, transform .15s ease;
+}
+.gj-nav .gj-fab:hover{
+  background: var(--primary-soft) !important;
+  filter: none;
+  color: var(--primary) !important;
+}
+.gj-nav .gj-fab:active{ transform: scale(.94) !important; }
+.gj-nav .gj-fab .gj-fab-inner{
+  width: 32px !important;
+  height: 32px !important;
   border-radius: 50% !important;
   background: var(--primary-gradient) !important;
   color: #fff !important;
-  border: 4px solid var(--surface) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 1.6rem !important;
-  box-shadow: var(--shadow-fab) !important;
-  z-index: 1090 !important;
-  transition: transform .18s ease, box-shadow .2s ease, filter .2s ease;
+  font-size: 1rem !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: none !important;
 }
-.gj-fab:hover, .fab-upload:hover, .floating-upload:hover, .btn-fab:hover{
-  filter: brightness(1.05); color:#fff !important;
+.gj-nav .gj-fab .gj-fab-label{
+  color: var(--primary) !important;
+  font-size: .7rem !important;
+  font-weight: 600 !important;
+  line-height: 1.05 !important;
 }
-.gj-fab:active, .fab-upload:active, .floating-upload:active, .btn-fab:active{
-  transform: translateX(-50%) scale(.92) !important;
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb),.35) !important;
-}
-.gj-fab i, .fab-upload i, .floating-upload i, .btn-fab i{ color:#fff; }
+.gj-nav .gj-fab i, .gj-nav .gj-fab .gj-fab-inner i{ color: #fff !important; }
 
-/* Beri ruang extra di bawah body agar FAB tidak menutup konten terakhir */
-body{ padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+/* Ruang bawah body disesuaikan dengan tinggi nav */
+body{ padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+
 
 /* --------- Icon aktif / nav item generic --------- */
 .nav-link.active, .nav-pills .nav-link.active{
