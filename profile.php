@@ -415,16 +415,10 @@ include __DIR__.'/includes/header.php';
           <h4 class="mb-0" style="line-height:1.2">
             <span id="profNamaText"><?= htmlspecialchars($me['nama']) ?></span>
           </h4>
-          <button type="button" id="btnEditNama" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Ubah nama" aria-label="Ubah nama">
-            <i class="bi bi-pencil-square"></i>
-          </button>
         </div>
         <div class="d-inline-flex align-items-center gap-1 small text-muted justify-content-center flex-wrap">
           <i class="bi bi-at"></i>
           <span id="profUsernameText"><?= htmlspecialchars($me['username'] ?? '(belum diatur)') ?></span>
-          <button type="button" id="btnEditUsername" class="btn btn-sm btn-link p-0 ms-1" title="Ubah username" aria-label="Ubah username">
-            <i class="bi bi-pencil"></i>
-          </button>
         </div>
         <div class="small text-muted text-center"><?= htmlspecialchars($me['email']) ?></div>
       </div>
