@@ -31,9 +31,8 @@ if (!function_exists('_gj_active')) {
     <span class="gj-ico"><i class="bi bi-bar-chart-fill"></i></span>
     <span class="gj-label">Aktivitas</span>
   </a>
-  <a href="/upload.php" class="gj-fab <?= _gj_active(['upload.php'], $_cur) ?>" aria-label="Upload aktivitas">
+  <a href="/upload.php" class="gj-fab <?= _gj_active(['upload.php'], $_cur) ?>" aria-label="Upload aktivitas" title="Upload">
     <span class="gj-fab-inner" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
-    <span class="gj-label">Upload</span>
   </a>
   <a href="/kalori_mingguan.php" class="gj-item <?= _gj_active(['kalori_mingguan.php'], $_cur) ?>">
     <span class="gj-ico"><i class="bi bi-egg-fried"></i></span>
