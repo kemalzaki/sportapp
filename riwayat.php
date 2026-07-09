@@ -306,9 +306,12 @@ $belumOlahraga = db_all("
 /* ---------- Aktivitas publik dengan like/comment count ----------
    Revisi Juli 2026 #3 — Riwayat Aktivitas Publik DIFILTER per komunitas. */
 /* Revisi Nov 2026 R12 — tambah tanggal upload (created_at), pace, kalori, komunitas nama. */
+/* Revisi Des 2026 — gear_sepatu diambil langsung dari upload_harian (CRUD di upload.php),
+   sehingga menampilkan sepatu yang tercatat pada tiap aktivitas (bukan dari user_perlengkapan). */
 $publicActs = db_all("
   SELECT uh.id,uh.tanggal,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.file_path,uh.deskripsi,
          uh.pace, uh.pace_detik,
+         COALESCE(uh.gear_sepatu,'') AS gear_sepatu,
          COALESCE(uh.created_at, uh.tanggal::timestamp) AS uploaded_at,
          u.id AS uid,u.nama,u.foto_url,
          k.nama AS kom_nama,
@@ -320,28 +323,6 @@ $publicActs = db_all("
   LEFT JOIN komunitas k ON k.id = u.komunitas_id
   WHERE u.id = ANY($1::int[])
   ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 30", [$__vids]);
-
-/* Revisi Nov 2026 R11 — Ambil daftar gear "Sepatu" per user dari user_perlengkapan
-   untuk ditampilkan sebagai keterangan di Riwayat Aktivitas Publik. */
-$sepatuByUid = [];
-try {
-  $uidsAct = array_values(array_unique(array_map(function($r){ return (int)$r['uid']; }, $publicActs)));
-  if ($uidsAct) {
-    $rowsSp = db_all(
-      "SELECT user_id, nama, jenis_nama, jumlah, catatan
-       FROM user_perlengkapan
-       WHERE user_id = ANY(\$1::int[])
-         AND (LOWER(nama) LIKE '%sepatu%' OR LOWER(COALESCE(catatan,'')) LIKE '%sepatu%')
-       ORDER BY id DESC",
-      ['{'.implode(',', array_map('intval', $uidsAct)).'}']
-    );
-    foreach ($rowsSp as $rs) {
-      $uidX = (int)$rs['user_id'];
-      if (!isset($sepatuByUid[$uidX])) $sepatuByUid[$uidX] = [];
-      $sepatuByUid[$uidX][] = $rs;
-    }
-  }
-} catch (Throwable $e) { $sepatuByUid = []; }
 
 
 
@@ -415,13 +396,11 @@ if (!empty($_GET['ajax_lb'])) {
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
     </ol>
-    <?php if(!empty($lb) && count($lb) > 5): ?>
-    <div class="card-footer d-flex justify-content-between align-items-center" id="lbPager">
+    <div class="card-footer d-flex justify-content-between align-items-center" id="lbPager" style="display:none">
       <button type="button" class="btn btn-sm btn-outline-secondary" id="lbPrev"><i class="bi bi-chevron-left"></i> Sebelumnya</button>
       <span class="small text-muted" id="lbPageInfo">Halaman 1</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" id="lbNext">Berikutnya <i class="bi bi-chevron-right"></i></button>
     </div>
-    <?php endif; ?>
     <?php exit;
 }
 
@@ -553,13 +532,11 @@ include __DIR__.'/includes/header.php';
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
     </ol>
-    <?php if(!empty($lb) && count($lb) > 5): ?>
-    <div class="card-footer d-flex justify-content-between align-items-center" id="lbPager">
+    <div class="card-footer d-flex justify-content-between align-items-center" id="lbPager" style="display:none">
       <button type="button" class="btn btn-sm btn-outline-secondary" id="lbPrev"><i class="bi bi-chevron-left"></i> Sebelumnya</button>
       <span class="small text-muted" id="lbPageInfo">Halaman 1</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" id="lbNext">Berikutnya <i class="bi bi-chevron-right"></i></button>
     </div>
-    <?php endif; ?>
     </div>
     <?php endif; /* R10 endif Leaderboard */ ?>
   </div>
@@ -637,54 +614,60 @@ include __DIR__.'/includes/header.php';
             <?php endif; ?>
           </div>
           <div class="flex-grow-1 min-w-0">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="min-w-0">
                 <a class="fw-semibold text-decoration-none" href="/user.php?id=<?= (int)$a['uid'] ?>"><?= htmlspecialchars($a['nama']) ?></a>
                 <div class="small text-muted"><?= htmlspecialchars($a['tanggal']) ?> · <span class="pill"><?= htmlspecialchars($a['jenis']) ?></span> · <?= (int)$a['durasi_menit'] ?> mnt · <?= htmlspecialchars($a['jarak_km'] ?? '0') ?> km</div>
-                <?php
-                  /* Revisi Nov 2026 R12 — Tanggal Upload, Pace, Kalori, Komunitas */
-                  $uploadAt = !empty($a['uploaded_at']) ? date('d M Y H:i', strtotime($a['uploaded_at'])) : '-';
-                  $paceTxt  = '';
-                  if (!empty($a['pace'])) {
-                      $__pv = trim($a['pace']);
-                      $paceTxt = (stripos($__pv, '/km') !== false) ? $__pv : ($__pv.' /km');
-                  } elseif (!empty($a['pace_detik']) && (int)$a['pace_detik']>0) {
-                      $ps = (int)$a['pace_detik']; $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
-                  } elseif (!empty($a['durasi_menit']) && !empty($a['jarak_km']) && (float)$a['jarak_km']>0) {
-                      $ps = (int) round(((int)$a['durasi_menit']*60) / (float)$a['jarak_km']);
-                      $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
-                  } else { $paceTxt = '—'; }
-                  $kalTxt   = !empty($a['kalori']) ? number_format((int)$a['kalori']).' kkal' : '—';
-                  $komTxt   = !empty($a['kom_nama']) ? $a['kom_nama'] : 'Umum';
-                ?>
-                <div class="small text-muted mt-1">
-                  <span class="me-2"><i class="bi bi-clock-history"></i> <b>Upload:</b> <?= htmlspecialchars($uploadAt) ?></span>
-                  <span class="me-2"><i class="bi bi-speedometer2"></i> <b>Pace:</b> <?= htmlspecialchars($paceTxt) ?></span>
-                  <span class="me-2"><i class="bi bi-fire text-danger"></i> <b>Kalori:</b> <?= htmlspecialchars($kalTxt) ?></span>
-                  <span class="me-2"><i class="bi bi-people-fill text-primary"></i> <b>Komunitas:</b> <?= htmlspecialchars($komTxt) ?></span>
-                </div>
               </div>
               <?php if(!empty($a['file_path'])): ?>
-                <a href="#" onclick="showBukti(event,this.dataset.src,this.dataset.date)" data-src="<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>" data-date="<?= htmlspecialchars($a['tanggal']) ?>">
-                  <img src="<?= htmlspecialchars($a['file_path']) ?>" alt="bukti" style="height:50px;width:50px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:1px solid #ddd">
-                </a>
+                <div class="text-center flex-shrink-0">
+                  <a href="#" onclick="showBukti(event,this.dataset.src,this.dataset.date)" data-src="<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>" data-date="<?= htmlspecialchars($a['tanggal']) ?>" class="d-inline-block text-decoration-none">
+                    <img src="<?= htmlspecialchars($a['file_path']) ?>" alt="Screenshot aktivitas" style="height:64px;width:64px;object-fit:cover;border-radius:8px;cursor:zoom-in;border:1px solid #ddd;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+                    <div class="small text-primary mt-1" style="font-size:.72rem"><i class="bi bi-image"></i> Lihat Screenshot</div>
+                  </a>
+                </div>
               <?php endif; ?>
             </div>
-            <?php if(!empty($a['deskripsi'])): ?><div class="small mt-1"><?= nl2br(htmlspecialchars($a['deskripsi'])) ?></div><?php endif; ?>
-            <?php /* Revisi Nov 2026 R11 — Keterangan Gear Sepatu milik user pada tiap kartu aktivitas publik. */
-              $__sp = $sepatuByUid[(int)$a['uid']] ?? [];
-              if ($__sp): ?>
-              <div class="small mt-1 text-muted">
-                <i class="bi bi-boot"></i> <strong>Gear Sepatu:</strong>
-                <?php foreach($__sp as $ii=>$sp): ?>
-                  <span class="badge bg-light text-dark border me-1"><i class="bi bi-tag"></i>
-                    <?= htmlspecialchars($sp['nama']) ?><?= !empty($sp['jenis_nama']) ? ' · '.htmlspecialchars($sp['jenis_nama']) : '' ?>
-                    <?= ((int)$sp['jumlah']>1) ? ' ('.(int)$sp['jumlah'].')' : '' ?>
-                    <?php if(!empty($sp['catatan'])): ?><em class="text-muted"> — <?= htmlspecialchars($sp['catatan']) ?></em><?php endif; ?>
-                  </span>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
+
+            <?php
+              /* Revisi Des 2026 — Meta chips: Upload / Pace / Kalori / Komunitas / Gear Sepatu */
+              $uploadAt = !empty($a['uploaded_at']) ? date('d M Y H:i', strtotime($a['uploaded_at'])) : '-';
+              $paceTxt  = '';
+              if (!empty($a['pace'])) {
+                  $__pv = trim($a['pace']);
+                  $paceTxt = (stripos($__pv, '/km') !== false) ? $__pv : ($__pv.' /km');
+              } elseif (!empty($a['pace_detik']) && (int)$a['pace_detik']>0) {
+                  $ps = (int)$a['pace_detik']; $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
+              } elseif (!empty($a['durasi_menit']) && !empty($a['jarak_km']) && (float)$a['jarak_km']>0) {
+                  $ps = (int) round(((int)$a['durasi_menit']*60) / (float)$a['jarak_km']);
+                  $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
+              } else { $paceTxt = '—'; }
+              $kalTxt   = !empty($a['kalori']) ? number_format((int)$a['kalori']).' kkal' : '—';
+              $komTxt   = !empty($a['kom_nama']) ? $a['kom_nama'] : 'Umum';
+              $gearTxt  = trim((string)($a['gear_sepatu'] ?? ''));
+            ?>
+            <div class="d-flex flex-wrap gap-1 mt-2 riwayat-meta">
+              <span class="badge rounded-pill bg-light text-dark border" title="Waktu upload">
+                <i class="bi bi-clock-history text-secondary"></i> <span class="text-muted">Upload:</span> <?= htmlspecialchars($uploadAt) ?>
+              </span>
+              <span class="badge rounded-pill bg-light text-dark border" title="Pace">
+                <i class="bi bi-speedometer2 text-info"></i> <span class="text-muted">Pace:</span> <?= htmlspecialchars($paceTxt) ?>
+              </span>
+              <span class="badge rounded-pill bg-light text-dark border" title="Kalori terbakar">
+                <i class="bi bi-fire text-danger"></i> <span class="text-muted">Kalori:</span> <?= htmlspecialchars($kalTxt) ?>
+              </span>
+              <span class="badge rounded-pill bg-light text-dark border" title="Komunitas">
+                <i class="bi bi-people-fill text-primary"></i> <span class="text-muted">Komunitas:</span> <?= htmlspecialchars($komTxt) ?>
+              </span>
+              <?php if($gearTxt!==''): ?>
+              <span class="badge rounded-pill bg-light text-dark border" title="Gear sepatu yang dipakai">
+                <i class="bi bi-shoe-prints text-success"></i> <span class="text-muted">Gear:</span> <?= htmlspecialchars($gearTxt) ?>
+              </span>
+              <?php endif; ?>
+            </div>
+
+            <?php if(!empty($a['deskripsi'])): ?><div class="small mt-2"><?= nl2br(htmlspecialchars($a['deskripsi'])) ?></div><?php endif; ?>
+
 
             <div class="mt-2 d-flex gap-3 align-items-center small">
               <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none lcs-like <?= !empty($a['liked'])?'text-danger':'text-muted' ?>" onclick="toggleLike(<?= (int)$a['id'] ?>,this)">
@@ -1076,25 +1059,39 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
    aktif setelah AJAX filter kategori/periode mengganti isi #lbCard. */
 window.lbInitPagination = function(){
   var list = document.getElementById('lbList'); if(!list) return;
-  var ps = parseInt(list.getAttribute('data-lb-page-size')||'5',10);
-  var items = Array.prototype.slice.call(list.querySelectorAll(':scope > li'));
-  var total = items.length;
+  var pager = document.getElementById('lbPager');
   var prevBtn = document.getElementById('lbPrev');
   var nextBtn = document.getElementById('lbNext');
   var info    = document.getElementById('lbPageInfo');
-  if (total <= ps || !prevBtn || !nextBtn) return;
-  var pages = Math.max(1, Math.ceil(total/ps)); var page = 1;
+  var ps = parseInt(list.getAttribute('data-lb-page-size')||'5',10) || 5;
+  // Ambil hanya <li> langsung anak list, dan buang placeholder "Belum ada data".
+  var allLi = list.children ? Array.prototype.slice.call(list.children) : [];
+  var items = allLi.filter(function(li){
+    if (!li || li.tagName !== 'LI') return false;
+    var t = (li.textContent || '').trim().toLowerCase();
+    return t.indexOf('belum ada data') === -1;
+  });
+  var total = items.length;
+  if (!pager || !prevBtn || !nextBtn) return;
+  if (total <= ps) { pager.style.display = 'none'; items.forEach(function(li){ li.style.display=''; }); return; }
+  pager.style.display = '';
+  var pages = Math.max(1, Math.ceil(total/ps));
+  var page = 1;
   function render(){
     items.forEach(function(li,i){ var p = Math.floor(i/ps)+1; li.style.display = (p===page)?'':'none'; });
     if (info) info.textContent = 'Halaman '+page+' / '+pages;
     prevBtn.disabled = (page<=1);
     nextBtn.disabled = (page>=pages);
   }
-  prevBtn.onclick = function(){ if(page>1){page--;render();} };
-  nextBtn.onclick = function(){ if(page<pages){page++;render();} };
+  prevBtn.onclick = function(e){ e.preventDefault(); if(page>1){page--;render();} };
+  nextBtn.onclick = function(e){ e.preventDefault(); if(page<pages){page++;render();} };
   render();
 };
-document.addEventListener('DOMContentLoaded', window.lbInitPagination);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window.lbInitPagination);
+} else {
+  window.lbInitPagination();
+}
 </script>
 <script>
 /* Revisi 22 Juni 2026 R12 — AJAX filter Leaderboard (kategori & periode). */
