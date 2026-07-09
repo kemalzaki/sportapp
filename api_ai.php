@@ -12,7 +12,7 @@ if (!ob_get_level()) ob_start();
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
-require __DIR__.'/includes/ai_gemini.php';
+require __DIR__.'/includes/ai_router.php';
 require_login();
 header('Content-Type: application/json');
 register_shutdown_function(function(){
@@ -48,7 +48,7 @@ switch ($task) {
                "fokus pada: rekomendasi pace, durasi, frekuensi latihan minggu depan, peringatan over-training, ".
                "dan 1 saran nutrisi/recovery. Gunakan format markdown poin.";
         $p = "Statistik pelari (30 hari terakhir):\n$stats\n\nBeri rekomendasi latihan & evaluasi.";
-        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>4096]);
+        $r = ai_chat($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -60,7 +60,7 @@ switch ($task) {
                "Selalu sebutkan referensi (surah:ayat, atau perawi+nomor hadist) bila relevan. ".
                "Jika pertanyaan termasuk khilafiyah, jelaskan pendapat utama tanpa menyalahkan. ".
                "Akhiri dengan kalimat 'Wallahu a'lam.'";
-        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        $r = ai_chat($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -76,7 +76,7 @@ switch ($task) {
                "navigasi & mitigasi tersesat, serta langkah jika SUDAH tersesat. Jika ada potensi cedera berat / ".
                "kondisi mengancam nyawa, ingatkan untuk segera memanggil 115 (Basarnas) / 112. ".
                "Akhiri dengan: 'Tetap tenang dan utamakan keselamatan.'";
-        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        $r = ai_chat($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -90,7 +90,7 @@ switch ($task) {
                "Fokus: identifikasi masalah, solusi teknik/peralatan/latihan, langkah bertahap, dan tanda harus konsultasi dokter. ".
                "Jika user bertanya di luar konteks olahraga '".$jenis."', tetap jawab tapi sebutkan relevansinya. ".
                "Akhiri dengan: 'Selamat berolahraga dengan aman!'";
-        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>4096]);
+        $r = ai_chat($prompt, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -104,9 +104,9 @@ switch ($task) {
                "Tentukan MET berdasarkan tabel Compendium of Physical Activities (cth: jalan santai 3.0, jalan cepat 4.3, naik-turun tangga 8.0, momong balita aktif 4.0, mencuci mobil 3.5, berkebun ringan 3.8). ".
                "WAJIB: estimasi durasi (menit) WAJIB > 0 dan kalori WAJIB > 0 (integer, minimal 5). Jangan pernah balas 0. ".
                "Balas HANYA JSON tanpa fence: {\"aktivitas\":\"<ringkas>\",\"durasi_menit\":<int>,\"kalori\":<int>,\"rincian\":\"<MET × kg × jam = kkal>\"}";
-        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.2,'max_tokens'=>512]);
+        $r = ai_chat($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.2,'max_tokens'=>512]);
         if (!$r['ok']) { echo json_encode($r); exit; }
-        $obj = gemini_extract_json($r['text']);
+        $obj = ai_extract_json($r['text']);
         $kal = (int)($obj['kalori'] ?? 0);
         $dur = (int)($obj['durasi_menit'] ?? 0);
         if ($kal <= 0) {
@@ -148,7 +148,7 @@ switch ($task) {
                "Balas HANYA isi file LRC murni, tanpa fence, tanpa komentar.";
         $prompt = "Lirik input (urutan harus dipertahankan):\n----\n".$lirik."\n----\n".
                   "Outputkan file LRC lengkap. Bila durasi audio < panjang lirik, tetap selaraskan semua baris se-realistis mungkin.";
-        $r = gemini_audio($prompt, $_FILES['audio']['tmp_name'],
+        $r = ai_audio($prompt, $_FILES['audio']['tmp_name'],
                 ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>8192]);
         if (!$r['ok']) { echo json_encode($r); exit; }
         $txt = trim((string)$r['text']);
@@ -165,7 +165,7 @@ switch ($task) {
                "Fokus pada: identifikasi cedera, prinsip RICE/POLICE, langkah penanganan, tanda merah (red flags) ".
                "yang wajib ke dokter/IGD, serta mitigasi/pencegahan sebelum cedera. ".
                "JANGAN memberikan diagnosis pasti. Akhiri dengan: 'Konten edukatif, bukan pengganti pemeriksaan tenaga medis.'";
-        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        $r = ai_chat($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -177,7 +177,7 @@ switch ($task) {
                "Sertakan: kemungkinan penyebab umum, gejala, langkah awal di rumah, rekomendasi herbal yang aman ".
                "(sebut nama tanaman & cara pakai bila relevan), serta tanda bahaya yang wajib ke dokter. ".
                "JANGAN memberikan dosis obat keras / resep dokter. Akhiri dengan: 'Konten edukatif, bukan pengganti konsultasi dokter.'";
-        $r = gemini_text($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        $r = ai_chat($prompt, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -188,8 +188,8 @@ switch ($task) {
                "Tentukan tingkat risiko ('aman'|'waspada'|'darurat') dan beri pesan singkat (≤ 25 kata) ".
                "yang bisa dikirim ke kontak darurat jika perlu. Balas HANYA JSON: ".
                "{\"level\":\"aman|waspada|darurat\",\"alasan\":\"...\",\"pesan\":\"...\"}";
-        $r = gemini_text($ctx ?: $prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.2,'max_tokens'=>250]);
-        $obj = gemini_extract_json($r['text'] ?? '');
+        $r = ai_chat($ctx ?: $prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.2,'max_tokens'=>250]);
+        $obj = ai_extract_json($r['text'] ?? '');
         echo json_encode(['ok'=>$r['ok'], 'err'=>$r['err'] ?? null, 'data'=>$obj, 'raw'=>$r['text'] ?? null]); exit;
     }
 
@@ -202,9 +202,9 @@ switch ($task) {
                "PENTING: SEMUA tempat WAJIB berada di Indonesia. Jika pengguna tidak menyebut kota, asumsikan kota di Indonesia ".
                "(default: Jakarta). Selalu sertakan nama kota + ', Indonesia' di setiap entri agar tidak salah negara. ".
                "Balas HANYA JSON: {\"places\":[\"Nama tempat 1, Nama Kota, Indonesia\", ...], \"note\":\"<1 kalimat ringkas>\"}";
-        $r = gemini_text($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.4,'max_tokens'=>2048]);
+        $r = ai_chat($prompt, ['system'=>$sys,'json'=>true,'temperature'=>0.4,'max_tokens'=>2048]);
         if (!$r['ok']) { echo json_encode($r); exit; }
-        $obj = gemini_extract_json($r['text']);
+        $obj = ai_extract_json($r['text']);
         $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
         // Fallback A: ekstrak semua string ber-kutip dari raw text (handles JSON terpotong)
         if (count($places) < 2) {
@@ -284,7 +284,7 @@ switch ($task) {
                "- Pertahankan bahasa asli lagu (jangan diterjemahkan).\n".
                "- Jangan tulis 'Verse 1', 'Chorus', dll — cukup baris kosong sebagai pemisah bagian.\n".
                "- Bila lagu tidak Anda kenali atau lirik tidak pasti, balas TEPAT: 'LIRIK_TIDAK_DITEMUKAN'.";
-        $r = gemini_text("Judul / artis: ".$prompt, ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>2048]);
+        $r = ai_chat("Judul / artis: ".$prompt, ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>2048]);
         if (!empty($r['ok'])) {
             $txt = trim((string)($r['text'] ?? ''));
             if ($txt === '' || stripos($txt, 'LIRIK_TIDAK_DITEMUKAN') !== false) {
@@ -310,7 +310,7 @@ switch ($task) {
              ($arab!=='' ? "Teks Arab: $arab\n" : '').
              ($terj!=='' ? "Terjemahan: $terj\n" : '').
              "\nJelaskan makna ayat ini.";
-        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>1024]);
+        $r = ai_chat($p, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>1024]);
         echo json_encode($r); exit;
     }
 
@@ -335,7 +335,7 @@ switch ($task) {
              ($arab!=='' ? "Teks Arab: $arab\n" : '').
              ($terj!=='' ? "Terjemahan: $terj\n" : '').
              "\nBerikan tafsir kontemporer ayat ini.";
-        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>2048]);
+        $r = ai_chat($p, ['system'=>$sys,'temperature'=>0.5,'max_tokens'=>2048]);
         echo json_encode($r); exit;
     }
 
@@ -359,7 +359,7 @@ switch ($task) {
              ($arab!=='' ? "Teks Arab: $arab\n" : '').
              ($terj!=='' ? "Terjemahan Indonesia: $terj\n" : '').
              "\nBerikan tafsir lughawi (analisis bahasa) ayat ini.";
-        $r = gemini_text($p, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
+        $r = ai_chat($p, ['system'=>$sys,'temperature'=>0.4,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
@@ -381,10 +381,10 @@ switch ($task) {
                "- pace dalam format menit'detik\"/km (contoh 5'42\"/km). Jika tidak ada, hitung dari durasi/jarak.\n".
                "- Nilai wajib > 0. Jika field tidak terbaca sama sekali, isi 0 (untuk numeric) atau string kosong.\n".
                "- Jika gambar BUKAN screenshot aktivitas lari, balas: {\"error\":\"bukan_strava\"}.";
-        $r = gemini_vision('Ekstrak data aktivitas jogging dari screenshot ini.', $_FILES['image']['tmp_name'],
+        $r = ai_vision('Ekstrak data aktivitas jogging dari screenshot ini.', $_FILES['image']['tmp_name'],
                 ['system'=>$sys,'json'=>true,'temperature'=>0.1,'max_tokens'=>1024]);
         if (!$r['ok']) { echo json_encode($r); exit; }
-        $obj = gemini_extract_json($r['text']);
+        $obj = ai_extract_json($r['text']);
         if (!is_array($obj) || isset($obj['error'])) {
             echo json_encode(['ok'=>false,'err'=>'Gambar tidak dikenali sebagai screenshot aktivitas Strava. Coba upload screenshot yang jelas.','raw'=>$r['text']]);
             exit;
@@ -416,14 +416,14 @@ switch ($task) {
                "(seperti Allah, Rasulullah, taqwa, dsb) apa adanya. Jangan menambahkan pengantar, jangan ".
                "menyebut proses terjemah — langsung sajikan hasil terjemahan saja. Pertahankan pembagian ".
                "paragraf. Jika teks sudah berbahasa Indonesia, kembalikan apa adanya.";
-        $r = gemini_text($text, ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>4096]);
+        $r = ai_chat($text, ['system'=>$sys,'temperature'=>0.2,'max_tokens'=>4096]);
         echo json_encode($r); exit;
     }
 
     /* ---------- Chat free-form ---------- */
     default: {
         if ($prompt === '') { echo json_encode(['ok'=>false,'err'=>'prompt kosong']); exit; }
-        $r = gemini_text($prompt, ['temperature'=>0.5,'max_tokens'=>800]);
+        $r = ai_chat($prompt, ['temperature'=>0.5,'max_tokens'=>800]);
         echo json_encode($r); exit;
     }
 }

@@ -2,7 +2,7 @@
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
-require __DIR__.'/includes/ai_gemini.php';
+require __DIR__.'/includes/ai_router.php';
 require_login();
 header('Content-Type: application/json');
 $u = current_user(); $uid = (int)$u['id'];
@@ -124,10 +124,10 @@ if ($a === 'ai_route_from_image') {
         "Balas HANYA JSON valid tanpa fence: ".
         '{"coords":[[lat,lng],[lat,lng]], "area":"<kota/kabupaten>", "note":"<1 kalimat>"}'.
         ($hint!=='' ? " Petunjuk area dari pengguna: $hint" : "");
-    $g1 = gemini_vision($promptCoord, $_FILES['image']['tmp_name'],
+    $g1 = ai_vision($promptCoord, $_FILES['image']['tmp_name'],
             ['json'=>true,'temperature'=>0.1,'max_tokens'=>4096]);
     if ($g1['ok']) {
-        $obj1 = gemini_extract_json($g1['text']);
+        $obj1 = ai_extract_json($g1['text']);
         $raw  = $obj1['coords'] ?? [];
         $note = (string)($obj1['note'] ?? '');
         if (is_array($raw)) {
@@ -155,10 +155,10 @@ if ($a === 'ai_route_from_image') {
             . "WAJIB cantumkan nama kota/kabupaten Indonesia + ', Indonesia' pada tiap entri agar geocoding tidak salah negara. "
             . "Balas HANYA JSON valid tanpa fence: {\"places\":[\"Nama lengkap, Kota, Indonesia\"], \"note\":\"<1 kalimat>\"}. "
             . ($hint!=='' ? "Petunjuk area dari pengguna: $hint" : "");
-    $g = gemini_vision($prompt, $_FILES['image']['tmp_name'],
+    $g = ai_vision($prompt, $_FILES['image']['tmp_name'],
             ['json'=>true,'temperature'=>0.2,'max_tokens'=>4096]);
     if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err'].($g1['ok']?'':' | tahap1: '.$g1['err'])]); exit; }
-    $obj = gemini_extract_json($g['text']);
+    $obj = ai_extract_json($g['text']);
     $places = is_array($obj['places'] ?? null) ? $obj['places'] : [];
     if (count($places) < 2) {
         $lines = preg_split('/\r?\n/', (string)$g['text']);
@@ -242,9 +242,9 @@ if ($a === 'ai_song_lyrics') {
             . "Jika lagu instrumental atau tidak Anda kenali, gunakan placeholder kreatif singkat (mis. \"Instrumental\"). "
             . "Balas HANYA JSON valid tanpa fence: "
             . '{"lines":[{"t":0,"line":"..."},{"t":12.5,"line":"..."}], "note":"<sumber/catatan>"}';
-    $g = gemini_text($prompt, ['json'=>true,'temperature'=>0.3,'max_tokens'=>2048]);
+    $g = ai_chat($prompt, ['json'=>true,'temperature'=>0.3,'max_tokens'=>2048]);
     if (!$g['ok']) { echo json_encode(['ok'=>false,'err'=>'Gemini: '.$g['err']]); exit; }
-    $obj = gemini_extract_json($g['text']);
+    $obj = ai_extract_json($g['text']);
     $lines = is_array($obj['lines'] ?? null) ? $obj['lines'] : [];
     $out = [];
     foreach ($lines as $l) {

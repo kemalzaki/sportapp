@@ -23,35 +23,42 @@ hf_env_set('MIDTRANS_PROD', '1');
 hf_env_set('ADMIN_WA_FIRDAM', '6281386369207');
 
 // ============================================================
-// ===== AI Router (Revisi Nov 2026 — R13) =====
+// ===== Universal AI Router =====
 // ============================================================
-// Urutan provider (otomatis fallback):
-//   1) OpenRouter — deepseek/deepseek-chat-v3   (PRIMARY)
-//   2) OpenRouter — qwen/qwen3-235b-a22b        (fallback)
-//   3) Groq       — llama-3.3-70b-versatile     (SECONDARY)
-//   4) Gemini     — gemini-2.5-flash            (LAST RESORT)
+// Semua request AI (chat, OCR, vision, screenshot Strava, parsing
+// data olahraga, audio) melewati includes/ai_router.php.
 //
-// PENTING! Provider yang API KEY-nya kosong akan DILEWATI otomatis.
-// Jika Anda melihat error "Gemini: User location is not supported",
-// artinya OpenRouter & Groq dilewati karena key belum diisi di bawah,
-// sehingga router langsung jatuh ke Gemini (tidak didukung di Indonesia).
+// URUTAN PROVIDER (otomatis fallback bila gagal):
+//   TEXT:
+//     1) OpenRouter — OPENROUTER_FREE_MODEL (openrouter/free)  PRIMARY
+//     2) OpenRouter — OPENROUTER_MODEL (deepseek/deepseek-chat-v3)
+//     3) Groq       — GROQ_MODEL (llama-3.3-70b-versatile)
+//     4) Gemini     — GEMINI_MODEL (gemini-2.5-flash)          LAST
+//   VISION:
+//     1) OpenRouter — OPENROUTER_FREE_MODEL (vision gratis)    PRIMARY
+//     2) Gemini     — GEMINI_MODEL                             LAST
 //
-// SOLUSI: isi minimal SATU dari OPENROUTER_API_KEY atau GROQ_API_KEY,
-// lalu HAPUS tanda "//" di awal barisnya.
+// PENTING! Provider yang API KEY-nya kosong DILEWATI otomatis.
+// Semua model WAJIB dari env di bawah (tidak ada hardcode di source).
+//
+// SOLUSI region: isi OPENROUTER_API_KEY (dan/atau GROQ_API_KEY),
+// lalu HAPUS "//" di awal barisnya. Gemini hanya dipakai bila
+// seluruh provider sebelumnya gagal.
 // ------------------------------------------------------------
 
 // --- 1) OpenRouter (PRIMARY) — daftar gratis di https://openrouter.ai/keys
 // hf_env_set('OPENROUTER_API_KEY', 'sk-or-v1-XXXXXXXXXXXXXXXXXXXXXXXX'); // <-- ISI & UNCOMMENT
-hf_env_set('OPENROUTER_MODEL',   'deepseek/deepseek-chat-v3');
-hf_env_set('OPENROUTER_MODEL_2', 'qwen/qwen3-235b-a22b');
+hf_env_set('OPENROUTER_FREE_MODEL', 'openrouter/free');          // PRIMARY (text + vision)
+hf_env_set('OPENROUTER_MODEL',      'deepseek/deepseek-chat-v3'); // SECONDARY (text-only)
 
-// --- 2) Groq (SECONDARY) — daftar gratis di https://console.groq.com/keys
+// --- 2) Groq (THIRD) — daftar gratis di https://console.groq.com/keys
 // hf_env_set('GROQ_API_KEY', 'gsk_XXXXXXXXXXXXXXXXXXXXXXXX'); // <-- ISI & UNCOMMENT
 hf_env_set('GROQ_MODEL',   'llama-3.3-70b-versatile');
 
-// --- 3) Gemini (LAST RESORT) — tidak dapat dipakai dari region tertentu (ID/dll)
+// --- 3) Gemini (LAST RESORT) — hanya jika semua provider di atas gagal
 // hf_env_set('GEMINI_API_KEY', 'AIzaXXXXXXXXXXXXXXXXX');
 hf_env_set('GEMINI_MODEL', 'gemini-2.5-flash');
 
 // Opsional: matikan router (paksa Gemini saja) — jangan diaktifkan
 // hf_env_set('AI_ROUTER_DISABLE', '1');
+

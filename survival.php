@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
            Input: daftar kota/kabupaten (string dipisah koma). Output JSON:
            { items: [ {nama, kota, lat, lng, level (1-5), deskripsi} ] }. */
         header('Content-Type: application/json');
-        require_once __DIR__.'/includes/ai_gemini.php';
+        require_once __DIR__.'/includes/ai_router.php';
         $citiesRaw = trim((string)($_POST['cities'] ?? ''));
         if ($citiesRaw==='') { echo json_encode(['ok'=>false,'err'=>'Daftar kota kosong']); exit; }
         if (mb_strlen($citiesRaw) > 600) $citiesRaw = mb_substr($citiesRaw, 0, 600);
@@ -84,8 +84,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && $u) {
                 . "{\"items\":[{\"nama\":\"...\",\"kota\":\"...\",\"lat\":-6.7,\"lng\":106.5,"
                 . "\"level\":4,\"deskripsi\":\"singkat (maks 140 char), sebut sumber makanan/air khas\"}]}";
         try {
-            $txt = gemini_text($prompt, ['temperature'=>0.4, 'max_tokens'=>2048]);
-            $data = gemini_extract_json($txt);
+            $txt = ai_chat($prompt, ['temperature'=>0.4, 'max_tokens'=>2048]);
+            $data = ai_extract_json($txt);
             $items = [];
             foreach (($data['items'] ?? []) as $it) {
                 $lat = (float)($it['lat'] ?? 0); $lng = (float)($it['lng'] ?? 0);

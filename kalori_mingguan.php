@@ -5,7 +5,7 @@ require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
-require __DIR__.'/includes/ai_gemini.php';
+require __DIR__.'/includes/ai_router.php';
 require __DIR__.'/includes/paket_helpers.php'; // Revisi 26 Juni 2026 #7 — gating PRO/KOMUNITAS
 send_security_headers(); enforce_session_timeout();
 $pageTitle = 'Kalori Mingguan';
@@ -102,10 +102,10 @@ function ai_estimate_kalori($imagePath, $namaTeks=''){
             . "\"karbohidrat_g\":<number>,\"protein_g\":<number>,\"lemak_g\":<number>,"
             . "\"serat_g\":<number>,\"gula_g\":<number>,\"sodium_mg\":<number>,"
             . "\"rincian\":\"<1 kalimat: komposisi & catatan gizi>\"}.";
-    $g = gemini_vision($prompt, $imagePath,
+    $g = ai_vision($prompt, $imagePath,
             ['json'=>true,'temperature'=>0.2,'max_tokens'=>1024]);
     if (!$g['ok']) return ['err'=>'Gemini: '.$g['err']];
-    $obj = gemini_extract_json($g['text']);
+    $obj = ai_extract_json($g['text']);
     if (is_array($obj) && isset($obj['kalori'])) {
         // Revisi 22 Juni 2026 R5 — bersihkan 'rincian' agar tidak menampilkan raw JSON.
         $rincianRaw = (string)($obj['rincian'] ?? '');
