@@ -399,6 +399,16 @@ function _ai_call_gemini_parts(array $prov, array $parts, array $opts) {
 // PUBLIC — gemini_text() sekarang adalah AI Router.
 // Nama fungsi dipertahankan agar seluruh halaman lama tetap jalan.
 // ============================================================
+function _ai_router_skipped_reasons() {
+    $skipped = [];
+    if (_ai_env('OPENROUTER_API_KEY') === '') $skipped[] = 'OpenRouter (OPENROUTER_API_KEY kosong)';
+    elseif (_ai_env('OPENROUTER_MODEL') === '') $skipped[] = 'OpenRouter#1 (OPENROUTER_MODEL kosong)';
+    if (_ai_env('OPENROUTER_API_KEY') !== '' && _ai_env('OPENROUTER_MODEL_2') === '') $skipped[] = 'OpenRouter#2 (OPENROUTER_MODEL_2 kosong)';
+    if (_ai_env('GROQ_API_KEY') === '') $skipped[] = 'Groq (GROQ_API_KEY kosong)';
+    elseif (_ai_env('GROQ_MODEL') === '') $skipped[] = 'Groq (GROQ_MODEL kosong)';
+    return $skipped;
+}
+
 function gemini_text($prompt, array $opts = []) {
     $providers = _ai_router_providers();
     if (!$providers) {
@@ -422,7 +432,10 @@ function gemini_text($prompt, array $opts = []) {
         _ai_log($prov['name'], $prov['model'], 'FAIL → next provider: '.substr($r['err'] ?? '?', 0, 160));
         // Selalu lanjut ke provider berikutnya jika masih ada.
     }
-    return ['ok'=>false,'text'=>'','err'=>'Semua provider AI gagal: '.implode(' | ', $errs)];
+    $skip = _ai_router_skipped_reasons();
+    $msg = 'Semua provider AI gagal: '.implode(' | ', $errs);
+    if ($skip) $msg .= ' || Provider dilewati (env kosong): '.implode(', ', $skip);
+    return ['ok'=>false,'text'=>'','err'=>$msg];
 }
 
 // ============================================================
