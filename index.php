@@ -709,8 +709,6 @@ $__hideSuper = scope_is_superduper_kom_member();
       <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat — yuk kumpulkan keringat hari ini.</p>
       <div class="d-flex flex-wrap gap-2">
         <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
-        <!-- Revisi Nov 2026 R11 — Tombol APK di bawah Tambahkan Pintasan -->
-        <a id="apkBtn" href="/BUILD_APK.md" target="_blank" rel="noopener" class="btn btn-sm btn-warning fw-semibold text-dark"><i class="bi bi-android2"></i> Download APK</a>
       </div>
     </div>
 </div>
