@@ -32,20 +32,20 @@ if (!function_exists('nav_feature_paket_map')) {
             'tempat_list.php'         => ['komunitas'],
             'islami.php'              => ['komunitas'],
             // Pro + Komunitas
-            'kalori_badminton.php'    => ['pro','komunitas'],
-            'kalori_renang.php'       => ['pro','komunitas'],
-            'kalori_pingpong.php'     => ['pro','komunitas'],
-            'kalori_futsal.php'       => ['pro','komunitas'],
-            'kalori_mingguan.php'     => ['pro','komunitas'],
-            'iptv.php'                => ['pro','komunitas'],
-            'toko_olahraga.php'       => ['pro','komunitas'],
+            'kalori_badminton.php'    => ['pro'],
+            'kalori_renang.php'       => ['pro'],
+            'kalori_pingpong.php'     => ['pro'],
+            'kalori_futsal.php'       => ['pro'],
+            'kalori_mingguan.php'     => ['pro'],
+            'iptv.php'                => ['pro'],
+            'toko_olahraga.php'       => ['pro'],
             'artikel_olahraga.php'    => ['pro','komunitas'],
-            'cedera_olahraga.php'     => ['pro','komunitas'],
-            'lacak_faskes.php'        => ['pro','komunitas'],
-            'survival.php'            => ['pro','komunitas'],
-            'kalkulator.php'          => ['pro','komunitas'],
-            'kalkulator_jantung.php'  => ['pro','komunitas'],
-            'kalkulator_kesehatan.php'=> ['pro','komunitas'],
+            'cedera_olahraga.php'     => ['pro'],
+            'lacak_faskes.php'        => ['pro'],
+            'survival.php'            => ['pro'],
+            'kalkulator.php'          => ['pro'],
+            'kalkulator_jantung.php'  => ['pro'],
+            'kalkulator_kesehatan.php'=> ['pro'],
             'gaya_hidup.php'          => ['pro','komunitas'],
             // Pro-only — Paket Anak & Lansia
             'paket_anak_2_4.php'      => ['pro'],
@@ -56,6 +56,9 @@ if (!function_exists('nav_feature_paket_map')) {
             'paket_lansia_70.php'     => ['pro'],
             // Revisi Juli 2026 R10 — Paket Perokok (Jogging)
             'paket_perokok_jogging.php' => ['pro'],
+            // Revisi Juli 2026 R11 — Pro-only badge (removed Komunitas)
+            'kalistenik.php'          => ['pro'],
+            'kesehatan.php'           => ['pro'],
         ];
     }
 }
