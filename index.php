@@ -690,8 +690,16 @@ $__hideSuper = scope_is_superduper_kom_member();
 
 
 
-<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
-  <div class="d-flex flex-wrap align-items-center gap-3">
+<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white position-relative overflow-hidden" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
+  <!-- Revisi Nov 2026 R11 — Animasi/visualisasi runner berlari di kotak sapaan. -->
+  <div class="hero-run-track" aria-hidden="true">
+    <div class="hero-run-runner"><i class="bi bi-person-walking"></i></div>
+    <div class="hero-run-ground"></div>
+    <div class="hero-run-cloud c1"><i class="bi bi-cloud-fill"></i></div>
+    <div class="hero-run-cloud c2"><i class="bi bi-cloud-fill"></i></div>
+    <div class="hero-run-cloud c3"><i class="bi bi-cloud-fill"></i></div>
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-3 position-relative" style="z-index:2;">
     <div class="flex-grow-1" style="min-width:240px;">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
         <span class="badge-soft" style="display:inline-flex !important;align-items:center;gap:.35rem;background:#ffffff !important;color:#0f172a !important;border:1px solid #ffffff !important;padding:.35rem .8rem;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em;box-shadow:0 2px 10px rgba(15,23,42,.18);"><i class="bi bi-stars" style="color:#f59e0b"></i> <span style="color:#0f172a">KawanKeringat AppSport</span></span>
@@ -699,10 +707,32 @@ $__hideSuper = scope_is_superduper_kom_member();
       <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Halo, <?= htmlspecialchars($u['nama'] ?? 'Sobat') ?>! 👋</h1>
       <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">Selamat datang Mahasiswa &amp; Pecinta Olahraga.</p>
       <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat — yuk kumpulkan keringat hari ini.</p>
-      <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
+      <div class="d-flex flex-wrap gap-2">
+        <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
+        <!-- Revisi Nov 2026 R11 — Tombol APK di bawah Tambahkan Pintasan -->
+        <a id="apkBtn" href="/BUILD_APK.md" target="_blank" rel="noopener" class="btn btn-sm btn-warning fw-semibold text-dark"><i class="bi bi-android2"></i> Download APK</a>
+      </div>
     </div>
 </div>
 </section>
+
+<style>
+/* Revisi Nov 2026 R11 — animasi runner di hero */
+.hero-run-track{position:absolute;left:0;right:0;bottom:0;height:64px;pointer-events:none;overflow:hidden;z-index:1;}
+.hero-run-ground{position:absolute;left:0;right:0;bottom:0;height:6px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 14px,transparent 14px 28px);animation:heroGround 1.2s linear infinite;}
+.hero-run-runner{position:absolute;bottom:8px;left:12px;font-size:2rem;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.25);animation:heroBounce .5s ease-in-out infinite;}
+.hero-run-cloud{position:absolute;color:rgba(255,255,255,.35);font-size:1.4rem;top:8px;animation:heroCloud 14s linear infinite;}
+.hero-run-cloud.c1{left:100%;animation-delay:0s}
+.hero-run-cloud.c2{left:100%;top:20px;font-size:1.1rem;animation-duration:18s;animation-delay:-6s;}
+.hero-run-cloud.c3{left:100%;top:2px;font-size:1.7rem;animation-duration:22s;animation-delay:-12s;}
+@keyframes heroGround{from{background-position:0 0}to{background-position:-28px 0}}
+@keyframes heroBounce{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-6px) scaleX(1.02)}}
+@keyframes heroCloud{from{transform:translateX(0)}to{transform:translateX(-140vw)}}
+@media (prefers-reduced-motion: reduce){
+  .hero-run-ground,.hero-run-runner,.hero-run-cloud{animation:none !important}
+}
+</style>
+
 
 <script>
 let _deferredInstall = null;
@@ -923,10 +953,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <?php if($u && !$__hideSuper): /* Revisi R10 — sembunyikan Story dari komunitas SuperDuperAdmin (non-superadmin) */ ?>
+<!-- Revisi Nov 2026 R11 — Tombol Posting standalone (dipindahkan dari header Story Hari Ini), berada TEPAT DI ATAS Story Hari Ini. -->
+<div class="card shadow-sm mb-3" id="postingTopCard">
+  <div class="card-body d-flex justify-content-between align-items-center gap-2 py-2 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-plus-square-dotted text-primary fs-4"></i>
+      <div>
+        <div class="fw-semibold">Posting Baru</div>
+        <div class="small text-muted">Bagikan story, foto atau update ke komunitas.</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#postModal"><i class="bi bi-plus-lg"></i> Posting</button>
+  </div>
+</div>
+
 <div class="card shadow-sm mb-3" id="feed"><div class="card-header d-flex justify-content-between">
   <span><i class="bi bi-collection-play text-primary"></i> Story Hari Ini</span>
-  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#postModal"><i class="bi bi-plus-lg"></i> Posting</button>
 </div>
+
 <div class="card-body">
   <div class="story-strip" data-live="stories">
     <?php foreach($stories as $s):
@@ -1879,4 +1923,59 @@ function showStory(d){
   new MutationObserver(bind).observe(section, {childList:true, subtree:true});
 })();
 </script>
+
+<!-- Revisi Nov 2026 R11 — Spoiler otomatis (tertutup by default) untuk kartu: Kabari Member, Story Hari Ini, Social Feed, Forum Komunitas. -->
+<style>
+.idx-spoiler-caret{transition:transform .15s ease;display:inline-block;margin-left:.35rem;color:#94a3b8}
+.idx-spoiler-open .idx-spoiler-caret{transform:rotate(180deg)}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var TARGETS = ["Kabari Member","Story Hari Ini","Social Feed","Forum Komunitas"];
+  function norm(t){ return (t||'').replace(/\s+/g,' ').trim(); }
+  function matches(title){
+    title = norm(title);
+    for (var i=0;i<TARGETS.length;i++){
+      if (title.indexOf(TARGETS[i])===0 || title.indexOf(TARGETS[i]) !== -1) {
+        return TARGETS[i];
+      }
+    }
+    return null;
+  }
+  document.querySelectorAll('.card').forEach(function(card){
+    if (card.tagName.toLowerCase() === 'details') return;
+    if (card.dataset.idxSpoilerDone === '1') return;
+    var header = card.querySelector(':scope > .card-header');
+    if (!header) return;
+    if (!matches(header.textContent)) return;
+
+    // Kumpulkan semua sibling setelah header sebagai konten yang bisa disembunyikan.
+    var kids = Array.from(card.children);
+    var idx  = kids.indexOf(header);
+    var contentEls = kids.slice(idx+1);
+    if (!contentEls.length) return;
+
+    card.dataset.idxSpoilerDone = '1';
+    header.style.cursor = 'pointer';
+    if (!header.querySelector('.idx-spoiler-caret')) {
+      var c = document.createElement('span');
+      c.className = 'idx-spoiler-caret ms-2';
+      c.innerHTML = '<i class="bi bi-chevron-down"></i>';
+      header.appendChild(c);
+    }
+    function setOpen(open){
+      contentEls.forEach(function(el){ el.style.display = open ? '' : 'none'; });
+      header.classList.toggle('idx-spoiler-open', open);
+    }
+    setOpen(false); // default tertutup
+
+    header.addEventListener('click', function(e){
+      if (e.target.closest('a,button,input,select,textarea,label,form')) return;
+      var isOpen = contentEls[0] && contentEls[0].style.display !== 'none';
+      setOpen(!isOpen);
+    });
+  });
+});
+</script>
 <?php render_index_blok('bottom'); include __DIR__.'/includes/footer.php'; ?>
+

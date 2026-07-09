@@ -1405,5 +1405,94 @@ if ($waSelf && !$cntPerl) {
 
 <?php /* Revisi Juli 2026 — Blok Ubah Password Pribadi telah DIPINDAH ke bagian atas (di atas Pertemananku). */ ?>
 
+<!-- Revisi Nov 2026 R11 — Spoiler otomatis (tertutup by default) untuk beberapa kartu di halaman Profil.
+     Menggunakan JS tanpa mengubah struktur PHP: menandai .card / .card-body yang cocok berdasarkan judul,
+     lalu memasang toggle klik pada card-header (atau <h6> untuk kartu tanpa card-header). -->
+<style>
+.spoiler-caret{transition:transform .15s ease;display:inline-block;margin-left:.35rem;color:#94a3b8}
+.spoiler-open .spoiler-caret{transform:rotate(180deg)}
+[data-spoiler-header]{user-select:none}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var TARGETS = [
+    "Ubah Password Pribadi",
+    "Edit Nama & Username",
+    "Edit Nama &amp; Username",
+    "Pertemananku",
+    "Notifikasi",
+    "Data Kesehatan",
+    "Achievement Profile",
+    "Attendance Heatmap",
+    "Kondisi Terkini",
+    "Titip Pesan untuk Saya"
+  ];
+  function norm(t){ return (t||'').replace(/\s+/g,' ').trim(); }
+  function matches(title){
+    title = norm(title);
+    for (var i=0;i<TARGETS.length;i++){
+      if (title.indexOf(TARGETS[i])===0) return TARGETS[i];
+    }
+    return null;
+  }
+  document.querySelectorAll('.card').forEach(function(card){
+    // Lewati kartu yang sudah pakai <details>
+    if (card.tagName.toLowerCase() === 'details') return;
+    if (card.dataset.spoilerDone === '1') return;
+
+    var header = card.querySelector(':scope > .card-header');
+    var body   = card.querySelector(':scope > .card-body');
+    var summary = null, contentEls = [];
+
+    if (header) {
+      if (!matches(header.textContent)) return;
+      summary = header;
+      var kids = Array.from(card.children);
+      var idx  = kids.indexOf(header);
+      contentEls = kids.slice(idx+1);
+    } else if (body) {
+      var h6 = body.querySelector(':scope > h6');
+      if (!h6 || !matches(h6.textContent)) return;
+      summary = h6;
+      // Bungkus semua sibling setelah h6 ke dalam satu div agar mudah disembunyikan.
+      var wrap = document.createElement('div');
+      wrap.className = 'spoiler-inner-wrap';
+      var sib = h6.nextSibling;
+      while (sib) { var nx = sib.nextSibling; wrap.appendChild(sib); sib = nx; }
+      body.appendChild(wrap);
+      contentEls = [wrap];
+    } else {
+      return;
+    }
+
+    card.dataset.spoilerDone = '1';
+    summary.setAttribute('data-spoiler-header','1');
+    summary.style.cursor = 'pointer';
+
+    if (!summary.querySelector('.spoiler-caret')) {
+      var c = document.createElement('span');
+      c.className = 'spoiler-caret';
+      c.innerHTML = '<i class="bi bi-chevron-down"></i>';
+      summary.appendChild(c);
+    }
+
+    function setOpen(open){
+      contentEls.forEach(function(el){ el.style.display = open ? '' : 'none'; });
+      summary.classList.toggle('spoiler-open', open);
+    }
+    // Default TERTUTUP saat pertama kali kunjungan halaman.
+    setOpen(false);
+
+    summary.addEventListener('click', function(e){
+      // Jangan trigger jika mengklik kontrol interaktif di dalam header (mis. tombol "Tandai sudah dibaca").
+      if (e.target.closest('a,button,input,select,textarea,label,form')) return;
+      var isOpen = contentEls[0] && contentEls[0].style.display !== 'none';
+      setOpen(!isOpen);
+    });
+  });
+});
+</script>
+
 
 <?php include __DIR__.'/includes/footer.php'; ?>
+

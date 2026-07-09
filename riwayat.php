@@ -315,6 +315,30 @@ $publicActs = db_all("
   WHERE u.id = ANY($1::int[])
   ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 30", [$__vids]);
 
+/* Revisi Nov 2026 R11 — Ambil daftar gear "Sepatu" per user dari user_perlengkapan
+   untuk ditampilkan sebagai keterangan di Riwayat Aktivitas Publik. */
+$sepatuByUid = [];
+try {
+  $uidsAct = array_values(array_unique(array_map(function($r){ return (int)$r['uid']; }, $publicActs)));
+  if ($uidsAct) {
+    $rowsSp = db_all(
+      "SELECT user_id, nama, jenis_nama, jumlah, catatan
+       FROM user_perlengkapan
+       WHERE user_id = ANY(\$1::int[])
+         AND (LOWER(nama) LIKE '%sepatu%' OR LOWER(COALESCE(catatan,'')) LIKE '%sepatu%')
+       ORDER BY id DESC",
+      [$uidsAct]
+    );
+    foreach ($rowsSp as $rs) {
+      $uidX = (int)$rs['user_id'];
+      if (!isset($sepatuByUid[$uidX])) $sepatuByUid[$uidX] = [];
+      $sepatuByUid[$uidX][] = $rs;
+    }
+  }
+} catch (Throwable $e) { $sepatuByUid = []; }
+
+
+
 
 $myActs = $u ? db_all("SELECT id,tanggal,jenis,durasi_menit,jarak_km,kalori,file_path,deskripsi
                        FROM upload_harian WHERE user_id=$1 ORDER BY tanggal DESC LIMIT 30", [(int)$u['id']]) : [];
@@ -603,6 +627,21 @@ include __DIR__.'/includes/header.php';
               <?php endif; ?>
             </div>
             <?php if(!empty($a['deskripsi'])): ?><div class="small mt-1"><?= nl2br(htmlspecialchars($a['deskripsi'])) ?></div><?php endif; ?>
+            <?php /* Revisi Nov 2026 R11 — Keterangan Gear Sepatu milik user pada tiap kartu aktivitas publik. */
+              $__sp = $sepatuByUid[(int)$a['uid']] ?? [];
+              if ($__sp): ?>
+              <div class="small mt-1 text-muted">
+                <i class="bi bi-boot"></i> <strong>Gear Sepatu:</strong>
+                <?php foreach($__sp as $ii=>$sp): ?>
+                  <span class="badge bg-light text-dark border me-1"><i class="bi bi-tag"></i>
+                    <?= htmlspecialchars($sp['nama']) ?><?= !empty($sp['jenis_nama']) ? ' · '.htmlspecialchars($sp['jenis_nama']) : '' ?>
+                    <?= ((int)$sp['jumlah']>1) ? ' ('.(int)$sp['jumlah'].')' : '' ?>
+                    <?php if(!empty($sp['catatan'])): ?><em class="text-muted"> — <?= htmlspecialchars($sp['catatan']) ?></em><?php endif; ?>
+                  </span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+
             <div class="mt-2 d-flex gap-3 align-items-center small">
               <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none lcs-like <?= !empty($a['liked'])?'text-danger':'text-muted' ?>" onclick="toggleLike(<?= (int)$a['id'] ?>,this)">
                 <i class="bi <?= !empty($a['liked'])?'bi-heart-fill':'bi-heart' ?>"></i>
@@ -1135,4 +1174,38 @@ function showEksternal(userId, nama){
 })();
 </script>
 
+
+<!-- Revisi Nov 2026 R11 — Di tampilan mobile, Leaderboard dipindahkan tepat di bawah kartu
+     Pemilihan Kategori & Periode agar mudah dibaca tanpa harus scroll melewati Monitoring & Kalender. -->
+<script>
+(function(){
+  var MQ = window.matchMedia('(max-width: 991.98px)');
+  var lbCard = document.getElementById('lbCard');
+  var filterForm = document.getElementById('lbFilterForm');
+  if (!lbCard || !filterForm) return;
+  var filterCard = filterForm.closest('.card');
+  if (!filterCard) return;
+  var originalParent = lbCard.parentNode;
+  var originalNext   = lbCard.nextSibling;
+
+  function apply(){
+    if (MQ.matches) {
+      // Sisipkan Leaderboard tepat setelah kartu Pemilihan Kategori & Periode.
+      if (lbCard.previousElementSibling !== filterCard) {
+        filterCard.parentNode.insertBefore(lbCard, filterCard.nextSibling);
+      }
+    } else {
+      // Kembalikan ke posisi semula (col-lg-5) untuk desktop.
+      if (lbCard.parentNode !== originalParent) {
+        originalParent.insertBefore(lbCard, originalNext);
+      }
+    }
+  }
+  apply();
+  if (MQ.addEventListener) MQ.addEventListener('change', apply);
+  else if (MQ.addListener) MQ.addListener(apply);
+})();
+</script>
+
 <?php include __DIR__.'/includes/footer.php'; ?>
+

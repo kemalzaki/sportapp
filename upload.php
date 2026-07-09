@@ -109,7 +109,7 @@ include __DIR__.'/includes/header.php'; ?>
 
 <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
   <h2 class="mb-0"><i class="bi bi-cloud-upload text-primary"></i> Upload Aktivitas Harian</h2>
-  <span class="badge bg-warning"><i class="bi bi-info-circle me-1"></i> Minimal 1 minggu 1x</span>
+  <span class="badge bg-warning"><i class="bi bi-info-circle me-1"></i> Minimal 1 minggu 2x</span>
 </div>
 
 <?php if($msg): ?><div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> <?= htmlspecialchars($msg) ?></div><?php endif; ?>
@@ -117,7 +117,8 @@ include __DIR__.'/includes/header.php'; ?>
 
 <div class="row g-3">
   <div class="col-lg-5">
-    <details class="card shadow-sm" open><summary class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor:pointer;list-style:revert">
+    <!-- Revisi Nov 2026 R11 — Catat Aktivitas Baru default TERTUTUP saat pertama kali dibuka. -->
+    <details class="card shadow-sm"><summary class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor:pointer;list-style:revert">
       <span><i class="bi bi-plus-circle text-primary me-1"></i> Catat Aktivitas Baru <span class="text-muted small">(klik untuk buka/tutup)</span></span>
       <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#panduanUploadModal" onclick="event.preventDefault();event.stopPropagation();">
         <i class="bi bi-question-circle"></i> Panduan Upload
