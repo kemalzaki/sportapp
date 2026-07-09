@@ -333,7 +333,7 @@ try {
        WHERE user_id = ANY(\$1::int[])
          AND (LOWER(nama) LIKE '%sepatu%' OR LOWER(COALESCE(catatan,'')) LIKE '%sepatu%')
        ORDER BY id DESC",
-      [$uidsAct]
+      ['{'.implode(',', array_map('intval', $uidsAct)).'}']
     );
     foreach ($rowsSp as $rs) {
       $uidX = (int)$rs['user_id'];
@@ -388,7 +388,7 @@ try {
 if (!empty($_GET['ajax_lb'])) {
     header('Content-Type: text/html; charset=utf-8'); ?>
     <div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
-    <ol class="list-group list-group-flush list-group-numbered">
+    <ol class="list-group list-group-flush list-group-numbered" id="lbList" data-lb-page-size="5">
       <?php foreach($lb as $i=>$row): ?>
         <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <a href="/user.php?id=<?= (int)$row['id'] ?>" class="text-decoration-none">
@@ -415,6 +415,13 @@ if (!empty($_GET['ajax_lb'])) {
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
     </ol>
+    <?php if(!empty($lb) && count($lb) > 5): ?>
+    <div class="card-footer d-flex justify-content-between align-items-center" id="lbPager">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="lbPrev"><i class="bi bi-chevron-left"></i> Sebelumnya</button>
+      <span class="small text-muted" id="lbPageInfo">Halaman 1</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="lbNext">Berikutnya <i class="bi bi-chevron-right"></i></button>
+    </div>
+    <?php endif; ?>
     <?php exit;
 }
 
@@ -552,23 +559,6 @@ include __DIR__.'/includes/header.php';
       <span class="small text-muted" id="lbPageInfo">Halaman 1</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" id="lbNext">Berikutnya <i class="bi bi-chevron-right"></i></button>
     </div>
-    <script>
-    (function(){
-      var list = document.getElementById('lbList'); if(!list) return;
-      var ps = parseInt(list.getAttribute('data-lb-page-size')||'5',10);
-      var items = Array.prototype.slice.call(list.querySelectorAll(':scope > li'));
-      var total = items.length; var pages = Math.max(1, Math.ceil(total/ps)); var page = 1;
-      function render(){
-        items.forEach(function(li,i){ var p = Math.floor(i/ps)+1; li.style.display = (p===page)?'':'none'; });
-        var info = document.getElementById('lbPageInfo'); if(info) info.textContent = 'Halaman '+page+' / '+pages;
-        var prev = document.getElementById('lbPrev'); if(prev) prev.disabled = (page<=1);
-        var next = document.getElementById('lbNext'); if(next) next.disabled = (page>=pages);
-      }
-      document.getElementById('lbPrev').addEventListener('click',function(){ if(page>1){page--;render();} });
-      document.getElementById('lbNext').addEventListener('click',function(){ if(page<pages){page++;render();} });
-      render();
-    })();
-    </script>
     <?php endif; ?>
     </div>
     <?php endif; /* R10 endif Leaderboard */ ?>
@@ -656,7 +646,8 @@ include __DIR__.'/includes/header.php';
                   $uploadAt = !empty($a['uploaded_at']) ? date('d M Y H:i', strtotime($a['uploaded_at'])) : '-';
                   $paceTxt  = '';
                   if (!empty($a['pace'])) {
-                      $paceTxt = trim($a['pace']).' /km';
+                      $__pv = trim($a['pace']);
+                      $paceTxt = (stripos($__pv, '/km') !== false) ? $__pv : ($__pv.' /km');
                   } elseif (!empty($a['pace_detik']) && (int)$a['pace_detik']>0) {
                       $ps = (int)$a['pace_detik']; $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
                   } elseif (!empty($a['durasi_menit']) && !empty($a['jarak_km']) && (float)$a['jarak_km']>0) {
@@ -1081,6 +1072,31 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
 
 </script>
 <script>
+/* Revisi Juli 2026 — Leaderboard pagination (per 5). Reusable agar tetap
+   aktif setelah AJAX filter kategori/periode mengganti isi #lbCard. */
+window.lbInitPagination = function(){
+  var list = document.getElementById('lbList'); if(!list) return;
+  var ps = parseInt(list.getAttribute('data-lb-page-size')||'5',10);
+  var items = Array.prototype.slice.call(list.querySelectorAll(':scope > li'));
+  var total = items.length;
+  var prevBtn = document.getElementById('lbPrev');
+  var nextBtn = document.getElementById('lbNext');
+  var info    = document.getElementById('lbPageInfo');
+  if (total <= ps || !prevBtn || !nextBtn) return;
+  var pages = Math.max(1, Math.ceil(total/ps)); var page = 1;
+  function render(){
+    items.forEach(function(li,i){ var p = Math.floor(i/ps)+1; li.style.display = (p===page)?'':'none'; });
+    if (info) info.textContent = 'Halaman '+page+' / '+pages;
+    prevBtn.disabled = (page<=1);
+    nextBtn.disabled = (page>=pages);
+  }
+  prevBtn.onclick = function(){ if(page>1){page--;render();} };
+  nextBtn.onclick = function(){ if(page<pages){page++;render();} };
+  render();
+};
+document.addEventListener('DOMContentLoaded', window.lbInitPagination);
+</script>
+<script>
 /* Revisi 22 Juni 2026 R12 — AJAX filter Leaderboard (kategori & periode). */
 (function(){
   var f = document.getElementById('lbFilterForm');
@@ -1093,7 +1109,7 @@ document.querySelectorAll('[data-paginate-list]').forEach(root=>{
     stat.textContent = 'Memuat...';
     fetch('/riwayat.php?ajax_lb=1&cat='+encodeURIComponent(cat)+'&period='+encodeURIComponent(per), {headers:{'X-Requested-With':'fetch'}})
       .then(function(r){ return r.text(); })
-      .then(function(html){ card.innerHTML = html; stat.textContent=''; try{ var qs=new URL(location.href); qs.searchParams.set('cat',cat); qs.searchParams.set('period',per); history.replaceState(null,'',qs.toString()); }catch(e){} })
+      .then(function(html){ card.innerHTML = html; stat.textContent=''; if (typeof window.lbInitPagination === 'function') window.lbInitPagination(); try{ var qs=new URL(location.href); qs.searchParams.set('cat',cat); qs.searchParams.set('period',per); history.replaceState(null,'',qs.toString()); }catch(e){} })
       .catch(function(){ stat.textContent='Gagal memuat.'; });
   }
   document.getElementById('lbCat').addEventListener('change', reload);
@@ -1158,7 +1174,6 @@ function showEksternal(userId, nama){
     'monitoring upload harian',
     'kalender aktivitas publik',
     'kalender aktivitas saya',
-    'leaderboard',
     'tren kehadiran mingguan',
     'riwayat sesi',
     'riwayat aktifitas saya',
