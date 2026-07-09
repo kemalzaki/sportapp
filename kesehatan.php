@@ -4,11 +4,16 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require __DIR__.'/includes/info_publik.php';
+require __DIR__.'/includes/paket_helpers.php'; // R12 — gate PRO (Komunitas juga bisa akses)
 send_security_headers(); enforce_session_timeout();
 require_login();
 $pageTitle = 'Kesehatan & Obat Herbal';
 $pageSkeleton = 'list';
 $u = current_user(); $uid = (int)$u['id'];
+
+// Revisi R12 — Penyakit Umum & Obat Herbal khusus paket PRO (Komunitas juga bisa akses)
+paket_require_or_lock('pro', $u, 'Penyakit Umum & Obat Herbal',
+    'Info penyakit umum dan obat herbal beserta AI Doctor tersedia untuk paket PRO & KOMUNITAS.');
 
 // Revisi 18 Juni 2026 — tabel Q&A AI Doctor (idempotent, sharing tabel dgn ai_health)
 try {

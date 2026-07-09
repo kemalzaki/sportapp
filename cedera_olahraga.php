@@ -11,8 +11,8 @@ $pageTitle = 'Cedera Olahraga & Penanganan';
 $u = current_user(); $uid = (int)$u['id'];
 
 // Revisi R22 — Cedera Olahraga khusus paket KOMUNITAS
-paket_require_or_lock('komunitas', $u, 'Cedera Olahraga & Penanganan',
-    'Panduan cedera olahraga + pencarian Puskesmas/RS terdekat tersedia untuk paket Komunitas.');
+paket_require_or_lock('pro', $u, 'Cedera Olahraga & Penanganan',
+    'Panduan cedera olahraga + pencarian Puskesmas/RS terdekat tersedia untuk paket PRO & KOMUNITAS.');
 
 // Revisi 18 Juni 2026 — tabel penyimpanan Q&A AI Health (idempotent)
 try {

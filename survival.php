@@ -14,8 +14,8 @@ $pageTitle = 'Survival Mode';
 $u = current_user();
 
 // Revisi R22 — Survival Mode khusus paket KOMUNITAS
-paket_require_or_lock('komunitas', $u, 'Survival Mode',
-    'Pengetahuan survival hutan, makanan boleh/tidak, dan AI Survival Coach tersedia untuk paket Komunitas.');
+paket_require_or_lock('pro', $u, 'Survival Mode',
+    'Pengetahuan survival hutan, makanan boleh/tidak, dan AI Survival Coach tersedia untuk paket PRO & KOMUNITAS.');
 
 // Tabel penyimpanan Q&A Survival (idempotent)
 try {
