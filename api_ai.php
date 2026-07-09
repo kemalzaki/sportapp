@@ -1,5 +1,4 @@
 <?php
-// Revisi R2 (Juli 2026) — buffer output supaya warning/notice PHP tidak
 // mencemari body JSON (penyebab '<br />' di dalam JSON parse client-side).
 if (!ob_get_level()) ob_start();
 /**
