@@ -647,6 +647,14 @@ if (empty($pageSkeleton)) {
 
 <?php /* Drawer menu lengkap — "Profil Saya" duplikat DIHILANGKAN (sudah ada
         di avatar header atas dan ikon "Saya" di bottom nav). */ ?>
+<?php /* Revisi Nov 2026 R12 — Warna ikon drawer mengikuti tema (--primary dari profile).
+     Semua ikon Bootstrap Icons di dalam gt-drawer diwarnai --primary, kecuali
+     ikon di dalam badge (agar badge tetap kontras). */ ?>
+<style>
+.gt-drawer .list-group-item i.bi,
+.gt-drawer .offcanvas-title i.bi{ color: var(--primary, #0ea5e9) !important; }
+.gt-drawer .list-group-item .badge i.bi{ color: inherit !important; }
+</style>
 <div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title brand-logo-colored d-flex align-items-center gap-2" id="gtDrawerLabel">

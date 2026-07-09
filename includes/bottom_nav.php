@@ -64,11 +64,20 @@ if (!function_exists('_gj_active')) {
 </nav>
 
 <?php /* Loading indicator kecil (top-bar tipis) saat pindah halaman */ ?>
+<?php /* Revisi Nov 2026 R12 — Warna ikon bottom nav mengikuti tema (--primary dari profile). */ ?>
 <style>
+.gj-nav .gj-item .gj-ico i,
+.gj-nav .gj-item.active .gj-ico i,
+.gj-nav .gj-item.active .gj-label{ color: var(--primary, #0ea5e9) !important; }
+.gj-nav .gj-fab .gj-fab-inner{
+  background: var(--primary-gradient, linear-gradient(135deg,#0369a1,#0ea5e9)) !important;
+  color:#fff !important;
+  box-shadow: var(--shadow-fab, 0 10px 24px rgba(14,165,233,.35));
+}
 .gj-topbar{
   position:fixed; top:0; left:0; height:3px; width:0;
-  background:linear-gradient(90deg,#0ea5e9,#22d3ee);
-  z-index:9999; transition:width .25s ease; box-shadow:0 0 8px #0ea5e9;
+  background:linear-gradient(90deg, var(--primary,#0ea5e9), var(--primary-light,#22d3ee));
+  z-index:9999; transition:width .25s ease; box-shadow:0 0 8px var(--primary,#0ea5e9);
 }
 .gj-topbar.active{ width:80%; }
 </style>

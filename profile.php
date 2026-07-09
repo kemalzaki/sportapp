@@ -854,10 +854,12 @@ include __DIR__.'/includes/header.php';
       </form>
       </details>
 
-      <form data-ajax method="post" class="text-start mt-3">
+      <!-- Revisi Nov 2026 R12 — Nickname dibungkus <details> spoiler (tertutup default) -->
+      <details class="spoiler-card mt-3">
+      <summary class="form-label small fw-semibold mb-0" style="cursor:pointer;list-style:revert"><i class="bi bi-person-badge text-info"></i> Nickname / Nama Samaran <span class="text-muted">(klik untuk buka/tutup)</span></summary>
+      <form data-ajax method="post" class="text-start mt-2">
         <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
         <input type="hidden" name="_action" value="update_nickname">
-        <label class="form-label small fw-semibold"><i class="bi bi-person-badge text-info"></i> Nickname / Nama Samaran</label>
         <div class="input-group input-group-sm">
           <input class="form-control" name="nickname" maxlength="80" placeholder="cth: SiCepat, RunnerKuy, dsb" value="<?= htmlspecialchars($me['nickname'] ?? '') ?>">
           <button class="btn btn-outline-primary" title="Simpan"><i class="bi bi-save"></i></button>
@@ -867,6 +869,7 @@ include __DIR__.'/includes/header.php';
         </div>
         <div class="form-text">Nickname tampil di profil publik Anda di samping nama asli.</div>
       </form>
+      </details>
     </div></div>
 
 
@@ -1425,7 +1428,8 @@ document.addEventListener('DOMContentLoaded', function(){
     "Achievement Profile",
     "Attendance Heatmap",
     "Kondisi Terkini",
-    "Titip Pesan untuk Saya"
+    "Titip Pesan untuk Saya",
+    "Tema Warna Aplikasi"
   ];
   function norm(t){ return (t||'').replace(/\s+/g,' ').trim(); }
   function matches(title){

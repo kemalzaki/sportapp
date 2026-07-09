@@ -305,13 +305,19 @@ $belumOlahraga = db_all("
 
 /* ---------- Aktivitas publik dengan like/comment count ----------
    Revisi Juli 2026 #3 — Riwayat Aktivitas Publik DIFILTER per komunitas. */
+/* Revisi Nov 2026 R12 — tambah tanggal upload (created_at), pace, kalori, komunitas nama. */
 $publicActs = db_all("
   SELECT uh.id,uh.tanggal,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.file_path,uh.deskripsi,
+         uh.pace, uh.pace_detik,
+         COALESCE(uh.created_at, uh.tanggal::timestamp) AS uploaded_at,
          u.id AS uid,u.nama,u.foto_url,
+         k.nama AS kom_nama,
          (SELECT COUNT(*) FROM upload_harian_likes l WHERE l.upload_id=uh.id) AS like_count,
          (SELECT COUNT(*) FROM upload_harian_comments c WHERE c.upload_id=uh.id) AS comment_count,
          ".($u? "(SELECT 1 FROM upload_harian_likes l WHERE l.upload_id=uh.id AND l.user_id=".(int)$u['id'].") " : "NULL ")."AS liked
-  FROM upload_harian uh JOIN users u ON u.id=uh.user_id
+  FROM upload_harian uh
+  JOIN users u ON u.id=uh.user_id
+  LEFT JOIN komunitas k ON k.id = u.komunitas_id
   WHERE u.id = ANY($1::int[])
   ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 30", [$__vids]);
 
@@ -511,8 +517,9 @@ include __DIR__.'/includes/header.php';
 <div class="row g-3">
   <div class="col-lg-5">
     <?php if(!$__hideSuper): /* R10 — sembunyikan Leaderboard */ ?>
-    <div class="card shadow-sm" id="lbCard"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
-    <ol class="list-group list-group-flush list-group-numbered">
+    <!-- Revisi Nov 2026 R12 — spacing ke widget bawah (Monitoring Upload) + pagination per 5 -->
+    <div class="card shadow-sm mb-4" id="lbCard" style="margin-bottom:1.5rem !important;"><div class="card-header"><i class="bi bi-trophy-fill text-warning"></i> Leaderboard — <?= htmlspecialchars($cat) ?></div>
+    <ol class="list-group list-group-flush list-group-numbered" id="lbList" data-lb-page-size="5">
       <?php foreach($lb as $i=>$row): ?>
         <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
           <a href="/user.php?id=<?= (int)$row['id'] ?>" class="text-decoration-none">
@@ -538,7 +545,32 @@ include __DIR__.'/includes/header.php';
           </div>
         </li>
       <?php endforeach; if(!$lb): ?><li class="list-group-item text-muted text-center small">Belum ada data.</li><?php endif; ?>
-    </ol></div>
+    </ol>
+    <?php if(!empty($lb) && count($lb) > 5): ?>
+    <div class="card-footer d-flex justify-content-between align-items-center" id="lbPager">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="lbPrev"><i class="bi bi-chevron-left"></i> Sebelumnya</button>
+      <span class="small text-muted" id="lbPageInfo">Halaman 1</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="lbNext">Berikutnya <i class="bi bi-chevron-right"></i></button>
+    </div>
+    <script>
+    (function(){
+      var list = document.getElementById('lbList'); if(!list) return;
+      var ps = parseInt(list.getAttribute('data-lb-page-size')||'5',10);
+      var items = Array.prototype.slice.call(list.querySelectorAll(':scope > li'));
+      var total = items.length; var pages = Math.max(1, Math.ceil(total/ps)); var page = 1;
+      function render(){
+        items.forEach(function(li,i){ var p = Math.floor(i/ps)+1; li.style.display = (p===page)?'':'none'; });
+        var info = document.getElementById('lbPageInfo'); if(info) info.textContent = 'Halaman '+page+' / '+pages;
+        var prev = document.getElementById('lbPrev'); if(prev) prev.disabled = (page<=1);
+        var next = document.getElementById('lbNext'); if(next) next.disabled = (page>=pages);
+      }
+      document.getElementById('lbPrev').addEventListener('click',function(){ if(page>1){page--;render();} });
+      document.getElementById('lbNext').addEventListener('click',function(){ if(page<pages){page++;render();} });
+      render();
+    })();
+    </script>
+    <?php endif; ?>
+    </div>
     <?php endif; /* R10 endif Leaderboard */ ?>
   </div>
 
@@ -619,6 +651,27 @@ include __DIR__.'/includes/header.php';
               <div>
                 <a class="fw-semibold text-decoration-none" href="/user.php?id=<?= (int)$a['uid'] ?>"><?= htmlspecialchars($a['nama']) ?></a>
                 <div class="small text-muted"><?= htmlspecialchars($a['tanggal']) ?> · <span class="pill"><?= htmlspecialchars($a['jenis']) ?></span> · <?= (int)$a['durasi_menit'] ?> mnt · <?= htmlspecialchars($a['jarak_km'] ?? '0') ?> km</div>
+                <?php
+                  /* Revisi Nov 2026 R12 — Tanggal Upload, Pace, Kalori, Komunitas */
+                  $uploadAt = !empty($a['uploaded_at']) ? date('d M Y H:i', strtotime($a['uploaded_at'])) : '-';
+                  $paceTxt  = '';
+                  if (!empty($a['pace'])) {
+                      $paceTxt = trim($a['pace']).' /km';
+                  } elseif (!empty($a['pace_detik']) && (int)$a['pace_detik']>0) {
+                      $ps = (int)$a['pace_detik']; $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
+                  } elseif (!empty($a['durasi_menit']) && !empty($a['jarak_km']) && (float)$a['jarak_km']>0) {
+                      $ps = (int) round(((int)$a['durasi_menit']*60) / (float)$a['jarak_km']);
+                      $paceTxt = sprintf('%d:%02d /km', intdiv($ps,60), $ps%60);
+                  } else { $paceTxt = '—'; }
+                  $kalTxt   = !empty($a['kalori']) ? number_format((int)$a['kalori']).' kkal' : '—';
+                  $komTxt   = !empty($a['kom_nama']) ? $a['kom_nama'] : 'Umum';
+                ?>
+                <div class="small text-muted mt-1">
+                  <span class="me-2"><i class="bi bi-clock-history"></i> <b>Upload:</b> <?= htmlspecialchars($uploadAt) ?></span>
+                  <span class="me-2"><i class="bi bi-speedometer2"></i> <b>Pace:</b> <?= htmlspecialchars($paceTxt) ?></span>
+                  <span class="me-2"><i class="bi bi-fire text-danger"></i> <b>Kalori:</b> <?= htmlspecialchars($kalTxt) ?></span>
+                  <span class="me-2"><i class="bi bi-people-fill text-primary"></i> <b>Komunitas:</b> <?= htmlspecialchars($komTxt) ?></span>
+                </div>
               </div>
               <?php if(!empty($a['file_path'])): ?>
                 <a href="#" onclick="showBukti(event,this.dataset.src,this.dataset.date)" data-src="<?= htmlspecialchars($a['file_path'],ENT_QUOTES) ?>" data-date="<?= htmlspecialchars($a['tanggal']) ?>">

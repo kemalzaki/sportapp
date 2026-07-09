@@ -91,10 +91,10 @@ document.addEventListener('DOMContentLoaded', function(){ try { window.SK.auto()
 </script>
 
 <?php include __DIR__ . '/bottom_nav.php'; ?>
-<?php /* Revisi 22 Juni 2026 R7 — dm_floating dihapus dari menu (chat melayang dimatikan). */ ?>
-<footer class="app-footer text-center text-muted py-3 small">
-  <div class="container">&copy; 2026 KawanKeringat · v4 - By <a href="https://www.yuk-mari.com" target="_blank" rel="noopener" class="text-decoration-none">Yuk-Mari CyberLab</a></div>
-</footer>
+<?php /* Revisi Nov 2026 R12 — Widget copyright footer dihapus dari global footer.
+     Copyright tetap ada di login.php & register.php (footer inline masing-masing). */ ?>
+
+
 
 <?php if (!empty($_SESSION['error_popup'])): $__ep = $_SESSION['error_popup']; unset($_SESSION['error_popup']); ?>
 <div class="modal fade" id="sqlErrorModal" tabindex="-1">

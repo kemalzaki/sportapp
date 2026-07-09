@@ -690,7 +690,7 @@ $__hideSuper = scope_is_superduper_kom_member();
 
 
 
-<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white position-relative overflow-hidden" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);box-shadow:0 6px 18px rgba(14,165,233,.25);">
+<section class="hero mb-3 p-3 p-md-4 rounded-3 text-white position-relative overflow-hidden" style="background:var(--primary-gradient, linear-gradient(135deg,#0ea5e9,#6366f1));box-shadow:0 6px 18px rgba(var(--primary-rgb,14,165,233),.25);">
   <!-- Revisi Nov 2026 R11 — Animasi/visualisasi runner berlari di kotak sapaan. -->
   <div class="hero-run-track" aria-hidden="true">
     <div class="hero-run-runner"><i class="bi bi-person-walking"></i></div>
@@ -908,7 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- REVISI 31 Mei 2026: Total Visitor -->
 <div class="row g-3 mb-3">
   <div class="col-12 col-md-6">
-    <div class="card shadow-sm border-0 text-white" style="background:linear-gradient(135deg,#22c55e,#0ea5e9) !important;color:#fff !important;border-radius:20px;overflow:hidden;">
+    <div class="card shadow-sm border-0 text-white" style="background:var(--primary-gradient, linear-gradient(135deg,#0ea5e9,#6366f1)) !important;color:#fff !important;border-radius:20px;overflow:hidden;box-shadow:0 6px 18px rgba(var(--primary-rgb,14,165,233),.25);">
       <div class="card-body d-flex align-items-center gap-3">
         <div style="font-size:2rem"><i class="bi bi-people"></i></div>
         <div class="flex-grow-1">
@@ -928,10 +928,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="row g-2 mb-3">
   <div class="col-6"><div class="card card-stat shadow-sm border-success-subtle"><div class="card-body">
     <div class="stat-icon" style="background:#dcfce7;color:#166534"><i class="bi bi-person-check-fill"></i></div>
-    <div class="stat-label">Member Aktif</div><div class="stat-value text-success"><?= $memberAktif ?></div></div></div></div>
+    <div class="stat-label">Member Aktif</div><div class="stat-value"><?= $memberAktif ?></div></div></div></div>
   <div class="col-6"><div class="card card-stat shadow-sm border-danger-subtle"><div class="card-body">
     <div class="stat-icon" style="background:#fee2e2;color:#991b1b"><i class="bi bi-person-x-fill"></i></div>
-    <div class="stat-label">Member Tidak Aktif</div><div class="stat-value text-danger"><?= $memberNonaktif ?></div></div></div></div>
+    <div class="stat-label">Member Tidak Aktif</div><div class="stat-value"><?= $memberNonaktif ?></div></div></div></div>
 </div>
 <div class="row g-3 mb-3" id="sec-dashboard-stats">
   <div class="col-6 col-lg-3"><div class="card card-stat shadow-sm"><div class="card-body">
@@ -1522,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <?php endif; ?>
 
 
-    <div class="card shadow-sm mb-3" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Forum Komunitas</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
+    <div class="card shadow-sm mb-3" id="forum"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-chat-square-text text-primary me-1"></i> Diskusi / Informasi</span><button class="btn btn-sm btn-link p-0" data-soft-refresh title="Muat data terbaru"><i class="bi bi-arrow-clockwise"></i></button></div>
     <div class="card-body" data-live="forum">
       <?php if($u): ?>
       <form method="post" class="d-flex gap-2 mb-3" data-ajax data-ajax-label="Mengirim pesan...">
@@ -1859,11 +1859,11 @@ function showStory(d){
       var event_  = $('sec-event-terdekat');
       var jadwal  = $('sec-jadwal-terdekat');
       var kabari  = $('sec-kabari');
+      var posting = $('postingTopCard'); // Revisi Nov 2026 R12 — Widget Posting Baru DI ATAS Story Hari Ini
       function moveAfter(node, ref){ if(node && ref && ref.parentNode){ ref.parentNode.insertBefore(node, ref.nextSibling); } }
       var anchor = dash;
-      // Revisi 12 Juni 2026: Online & Jadwal Terdekat naik ke atas, di atas Kabari Member.
-      // Urutan baru: dashboard -> online -> jadwal -> kabari -> story -> social feed -> forum -> event
-      [online, jadwal, kabari, story, social, forum, event_].forEach(function(el){
+      // Urutan baru: dashboard -> online -> jadwal -> kabari -> posting -> story -> social feed -> forum -> event
+      [online, jadwal, kabari, posting, story, social, forum, event_].forEach(function(el){
         if (el && anchor) { moveAfter(el, anchor); anchor = el; }
       });
     } catch(e){ console.warn('reorder failed', e); }
