@@ -64,7 +64,8 @@ $waLink = 'https://wa.me/'.preg_replace('/\D+/','',$ADMIN_WA_FIRDAM).'?text='.ra
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0ea5e9">
-<title>Daftar · KawanKeringat</title>
+<title>Daftar · KawanKeringat — AI Sport & Healthy Lifestyle Super App</title>
+<meta name="description" content="Daftar KawanKeringat, AI Sport & Healthy Lifestyle Super App untuk Indonesia — menggabungkan olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor dalam satu aplikasi.">
 <link rel="icon" href="/assets/icon-192.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -180,8 +181,8 @@ body{
     </div>
     <span class="lg-glow" aria-hidden="true"></span>
     <div class="lg-logo"><i class="bi bi-person-plus-fill"></i></div>
-    <h1 class="lg-title">Buat akun baru 🚀</h1>
-    <p class="lg-sub">Daftar untuk mulai olahraga, pesan jajan, & gabung komunitas KawanKeringat.</p>
+    <h1 class="lg-title">Gabung KawanKeringat 🚀</h1>
+    <p class="lg-sub"><strong>AI Sport &amp; Healthy Lifestyle Super App</strong> untuk Indonesia — mulai olahraga, terhubung komunitas, dan pakai AI untuk hidup lebih sehat.</p>
     <div style="display:flex;gap:.4rem;margin-top:.9rem;flex-wrap:wrap;">
       <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.3rem .7rem;border-radius:999px;font-size:.74rem;font-weight:600;"><i class="bi bi-people-fill"></i> Komunitas Aktif</span>
       <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.3rem .7rem;border-radius:999px;font-size:.74rem;font-weight:600;"><i class="bi bi-trophy-fill"></i> Event Berhadiah</span>

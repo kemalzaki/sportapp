@@ -705,8 +705,8 @@ $__hideSuper = scope_is_superduper_kom_member();
         <span class="badge-soft" style="display:inline-flex !important;align-items:center;gap:.35rem;background:#ffffff !important;color:#0f172a !important;border:1px solid #ffffff !important;padding:.35rem .8rem;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em;box-shadow:0 2px 10px rgba(15,23,42,.18);"><i class="bi bi-stars" style="color:#f59e0b"></i> <span style="color:#0f172a">KawanKeringat AppSport</span></span>
       </div>
       <h1 class="h3 mb-1 text-white" style="line-height:1.25;word-break:break-word;">Halo, <?= htmlspecialchars($u['nama'] ?? 'Sobat') ?>! 👋</h1>
-      <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">Selamat datang Mahasiswa &amp; Pecinta Olahraga.</p>
-      <p class="mb-2 text-white-50" style="line-height:1.5;">Check-in, kompetisi, dan komunitas dalam satu tempat — yuk kumpulkan keringat hari ini.</p>
+      <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">AI Sport &amp; Healthy Lifestyle Super App untuk Indonesia.</p>
+      <p class="mb-2 text-white-50" style="line-height:1.5;">Olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor — semua dalam satu aplikasi. Yuk kumpulkan keringat hari ini!</p>
       <div class="d-flex flex-wrap gap-2">
         <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
       </div>

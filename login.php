@@ -86,7 +86,8 @@ $csrf = csrf_token();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0ea5e9">
-<title>Masuk · KawanKeringat</title>
+<title>Masuk · KawanKeringat — AI Sport & Healthy Lifestyle Super App</title>
+<meta name="description" content="KawanKeringat: AI Sport & Healthy Lifestyle Super App untuk Indonesia — menggabungkan olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor dalam satu aplikasi.">
 <link rel="icon" href="/assets/icon-192.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -211,8 +212,8 @@ body{
     </div>
     <span class="lg-glow" aria-hidden="true"></span>
     <div class="lg-logo"><i class="bi bi-lightning-charge-fill"></i></div>
-    <h1 class="lg-title">Ayo Olahraga<br>Bareng 🏃‍♂️⚽</h1>
-    <p class="lg-sub">Masuk untuk lanjut lari, futsal, badminton, kalistenik, & jajan bareng komunitas KawanKeringat.</p>
+    <h1 class="lg-title">KawanKeringat 🏃‍♂️⚡</h1>
+    <p class="lg-sub"><strong>AI Sport &amp; Healthy Lifestyle Super App</strong> untuk Indonesia — olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor dalam satu aplikasi.</p>
     <div style="display:flex;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
       <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-trophy-fill"></i> Event 2026</span>
       <span style="background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:.35rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;"><i class="bi bi-stopwatch-fill"></i> Run Tracker</span>

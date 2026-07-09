@@ -1,5 +1,5 @@
 <?php
-// Revisi 6 Jun 2026 — Splash Screen baru (logo PNG modern + animasi ring)
+// Revisi — Splash Screen: KawanKeringat, AI Sport & Healthy Lifestyle Super App
 require __DIR__.'/includes/security.php';
 send_security_headers();
 ?>
@@ -9,7 +9,8 @@ send_security_headers();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#4338ca">
-<title>KawanKeringat</title>
+<title>KawanKeringat — AI Sport & Healthy Lifestyle Super App</title>
+<meta name="description" content="KawanKeringat: AI Sport & Healthy Lifestyle Super App untuk Indonesia — menggabungkan olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor dalam satu aplikasi.">
 <link rel="icon" href="/assets/icon-192.png">
 <link rel="preload" as="image" href="/assets/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
@@ -39,7 +40,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;
 h1{font-size:2.2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.4rem;
   background:linear-gradient(90deg,#fff,#bae6fd);-webkit-background-clip:text;background-clip:text;color:transparent;
   animation:fade .8s .15s both;}
-p.tag{font-size:1rem;opacity:.92;max-width:30ch;animation:fade .8s .3s both;}
+p.tag{font-size:1rem;opacity:.92;max-width:34ch;animation:fade .8s .3s both;}
 @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 .bar{margin-top:2.4rem;width:180px;height:4px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden;}
 .bar > i{display:block;height:100%;width:30%;background:linear-gradient(90deg,#38bdf8,#a855f7);border-radius:99px;animation:slide 1.5s ease-in-out infinite;}
@@ -54,9 +55,8 @@ p.tag{font-size:1rem;opacity:.92;max-width:30ch;animation:fade .8s .3s both;}
     <img class="logo" src="/assets/icon-512.png" alt="KawanKeringat">
   </div>
   <h1>KawanKeringat</h1>
-  <p class="tag">Olahraga • Lari • Komunitas • Petualangan</p>
-  <p class="tag" style="margin-top:.8rem;font-weight:600;opacity:.95">Halo, Mahasiswa &amp; Pecinta Olahraga 👋</p>
-  <p class="tag" style="margin-top:.2rem;font-size:.92rem;opacity:.85">Selamat datang — yuk gerak bareng, kumpulkan keringat, jaga semangat.</p>
+  <p class="tag"><strong>AI Sport &amp; Healthy Lifestyle Super App</strong> untuk Indonesia</p>
+  <p class="tag" style="margin-top:.6rem;font-size:.95rem;opacity:.9">Olahraga • Komunitas • AI • Kesehatan • Outdoor — semua dalam satu aplikasi.</p>
   <div class="bar"><i></i></div>
   <div class="brand-foot">By Yuk-Mari CyberLab</div>
 <script>
