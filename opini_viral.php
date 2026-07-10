@@ -1,12 +1,18 @@
 <?php
 /**
- * opini_viral.php — REDESIGN TOTAL (Juli 2026 R30)
+ * opini_viral.php — REDESIGN TOTAL (Juli 2026 R31)
  * Dashboard Analisis Sentimen Opini Netizen Indonesia berbasis KOMENTAR YOUTUBE.
  * Sumber tunggal: YouTube Data API v3 (butuh env YOUTUBE_API_KEY).
  * Analisis sentimen: ai_router (ai_chat) — Positif / Netral / Negatif + confidence + alasan.
  *
- * TIDAK LAGI menggunakan Google News RSS / BBC / CNN / Kompas / judul berita.
- * Semua statistik dihitung dari komentar publik YouTube.
+ * Revisi R31 (10 Juli 2026):
+ *   1) Batasi total komentar per pencarian menjadi maksimum 100 (bukan 100 per video)
+ *      supaya proses "Cari Opini" jauh lebih cepat (dulu bisa 20×100 = 2000 komentar).
+ *   2) Tambah panel "Riwayat Pencarian" & auto-load hasil terakhir untuk keyword
+ *      yang sama supaya data yang SUDAH ada di database (opini_viral_search /
+ *      opini_viral_comments) langsung tampil, walau request awal sempat timeout.
+ *   3) Cache diperpanjang jadi 24 jam (sebelumnya 30 menit) — pencarian keyword
+ *      yang sama dalam 24 jam langsung memakai data DB, tidak memanggil YouTube lagi.
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
@@ -237,27 +243,40 @@ function ov_ringkasan_ai(int $total, int $pos, int $net, int $neg, array $topWor
  * ============================================================ */
 function ov_run_search(string $keyword, string $periode, ?string $from, ?string $to): array {
     [$pubAfter, $pubBefore] = ov_periode_range($periode, $from, $to);
-    // cek cache
+    // Revisi R31: cache diperpanjang jadi 24 jam supaya keyword yang sama
+    // tidak memanggil YouTube API lagi (juga menghindari proses yang lama).
     $cached = db_one("SELECT * FROM opini_viral_search
         WHERE lower(keyword)=lower($1) AND periode=$2
           AND COALESCE(date_from::text,'')=COALESCE($3::text,'') AND COALESCE(date_to::text,'')=COALESCE($4::text,'')
-          AND fetched_at > now() - interval '30 minutes'
+          AND fetched_at > now() - interval '24 hours'
         ORDER BY fetched_at DESC LIMIT 1",
         [$keyword, $periode, $periode==='custom'?$pubAfter:null, $periode==='custom'?$pubBefore:null]);
     if ($cached) return ['search_id'=>(int)$cached['id'], 'cached'=>true];
 
-    $videos = ov_yt_search($keyword, $pubAfter, $pubBefore, 20);
+    // Revisi R31: BATAS TOTAL komentar per pencarian = 100 (bukan 100 per video).
+    // Ambil video sedikit lebih banyak lalu berhenti begitu terkumpul 100 komentar.
+    $MAX_TOTAL_COMMENTS = 100;
+    $videos = ov_yt_search($keyword, $pubAfter, $pubBefore, 15);
     $allComments = []; // flat list dengan metadata video
+    $videosUsed = 0;
     foreach ($videos as $v) {
-        $cs = ov_yt_comments($v['video_id'], 100);
+        $sisa = $MAX_TOTAL_COMMENTS - count($allComments);
+        if ($sisa <= 0) break;
+        // per video maksimal ambil ~20 komentar top-relevance agar variasi video terjaga
+        $perVideo = min($sisa, 20);
+        $cs = ov_yt_comments($v['video_id'], $perVideo);
+        if (!$cs) continue;
         foreach ($cs as $c) {
             $c['video_id']     = $v['video_id'];
             $c['video_title']  = $v['video_title'];
             $c['channel_name'] = $v['channel_name'];
             $allComments[] = $c;
+            if (count($allComments) >= $MAX_TOTAL_COMMENTS) break;
         }
+        $videosUsed++;
+        if (count($allComments) >= $MAX_TOTAL_COMMENTS) break;
     }
-    // klasifikasi
+    // klasifikasi (maks 100 komentar → cepat)
     $sent = ov_sentimen_batch($allComments);
     // word cloud
     $sw = ov_stopwords_id();
@@ -273,7 +292,7 @@ function ov_run_search(string $keyword, string $periode, ?string $from, ?string 
     $ai = ov_ringkasan_ai(count($allComments), $pos, $net, $neg, $topWords);
 
     db_exec("INSERT INTO opini_viral_search (keyword, periode, date_from, date_to, total_videos, total_comments, summary, topics_json) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
-        [$keyword, $periode, $periode==='custom'?$pubAfter:null, $periode==='custom'?$pubBefore:null, count($videos), count($allComments), $ai['summary'], json_encode(['topics'=>$ai['topics'],'words'=>$topWords], JSON_UNESCAPED_UNICODE)]);
+        [$keyword, $periode, $periode==='custom'?$pubAfter:null, $periode==='custom'?$pubBefore:null, $videosUsed, count($allComments), $ai['summary'], json_encode(['topics'=>$ai['topics'],'words'=>$topWords], JSON_UNESCAPED_UNICODE)]);
     $sid = (int)db_val("SELECT lastval()");
 
     foreach ($allComments as $i=>$c) {
@@ -303,6 +322,23 @@ if ($action === 'search') {
     } catch (Throwable $e) {
         echo json_encode(['ok'=>false, 'err'=>$e->getMessage()]);
     }
+    exit;
+}
+/* Revisi R31: endpoint riwayat + fallback "cari pencarian terakhir untuk keyword ini".
+   Digunakan UI untuk memuat kembali data yang SUDAH ada di DB tanpa memicu proses lagi. */
+if ($action === 'history') {
+    header('Content-Type: application/json; charset=utf-8');
+    $rows = db_all("SELECT id, keyword, periode, total_videos, total_comments, fetched_at
+                    FROM opini_viral_search ORDER BY fetched_at DESC LIMIT 20");
+    echo json_encode(['ok'=>true, 'items'=>$rows], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+if ($action === 'find_latest') {
+    header('Content-Type: application/json; charset=utf-8');
+    $kw = trim((string)($_GET['keyword'] ?? ''));
+    if ($kw==='') { echo json_encode(['ok'=>false,'err'=>'keyword kosong']); exit; }
+    $r = db_one("SELECT id FROM opini_viral_search WHERE lower(keyword)=lower($1) ORDER BY fetched_at DESC LIMIT 1", [$kw]);
+    echo json_encode(['ok'=>(bool)$r, 'search_id'=>$r?(int)$r['id']:0]);
     exit;
 }
 if ($action === 'data') {
@@ -430,7 +466,16 @@ $hasYT = ov_env('YOUTUBE_API_KEY') !== '';
     </form>
   </div>
 
-  <div class="ov-loader" id="ovLoader">⏳ Mengambil video & komentar YouTube, menganalisis sentimen dengan AI… (bisa 15-40 detik)</div>
+  <div class="ov-loader" id="ovLoader">⏳ Mengambil video & komentar YouTube (maks 100 komentar), menganalisis sentimen dengan AI… (±10-20 detik)</div>
+
+  <!-- Revisi R31: panel riwayat pencarian, memuat data dari DB tanpa memanggil YouTube lagi -->
+  <div class="ov-card" id="ovHistoryCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0;font-size:16px">🕘 Riwayat Pencarian (dari database)</h3>
+      <button type="button" id="ovHistoryReload" style="padding:6px 12px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;cursor:pointer;font-size:12px">🔄 Muat ulang</button>
+    </div>
+    <div id="ovHistoryList" style="margin-top:10px;font-size:13px;color:#64748b">Memuat riwayat…</div>
+  </div>
 
   <div id="ovResult" style="display:none">
     <div class="ov-card">
@@ -503,9 +548,46 @@ $hasYT = ov_env('YOUTUBE_API_KEY') !== '';
       if (!r.ok) throw new Error(r.err || 'Gagal');
       currentSid = r.search_id;
       await loadData(r.search_id);
-    } catch (e) { alert('Error: ' + e.message); }
+      loadHistory();
+    } catch (e) {
+      // Revisi R31: kalau proses gagal/timeout, cek apakah pencarian keyword
+      // ini sudah pernah tersimpan di DB. Kalau ada, langsung tampilkan hasil DB.
+      try {
+        const f = await fetch('?action=find_latest&keyword='+encodeURIComponent(kw)).then(r=>r.json());
+        if (f.ok && f.search_id) {
+          alert('Proses baru gagal ('+e.message+'), memuat hasil terakhir dari database.');
+          currentSid = f.search_id; await loadData(f.search_id); return;
+        }
+      } catch(_) {}
+      alert('Error: ' + e.message);
+    }
     finally { $('ovLoader').classList.remove('show'); }
   });
+
+  // Revisi R31: riwayat pencarian dari DB
+  async function loadHistory(){
+    try {
+      const r = await fetch('?action=history').then(r=>r.json());
+      const box = $('ovHistoryList');
+      if (!r.ok || !r.items || !r.items.length) { box.innerHTML = '<em>Belum ada pencarian tersimpan.</em>'; return; }
+      box.innerHTML = r.items.map(it => {
+        const dt = it.fetched_at ? new Date(it.fetched_at).toLocaleString('id-ID') : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc">
+          <div><b style="color:#0f172a">${escapeHtml(it.keyword)}</b>
+            <span style="color:#64748b"> · ${escapeHtml(it.periode)} · ${it.total_comments} komentar / ${it.total_videos} video · ${dt}</span>
+          </div>
+          <button type="button" data-sid="${it.id}" class="ov-hist-load" style="padding:5px 12px;border-radius:6px;border:1px solid #0ea5e9;background:#0ea5e9;color:#fff;cursor:pointer;font-size:12px">Lihat</button>
+        </div>`;
+      }).join('');
+      box.querySelectorAll('.ov-hist-load').forEach(b => b.addEventListener('click', async () => {
+        currentSid = +b.dataset.sid;
+        await loadData(currentSid);
+        window.scrollTo({top: $('ovResult').offsetTop-20, behavior:'smooth'});
+      }));
+    } catch(e){ $('ovHistoryList').innerHTML = '<em>Gagal memuat riwayat.</em>'; }
+  }
+  $('ovHistoryReload').addEventListener('click', loadHistory);
+  loadHistory();
 
   async function loadData(sid){
     const d = await fetch('?action=data&sid='+sid).then(r=>r.json());
