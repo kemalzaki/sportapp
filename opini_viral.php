@@ -19,9 +19,14 @@ require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 require_once __DIR__.'/includes/ai_router.php';
+require_once __DIR__.'/includes/paket_helpers.php'; // Gate PRO seperti iptv.php
 send_security_headers(); require_login();
 $pageTitle = 'Opini Viral · Analisis Sentimen YouTube';
 $u = current_user();
+
+// Revisi — Opini Viral khusus paket PRO (paket gratis dikunci, seperti iptv.php)
+paket_require_or_lock('pro', $u, 'Opini Viral',
+    'Analisis Opini Viral berbasis komentar YouTube tersedia untuk paket PRO.');
 
 /* ============================================================
  * MIGRASI TABEL (idempotent)

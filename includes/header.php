@@ -43,6 +43,8 @@ if (!function_exists('nav_feature_paket_map')) {
             'cedera_olahraga.php'     => ['pro'],
             'lacak_faskes.php'        => ['pro'],
             'survival.php'            => ['pro'],
+            // Revisi — Opini Viral juga khusus PRO (sama seperti IPTV)
+            'opini_viral.php'         => ['pro'],
             'kalkulator.php'          => ['pro'],
             'kalkulator_jantung.php'  => ['pro'],
             'kalkulator_kesehatan.php'=> ['pro'],
@@ -63,10 +65,10 @@ if (!function_exists('nav_feature_paket_map')) {
     }
 }
 if (!function_exists('nav_lock_badge_for')) {
-    /** Revisi Juli 2026 — Aturan tampil badge:
+    /** Revisi — Hierarki paket: Pro > Komunitas > Gratis.
      *   - GRATIS   : tampilkan semua badge (Pro & Komunitas)
-     *   - PRO      : hanya tampilkan badge KOMUNITAS
-     *   - KOMUNITAS: tidak tampilkan badge apa pun (fitur full)
+     *   - KOMUNITAS: hanya tampilkan badge PRO (fitur pro belum bisa diakses)
+     *   - PRO      : tidak tampilkan badge apa pun (akses penuh)
      */
     function nav_lock_badge_for(string $page): string {
         $page = ltrim($page, '/');
@@ -79,13 +81,11 @@ if (!function_exists('nav_lock_badge_for')) {
         if (function_exists('paket_user')) {
             try { $curPk = paket_user(function_exists('current_user') ? current_user() : null); } catch (Throwable $e) {}
         }
-        if ($curPk === 'komunitas') return '';
-        // Revisi Juli 2026 — user PRO: sembunyikan badge Komunitas untuk fitur
-        // yang juga tersedia untuk paket Pro (mis. Pro+Komunitas). Hanya
-        // fitur yang MURNI Komunitas (tanpa 'pro' di $req) yang masih di-badge.
-        if ($curPk === 'pro') {
-            if (in_array('pro', $req, true)) return '';
-            $req = array_values(array_intersect($req, ['komunitas']));
+        // Pro = akses penuh (baik Pro maupun Komunitas)
+        if ($curPk === 'pro') return '';
+        // Komunitas = punya semua fitur Komunitas, tapi belum PRO
+        if ($curPk === 'komunitas') {
+            $req = array_values(array_intersect($req, ['pro']));
         }
         if (!$req) return '';
 
@@ -689,8 +689,9 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon<?= nav_lock_badge_for('live_tracking.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D<?= nav_lock_badge_for('flyover.php') ?></a>
-          <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih -->
-          <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih <span class="badge bg-primary ms-1">Paket Komunitas</span></a>
+          <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih
+               Label paket disamakan dengan Monitoring (nav_lock_badge_for). -->
+          <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih<?= nav_lock_badge_for('run.php') ?></a>
         </div>
 
         <?php /* Grup: Perhitungan Kalori Olahraga */ ?>

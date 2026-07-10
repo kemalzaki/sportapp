@@ -109,72 +109,21 @@ include __DIR__.'/includes/header.php'; ?>
   <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> <?= $err ?></div>
 <?php endif; ?>
 
-<?php if ($loc && $forecast): $cur = $forecast['current'] ?? []; [$lbl,$ico] = wmo_label($cur['weather_code'] ?? 0); ?>
-  <div class="row g-3">
-    <div class="col-lg-5">
-      <div class="card shadow-sm h-100">
-        <div class="card-body text-center">
-          <div class="text-muted small"><?= htmlspecialchars(($loc['name'] ?? '').(!empty($loc['admin1'])?', '.$loc['admin1']:'').(!empty($loc['country'])?', '.$loc['country']:'')) ?></div>
-          <i class="bi <?= $ico ?>" style="font-size:5rem;line-height:1"></i>
-          <div class="display-4 fw-bold mt-1"><?= number_format((float)($cur['temperature_2m'] ?? 0),1) ?>°C</div>
-          <div class="fs-5"><?= htmlspecialchars($lbl) ?></div>
-          <div class="small text-muted mt-1">Terasa <?= number_format((float)($cur['apparent_temperature'] ?? 0),1) ?>°C · Kelembaban <?= (int)($cur['relative_humidity_2m'] ?? 0) ?>% · Angin <?= number_format((float)($cur['wind_speed_10m'] ?? 0),1) ?> km/j</div>
-          <div class="small text-muted">Diperbarui: <?= htmlspecialchars($cur['time'] ?? '') ?> (<?= htmlspecialchars($forecast['timezone'] ?? '') ?>)</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-7">
-      <div class="card shadow-sm h-100">
-        <div class="card-header"><i class="bi bi-calendar-week text-primary"></i> Prakiraan 7 Hari</div>
-        <div class="table-responsive">
-          <table class="table table-sm mb-0">
-            <thead class="table-light"><tr><th>Tanggal</th><th>Kondisi</th><th>Min/Maks</th><th>Hujan</th><th>UV</th></tr></thead>
-            <tbody>
-              <?php $d = $forecast['daily'] ?? []; $n = count($d['time'] ?? []);
-              for ($i=0;$i<$n;$i++): [$dl,$di] = wmo_label($d['weather_code'][$i] ?? 0); ?>
-                <tr>
-                  <td><strong><?= htmlspecialchars($d['time'][$i] ?? '') ?></strong><br><small class="text-muted"><?= hari_id($d['time'][$i] ?? '') ?></small></td>
-                  <td><i class="bi <?= $di ?>"></i> <?= htmlspecialchars($dl) ?></td>
-                  <td><?= number_format((float)$d['temperature_2m_min'][$i],0) ?>° / <strong><?= number_format((float)$d['temperature_2m_max'][$i],0) ?>°</strong></td>
-                  <td><?= (int)($d['precipitation_probability_max'][$i] ?? 0) ?>%<br><small class="text-muted"><?= number_format((float)$d['precipitation_sum'][$i],1) ?> mm</small></td>
-                  <td><?= number_format((float)($d['uv_index_max'][$i] ?? 0),1) ?></td>
-                </tr>
-              <?php endfor; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+<?php if ($loc && $forecast):
+  $cur = $forecast['current'] ?? [];
+  [$lbl,$ico] = wmo_label($cur['weather_code'] ?? 0);
 
-  <?php $h = $forecast['hourly'] ?? null; if ($h && !empty($h['time'])): ?>
-    <div class="card shadow-sm mt-3">
-      <div class="card-header"><i class="bi bi-clock-history text-primary"></i> Per Jam (24 jam ke depan)</div>
-      <div class="table-responsive">
-        <table class="table table-sm mb-0">
-          <thead class="table-light"><tr><th>Jam</th><th>Suhu</th><th>Kondisi</th><th>Peluang Hujan</th></tr></thead>
-          <tbody>
-          <?php
-            // Cari index sekarang
-            $now = $cur['time'] ?? null; $startIdx = 0;
-            if ($now) { foreach ($h['time'] as $idx=>$t) { if ($t >= $now) { $startIdx = $idx; break; } } }
-            for ($i=$startIdx;$i<min($startIdx+24,count($h['time']));$i++):
-              [$hl,$hi] = wmo_label($h['weather_code'][$i] ?? 0); ?>
-            <tr>
-              <td><?= htmlspecialchars(substr($h['time'][$i],11,5)) ?> <small class="text-muted"><?= htmlspecialchars(substr($h['time'][$i],5,5)) ?></small></td>
-              <td><?= number_format((float)$h['temperature_2m'][$i],1) ?>°C</td>
-              <td><i class="bi <?= $hi ?>"></i> <?= htmlspecialchars($hl) ?></td>
-              <td><?= (int)($h['precipitation_probability'][$i] ?? 0) ?>%</td>
-            </tr>
-          <?php endfor; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  <?php endif; ?>
+  /* ============================================================
+   * Revisi — Hitung rekomendasi jogging / outdoor lebih AWAL agar
+   * kartu Rekomendasi bisa ditampilkan tepat di bawah form pencarian
+   * (di atas Prakiraan 7 Hari & Per Jam).
+   * ============================================================ */
+  $h = $forecast['hourly'] ?? null;
+  $now = $cur['time'] ?? null; $startIdx = 0;
+  if ($h && !empty($h['time']) && $now) {
+      foreach ($h['time'] as $idx=>$t) { if ($t >= $now) { $startIdx = $idx; break; } }
+  }
 
-<?php
-  // Revisi R22 — Auto rekomendasi jogging / outdoor
   $temp = (float)($cur['temperature_2m'] ?? 0);
   $hum  = (int)($cur['relative_humidity_2m'] ?? 0);
   $wind = (float)($cur['wind_speed_10m'] ?? 0);
@@ -197,14 +146,13 @@ include __DIR__.'/includes/header.php'; ?>
   if (!$isDay)           { $alasan[] = "saat ini malam"; }
   $skor = max(0, min(100, $skor));
 
-  if ($skor >= 75)      { $cat = 'success'; $ico='bi-emoji-smile-fill'; $kata='SANGAT BAIK untuk jogging / outdoor'; }
-  elseif ($skor >= 55)  { $cat = 'info';    $ico='bi-emoji-neutral';     $kata='CUKUP BAIK — outdoor masih disarankan'; }
-  elseif ($skor >= 35)  { $cat = 'warning'; $ico='bi-emoji-expressionless';$kata='KURANG IDEAL — pertimbangkan menunda atau latihan indoor'; }
-  else                  { $cat = 'danger';  $ico='bi-emoji-frown-fill';  $kata='TIDAK DISARANKAN — pilih latihan indoor'; }
+  if ($skor >= 75)      { $cat = 'success'; $ico2='bi-emoji-smile-fill'; $kata='SANGAT BAIK untuk jogging / outdoor'; }
+  elseif ($skor >= 55)  { $cat = 'info';    $ico2='bi-emoji-neutral';     $kata='CUKUP BAIK — outdoor masih disarankan'; }
+  elseif ($skor >= 35)  { $cat = 'warning'; $ico2='bi-emoji-expressionless';$kata='KURANG IDEAL — pertimbangkan menunda atau latihan indoor'; }
+  else                  { $cat = 'danger';  $ico2='bi-emoji-frown-fill';  $kata='TIDAK DISARANKAN — pilih latihan indoor'; }
 
-  // Rekomendasi jam ideal dari forecast per-jam (skor sederhana per jam)
   $bestHours = [];
-  if (!empty($h['time'])) {
+  if ($h && !empty($h['time'])) {
       $scored = [];
       for ($i=$startIdx; $i<min($startIdx+24,count($h['time'])); $i++) {
           $sc = 100;
@@ -218,14 +166,17 @@ include __DIR__.'/includes/header.php'; ?>
       $bestHours = array_slice($scored, 0, 3);
   }
 ?>
-  <div class="card shadow-sm mt-3 border-<?= $cat ?>">
+
+  <!-- Revisi — Rekomendasi Jogging / Outdoor ditampilkan tepat di bawah
+       form Cari Kota / Daerah (di atas kondisi saat ini & prakiraan). -->
+  <div class="card shadow-sm mb-3 border-<?= $cat ?>">
     <div class="card-header bg-<?= $cat ?>-subtle text-<?= $cat ?>-emphasis">
       <i class="bi bi-person-walking"></i> <strong>Rekomendasi Jogging / Outdoor (Auto)</strong>
       <span class="badge bg-<?= $cat ?> ms-2">Skor <?= $skor ?>/100</span>
     </div>
     <div class="card-body">
       <div class="d-flex align-items-center gap-3 mb-2">
-        <i class="bi <?= $ico ?> fs-1 text-<?= $cat ?>"></i>
+        <i class="bi <?= $ico2 ?> fs-1 text-<?= $cat ?>"></i>
         <div>
           <div class="fw-bold fs-5"><?= htmlspecialchars($kata) ?></div>
           <?php if ($alasan): ?><div class="small text-muted">Faktor: <?= htmlspecialchars(implode(', ', $alasan)) ?>.</div><?php endif; ?>
@@ -248,6 +199,99 @@ include __DIR__.'/includes/header.php'; ?>
       </div>
     </div>
   </div>
+
+<?php /* Kondisi saat ini + Prakiraan 7 Hari (spoiler) */ ?>
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-muted small"><?= htmlspecialchars(($loc['name'] ?? '').(!empty($loc['admin1'])?', '.$loc['admin1']:'').(!empty($loc['country'])?', '.$loc['country']:'')) ?></div>
+          <i class="bi <?= $ico ?>" style="font-size:5rem;line-height:1"></i>
+          <div class="display-4 fw-bold mt-1"><?= number_format((float)($cur['temperature_2m'] ?? 0),1) ?>°C</div>
+          <div class="fs-5"><?= htmlspecialchars($lbl) ?></div>
+          <div class="small text-muted mt-1">Terasa <?= number_format((float)($cur['apparent_temperature'] ?? 0),1) ?>°C · Kelembaban <?= (int)($cur['relative_humidity_2m'] ?? 0) ?>% · Angin <?= number_format((float)($cur['wind_speed_10m'] ?? 0),1) ?> km/j</div>
+          <div class="small text-muted">Diperbarui: <?= htmlspecialchars($cur['time'] ?? '') ?> (<?= htmlspecialchars($forecast['timezone'] ?? '') ?>)</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="card shadow-sm h-100">
+        <details class="cuaca-spoiler" open>
+          <summary class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:none;">
+            <span><i class="bi bi-calendar-week text-primary"></i> Prakiraan 7 Hari</span>
+            <i class="bi bi-chevron-down small spoiler-caret"></i>
+          </summary>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped table-hover align-middle mb-0 text-center">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-start">Tanggal</th>
+                  <th class="text-start">Kondisi</th>
+                  <th>Min / Maks</th>
+                  <th>Hujan</th>
+                  <th>UV</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php $d = $forecast['daily'] ?? []; $n = count($d['time'] ?? []);
+                for ($i=0;$i<$n;$i++): [$dl,$di] = wmo_label($d['weather_code'][$i] ?? 0); ?>
+                  <tr>
+                    <td class="text-start"><strong><?= htmlspecialchars($d['time'][$i] ?? '') ?></strong><br><small class="text-muted"><?= hari_id($d['time'][$i] ?? '') ?></small></td>
+                    <td class="text-start"><i class="bi <?= $di ?>"></i> <?= htmlspecialchars($dl) ?></td>
+                    <td><?= number_format((float)$d['temperature_2m_min'][$i],0) ?>° / <strong><?= number_format((float)$d['temperature_2m_max'][$i],0) ?>°</strong></td>
+                    <td><?= (int)($d['precipitation_probability_max'][$i] ?? 0) ?>%<br><small class="text-muted"><?= number_format((float)$d['precipitation_sum'][$i],1) ?> mm</small></td>
+                    <td><?= number_format((float)($d['uv_index_max'][$i] ?? 0),1) ?></td>
+                  </tr>
+                <?php endfor; ?>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <?php if ($h && !empty($h['time'])): ?>
+    <div class="card shadow-sm mt-3">
+      <details class="cuaca-spoiler">
+        <summary class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;list-style:none;">
+          <span><i class="bi bi-clock-history text-primary"></i> Per Jam (24 jam ke depan)</span>
+          <i class="bi bi-chevron-down small spoiler-caret"></i>
+        </summary>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover align-middle mb-0 text-center">
+            <thead class="table-light">
+              <tr>
+                <th class="text-start">Jam</th>
+                <th>Suhu</th>
+                <th class="text-start">Kondisi</th>
+                <th>Peluang Hujan</th>
+              </tr>
+            </thead>
+            <tbody>
+            <?php for ($i=$startIdx;$i<min($startIdx+24,count($h['time']));$i++):
+                [$hl,$hi] = wmo_label($h['weather_code'][$i] ?? 0); ?>
+              <tr>
+                <td class="text-start"><?= htmlspecialchars(substr($h['time'][$i],11,5)) ?> <small class="text-muted"><?= htmlspecialchars(substr($h['time'][$i],5,5)) ?></small></td>
+                <td><?= number_format((float)$h['temperature_2m'][$i],1) ?>°C</td>
+                <td class="text-start"><i class="bi <?= $hi ?>"></i> <?= htmlspecialchars($hl) ?></td>
+                <td><?= (int)($h['precipitation_probability'][$i] ?? 0) ?>%</td>
+              </tr>
+            <?php endfor; ?>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  <?php endif; ?>
+
 <?php endif; ?>
+
+<style>
+  .cuaca-spoiler > summary::-webkit-details-marker{ display:none; }
+  .cuaca-spoiler > summary{ user-select:none; }
+  .cuaca-spoiler[open] .spoiler-caret{ transform:rotate(180deg); }
+  .spoiler-caret{ transition:transform .15s ease; }
+</style>
 
 <?php include __DIR__.'/includes/footer.php'; ?>

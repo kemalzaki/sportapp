@@ -84,8 +84,16 @@ if (!function_exists('paket_expiry_label')) {
 }
 
 if (!function_exists('paket_is_pro')) {
+    /** Revisi — Hierarki paket: Pro > Komunitas > Gratis.
+     *  Hanya paket 'pro' yang dianggap PRO. */
     function paket_is_pro(?array $u): bool {
-        return in_array(paket_user($u), ['pro','komunitas'], true);
+        return paket_user($u) === 'pro';
+    }
+}
+if (!function_exists('paket_is_komunitas_or_higher')) {
+    /** True jika user berhak atas fitur Komunitas (paket komunitas atau pro). */
+    function paket_is_komunitas_or_higher(?array $u): bool {
+        return in_array(paket_user($u), ['komunitas','pro'], true);
     }
 }
 
@@ -152,12 +160,16 @@ if (!function_exists('paket_prices')) {
 }
 
 if (!function_exists('paket_require_or_lock')) {
+    /** Revisi — Hierarki paket: Pro > Komunitas > Gratis.
+     *   - required = 'pro'       → hanya paket 'pro' yang boleh
+     *   - required = 'komunitas' → paket 'komunitas' & 'pro' boleh
+     */
     function paket_require_or_lock(string $needed, ?array $u, string $fitur, string $desc=''): void {
         $needed = strtolower($needed) === 'komunitas' ? 'komunitas' : 'pro';
         $paket  = paket_user($u);
         $ok = $needed === 'pro'
-            ? in_array($paket, ['pro','komunitas'], true)
-            : ($paket === 'komunitas');
+            ? ($paket === 'pro')
+            : in_array($paket, ['komunitas','pro'], true);
         if (!$ok) {
             $pageTitle = 'Upgrade Paket — '.$fitur;
             include __DIR__.'/header.php';
