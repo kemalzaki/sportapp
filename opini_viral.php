@@ -1,487 +1,562 @@
 <?php
 /**
- * opini_viral.php — Revisi R22 (27 Juni 2026)
- * Halaman "Informasi Opini Terkini/Viral" + analisis sentimen (rendah / netral / tinggi).
- * Sumber publik: Google News RSS (id-ID, topik Indonesia). Cache ±30 menit di tabel opini_viral.
+ * opini_viral.php — REDESIGN TOTAL (Juli 2026 R30)
+ * Dashboard Analisis Sentimen Opini Netizen Indonesia berbasis KOMENTAR YOUTUBE.
+ * Sumber tunggal: YouTube Data API v3 (butuh env YOUTUBE_API_KEY).
+ * Analisis sentimen: ai_router (ai_chat) — Positif / Netral / Negatif + confidence + alasan.
+ *
+ * TIDAK LAGI menggunakan Google News RSS / BBC / CNN / Kompas / judul berita.
+ * Semua statistik dihitung dari komentar publik YouTube.
  */
 require __DIR__.'/config/db.php';
 require __DIR__.'/includes/auth.php';
 require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
+require_once __DIR__.'/includes/ai_router.php';
 send_security_headers(); require_login();
-$pageTitle = 'Informasi Opini Terkini / Viral';
+$pageTitle = 'Opini Viral · Analisis Sentimen YouTube';
 $u = current_user();
 
-// Pastikan tabel ada (idempotent)
+/* ============================================================
+ * MIGRASI TABEL (idempotent)
+ * ============================================================ */
 try {
-    db_exec("CREATE TABLE IF NOT EXISTS opini_viral (
+    db_exec("CREATE TABLE IF NOT EXISTS opini_viral_search (
         id BIGSERIAL PRIMARY KEY,
-        judul TEXT NOT NULL,
-        sumber TEXT,
-        url TEXT,
-        ringkasan TEXT,
-        sentimen VARCHAR(10) NOT NULL DEFAULT 'netral',
-        skor NUMERIC(5,2) DEFAULT 0,
-        kategori TEXT,
+        keyword TEXT NOT NULL,
+        periode VARCHAR(20) NOT NULL DEFAULT '7d',
+        date_from TIMESTAMP NULL,
+        date_to   TIMESTAMP NULL,
+        total_videos INT NOT NULL DEFAULT 0,
+        total_comments INT NOT NULL DEFAULT 0,
+        summary TEXT,
+        topics_json TEXT,
         fetched_at TIMESTAMP NOT NULL DEFAULT now()
     )");
-    db_exec("CREATE INDEX IF NOT EXISTS idx_opini_fetched ON opini_viral(fetched_at DESC)");
-    // Revisi R25 (28 Juni 2026) — kolom komentar publik untuk ditampilkan di kartu
-    db_exec("ALTER TABLE opini_viral ADD COLUMN IF NOT EXISTS komentar TEXT");
-} catch (Throwable $e) {}
+    db_exec("CREATE INDEX IF NOT EXISTS idx_ovs_key ON opini_viral_search(lower(keyword), periode, fetched_at DESC)");
+    db_exec("CREATE TABLE IF NOT EXISTS opini_viral_comments (
+        id BIGSERIAL PRIMARY KEY,
+        search_id BIGINT NOT NULL REFERENCES opini_viral_search(id) ON DELETE CASCADE,
+        comment_id TEXT NOT NULL,
+        video_id TEXT NOT NULL,
+        video_title TEXT,
+        channel_name TEXT,
+        author_name TEXT,
+        comment_text TEXT,
+        like_count INT DEFAULT 0,
+        published_at TIMESTAMP NULL,
+        comment_url TEXT,
+        sentimen VARCHAR(10) DEFAULT 'netral',
+        confidence NUMERIC(5,2) DEFAULT 0,
+        alasan TEXT,
+        UNIQUE(search_id, comment_id)
+    )");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_ovc_search ON opini_viral_comments(search_id)");
+    db_exec("CREATE INDEX IF NOT EXISTS idx_ovc_sent ON opini_viral_comments(search_id, sentimen)");
+} catch (Throwable $e) { /* ignore */ }
 
-/* ----- Lexicon sentimen — diperluas (Revisi R25, 28 Juni 2026).
-   Sebelumnya kata "politik" otomatis masuk daftar NEG sehingga seluruh feed
-   "Politik" otomatis ber-sentimen RENDAH (negatif). Itu sebabnya muncul keluhan
-   "masa politik rendah?". Sekarang:
-   - Kata netral/tematik (politik, viral, demo, dll) DIKELUARKAN dari NEG.
-   - NEG kembali fokus pada kata yang benar-benar bermakna negatif.
-   - POS diperluas. Skor pakai bobot frekuensi (bukan hanya ada/tidak). */
-$POS = ['baik','hebat','sukses','meraih','juara','menang','positif','optimis','prestasi','membantu','bangga','damai','sehat','tumbuh','naik','untung','dukungan','solidaritas','berkat','syukur','sembuh','lulus','penghargaan','inovasi','solusi','keren','mantap','bagus','luar biasa','membanggakan','harapan','sepakat','disetujui','disahkan','memuji','apresiasi','rekor','tercepat','terbaik','meningkat'];
-$NEG = ['buruk','gagal','kalah','rusak','jatuh','turun','krisis','bencana','korupsi','tersangka','meninggal','tewas','ditangkap','kebakaran','banjir','gempa','konflik','kontroversi','mengamuk','sengketa','marah','kecewa','hoax','penipuan','penyalahgunaan','penganiayaan','dibunuh','memprihatinkan','tragis','kabur','melarikan diri','divonis','dipenjara','ditolak','digugat','memburuk','anjlok','merosot','rugi','defisit'];
-
-function _opini_score(string $teks, array $POS, array $NEG): array {
-    $t = ' '.mb_strtolower($teks).' ';
-    $p = 0; $n = 0;
-    foreach ($POS as $w) { $p += substr_count($t, ' '.$w); $p += substr_count($t, ' '.$w.' '); }
-    foreach ($NEG as $w) { $n += substr_count($t, ' '.$w); $n += substr_count($t, ' '.$w.' '); }
-    $total = $p + $n;
-    if ($total === 0) return ['netral', 0.0];
-    $skor = ($p - $n) / max(1,$total); // -1..+1
-    $abs  = abs($skor);
-    if ($abs < 0.2)         return ['netral', $skor];
-    if ($skor >= 0.2)       return ['tinggi', $skor];
-    return ['rendah', $skor];
+/* ============================================================
+ * HELPER
+ * ============================================================ */
+function ov_env(string $k): string {
+    $v = getenv($k); if ($v) return (string)$v;
+    $v = $_ENV[$k] ?? $_SERVER[$k] ?? ''; return (string)$v;
 }
-
-function _opini_fetch_rss(string $url, int $timeout=8): ?string {
+function ov_http_get(string $url, int $timeout=15): array {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => $timeout,
-        CURLOPT_CONNECTTIMEOUT => 3,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_USERAGENT      => 'SportApp/1.0 (+opini)',
+        CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>$timeout, CURLOPT_CONNECTTIMEOUT=>5,
+        CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>'KawanKeringat/OpiniViral',
     ]);
+    if (ov_env('GEMINI_INSECURE_SSL')==='1') curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $body = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return ($code === 200 && $body) ? $body : null;
+    return [$code, $body ?: ''];
 }
-
-/* ----- Refresh cache jika kosong / sudah > 30 menit ----- */
-$lastFetch = null;
-try { $lastFetch = db_val("SELECT MAX(fetched_at) FROM opini_viral"); } catch (Throwable $e) {}
-$needRefresh = !$lastFetch || (time() - strtotime($lastFetch) > 30 * 60) || isset($_GET['refresh']);
-
-if ($needRefresh) {
-    /* Revisi R24 (28 Juni 2026) — Sumber diubah dari Google News RSS menjadi
-       agregator OPINI PUBLIK NETIZEN dari media sosial:
-         - Reddit (subreddit r/indonesia, r/indonesia_local, r/indonesians) → JSON publik
-         - YouTube (RSS feed channel berita populer Indonesia) untuk judul + komentar viral
-         - Lemmy / Mastodon (id) sebagai fallback bila Reddit tidak tersedia
-       Twitter/Facebook/Instagram/TikTok TIDAK memiliki RSS publik resmi; karena itu
-       digunakan mirror Nitter (X/Twitter) bila tersedia, dan halaman web publik
-       (search Tiktok/IG) di-scrape ringan via meta-tag bila diizinkan oleh server.
-       Catatan: di local dev cukup pastikan PHP punya curl + akses internet. */
-    /* Revisi 29 Juni 2026 — Google News RSS dipromosikan menjadi sumber UTAMA.
-       Reddit/Nitter/YouTube sering diblokir/CORS/rate-limited di hosting Indonesia
-       sehingga seluruh feed kosong (cards tidak muncul). Google News RSS jauh
-       lebih stabil dan tetap menyediakan judul + sumber + ringkasan. */
-    $sources = [
-        // PRIMARY — Google News RSS (paling reliable)
-        'Berita Umum'               => 'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-        'Politik'                   => 'https://news.google.com/rss/search?q=politik+indonesia&hl=id&gl=ID&ceid=ID:id',
-        'Bisnis & Ekonomi'          => 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=id&gl=ID&ceid=ID:id',
-        'Olahraga'                  => 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=id&gl=ID&ceid=ID:id',
-        'Teknologi'                 => 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=id&gl=ID&ceid=ID:id',
-        'Hiburan / Viral'           => 'https://news.google.com/rss/search?q=viral+indonesia&hl=id&gl=ID&ceid=ID:id',
-        'Opini Netizen'             => 'https://news.google.com/rss/search?q=opini+netizen+indonesia&hl=id&gl=ID&ceid=ID:id',
-        // SECONDARY — sosial media (best-effort, sering gagal di hosting Indonesia)
-        'Opini r/indonesia'         => 'reddit:indonesia/hot',
-        'Opini r/indonesia_local'   => 'reddit:indonesia_local/hot',
-        // YouTube — RSS resmi (jarang gagal)
-        'YouTube • Narasi'          => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9_F0RpdPNX4hL3KX5G6phw',
-        'YouTube • CNN Indonesia'   => 'https://www.youtube.com/feeds/videos.xml?channel_id=UCM4XlH5BIPNc-rUtcwI7Vfg',
-        'YouTube • Kompas TV'       => 'https://www.youtube.com/feeds/videos.xml?channel_id=UC5BMQOsmB91nXgwIwfwSJYg',
-    ];
-    $kept = 0;
-    try { db_exec("DELETE FROM opini_viral WHERE fetched_at < now() - interval '6 hours'"); } catch (Throwable $e) {}
-
-    foreach ($sources as $kategori => $rssUrl) {
-        $items = [];
-        if (str_starts_with($rssUrl, 'reddit:')) {
-            $path = substr($rssUrl, 7);
-            $url  = 'https://www.reddit.com/r/'.$path.'.json?limit=10';
-            $json = _opini_fetch_rss($url, 10);
-            if ($json) {
-                $obj = json_decode($json, true);
-                $idx = 0;
-                foreach (($obj['data']['children'] ?? []) as $ch) {
-                    $d = $ch['data'] ?? [];
-                    $permalink = $d['permalink'] ?? '';
-                    /* Revisi R25 (28 Juni 2026) — ambil 5 komentar teratas untuk 5 post
-                       pertama tiap subreddit, simpan ke kolom `komentar` agar UI bisa
-                       memunculkan komentar netizen (sesuai permintaan user). */
-                    $comments = [];
-                    if ($idx < 5 && $permalink) {
-                        $cj = _opini_fetch_rss('https://www.reddit.com'.$permalink.'.json?limit=5&depth=1&sort=top', 8);
-                        if ($cj) {
-                            $cobj = json_decode($cj, true);
-                            $kids = $cobj[1]['data']['children'] ?? [];
-                            foreach ($kids as $kc) {
-                                $body = trim((string)($kc['data']['body'] ?? ''));
-                                if ($body==='' || $body==='[deleted]' || $body==='[removed]') continue;
-                                $comments[] = mb_substr($body, 0, 240);
-                                if (count($comments) >= 5) break;
-                            }
-                        }
-                    }
-                    $idx++;
-                    $items[] = [
-                        'title' => $d['title'] ?? '',
-                        'link'  => 'https://www.reddit.com'.$permalink,
-                        'desc'  => mb_substr((string)($d['selftext'] ?? ''), 0, 400),
-                        'src'   => 'r/'.($d['subreddit'] ?? '').' • '.($d['ups'] ?? 0).' upvotes • '.($d['num_comments'] ?? 0).' komentar',
-                        'comments' => $comments,
-                    ];
-                }
-            }
-        } elseif (str_starts_with($rssUrl, 'nitter:')) {
-            /* Revisi R25 (28 Juni 2026) — Nitter sering down/diblok. Coba beberapa
-               mirror berurutan, pakai yang pertama berhasil. */
-            $q = substr($rssUrl, 7);
-            $mirrors = ['https://nitter.privacydev.net','https://nitter.poast.org','https://nitter.net'];
-            foreach ($mirrors as $base) {
-                $xml = _opini_fetch_rss($base.'/search/rss?f=tweets&q='.urlencode($q), 6);
-                if (!$xml) continue;
-                libxml_use_internal_errors(true);
-                $doc = @simplexml_load_string($xml);
-                if (!$doc || !isset($doc->channel->item)) continue;
-                foreach ($doc->channel->item as $it) {
-                    $items[] = [
-                        'title' => trim((string)$it->title),
-                        'link'  => (string)$it->link,
-                        'desc'  => trim(strip_tags((string)$it->description)),
-                        'src'   => 'Twitter/X • '.parse_url($base, PHP_URL_HOST),
-                        'comments' => [],
-                    ];
-                }
-                if ($items) break;
-            }
-        } else {
-            $xml = _opini_fetch_rss($rssUrl);
-            if (!$xml) continue;
-            libxml_use_internal_errors(true);
-            $doc = @simplexml_load_string($xml);
-            if (!$doc) continue;
-            if (isset($doc->channel->item)) {
-                foreach ($doc->channel->item as $it) {
-                    $items[] = [
-                        'title' => trim((string)$it->title),
-                        'link'  => (string)$it->link,
-                        'desc'  => trim(strip_tags((string)$it->description)),
-                        'src'   => trim((string)($it->source ?? '')),
-                        'comments' => [],
-                    ];
-                }
-            } elseif (isset($doc->entry)) {
-                foreach ($doc->entry as $en) {
-                    $ln = '';
-                    foreach ($en->link as $lk) { $ln = (string)$lk['href']; break; }
-                    $items[] = [
-                        'title' => trim((string)$en->title),
-                        'link'  => $ln,
-                        'desc'  => trim(strip_tags((string)($en->summary ?? ''))),
-                        'src'   => trim((string)($en->author->name ?? '')),
-                        'comments' => [],
-                    ];
-                }
-            }
-        }
-        $cnt = 0;
-        foreach ($items as $it) {
-            if ($cnt >= 12) break;
-            $judul   = $it['title'];
-            $linkRaw = $it['link'];
-            $desc    = $it['desc'];
-            $sumber  = $it['src'];
-            $komen   = $it['comments'] ?? [];
-
-            /* Revisi 30 Juni 2026 — Fallback komentar:
-               Untuk sumber non-Reddit (Google News, YouTube, dll) tidak pernah
-               ada komentar sehingga UI selalu kosong. Cari thread Reddit yang
-               paling relevan dengan judul lalu ambil 5 komentar teratas. */
-            if (!$komen && $judul !== '' && $cnt < 6) {
-                $kw = preg_replace('/[^\p{L}\p{N}\s]+/u',' ', $judul);
-                $kw = trim(preg_replace('/\s+/', ' ', $kw));
-                $kw = implode(' ', array_slice(explode(' ', $kw), 0, 6));
-                if ($kw !== '') {
-                    $sj = _opini_fetch_rss('https://www.reddit.com/search.json?q='.urlencode($kw).'&limit=1&sort=relevance&t=month', 6);
-                    if ($sj) {
-                        $so = json_decode($sj, true);
-                        $perma = $so['data']['children'][0]['data']['permalink'] ?? '';
-                        if ($perma) {
-                            $cj = _opini_fetch_rss('https://www.reddit.com'.$perma.'.json?limit=5&depth=1&sort=top', 6);
-                            if ($cj) {
-                                $cobj = json_decode($cj, true);
-                                $kids = $cobj[1]['data']['children'] ?? [];
-                                foreach ($kids as $kc) {
-                                    $body = trim((string)($kc['data']['body'] ?? ''));
-                                    if ($body==='' || $body==='[deleted]' || $body==='[removed]') continue;
-                                    $komen[] = mb_substr($body, 0, 240);
-                                    if (count($komen) >= 5) break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            /* Fallback terakhir: pecah ringkasan menjadi 1-2 kalimat
-               sehingga kartu komentar tidak kosong sama sekali. */
-            if (!$komen && $desc !== '') {
-                $parts = preg_split('/(?<=[\.\!\?])\s+/u', strip_tags($desc));
-                foreach ($parts as $p) {
-                    $p = trim($p);
-                    if (mb_strlen($p) < 20) continue;
-                    $komen[] = mb_substr($p, 0, 240);
-                    if (count($komen) >= 2) break;
-                }
-            }
-
-            if ($judul === '') continue;
-            // Sentimen pakai judul + ringkasan + komentar (lebih representatif)
-            $teks = $judul.' '.$desc.' '.implode(' ', $komen);
-            [$lab, $sk] = _opini_score($teks, $POS, $NEG);
-            try {
-                db_exec("INSERT INTO opini_viral(judul,sumber,url,ringkasan,sentimen,skor,kategori,komentar)
-                         VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-                    [mb_substr($judul,0,500),
-                     mb_substr($sumber,0,120),
-                     mb_substr($linkRaw,0,500),
-                     mb_substr($desc,0,800),
-                     $lab,
-                     round($sk,3),
-                     $kategori,
-                     $komen ? json_encode($komen, JSON_UNESCAPED_UNICODE) : null]);
-                $kept++; $cnt++;
-            } catch (Throwable $e) { /* skip duplikat / error */ }
-        }
+function ov_periode_range(string $periode, ?string $from=null, ?string $to=null): array {
+    $now = time();
+    switch ($periode) {
+        case '24h': return [date('c', $now-86400), date('c', $now)];
+        case '30d': return [date('c', $now-30*86400), date('c', $now)];
+        case 'custom':
+            $f = $from ? strtotime($from) : ($now-7*86400);
+            $t = $to   ? strtotime($to.' 23:59:59') : $now;
+            return [date('c',$f), date('c',$t)];
+        case '7d': default: return [date('c', $now-7*86400), date('c', $now)];
     }
 }
+function ov_stopwords_id(): array {
+    return array_flip(['yang','dan','di','ini','itu','dengan','untuk','pada','tidak','ada','sudah','saja','juga','atau','jadi','ke','dari','sih','kok','ya','lah','deh','aja','nya','kalo','kalau','biar','bikin','buat','gitu','gini','ga','gak','nggak','engga','enggak','tapi','tp','krn','karena','ke','oleh','dalam','akan','bisa','sama','kan','pun','se','pak','bu','mba','mas','loh','lho','kek','banget','bgt','tau','tahu','klo','yg','dgn','utk','pd','trs','terus','lagi','sekali','saya','aku','kamu','kita','kami','mereka','anda','dia','ia','pak','bpk','ibu','the','and','or','of','to','in','is','a','an']);
+}
 
-$fSentimen = in_array($_GET['s'] ?? '', ['rendah','netral','tinggi'], true) ? $_GET['s'] : '';
-$fKategori = trim((string)($_GET['k'] ?? ''));
+/* ============================================================
+ * YOUTUBE API
+ * ============================================================ */
+function ov_yt_search(string $q, string $pubAfter, string $pubBefore, int $maxVideos=20): array {
+    $key = ov_env('YOUTUBE_API_KEY');
+    if (!$key) throw new RuntimeException('YOUTUBE_API_KEY belum diatur di environment. Tambahkan YOUTUBE_API_KEY=xxxx di config/env.local.php.');
+    $url = 'https://www.googleapis.com/youtube/v3/search?'.http_build_query([
+        'part'=>'snippet','type'=>'video','maxResults'=>min(50,$maxVideos),
+        'q'=>$q,'relevanceLanguage'=>'id','regionCode'=>'ID','order'=>'relevance',
+        'publishedAfter'=>$pubAfter,'publishedBefore'=>$pubBefore,'key'=>$key,
+    ]);
+    [$code,$body] = ov_http_get($url, 20);
+    if ($code !== 200) {
+        $j = json_decode($body, true);
+        $msg = $j['error']['message'] ?? "HTTP $code";
+        throw new RuntimeException("YouTube search gagal: $msg");
+    }
+    $j = json_decode($body, true) ?: [];
+    $vids = [];
+    foreach (($j['items'] ?? []) as $it) {
+        $vid = $it['id']['videoId'] ?? null; if (!$vid) continue;
+        $vids[] = [
+            'video_id'=>$vid,
+            'video_title'=>$it['snippet']['title'] ?? '',
+            'channel_name'=>$it['snippet']['channelTitle'] ?? '',
+            'published_at'=>$it['snippet']['publishedAt'] ?? null,
+        ];
+        if (count($vids) >= $maxVideos) break;
+    }
+    return $vids;
+}
+function ov_yt_comments(string $videoId, int $max=100): array {
+    $key = ov_env('YOUTUBE_API_KEY'); if (!$key) return [];
+    $out = []; $pageToken = '';
+    while (count($out) < $max) {
+        $url = 'https://www.googleapis.com/youtube/v3/commentThreads?'.http_build_query(array_filter([
+            'part'=>'snippet','videoId'=>$videoId,'maxResults'=>min(100, $max-count($out)),
+            'order'=>'relevance','textFormat'=>'plainText','key'=>$key,
+            'pageToken'=>$pageToken ?: null,
+        ]));
+        [$code,$body] = ov_http_get($url, 15);
+        if ($code !== 200) break; // komentar disabled / video private → skip
+        $j = json_decode($body,true) ?: [];
+        foreach (($j['items'] ?? []) as $it) {
+            $s = $it['snippet']['topLevelComment']['snippet'] ?? null; if (!$s) continue;
+            $cid = $it['snippet']['topLevelComment']['id'] ?? ($it['id'] ?? null); if (!$cid) continue;
+            $out[] = [
+                'comment_id'=>$cid,
+                'author_name'=>$s['authorDisplayName'] ?? 'anonim',
+                'comment_text'=>trim((string)($s['textDisplay'] ?? $s['textOriginal'] ?? '')),
+                'like_count'=>(int)($s['likeCount'] ?? 0),
+                'published_at'=>$s['publishedAt'] ?? null,
+                'comment_url'=>'https://www.youtube.com/watch?v='.$videoId.'&lc='.$cid,
+            ];
+            if (count($out) >= $max) break 2;
+        }
+        $pageToken = $j['nextPageToken'] ?? '';
+        if (!$pageToken) break;
+    }
+    return $out;
+}
 
-$where = "WHERE fetched_at >= now() - interval '6 hours'"; $args = [];
-if ($fSentimen) { $args[] = $fSentimen; $where .= ' AND sentimen=$'.count($args); }
-if ($fKategori) { $args[] = $fKategori; $where .= ' AND kategori=$'.count($args); }
+/* ============================================================
+ * AI SENTIMEN (batch)
+ * ============================================================ */
+function ov_sentimen_batch(array $comments): array {
+    // fallback lexicon jika AI tidak tersedia
+    $useAI = function_exists('ai_chat');
+    $result = [];
+    $chunks = array_chunk($comments, 15, true);
+    foreach ($chunks as $chunk) {
+        $items = [];
+        foreach ($chunk as $i => $c) {
+            $items[] = ['i'=>$i, 'text'=>mb_substr($c['comment_text'], 0, 500)];
+        }
+        $ok = false;
+        if ($useAI) {
+            $prompt = "Klasifikasikan sentimen tiap komentar berbahasa Indonesia berikut sebagai Positif, Netral, atau Negatif. Balas JSON valid dengan struktur: {\"items\":[{\"i\":<id>,\"sentimen\":\"positif|netral|negatif\",\"confidence\":0-100,\"alasan\":\"<max 12 kata>\"}]}\n\nDATA:\n".json_encode($items, JSON_UNESCAPED_UNICODE);
+            try {
+                $raw = ai_chat($prompt, ['json'=>true, 'temperature'=>0.1, 'max_tokens'=>1200, 'system'=>'Anda adalah analis sentimen bahasa Indonesia. Selalu balas JSON valid.']);
+                $j = ai_extract_json((string)$raw);
+                if (is_array($j) && !empty($j['items'])) {
+                    foreach ($j['items'] as $r) {
+                        $idx = (int)($r['i'] ?? -1); if (!isset($chunk[$idx])) continue;
+                        $s = strtolower(trim((string)($r['sentimen'] ?? 'netral')));
+                        if (!in_array($s, ['positif','netral','negatif'], true)) $s='netral';
+                        $result[$idx] = [
+                            'sentimen'=>$s,
+                            'confidence'=>max(0,min(100,(float)($r['confidence'] ?? 60))),
+                            'alasan'=>mb_substr((string)($r['alasan'] ?? ''), 0, 240),
+                        ];
+                    }
+                    $ok = true;
+                }
+            } catch (Throwable $e) { $ok=false; }
+        }
+        if (!$ok) {
+            foreach ($chunk as $i=>$c) {
+                $result[$i] = ov_sentimen_lexicon($c['comment_text']);
+            }
+        }
+    }
+    // isi yang belum kena
+    foreach ($comments as $i=>$c) if (!isset($result[$i])) $result[$i] = ov_sentimen_lexicon($c['comment_text']);
+    return $result;
+}
+function ov_sentimen_lexicon(string $t): array {
+    $POS=['baik','bagus','mantap','keren','hebat','sukses','juara','menang','positif','bangga','apresiasi','terima kasih','makasih','love','suka','setuju','recommended','top','wow','hormat','salut','semangat'];
+    $NEG=['buruk','jelek','gagal','kalah','rusak','krisis','korupsi','tewas','marah','kecewa','hoax','penipu','bohong','busuk','tolol','bodoh','sampah','anjing','bangsat','goblok','malu','payah','anjlok','tolak','benci'];
+    $s = ' '.mb_strtolower($t).' '; $p=0;$n=0;
+    foreach ($POS as $w) $p += substr_count($s,' '.$w);
+    foreach ($NEG as $w) $n += substr_count($s,' '.$w);
+    if ($p===0 && $n===0) return ['sentimen'=>'netral','confidence'=>50,'alasan'=>'Tidak ada kata kunci sentimen jelas'];
+    if ($p>$n)  return ['sentimen'=>'positif','confidence'=>min(95,60+10*($p-$n)),'alasan'=>'Kata bermuatan positif'];
+    if ($n>$p)  return ['sentimen'=>'negatif','confidence'=>min(95,60+10*($n-$p)),'alasan'=>'Kata bermuatan negatif'];
+    return ['sentimen'=>'netral','confidence'=>55,'alasan'=>'Positif & negatif seimbang'];
+}
 
-$rows = db_all("SELECT id,judul,sumber,url,ringkasan,sentimen,skor,kategori,komentar,fetched_at
-                FROM opini_viral $where
-                ORDER BY fetched_at DESC, id DESC LIMIT 80", $args);
+function ov_ringkasan_ai(int $total, int $pos, int $net, int $neg, array $topWords): array {
+    $topics = []; $summary = '';
+    if (function_exists('ai_chat')) {
+        $prompt = "Berdasarkan statistik berikut buat JSON: {\"summary\":\"...\",\"topics\":[\"...\",\"...\"]}.\n".
+                  "Total komentar YouTube: $total. Positif: $pos, Netral: $net, Negatif: $neg. Kata paling sering: ".implode(', ', array_slice(array_keys($topWords),0,20)).".\n".
+                  "Buat ringkasan 2-3 kalimat bahasa Indonesia natural, lalu 5 topik utama yang paling banyak dibahas.";
+        try {
+            $raw = ai_chat($prompt, ['json'=>true,'temperature'=>0.4,'max_tokens'=>400]);
+            $j = ai_extract_json((string)$raw);
+            if (is_array($j)) {
+                $summary = (string)($j['summary'] ?? '');
+                $topics  = array_values(array_filter((array)($j['topics'] ?? []), fn($x)=>is_string($x)&&$x!==''));
+            }
+        } catch (Throwable $e) { /* fallback */ }
+    }
+    if ($summary==='') {
+        $pctPos = $total?round($pos*100/$total):0; $pctNet=$total?round($net*100/$total):0; $pctNeg=$total?round($neg*100/$total):0;
+        $dom = $pctPos>=$pctNet && $pctPos>=$pctNeg ? "positif" : ($pctNeg>=$pctNet ? "negatif" : "netral");
+        $summary = "Dari $total komentar YouTube, mayoritas netizen memberikan sentimen $dom ($pctPos% positif, $pctNet% netral, $pctNeg% negatif).";
+    }
+    if (empty($topics)) $topics = array_slice(array_keys($topWords), 0, 5);
+    return ['summary'=>$summary, 'topics'=>$topics];
+}
 
-$stat = db_all("SELECT sentimen, COUNT(*) AS c FROM opini_viral
-                WHERE fetched_at >= now() - interval '6 hours' GROUP BY sentimen");
-$kat  = db_all("SELECT DISTINCT kategori FROM opini_viral
-                WHERE fetched_at >= now() - interval '6 hours' AND kategori IS NOT NULL ORDER BY kategori");
-$counts = ['rendah'=>0,'netral'=>0,'tinggi'=>0];
-foreach ($stat as $r) { $counts[$r['sentimen']] = (int)$r['c']; }
-$total = array_sum($counts);
+/* ============================================================
+ * PIPELINE: cari + simpan (dengan cache 30 menit)
+ * ============================================================ */
+function ov_run_search(string $keyword, string $periode, ?string $from, ?string $to): array {
+    [$pubAfter, $pubBefore] = ov_periode_range($periode, $from, $to);
+    // cek cache
+    $cached = db_one("SELECT * FROM opini_viral_search
+        WHERE lower(keyword)=lower($1) AND periode=$2
+          AND COALESCE(date_from::text,'')=COALESCE($3::text,'') AND COALESCE(date_to::text,'')=COALESCE($4::text,'')
+          AND fetched_at > now() - interval '30 minutes'
+        ORDER BY fetched_at DESC LIMIT 1",
+        [$keyword, $periode, $periode==='custom'?$pubAfter:null, $periode==='custom'?$pubBefore:null]);
+    if ($cached) return ['search_id'=>(int)$cached['id'], 'cached'=>true];
 
-include __DIR__.'/includes/header.php'; ?>
+    $videos = ov_yt_search($keyword, $pubAfter, $pubBefore, 20);
+    $allComments = []; // flat list dengan metadata video
+    foreach ($videos as $v) {
+        $cs = ov_yt_comments($v['video_id'], 100);
+        foreach ($cs as $c) {
+            $c['video_id']     = $v['video_id'];
+            $c['video_title']  = $v['video_title'];
+            $c['channel_name'] = $v['channel_name'];
+            $allComments[] = $c;
+        }
+    }
+    // klasifikasi
+    $sent = ov_sentimen_batch($allComments);
+    // word cloud
+    $sw = ov_stopwords_id();
+    $wc = [];
+    foreach ($allComments as $c) {
+        $tok = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($c['comment_text'])) ?: [];
+        foreach ($tok as $w) { if (mb_strlen($w)<4) continue; if (isset($sw[$w])) continue; $wc[$w] = ($wc[$w] ?? 0)+1; }
+    }
+    arsort($wc); $topWords = array_slice($wc, 0, 100, true);
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h2 class="mb-0"><i class="bi bi-megaphone-fill text-danger"></i> Informasi Opini Terkini / Viral</h2>
-  <a href="?refresh=1" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-clockwise"></i> Muat Ulang Data</a>
-</div>
+    $pos=$net=$neg=0;
+    foreach ($sent as $s) { if ($s['sentimen']==='positif') $pos++; elseif ($s['sentimen']==='negatif') $neg++; else $net++; }
+    $ai = ov_ringkasan_ai(count($allComments), $pos, $net, $neg, $topWords);
 
-<div class="alert alert-info small py-2">
-  <i class="bi bi-info-circle"></i> <b>Sumber data:</b> Reddit (r/indonesia, r/indonesia_local, r/indonesians) untuk opini + komentar netizen,
-  Nitter (mirror Twitter/X) untuk topik politik/bisnis/viral, YouTube (Narasi, CNN, Kompas TV), serta Google News RSS sebagai fallback bila salah satu sumber down.
-  Sentimen dianalisis otomatis dari <em>judul + ringkasan + komentar</em> via kamus kata kunci Bahasa Indonesia (Revisi R25: kata "politik/viral/demo" tidak lagi otomatis dianggap negatif).
-</div>
+    db_exec("INSERT INTO opini_viral_search (keyword, periode, date_from, date_to, total_videos, total_comments, summary, topics_json) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+        [$keyword, $periode, $periode==='custom'?$pubAfter:null, $periode==='custom'?$pubBefore:null, count($videos), count($allComments), $ai['summary'], json_encode(['topics'=>$ai['topics'],'words'=>$topWords], JSON_UNESCAPED_UNICODE)]);
+    $sid = (int)db_val("SELECT lastval()");
 
-<div class="row g-2 mb-3">
-  <div class="col-6 col-md-3">
-    <div class="card text-center border-success"><div class="card-body py-2">
-      <div class="small text-muted">Sentimen Tinggi (positif)</div>
-      <div class="h3 mb-0 text-success"><?= $counts['tinggi'] ?></div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card text-center border-secondary"><div class="card-body py-2">
-      <div class="small text-muted">Sentimen Netral</div>
-      <div class="h3 mb-0 text-secondary"><?= $counts['netral'] ?></div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card text-center border-danger"><div class="card-body py-2">
-      <div class="small text-muted">Sentimen Rendah (negatif)</div>
-      <div class="h3 mb-0 text-danger"><?= $counts['rendah'] ?></div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card text-center border-primary"><div class="card-body py-2">
-      <div class="small text-muted">Total Topik</div>
-      <div class="h3 mb-0 text-primary"><?= $total ?></div>
-    </div></div>
-  </div>
-</div>
+    foreach ($allComments as $i=>$c) {
+        $s = $sent[$i];
+        try {
+            db_exec("INSERT INTO opini_viral_comments (search_id, comment_id, video_id, video_title, channel_name, author_name, comment_text, like_count, published_at, comment_url, sentimen, confidence, alasan)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT DO NOTHING",
+                [$sid, $c['comment_id'], $c['video_id'], $c['video_title'], $c['channel_name'], $c['author_name'], $c['comment_text'], $c['like_count'], $c['published_at'], $c['comment_url'], $s['sentimen'], $s['confidence'], $s['alasan']]);
+        } catch (Throwable $e) {}
+    }
+    return ['search_id'=>$sid, 'cached'=>false];
+}
 
-<form method="get" class="d-flex flex-wrap gap-2 mb-3">
-  <select name="s" class="form-select form-select-sm" style="width:auto">
-    <option value="">— Semua sentimen —</option>
-    <?php foreach (['tinggi'=>'Tinggi (positif)','netral'=>'Netral','rendah'=>'Rendah (negatif)'] as $k=>$v): ?>
-      <option value="<?= $k ?>" <?= $fSentimen===$k?'selected':'' ?>><?= $v ?></option>
-    <?php endforeach; ?>
-  </select>
-  <select name="k" class="form-select form-select-sm" style="width:auto">
-    <option value="">— Semua kategori —</option>
-    <?php foreach ($kat as $r): ?>
-      <option value="<?= htmlspecialchars($r['kategori']) ?>" <?= $fKategori===$r['kategori']?'selected':'' ?>><?= htmlspecialchars($r['kategori']) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <button class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filter</button>
-  <a href="/opini_viral.php" class="btn btn-sm btn-outline-secondary">Reset</a>
-</form>
+/* ============================================================
+ * AJAX / EXPORT ENDPOINTS
+ * ============================================================ */
+$action = $_GET['action'] ?? '';
+if ($action === 'search') {
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $kw = trim((string)($_POST['keyword'] ?? ''));
+        if ($kw==='') throw new RuntimeException('Keyword wajib diisi');
+        $periode = (string)($_POST['periode'] ?? '7d');
+        $from = $_POST['from'] ?? null; $to = $_POST['to'] ?? null;
+        $r = ov_run_search($kw, $periode, $from, $to);
+        echo json_encode(['ok'=>true] + $r);
+    } catch (Throwable $e) {
+        echo json_encode(['ok'=>false, 'err'=>$e->getMessage()]);
+    }
+    exit;
+}
+if ($action === 'data') {
+    header('Content-Type: application/json; charset=utf-8');
+    $sid = (int)($_GET['sid'] ?? 0);
+    $s = db_one("SELECT * FROM opini_viral_search WHERE id=$1", [$sid]);
+    if (!$s) { echo json_encode(['ok'=>false,'err'=>'not found']); exit; }
+    $rows = db_all("SELECT * FROM opini_viral_comments WHERE search_id=$1 ORDER BY like_count DESC, id DESC", [$sid]);
+    $pos=$net=$neg=0;
+    foreach ($rows as $r) { if ($r['sentimen']==='positif') $pos++; elseif ($r['sentimen']==='negatif') $neg++; else $net++; }
+    $meta = json_decode($s['topics_json'] ?: '{}', true) ?: [];
+    echo json_encode([
+        'ok'=>true,
+        'keyword'=>$s['keyword'], 'periode'=>$s['periode'],
+        'total'=>count($rows), 'pos'=>$pos, 'net'=>$net, 'neg'=>$neg,
+        'summary'=>$s['summary'], 'topics'=>$meta['topics'] ?? [], 'words'=>$meta['words'] ?? [],
+        'comments'=>$rows,
+        'fetched_at'=>$s['fetched_at'],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+if ($action === 'export') {
+    $sid = (int)($_GET['sid'] ?? 0);
+    $fmt = strtolower((string)($_GET['fmt'] ?? 'csv'));
+    $rows = db_all("SELECT author_name, channel_name, video_title, comment_text, sentimen, confidence, like_count, published_at, comment_url FROM opini_viral_comments WHERE search_id=$1 ORDER BY id", [$sid]);
+    $s = db_one("SELECT keyword FROM opini_viral_search WHERE id=$1",[$sid]);
+    $slug = preg_replace('/[^a-z0-9_-]+/','_', strtolower($s['keyword'] ?? 'opini'));
+    if ($fmt==='xls' || $fmt==='excel') {
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header("Content-Disposition: attachment; filename=opini_{$slug}.xls");
+        echo "\xEF\xBB\xBF<table border='1'><tr><th>Author</th><th>Channel</th><th>Video</th><th>Komentar</th><th>Sentimen</th><th>Confidence</th><th>Like</th><th>Waktu</th><th>URL</th></tr>";
+        foreach ($rows as $r) {
+            echo "<tr>"; foreach (['author_name','channel_name','video_title','comment_text','sentimen','confidence','like_count','published_at','comment_url'] as $k) echo "<td>".htmlspecialchars((string)$r[$k])."</td>"; echo "</tr>";
+        }
+        echo "</table>"; exit;
+    }
+    if ($fmt==='pdf') {
+        // HTML print-friendly (browser Save as PDF). Simple + tanpa dependensi.
+        header('Content-Type: text/html; charset=utf-8');
+        echo "<!doctype html><meta charset='utf-8'><title>Opini {$slug}</title>";
+        echo "<style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px;vertical-align:top}.pos{color:#059669}.neg{color:#dc2626}.net{color:#475569}@media print{@page{size:A4 landscape;margin:1cm}}</style>";
+        echo "<h2>Opini Viral: ".htmlspecialchars($s['keyword'])."</h2><button onclick='window.print()'>Cetak / Simpan PDF</button>";
+        echo "<table><tr><th>#</th><th>Author</th><th>Channel</th><th>Komentar</th><th>Sentimen</th><th>Confidence</th><th>Like</th></tr>";
+        foreach ($rows as $i=>$r) {
+            $cls = $r['sentimen']==='positif'?'pos':($r['sentimen']==='negatif'?'neg':'net');
+            echo "<tr><td>".($i+1)."</td><td>".htmlspecialchars($r['author_name'])."</td><td>".htmlspecialchars($r['channel_name'])."</td><td>".htmlspecialchars($r['comment_text'])."</td><td class='$cls'>".htmlspecialchars($r['sentimen'])."</td><td>".htmlspecialchars($r['confidence'])."%</td><td>".(int)$r['like_count']."</td></tr>";
+        }
+        echo "</table>"; exit;
+    }
+    // default CSV
+    header('Content-Type: text/csv; charset=utf-8');
+    header("Content-Disposition: attachment; filename=opini_{$slug}.csv");
+    $out = fopen('php://output','w'); fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['author','channel','video_title','comment','sentimen','confidence','like','published_at','url']);
+    foreach ($rows as $r) fputcsv($out, [$r['author_name'],$r['channel_name'],$r['video_title'],$r['comment_text'],$r['sentimen'],$r['confidence'],$r['like_count'],$r['published_at'],$r['comment_url']]);
+    fclose($out); exit;
+}
 
-<?php
-  /* ============================================================
-     Revisi (29 Juni 2026) — Ubah tampilan menjadi list KOMENTAR
-     (positif / netral / negatif) lengkap dengan statistik global.
-     ============================================================ */
-  $posKw = ['bagus','mantap','setuju','keren','hebat','top','suka','baik','dukung','salut','semangat','alhamdulillah','sukses','terima kasih','makasih','cinta','sayang','indah','luar biasa','bangga','optimis','jaya','sehat','damai'];
-  $negKw = ['jelek','buruk','marah','benci','tolol','goblok','bodoh','anjing','bangsat','kecewa','gagal','korup','penipu','sampah','sedih','prihatin','jijik','muak','tipu','hoax','rusak','hancur','tragis','memprihatinkan'];
-
-  function _opini_klasifikasi_komentar(string $teks, array $pos, array $neg): array {
-      $low = ' '.mb_strtolower($teks).' ';
-      $p=0; $n=0;
-      foreach ($pos as $w) { if (strpos($low,' '.$w)!==false) $p++; }
-      foreach ($neg as $w) { if (strpos($low,' '.$w)!==false) $n++; }
-      if ($p===$n) return ['netral', 0];
-      if ($p > $n) return ['positif', $p-$n];
-      return ['negatif', $n-$p];
-  }
-
-  // Flatten semua komentar dari semua topik (dalam 6 jam terakhir) menjadi satu list.
-  $allKomentar = [];
-  foreach ($rows as $r) {
-      if (empty($r['komentar'])) continue;
-      $dec = json_decode($r['komentar'], true);
-      if (!is_array($dec)) continue;
-      foreach ($dec as $cmt) {
-          $cmt = trim((string)$cmt);
-          if ($cmt === '') continue;
-          [$lab, $bobot] = _opini_klasifikasi_komentar($cmt, $posKw, $negKw);
-          $allKomentar[] = [
-              'teks'      => $cmt,
-              'sentimen'  => $lab,
-              'bobot'     => $bobot,
-              'topik'     => $r['judul'],
-              'url'       => $r['url'],
-              'sumber'    => $r['sumber'],
-              'kategori'  => $r['kategori'],
-              'waktu'     => $r['fetched_at'],
-          ];
-      }
-  }
-
-  $kCounts = ['positif'=>0,'netral'=>0,'negatif'=>0];
-  foreach ($allKomentar as $k) { $kCounts[$k['sentimen']]++; }
-  $kTotal = max(1, count($allKomentar));
-  $pPos = round(100*$kCounts['positif']/$kTotal);
-  $pNet = round(100*$kCounts['netral']/$kTotal);
-  $pNeg = max(0, 100 - $pPos - $pNet);
-
-  // Filter komentar via query string ?ks=positif|netral|negatif (opsional).
-  $fKsent = in_array($_GET['ks'] ?? '', ['positif','netral','negatif'], true) ? $_GET['ks'] : '';
-  $komentarTampil = $fKsent
-      ? array_values(array_filter($allKomentar, fn($k)=>$k['sentimen']===$fKsent))
-      : $allKomentar;
+/* ============================================================
+ * RENDER
+ * ============================================================ */
+require __DIR__.'/includes/header.php';
+$hasYT = ov_env('YOUTUBE_API_KEY') !== '';
 ?>
+<style>
+.ov-wrap{max-width:1100px;margin:0 auto;padding:16px}
+.ov-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.ov-title{font-size:22px;font-weight:800;margin:0 0 4px}
+.ov-sub{color:#64748b;font-size:13px;margin-bottom:14px}
+.ov-search{display:grid;grid-template-columns:1fr 180px 130px;gap:8px}
+.ov-search input,.ov-search select,.ov-search button{padding:10px 12px;border-radius:10px;border:1px solid #cbd5e1;font-size:14px;background:#fff}
+.ov-search button{background:#0ea5e9;color:#fff;border-color:#0ea5e9;font-weight:700;cursor:pointer}
+.ov-search button:hover{background:#0284c7}
+.ov-custom{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ov-custom.show{display:grid}
+.ov-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ov-stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;text-align:center}
+.ov-stat b{font-size:22px;display:block}
+.ov-stat.pos b{color:#059669}.ov-stat.neg b{color:#dc2626}.ov-stat.net b{color:#475569}
+.ov-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ov-filter{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.ov-filter button{padding:6px 12px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px}
+.ov-filter button.active{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.ov-cmt{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-bottom:8px;background:#fff}
+.ov-cmt .head{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.ov-cmt .txt{font-size:14px;line-height:1.5;color:#0f172a}
+.ov-cmt .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:#64748b;gap:8px;flex-wrap:wrap}
+.ov-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase}
+.ov-badge.positif{background:#d1fae5;color:#065f46}
+.ov-badge.negatif{background:#fee2e2;color:#991b1b}
+.ov-badge.netral{background:#e2e8f0;color:#334155}
+.ov-topics{display:flex;flex-wrap:wrap;gap:6px}
+.ov-topics span{background:#eff6ff;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid #bfdbfe}
+.ov-loader{display:none;padding:20px;text-align:center;color:#0ea5e9;font-weight:600}
+.ov-loader.show{display:block}
+.ov-empty{padding:30px;text-align:center;color:#64748b}
+.ov-warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13px}
+.ov-export{display:flex;gap:6px;flex-wrap:wrap}
+.ov-export a{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;text-decoration:none;color:#0f172a;font-size:13px;background:#f8fafc}
+.ov-export a:hover{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+@media(max-width:720px){.ov-search{grid-template-columns:1fr}.ov-stats{grid-template-columns:repeat(2,1fr)}.ov-charts{grid-template-columns:1fr}}
+</style>
 
-<div class="card border-0 shadow-sm mb-3">
-  <div class="card-header bg-light">
-    <i class="bi bi-chat-quote-fill text-primary"></i>
-    <strong>Statistik Komentar Netizen</strong>
-    <span class="small text-muted ms-1">(<?= count($allKomentar) ?> komentar dari <?= count($rows) ?> topik, 6 jam terakhir)</span>
+<div class="ov-wrap">
+  <div class="ov-card">
+    <h1 class="ov-title">🎯 Opini Viral · Analisis Sentimen YouTube</h1>
+    <p class="ov-sub">Analisis komentar publik YouTube untuk memahami opini netizen Indonesia terhadap sebuah topik.</p>
+    <?php if (!$hasYT): ?>
+      <div class="ov-warn">⚠️ Env <code>YOUTUBE_API_KEY</code> belum diatur. Tambahkan pada <code>config/env.local.php</code>: <code>putenv('YOUTUBE_API_KEY=xxxx');</code> lalu reload halaman.</div>
+    <?php endif; ?>
+    <form id="ovForm" onsubmit="return false" autocomplete="off">
+      <div class="ov-search">
+        <input type="text" id="ovKeyword" placeholder="Masukkan keyword (contoh: PLN, Timnas, BBM, Banjir Jakarta)" required>
+        <select id="ovPeriode">
+          <option value="24h">24 jam terakhir</option>
+          <option value="7d" selected>7 hari terakhir</option>
+          <option value="30d">30 hari terakhir</option>
+          <option value="custom">Custom tanggal…</option>
+        </select>
+        <button type="submit">🔍 Cari Opini</button>
+      </div>
+      <div class="ov-custom" id="ovCustom">
+        <input type="date" id="ovFrom"><input type="date" id="ovTo">
+      </div>
+    </form>
   </div>
-  <div class="card-body">
-    <div class="row g-2 mb-3">
-      <div class="col-4">
-        <div class="border border-success rounded text-center p-2 bg-success-subtle">
-          <div class="small text-success-emphasis"><i class="bi bi-emoji-smile-fill"></i> Positif</div>
-          <div class="h4 mb-0 text-success"><?= $kCounts['positif'] ?></div>
-          <div class="small text-muted"><?= $pPos ?>%</div>
-        </div>
-      </div>
-      <div class="col-4">
-        <div class="border border-secondary rounded text-center p-2 bg-light">
-          <div class="small text-secondary"><i class="bi bi-emoji-neutral-fill"></i> Netral</div>
-          <div class="h4 mb-0 text-secondary"><?= $kCounts['netral'] ?></div>
-          <div class="small text-muted"><?= $pNet ?>%</div>
-        </div>
-      </div>
-      <div class="col-4">
-        <div class="border border-danger rounded text-center p-2 bg-danger-subtle">
-          <div class="small text-danger-emphasis"><i class="bi bi-emoji-frown-fill"></i> Negatif</div>
-          <div class="h4 mb-0 text-danger"><?= $kCounts['negatif'] ?></div>
-          <div class="small text-muted"><?= $pNeg ?>%</div>
-        </div>
+
+  <div class="ov-loader" id="ovLoader">⏳ Mengambil video & komentar YouTube, menganalisis sentimen dengan AI… (bisa 15-40 detik)</div>
+
+  <div id="ovResult" style="display:none">
+    <div class="ov-card">
+      <div class="ov-stats">
+        <div class="ov-stat"><b id="ovTotal">0</b>Total Komentar</div>
+        <div class="ov-stat pos"><b id="ovPos">0</b>Positif <small id="ovPosP"></small></div>
+        <div class="ov-stat net"><b id="ovNet">0</b>Netral <small id="ovNetP"></small></div>
+        <div class="ov-stat neg"><b id="ovNeg">0</b>Negatif <small id="ovNegP"></small></div>
       </div>
     </div>
-    <div class="progress mb-2" style="height:10px" role="progressbar"
-         aria-label="Distribusi sentimen komentar" aria-valuemin="0" aria-valuemax="100">
-      <div class="progress-bar bg-success" style="width:<?= $pPos ?>%" title="Positif <?= $pPos ?>%"></div>
-      <div class="progress-bar bg-secondary" style="width:<?= $pNet ?>%" title="Netral <?= $pNet ?>%"></div>
-      <div class="progress-bar bg-danger" style="width:<?= $pNeg ?>%" title="Negatif <?= $pNeg ?>%"></div>
+
+    <div class="ov-card">
+      <div class="ov-charts">
+        <div><canvas id="ovPie" height="220"></canvas></div>
+        <div><canvas id="ovBar" height="220"></canvas></div>
+      </div>
     </div>
-    <div class="d-flex flex-wrap gap-2 mt-2">
-      <a class="btn btn-sm <?= $fKsent===''?'btn-primary':'btn-outline-primary' ?>" href="/opini_viral.php">Semua</a>
-      <a class="btn btn-sm <?= $fKsent==='positif'?'btn-success':'btn-outline-success' ?>" href="?ks=positif"><i class="bi bi-emoji-smile"></i> Positif</a>
-      <a class="btn btn-sm <?= $fKsent==='netral'?'btn-secondary':'btn-outline-secondary' ?>" href="?ks=netral"><i class="bi bi-emoji-neutral"></i> Netral</a>
-      <a class="btn btn-sm <?= $fKsent==='negatif'?'btn-danger':'btn-outline-danger' ?>" href="?ks=negatif"><i class="bi bi-emoji-frown"></i> Negatif</a>
+
+    <div class="ov-card">
+      <h3 style="margin:0 0 8px">🧠 Ringkasan AI</h3>
+      <p id="ovSummary" style="margin:0;color:#0f172a;line-height:1.6"></p>
+      <div style="margin-top:12px">
+        <b style="font-size:13px;color:#475569">Topik yang sering dibahas:</b>
+        <div class="ov-topics" id="ovTopics" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <div class="ov-card">
+      <h3 style="margin:0 0 8px">☁️ Word Cloud</h3>
+      <div id="ovCloud" style="width:100%;height:280px;background:#f8fafc;border-radius:10px"></div>
+    </div>
+
+    <div class="ov-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h3 style="margin:0">💬 Daftar Komentar</h3>
+        <div class="ov-export" id="ovExport"></div>
+      </div>
+      <div class="ov-filter" id="ovFilter">
+        <button data-f="all" class="active">Semua</button>
+        <button data-f="positif">Positif</button>
+        <button data-f="netral">Netral</button>
+        <button data-f="negatif">Negatif</button>
+      </div>
+      <div id="ovList"></div>
     </div>
   </div>
+
+  <div id="ovEmpty" class="ov-card ov-empty" style="display:none">Belum ditemukan komentar publik untuk kata kunci tersebut.</div>
 </div>
 
-<?php if (!$komentarTampil): ?>
-  <div class="alert alert-warning small">Belum ada komentar untuk ditampilkan. Klik <b>Muat Ulang Data</b> di atas untuk menarik komentar terbaru dari sumber publik.</div>
-<?php else: ?>
-  <h3 class="h6 mb-2"><i class="bi bi-list-ul"></i> Daftar Komentar
-    <?php if ($fKsent): ?>
-      <span class="badge bg-<?= $fKsent==='positif'?'success':($fKsent==='negatif'?'danger':'secondary') ?>"><?= htmlspecialchars($fKsent) ?></span>
-    <?php endif; ?>
-    <span class="small text-muted">(<?= count($komentarTampil) ?>)</span>
-  </h3>
-  <div class="row g-2">
-  <?php foreach ($komentarTampil as $k):
-      $col = $k['sentimen']==='positif'?'success':($k['sentimen']==='negatif'?'danger':'secondary');
-      $ico = $k['sentimen']==='positif'?'bi-emoji-smile-fill':($k['sentimen']==='negatif'?'bi-emoji-frown-fill':'bi-emoji-neutral-fill');
-  ?>
-    <div class="col-md-6">
-      <div class="card h-100 border-start border-<?= $col ?> border-3 shadow-sm">
-        <div class="card-body py-2 px-3">
-          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-            <span class="badge bg-<?= $col ?>"><i class="bi <?= $ico ?>"></i> <?= htmlspecialchars($k['sentimen']) ?></span>
-            <span class="badge bg-light text-dark border small"><?= htmlspecialchars($k['kategori'] ?? '-') ?></span>
-          </div>
-          <p class="mb-2 small" style="white-space:pre-wrap"><?= htmlspecialchars(mb_strimwidth($k['teks'],0,400,'…')) ?></p>
-          <div class="small text-muted">
-            <i class="bi bi-newspaper"></i>
-            <a href="<?= htmlspecialchars($k['url']) ?>" target="_blank" rel="noopener" class="text-decoration-none text-muted">
-              <?= htmlspecialchars(mb_strimwidth((string)$k['topik'],0,90,'…')) ?>
-            </a>
-            <?php if (!empty($k['sumber'])): ?> · <?= htmlspecialchars($k['sumber']) ?><?php endif; ?>
-            · <i class="bi bi-clock"></i> <?= htmlspecialchars(date('d M H:i', strtotime($k['waktu']))) ?>
-          </div>
-        </div>
-      </div>
-    </div>
-  <?php endforeach; ?>
-  </div>
-<?php endif; ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let pieChart, barChart, currentData = null, currentFilter = 'all', currentSid = 0;
 
-<?php include __DIR__.'/includes/footer.php'; ?>
+  $('ovPeriode').addEventListener('change', e => {
+    $('ovCustom').classList.toggle('show', e.target.value === 'custom');
+  });
+
+  $('ovForm').addEventListener('submit', async () => {
+    const kw = $('ovKeyword').value.trim(); if (!kw) return;
+    const periode = $('ovPeriode').value;
+    const fd = new FormData(); fd.append('keyword', kw); fd.append('periode', periode);
+    if (periode==='custom'){ fd.append('from', $('ovFrom').value); fd.append('to', $('ovTo').value); }
+    $('ovLoader').classList.add('show'); $('ovResult').style.display='none'; $('ovEmpty').style.display='none';
+    try {
+      const r = await fetch('?action=search', {method:'POST', body:fd}).then(r=>r.json());
+      if (!r.ok) throw new Error(r.err || 'Gagal');
+      currentSid = r.search_id;
+      await loadData(r.search_id);
+    } catch (e) { alert('Error: ' + e.message); }
+    finally { $('ovLoader').classList.remove('show'); }
+  });
+
+  async function loadData(sid){
+    const d = await fetch('?action=data&sid='+sid).then(r=>r.json());
+    if (!d.ok) { alert(d.err||'error'); return; }
+    currentData = d;
+    if (!d.total) { $('ovEmpty').style.display='block'; return; }
+    $('ovResult').style.display='block';
+    $('ovTotal').textContent = d.total;
+    $('ovPos').textContent = d.pos; $('ovNet').textContent = d.net; $('ovNeg').textContent = d.neg;
+    const pct = n => d.total ? Math.round(n*100/d.total)+'%' : '0%';
+    $('ovPosP').textContent = pct(d.pos); $('ovNetP').textContent = pct(d.net); $('ovNegP').textContent = pct(d.neg);
+    $('ovSummary').textContent = d.summary || '';
+    $('ovTopics').innerHTML = (d.topics||[]).map(t=>`<span>${escapeHtml(t)}</span>`).join('');
+    renderCharts(d); renderCloud(d.words||{}); renderList();
+    $('ovExport').innerHTML = ['csv','xls','pdf'].map(f=>`<a href="?action=export&sid=${sid}&fmt=${f}" target="_blank">⬇️ ${f.toUpperCase()}</a>`).join('');
+  }
+
+  function renderCharts(d){
+    if (pieChart) pieChart.destroy(); if (barChart) barChart.destroy();
+    pieChart = new Chart($('ovPie'), {type:'doughnut', data:{labels:['Positif','Netral','Negatif'],datasets:[{data:[d.pos,d.net,d.neg],backgroundColor:['#10b981','#94a3b8','#ef4444']}]}, options:{plugins:{legend:{position:'bottom'}, title:{display:true,text:'Distribusi Sentimen'}}}});
+    barChart = new Chart($('ovBar'), {type:'bar', data:{labels:['Positif','Netral','Negatif'],datasets:[{label:'Jumlah',data:[d.pos,d.net,d.neg],backgroundColor:['#10b981','#94a3b8','#ef4444']}]}, options:{plugins:{legend:{display:false},title:{display:true,text:'Komentar per Sentimen'}}, scales:{y:{beginAtZero:true}}}});
+  }
+  function renderCloud(words){
+    const list = Object.entries(words).slice(0,80);
+    if (!list.length) { $('ovCloud').innerHTML = '<div style="padding:20px;color:#94a3b8;text-align:center">Tidak cukup kata untuk word cloud.</div>'; return; }
+    WordCloud($('ovCloud'), {list, gridSize:8, weightFactor:6, color:'random-dark', backgroundColor:'#f8fafc', rotateRatio:0.2});
+  }
+  $('ovFilter').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#ovFilter button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    currentFilter = b.dataset.f; renderList();
+  });
+  function renderList(){
+    if (!currentData) return;
+    const rows = currentData.comments.filter(c => currentFilter==='all' || c.sentimen===currentFilter);
+    $('ovList').innerHTML = rows.length ? rows.map(c=>{
+      const url = 'https://www.youtube.com/watch?v='+c.video_id+'&lc='+c.comment_id;
+      return `<div class="ov-cmt">
+        <div class="head"><span><b>${escapeHtml(c.author_name)}</b> · <i>${escapeHtml(c.channel_name)}</i></span><span>${fmtDate(c.published_at)}</span></div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:6px">📺 ${escapeHtml(c.video_title)}</div>
+        <div class="txt">${escapeHtml(c.comment_text)}</div>
+        <div class="foot">
+          <span><span class="ov-badge ${c.sentimen}">${c.sentimen}</span> · ${Math.round(c.confidence)}% · 👍 ${c.like_count}</span>
+          <a href="${url}" target="_blank" rel="noopener">Lihat di YouTube ↗</a>
+        </div>
+        ${c.alasan?`<div style="font-size:11px;color:#94a3b8;margin-top:4px">💡 ${escapeHtml(c.alasan)}</div>`:''}
+      </div>`;
+    }).join('') : '<div class="ov-empty">Tidak ada komentar untuk filter ini.</div>';
+  }
+  function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function fmtDate(s){ if(!s) return ''; try{ return new Date(s).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return s;} }
+})();
+</script>
+<?php require __DIR__.'/includes/footer.php'; ?>
