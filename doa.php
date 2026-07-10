@@ -93,6 +93,19 @@ include __DIR__.'/includes/header.php';
   </div>
 </form>
 
+<!-- Revisi #1 — Checklist progress doa harian (per hari, tersimpan di perangkat) -->
+<div class="card shadow-sm mb-3 border-warning" id="doaProgressCard">
+  <div class="card-body py-2">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="fw-semibold text-warning"><i class="bi bi-check2-square"></i> Progress Doa Hari Ini</div>
+      <div class="small text-muted"><span id="doaProgCount">0</span> / <span id="doaProgTotal">0</span> doa ditandai <button type="button" id="doaProgReset" class="btn btn-sm btn-link text-danger p-0 ms-2">Reset</button></div>
+    </div>
+    <div class="progress mt-2" style="height:10px">
+      <div id="doaProgBar" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
 <?php
 // Revisi 27 Juni 2026 #5 — Pagination 2 data per halaman utk Doa Saya & Doa Aplikasi
 $perPage = 2;
@@ -160,7 +173,11 @@ function doa_render_pager(string $param, int $cur, int $totalPages): string {
 <?php foreach ($myDoa as $d): ?>
   <div class="col-md-6"><div class="card h-100 border-success"><div class="card-body">
     <div class="d-flex justify-content-between">
-      <div class="fw-semibold text-success mb-1"><i class="bi bi-bookmark-heart"></i> <?= $d['judul'] ?></div>
+      <div class="fw-semibold text-success mb-1">
+        <div class="form-check form-check-inline me-1">
+          <input class="form-check-input doa-check" type="checkbox" data-key="my-<?= (int)$d['id'] ?>" id="dchk-my-<?= (int)$d['id'] ?>">
+        </div>
+        <i class="bi bi-bookmark-heart"></i> <?= $d['judul'] ?></div>
       <div class="btn-group btn-group-sm">
         <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#edit<?= (int)$d['id'] ?>"><i class="bi bi-pencil"></i></button>
         <form method="post" onsubmit="return confirm('Hapus doa ini?');" style="display:inline">
@@ -210,7 +227,11 @@ function doa_render_pager(string $param, int $cur, int $totalPages): string {
 <div class="row g-3">
 <?php foreach ($builtin as $idx=>$d): ?>
   <div class="col-md-6"><div class="card h-100"><div class="card-body">
-    <div class="fw-semibold text-warning mb-1"><i class="bi bi-bookmark"></i> <?= htmlspecialchars($d[0]) ?></div>
+    <div class="fw-semibold text-warning mb-1">
+      <div class="form-check form-check-inline me-1">
+        <input class="form-check-input doa-check" type="checkbox" data-key="app-<?= htmlspecialchars(md5($d[0])) ?>" id="dchk-app-<?= $idx ?>">
+      </div>
+      <i class="bi bi-bookmark"></i> <?= htmlspecialchars($d[0]) ?></div>
     <div class="text-end" dir="rtl" style="font-family:'Amiri',serif;font-size:1.3rem;line-height:2"><?= htmlspecialchars($d[1]) ?></div>
     <div class="small fst-italic mt-2"><?= htmlspecialchars($d[2]) ?></div>
   </div></div></div>
@@ -257,6 +278,46 @@ function doa_render_pager(string $param, int $cur, int $totalPages): string {
     var form = holder.closest('form'); if(form) form.addEventListener('submit',sync);
   }
   document.querySelectorAll('.wysiwyg').forEach(buildEditor);
+})();
+</script>
+<script>
+// Revisi #1 — Checklist progress doa harian (localStorage per tanggal)
+(function(){
+  var TOTAL = <?= (int)($myTotal + $appTotal) ?>;
+  var today = new Date().toISOString().slice(0,10);
+  var KEY = 'doa_progress_' + today;
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch(e){ return []; } }
+  function save(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
+  var checked = load();
+  var totalEl = document.getElementById('doaProgTotal');
+  var countEl = document.getElementById('doaProgCount');
+  var barEl   = document.getElementById('doaProgBar');
+  if (totalEl) totalEl.textContent = TOTAL;
+  function render(){
+    var n = checked.length;
+    if (countEl) countEl.textContent = n;
+    var pct = TOTAL>0 ? Math.round(n/TOTAL*100) : 0;
+    if (barEl) barEl.style.width = pct + '%';
+    if (barEl) barEl.classList.toggle('bg-success', pct>=100);
+    if (barEl) barEl.classList.toggle('bg-warning', pct<100);
+  }
+  document.querySelectorAll('.doa-check').forEach(function(cb){
+    var k = cb.getAttribute('data-key');
+    cb.checked = checked.indexOf(k) !== -1;
+    cb.addEventListener('change', function(){
+      var i = checked.indexOf(k);
+      if (cb.checked && i===-1) checked.push(k);
+      else if (!cb.checked && i!==-1) checked.splice(i,1);
+      save(checked); render();
+    });
+  });
+  var resetBtn = document.getElementById('doaProgReset');
+  if (resetBtn) resetBtn.addEventListener('click', function(){
+    checked = []; save(checked);
+    document.querySelectorAll('.doa-check').forEach(function(cb){ cb.checked=false; });
+    render();
+  });
+  render();
 })();
 </script>
 <?php include __DIR__.'/includes/footer.php'; ?>

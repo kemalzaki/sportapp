@@ -218,3 +218,29 @@ function scope_can_access_islami(): bool {
     } catch (Throwable $e) { return $cache = false; }
 }
 
+
+/**
+ * Revisi #8 (Kalkulator) — True bila user adalah anggota komunitas
+ * "KawanKeringat Kantor" (slug: kawankeringat-kantor). Role superadmin
+ * juga dibolehkan. Dipakai untuk membatasi fitur Indikator Hormon
+ * Gairah Seksual di kalkulator.php hanya untuk komunitas tersebut.
+ */
+if (!function_exists('scope_is_kawankeringat_kantor')) {
+    function scope_is_kawankeringat_kantor(): bool {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+        $u = current_user(); if (!$u) return $cache = false;
+        if (($u['role'] ?? '') === 'superadmin') return $cache = true;
+        $kids = scope_current_user_kom_ids();
+        if (!$kids) return $cache = false;
+        try {
+            $arr = '{'.implode(',', array_map('intval', $kids)).'}';
+            $row = db_one(
+              "SELECT 1 FROM komunitas
+                 WHERE id = ANY(\$1::int[])
+                   AND slug = 'kawankeringat-kantor'
+                 LIMIT 1", [$arr]);
+            return $cache = !empty($row);
+        } catch (Throwable $e) { return $cache = false; }
+    }
+}

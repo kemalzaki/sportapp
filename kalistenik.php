@@ -252,6 +252,131 @@ include __DIR__.'/includes/header.php'; ?>
   </div>
 </div>
 
+<?php ip_card_open('Paket Bugar Kalistenik', 'bi-person-arms-up'); ?>
+
+<p class="text-muted small mb-3">
+  Latihan <strong>kalistenik</strong> (beban tubuh sendiri) tanpa alat. Pilih paket sesuai level kebugaran Anda.
+  Mulailah dengan pemanasan 3–5 menit dan akhiri dengan peregangan.
+</p>
+
+<ul class="nav nav-pills mb-3 gap-2 flex-wrap">
+  <?php foreach($PAKET as $k=>$p): ?>
+    <li class="nav-item">
+      <a class="nav-link <?= $k===$level?'active':'' ?>" href="?lvl=<?= $k ?>">
+        <?= htmlspecialchars($p['label']) ?>
+      </a>
+    </li>
+  <?php endforeach; ?>
+</ul>
+
+<div class="card shadow-sm mb-4 border-<?= $cur['badge'] ?>">
+  <div class="card-header bg-<?= $cur['badge'] ?> text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-trophy"></i> <strong>Paket <?= htmlspecialchars($cur['label']) ?></strong></span>
+    <small class="opacity-75"><?= htmlspecialchars($cur['durasi']) ?></small>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted mb-3"><?= htmlspecialchars($cur['desc']) ?></p>
+    <!-- Revisi #2 — tabel di-scroll horizontal agar tidak nabrak di layar sempit -->
+    <div class="table-responsive" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="table table-sm align-middle" style="min-width:760px;">
+        <thead class="table-light">
+          <tr>
+            <th>#</th><th>Gerakan</th><th>Target</th><th>Set</th><th>Repetisi/Durasi</th><th>Istirahat</th>
+            <th style="min-width:230px">Stopwatch (sinkron set)</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach($cur['sesi'] as $i=>$s):
+          $gk = $s['gerakan'];
+          $g = $GERAKAN[$gk] ?? ['nama'=>$gk,'icon'=>'bi-dash','target'=>'-','tips'=>'','img'=>'','langkah'=>[],'yt'=>''];
+          // Revisi #6 — durasi kerja: pakai angka "detik" bila ada, jika repetisi (reps) pakai default 40 dtk.
+          $workSec = preg_match('/(\d+)\s*detik/i', $s['rep'], $mw) ? (int)$mw[1] : 40;
+          $restSec = preg_match('/(\d+)\s*detik/i', $s['rest'], $mr) ? (int)$mr[1] : 30;
+        ?>
+          <tr>
+            <td><?= $i+1 ?></td>
+            <td class="text-nowrap"><i class="bi <?= $g['icon'] ?> text-<?= $cur['badge'] ?>"></i> <strong><?= htmlspecialchars($g['nama']) ?></strong></td>
+            <td class="small text-muted"><?= htmlspecialchars($g['target']) ?></td>
+            <td><?= (int)$s['set'] ?></td>
+            <td><?= htmlspecialchars($s['rep']) ?></td>
+            <td class="text-muted"><?= htmlspecialchars($s['rest']) ?></td>
+            <td>
+              <div class="kal-sw" data-set="<?= (int)$s['set'] ?>" data-work="<?= $workSec ?>" data-rest="<?= $restSec ?>">
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button" class="btn btn-sm btn-<?= $cur['badge'] ?> kal-sw-start"><i class="bi bi-play-fill"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary kal-sw-reset"><i class="bi bi-arrow-counterclockwise"></i></button>
+                  <span class="kal-sw-phase badge bg-secondary">Siap</span>
+                </div>
+                <div class="small mt-1">
+                  Set <span class="kal-sw-cur">1</span>/<span class="kal-sw-tot"><?= (int)$s['set'] ?></span>
+                  · <span class="kal-sw-time fw-bold">--:--</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-<?= $cur['badge'] ?> btn-lihat-gerakan" data-key="<?= htmlspecialchars($gk) ?>">
+                <i class="bi bi-eye"></i> Lihat Gerakan
+              </button>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Revisi #6 — Stopwatch repetisi & istirahat, otomatis berpindah tiap set -->
+    <script>
+    (function(){
+      function fmt(t){ var m=Math.floor(t/60), s=t%60; return (m<10?'0':'')+m+':'+(s<10?'0':'')+s; }
+      document.querySelectorAll('.kal-sw').forEach(function(box){
+        var totalSet=+box.dataset.set||1, work=+box.dataset.work||40, rest=+box.dataset.rest||30;
+        var startBtn=box.querySelector('.kal-sw-start'), resetBtn=box.querySelector('.kal-sw-reset');
+        var phaseEl=box.querySelector('.kal-sw-phase'), curEl=box.querySelector('.kal-sw-cur'), timeEl=box.querySelector('.kal-sw-time');
+        var timer=null, running=false, curSet=1, phase='work', left=work;
+        function paint(){
+          curEl.textContent=curSet; timeEl.textContent=fmt(left);
+          if(phase==='work'){ phaseEl.textContent='Kerja'; phaseEl.className='kal-sw-phase badge bg-primary'; }
+          else if(phase==='rest'){ phaseEl.textContent='Istirahat'; phaseEl.className='kal-sw-phase badge bg-warning text-dark'; }
+          else if(phase==='done'){ phaseEl.textContent='Selesai'; phaseEl.className='kal-sw-phase badge bg-success'; }
+          else { phaseEl.textContent='Siap'; phaseEl.className='kal-sw-phase badge bg-secondary'; }
+        }
+        function beep(){ try{ var c=new (window.AudioContext||window.webkitAudioContext)(); var o=c.createOscillator(); o.connect(c.destination); o.frequency.value=880; o.start(); setTimeout(function(){o.stop();c.close();},180);}catch(e){} }
+        function tick(){
+          left--;
+          if(left<=0){
+            beep();
+            if(phase==='work'){
+              if(curSet>=totalSet){ phase='done'; running=false; clearInterval(timer); startBtn.innerHTML='<i class="bi bi-play-fill"></i>'; paint(); return; }
+              phase='rest'; left=rest;
+            } else {
+              curSet++; phase='work'; left=work;
+            }
+          }
+          paint();
+        }
+        function start(){
+          if(running){ running=false; clearInterval(timer); startBtn.innerHTML='<i class="bi bi-play-fill"></i>'; return; }
+          if(phase==='done'){ reset(); }
+          running=true; startBtn.innerHTML='<i class="bi bi-pause-fill"></i>';
+          timer=setInterval(tick,1000);
+        }
+        function reset(){ running=false; clearInterval(timer); curSet=1; phase='work'; left=work; startBtn.innerHTML='<i class="bi bi-play-fill"></i>'; paint(); }
+        startBtn.addEventListener('click',start);
+        resetBtn.addEventListener('click',reset);
+        left=work; phase='ready'; paint(); phase='work';
+      });
+    })();
+    </script>
+  </div>
+</div>
+
+<!-- Revisi #5 — Pencarian Video (spoiler) dipindah ke atas Monitoring Latihan -->
+<div class="mb-3">
+  <button class="btn btn-outline-success w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#spoilerYtSearch" aria-expanded="false">
+    <span><i class="bi bi-youtube"></i> <strong>Pencarian Video Olahraga / Kalistenik</strong></span>
+    <i class="bi bi-chevron-down"></i>
+  </button>
+  <div class="collapse mt-2" id="spoilerYtSearch">
 <!-- Revisi 22 Juni 2026 R7 — Kolom pencarian video YouTube khusus olahraga.
      Server (api_yt_search.php?cat=olahraga) menyaring query agar tetap di topik
      olahraga berdasarkan tabel search_keywords (di-CRUD oleh admin di
@@ -304,59 +429,7 @@ include __DIR__.'/includes/header.php'; ?>
 </script>
 
 
-<?php ip_card_open('Paket Bugar Kalistenik', 'bi-person-arms-up'); ?>
 
-<p class="text-muted small mb-3">
-  Latihan <strong>kalistenik</strong> (beban tubuh sendiri) tanpa alat. Pilih paket sesuai level kebugaran Anda.
-  Mulailah dengan pemanasan 3–5 menit dan akhiri dengan peregangan.
-</p>
-
-<ul class="nav nav-pills mb-3 gap-2 flex-wrap">
-  <?php foreach($PAKET as $k=>$p): ?>
-    <li class="nav-item">
-      <a class="nav-link <?= $k===$level?'active':'' ?>" href="?lvl=<?= $k ?>">
-        <?= htmlspecialchars($p['label']) ?>
-      </a>
-    </li>
-  <?php endforeach; ?>
-</ul>
-
-<div class="card shadow-sm mb-4 border-<?= $cur['badge'] ?>">
-  <div class="card-header bg-<?= $cur['badge'] ?> text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <span><i class="bi bi-trophy"></i> <strong>Paket <?= htmlspecialchars($cur['label']) ?></strong></span>
-    <small class="opacity-75"><?= htmlspecialchars($cur['durasi']) ?></small>
-  </div>
-  <div class="card-body">
-    <p class="small text-muted mb-3"><?= htmlspecialchars($cur['desc']) ?></p>
-    <div class="table-responsive">
-      <table class="table table-sm align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>#</th><th>Gerakan</th><th>Target</th><th>Set</th><th>Repetisi/Durasi</th><th>Istirahat</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php foreach($cur['sesi'] as $i=>$s):
-          $gk = $s['gerakan'];
-          $g = $GERAKAN[$gk] ?? ['nama'=>$gk,'icon'=>'bi-dash','target'=>'-','tips'=>'','img'=>'','langkah'=>[],'yt'=>''];
-        ?>
-          <tr>
-            <td><?= $i+1 ?></td>
-            <td><i class="bi <?= $g['icon'] ?> text-<?= $cur['badge'] ?>"></i> <strong><?= htmlspecialchars($g['nama']) ?></strong></td>
-            <td class="small text-muted"><?= htmlspecialchars($g['target']) ?></td>
-            <td><?= (int)$s['set'] ?></td>
-            <td><?= htmlspecialchars($s['rep']) ?></td>
-            <td class="text-muted"><?= htmlspecialchars($s['rest']) ?></td>
-            <td>
-              <button type="button" class="btn btn-sm btn-outline-<?= $cur['badge'] ?> btn-lihat-gerakan" data-key="<?= htmlspecialchars($gk) ?>">
-                <i class="bi bi-eye"></i> Lihat Gerakan
-              </button>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
   </div>
 </div>
 
@@ -367,6 +440,18 @@ include __DIR__.'/includes/header.php'; ?>
     <small class="text-muted">Tandai sesi paket yang sudah Anda selesaikan hari ini.</small>
   </div>
   <div class="card-body">
+    <!-- Revisi #7 — keterangan frekuensi paket per hari -->
+    <div class="alert alert-info small d-flex align-items-start gap-2 mb-3">
+      <i class="bi bi-info-circle-fill mt-1"></i>
+      <div>
+        <strong>Keterangan frekuensi:</strong> Dalam 1 hari, cukup lakukan paket ini <strong>1&times; (satu kali)</strong> &mdash; idealnya di pagi atau sore hari.
+        Frekuensi mingguan yang dianjurkan mengikuti level paket:
+        <span class="badge bg-success">Pemula 3&times;/minggu</span>
+        <span class="badge bg-warning text-dark">Menengah 4&times;/minggu</span>
+        <span class="badge bg-danger">Lanjutan 5&times;/minggu</span>.
+        Sisakan minimal 1 hari istirahat penuh tiap pekan untuk pemulihan otot.
+      </div>
+    </div>
     <div class="row g-2 mb-3">
       <?php foreach ($PAKET as $lk => $pv):
         $doneToday = array_key_exists($lk, $kalDoneToday);
@@ -376,7 +461,7 @@ include __DIR__.'/includes/header.php'; ?>
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <div class="fw-semibold">Paket <?= htmlspecialchars($pv['label']) ?></div>
-                <div class="small text-muted"><?= (int)$kalCountLevel[$lk] ?> sesi / 30 hari</div>
+                <div class="small text-muted"><?= (int)$kalCountLevel[$lk] ?> sesi / 30 hari &middot; maks 1&times;/hari</div>
               </div>
               <button type="button"
                       class="btn btn-sm <?= $doneToday?'btn-success':'btn-outline-success' ?> kal-log-btn"
@@ -453,9 +538,15 @@ include __DIR__.'/includes/header.php'; ?>
 })();
 </script>
 
-<!-- Panduan tiap gerakan (kartu dengan gambar) -->
+<!-- Panduan tiap gerakan (kartu dengan gambar) — Revisi #3 dijadikan spoiler -->
 <div class="card shadow-sm mb-3">
-  <div class="card-header"><i class="bi bi-info-circle text-primary"></i> <strong>Panduan Gerakan</strong></div>
+  <div class="card-header p-0">
+    <button class="btn btn-link text-decoration-none w-100 text-start d-flex justify-content-between align-items-center py-2 px-3" type="button" data-bs-toggle="collapse" data-bs-target="#spoilerPanduan" aria-expanded="false">
+      <span><i class="bi bi-info-circle text-primary"></i> <strong>Panduan Gerakan</strong></span>
+      <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+  <div class="collapse" id="spoilerPanduan">
   <div class="card-body">
     <div class="row g-3">
       <?php foreach($GERAKAN as $key=>$g): ?>
@@ -478,6 +569,7 @@ include __DIR__.'/includes/header.php'; ?>
         </div>
       <?php endforeach; ?>
     </div>
+  </div>
   </div>
 </div>
 

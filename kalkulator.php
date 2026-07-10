@@ -22,6 +22,9 @@ if (!in_array($USER_PAKET, ['pro','komunitas'], true)) {
 
 
 $u = current_user();
+// Revisi #8 — Fitur Indikator Hormon Gairah Seksual hanya untuk komunitas KawanKeringat Kantor
+require_once __DIR__.'/includes/scope.php';
+$SHOW_HORMON = scope_is_kawankeringat_kantor();
 $prefBerat = $prefTinggi = $prefUmur = $prefJk = '';
 if ($u) {
     try {
@@ -81,6 +84,7 @@ include __DIR__.'/includes/header.php';
         </div>
 
         <!-- ====== HORMON GAIRAH SEKSUAL (anak muda / belum menikah) ====== -->
+        <?php if ($SHOW_HORMON): ?>
         <div class="col-12 mt-3 border-top pt-3">
           <label class="form-label small fw-semibold text-danger">
             <i class="bi bi-fire"></i> Indikator Hormon Gairah Seksual (anjuran sunnah bagi yang belum menikah)
@@ -125,6 +129,7 @@ include __DIR__.'/includes/header.php';
             <div class="col-md-6"><div class="form-check"><input class="form-check-input k-hormon" type="checkbox" id="h8" value="2"><label class="form-check-label" for="h8">Banyak waktu luang / sering sendirian</label></div></div>
           </div>
         </div>
+        <?php endif; ?>
         <div class="col-12 d-flex gap-2 mt-2">
           <button class="btn btn-primary"><i class="bi bi-calculator"></i> Hitung Skor Sehat</button>
           <button type="reset" class="btn btn-outline-secondary">Reset</button>
@@ -219,6 +224,9 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
   if (keterangan) kesimpulan += '<div class="small text-muted mt-1"><i class="bi bi-pencil"></i> Catatan Anda: '+keterangan.replace(/[<>&]/g,'')+'</div>';
 
   // ===== Kalkulasi Hormon Gairah Seksual =====
+  var SHOW_HORMON = <?= $SHOW_HORMON ? 'true' : 'false' ?>;
+  let hormonHtml = '';
+  if (SHOW_HORMON) {
   // Skor mentah: jumlah nilai checkbox yang dicentang (maks ~20).
   // Modifier: usia muda (15–29) menaikkan skor, olahraga rutin & puasa sunnah menurunkan skor.
   let hSkor = 0;
@@ -260,7 +268,7 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
     hRekom = 'Berada di titik maksimal. <strong>Wajib mengambil langkah serius: rutinkan shaum (Senin–Kamis atau Daud), olahraga harian, batasi gadget, perbanyak ibadah malam, dan jika sudah mampu — segera menikah</strong> sesuai anjuran Nabi ﷺ.';
   }
 
-  const hormonHtml = `
+  hormonHtml = `
     <div class="card card-stat border-${hCol}"><div class="card-body">
       <div class="stat-label"><i class="bi bi-fire text-${hCol}"></i> Indeks Hormon Gairah Seksual</div>
       <div class="stat-value text-${hCol}">${hPersen}/100 <small class="text-muted">(${hLevel})</small></div>
@@ -268,6 +276,7 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
       <div class="small mt-2"><strong>Rekomendasi sunnah:</strong> ${hRekom}</div>
       <div class="small text-muted mt-1"><em>Catatan: indikator ini estimasi perilaku, bukan pengukuran kadar testosteron secara medis.</em></div>
     </div></div>`;
+  }
 
   document.getElementById('kHasil').innerHTML = `
     <div class="row g-2">
@@ -276,7 +285,7 @@ document.getElementById('kalkForm').addEventListener('submit', function(ev){
       <div class="col-6"><div class="card card-stat"><div class="card-body"><div class="stat-label">Berat Ideal</div><div class="stat-value">${ideal?ideal.toFixed(1)+' kg':'—'}</div></div></div></div>
       <div class="col-6"><div class="card card-stat"><div class="card-body"><div class="stat-label">BMR (kalori/hari)</div><div class="stat-value">${bmr?Math.round(bmr):'—'}</div></div></div></div>
       <div class="col-12"><div class="alert alert-${col} mb-0 small"><i class="bi bi-lightbulb"></i> ${tip}</div></div>
-      <div class="col-12">${hormonHtml}</div>
+      ${hormonHtml ? '<div class="col-12">'+hormonHtml+'</div>' : ''}
       <div class="col-12"><h6 class="mt-2 mb-1"><i class="bi bi-clipboard2-heart text-danger"></i> Kesimpulan Riwayat Penyakit</h6>${kesimpulan}</div>
     </div>`;
 });
