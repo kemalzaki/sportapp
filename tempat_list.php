@@ -529,6 +529,14 @@ include __DIR__.'/includes/header.php';
 
 
 <!-- Popup detail Tempat -->
+<!-- Revisi: tambah margin bawah + padding modal-body agar tombol tidak tertutup bottom-nav. -->
+<style>
+  #tempatModal .modal-dialog { margin-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+  #tempatModal .modal-body   { padding-bottom: 24px; }
+  @media (max-width: 575.98px){
+    #tempatModal .modal-dialog { margin-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+  }
+</style>
 <div class="modal fade" id="tempatModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable">
   <div class="modal-content">
     <div class="modal-header">

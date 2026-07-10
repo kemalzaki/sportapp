@@ -912,8 +912,25 @@ include __DIR__.'/includes/header.php';
           <input type="number" step="0.1" min="20" max="300" name="berat_kg" class="form-control form-control-sm" value="<?= htmlspecialchars($me['berat_kg'] ?? '') ?>" placeholder="cth: 65.5">
         </div>
         <div class="col-md-4">
-          <label class="form-label small fw-semibold">Tinggi Badan (cm)</label>
+          <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+            <span>Tinggi Badan (cm)</span>
+            <a class="small text-decoration-none" data-bs-toggle="collapse" href="#howMeasureHeight" role="button" aria-expanded="false"><i class="bi bi-question-circle"></i> Cara ukur</a>
+          </label>
           <input type="number" step="0.1" min="80" max="250" name="tinggi_cm" class="form-control form-control-sm" value="<?= htmlspecialchars($me['tinggi_cm'] ?? '') ?>" placeholder="cth: 170">
+          <div class="collapse mt-2" id="howMeasureHeight">
+            <div class="alert alert-info small mb-0">
+              <strong><i class="bi bi-rulers"></i> Cara Mengukur Tinggi Badan:</strong>
+              <ol class="mb-1 ps-3">
+                <li>Lepaskan alas kaki, topi, dan aksesoris rambut yang tebal.</li>
+                <li>Berdiri tegak menempel dinding rata &mdash; tumit, bokong, punggung atas, dan belakang kepala menyentuh dinding.</li>
+                <li>Rapatkan kedua kaki, pandangan lurus ke depan (dagu sejajar lantai).</li>
+                <li>Letakkan penggaris/buku tebal mendatar di atas kepala, tegak lurus dinding, lalu beri tanda pada dinding.</li>
+                <li>Ukur jarak dari lantai ke tanda menggunakan meteran, catat dalam sentimeter (cm).</li>
+                <li>Ukur pada pagi hari untuk hasil paling akurat &mdash; ulangi 2&ndash;3 kali &amp; ambil rata-rata.</li>
+              </ol>
+              <div class="small text-muted">Tip: minta bantuan orang lain agar penggaris benar-benar mendatar.</div>
+            </div>
+          </div>
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-semibold">Tanggal Lahir</label>

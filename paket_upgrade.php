@@ -52,14 +52,14 @@ $WA_ADMIN = preg_replace('/\D+/', '', $WA_ADMIN);
 /* ---------- Katalog paket baru ---------- */
 $PLANS = [
     // key => [tier, label, harga, periode]
-    'kom_mhs_bln' => ['komunitas', 'Komunitas — Mahasiswa (Bulanan)',   19900,  'bulan'],
-    'kom_mhs_thn' => ['komunitas', 'Komunitas — Mahasiswa (Tahunan)',   149000, 'tahun'],
-    'kom_um_bln'  => ['komunitas', 'Komunitas — Umum (Bulanan)',         39900,  'bulan'],
-    'kom_um_thn'  => ['komunitas', 'Komunitas — Umum (Tahunan)',        299000, 'tahun'],
-    'pro_mhs_bln' => ['pro',       'PRO AI — Mahasiswa (Bulanan)',       49900,  'bulan'],
-    'pro_mhs_thn' => ['pro',       'PRO AI — Mahasiswa (Tahunan)',      399000, 'tahun'],
-    'pro_um_bln'  => ['pro',       'PRO AI — Umum (Bulanan)',            79900,  'bulan'],
-    'pro_um_thn'  => ['pro',       'PRO AI — Umum (Tahunan)',           699000, 'tahun'],
+    'kom_mhs_bln' => ['komunitas', 'Komunitas — Mahasiswa (Bulanan)',   49900,  'bulan'],
+    'kom_mhs_thn' => ['komunitas', 'Komunitas — Mahasiswa (Tahunan)',   399000, 'tahun'],
+    'kom_um_bln'  => ['komunitas', 'Komunitas — Umum (Bulanan)',         79900,  'bulan'],
+    'kom_um_thn'  => ['komunitas', 'Komunitas — Umum (Tahunan)',        699000, 'tahun'],
+    'pro_mhs_bln' => ['pro',       'PRO AI — Mahasiswa (Bulanan)',       19900,  'bulan'],
+    'pro_mhs_thn' => ['pro',       'PRO AI — Mahasiswa (Tahunan)',      149000, 'tahun'],
+    'pro_um_bln'  => ['pro',       'PRO AI — Umum (Bulanan)',            39900,  'bulan'],
+    'pro_um_thn'  => ['pro',       'PRO AI — Umum (Tahunan)',           299000, 'tahun'],
     'org_bln'     => ['komunitas', 'Organizer (Bulanan)',               149000,  'bulan'],
     'org_thn'     => ['komunitas', 'Organizer (Tahunan)',              1299000,  'tahun'],
 ];

@@ -208,6 +208,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action'] ?? '')==='kal_log_
     $lv  = in_array($_POST['level'] ?? '', array_keys($PAKET), true) ? $_POST['level'] : 'pemula';
     $tgl = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['tanggal'] ?? '') ? $_POST['tanggal'] : date('Y-m-d');
     $cat = mb_substr(trim($_POST['catatan'] ?? ''), 0, 300);
+    /* Revisi: server-side gate — level Menengah/Lanjutan terkunci sebelum
+       prasyaratnya terpenuhi (min 3 sesi Pemula, min 4 sesi Menengah). */
+    try {
+        $__cnt = db_all("SELECT level, COUNT(*)::int AS c FROM kalistenik_log
+                          WHERE user_id=$1 AND tanggal >= (CURRENT_DATE - INTERVAL '29 days')
+                          GROUP BY level", [(int)$u['id']]);
+        $__by = ['pemula'=>0,'menengah'=>0,'lanjutan'=>0];
+        foreach ($__cnt as $r) if (isset($__by[$r['level']])) $__by[$r['level']] = (int)$r['c'];
+        if ($lv === 'menengah' && $__by['pemula'] < 3) {
+            echo json_encode(['ok'=>false,'err'=>'locked','msg'=>'Selesaikan Paket Pemula dulu (min 3 sesi).']); exit;
+        }
+        if ($lv === 'lanjutan' && ($__by['pemula'] < 3 || $__by['menengah'] < 4)) {
+            echo json_encode(['ok'=>false,'err'=>'locked','msg'=>'Selesaikan Paket Menengah dulu (min 4 sesi).']); exit;
+        }
+    } catch (Throwable $e) { /* abaikan bila tabel belum ada */ }
     try {
         $has = (int)db_val("SELECT COUNT(*) FROM kalistenik_log WHERE user_id=$1 AND tanggal=$2 AND level=$3",
             [(int)$u['id'], $tgl, $lv]);
@@ -240,6 +255,17 @@ foreach ($kalLogs as $r) {
 }
 $kalCountLevel = ['pemula'=>0,'menengah'=>0,'lanjutan'=>0];
 foreach ($kalLogs as $r) { if(isset($kalCountLevel[$r['level']])) $kalCountLevel[$r['level']]++; }
+
+/* Revisi: Paket Menengah terkunci sampai Paket Pemula "beres" (min 3 sesi tercatat),
+   Paket Lanjutan terkunci sampai Paket Menengah "beres" (min 4 sesi tercatat).
+   Ambang mengikuti frekuensi mingguan yang dianjurkan tiap level. */
+$KAL_MIN_UNLOCK = ['pemula'=>0, 'menengah'=>3, 'lanjutan'=>4];
+$kalUnlocked = [
+  'pemula'   => true,
+  'menengah' => ($kalCountLevel['pemula']   >= $KAL_MIN_UNLOCK['menengah']),
+  'lanjutan' => ($kalCountLevel['pemula']   >= $KAL_MIN_UNLOCK['menengah'])
+                && ($kalCountLevel['menengah'] >= $KAL_MIN_UNLOCK['lanjutan']),
+];
 
 include __DIR__.'/includes/header.php'; ?>
 
@@ -455,22 +481,49 @@ include __DIR__.'/includes/header.php'; ?>
     <div class="row g-2 mb-3">
       <?php foreach ($PAKET as $lk => $pv):
         $doneToday = array_key_exists($lk, $kalDoneToday);
+        $unlocked  = $kalUnlocked[$lk] ?? true;
+        $lockReason = '';
+        if (!$unlocked) {
+          if ($lk === 'menengah') {
+            $need = max(0, $KAL_MIN_UNLOCK['menengah'] - (int)$kalCountLevel['pemula']);
+            $lockReason = "Selesaikan Paket Pemula dulu (butuh {$need} sesi lagi).";
+          } elseif ($lk === 'lanjutan') {
+            if ($kalCountLevel['pemula'] < $KAL_MIN_UNLOCK['menengah']) {
+              $lockReason = 'Selesaikan Paket Pemula &amp; Menengah terlebih dahulu.';
+            } else {
+              $need = max(0, $KAL_MIN_UNLOCK['lanjutan'] - (int)$kalCountLevel['menengah']);
+              $lockReason = "Selesaikan Paket Menengah dulu (butuh {$need} sesi lagi).";
+            }
+          }
+        }
       ?>
         <div class="col-12 col-md-4">
-          <div class="border rounded p-2 h-100">
+          <div class="border rounded p-2 h-100 <?= $unlocked?'':'bg-light' ?>">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <div class="fw-semibold">Paket <?= htmlspecialchars($pv['label']) ?></div>
+                <div class="fw-semibold">
+                  Paket <?= htmlspecialchars($pv['label']) ?>
+                  <?php if(!$unlocked): ?><i class="bi bi-lock-fill text-secondary ms-1" title="Terkunci"></i><?php endif; ?>
+                </div>
                 <div class="small text-muted"><?= (int)$kalCountLevel[$lk] ?> sesi / 30 hari &middot; maks 1&times;/hari</div>
               </div>
-              <button type="button"
-                      class="btn btn-sm <?= $doneToday?'btn-success':'btn-outline-success' ?> kal-log-btn"
-                      data-level="<?= $lk ?>" data-tgl="<?= $kalToday ?>"
-                      title="<?= $doneToday?'Sudah dicatat hari ini (klik untuk hapus)':'Tandai selesai hari ini' ?>">
-                <?= $doneToday ? '<i class="bi bi-check-circle-fill"></i> Selesai' : '<i class="bi bi-plus-circle"></i> Selesai hari ini' ?>
-              </button>
+              <?php if(!$unlocked): ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled
+                        title="<?= strip_tags($lockReason) ?>">
+                  <i class="bi bi-lock-fill"></i> Terkunci
+                </button>
+              <?php else: ?>
+                <button type="button"
+                        class="btn btn-sm <?= $doneToday?'btn-success':'btn-outline-success' ?> kal-log-btn"
+                        data-level="<?= $lk ?>" data-tgl="<?= $kalToday ?>"
+                        title="<?= $doneToday?'Sudah dicatat hari ini (klik untuk hapus)':'Tandai selesai hari ini' ?>">
+                  <?= $doneToday ? '<i class="bi bi-check-circle-fill"></i> Selesai' : '<i class="bi bi-plus-circle"></i> Selesai hari ini' ?>
+                </button>
+              <?php endif; ?>
             </div>
-            <?php if ($doneToday && !empty($kalDoneToday[$lk])): ?>
+            <?php if(!$unlocked): ?>
+              <div class="small text-muted mt-1"><i class="bi bi-info-circle"></i> <?= $lockReason ?></div>
+            <?php elseif ($doneToday && !empty($kalDoneToday[$lk])): ?>
               <div class="small text-muted mt-1"><i class="bi bi-chat-left-text"></i> <?= htmlspecialchars($kalDoneToday[$lk]) ?></div>
             <?php endif; ?>
           </div>

@@ -1481,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <?php /* Revisi Juli 2026 R11 — Sapa Member Baru dipindah ke BAWAH Status Online. */ ?>
 <?php /* Revisi Juli 2026 R10 — Sapa Member Baru dipindah ke PALING ATAS. */ ?>
-<?php if(!empty($newMembers)): ?>
+<?php /* Revisi: Fitur Sapa Member Baru dihapus dari index.php */ if(false): ?>
 <div class="card shadow-sm mb-3" id="sapaMemberCard"><div class="card-header d-flex justify-content-between align-items-center">
   <span><i class="bi bi-emoji-smile text-warning"></i> Sapa Member Baru <span class="badge bg-primary"><?= count($newMembers) ?></span></span>
   <?php if($u): ?>

@@ -690,7 +690,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon<?= nav_lock_badge_for('live_tracking.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D<?= nav_lock_badge_for('flyover.php') ?></a>
           <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih -->
-          <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</a>
+          <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih <span class="badge bg-primary ms-1">Paket Komunitas</span></a>
         </div>
 
         <?php /* Grup: Perhitungan Kalori Olahraga */ ?>
@@ -741,12 +741,16 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/toko_olahraga.php"><i class="bi bi-shop text-primary"></i> Toko Perlengkapan Olahraga Terdekat<?= nav_lock_badge_for('toko_olahraga.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/hidup_sehat.php"><i class="bi bi-heart-fill text-success"></i> Hidup Sehat<?= nav_lock_badge_for('hidup_sehat.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/kesehatan.php"><i class="bi bi-capsule text-danger"></i> Penyakit Umum dan Obat Herbal<?= nav_lock_badge_for('kesehatan.php') ?></a>
-          <a class="list-group-item list-group-item-action ps-4" href="/kalistenik.php"><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik<?= nav_lock_badge_for('kalistenik.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/artikel_olahraga.php"><i class="bi bi-journal-richtext text-info"></i> Artikel Olahraga &amp; Teknik <span class="badge bg-danger ms-1">+Video</span><?= nav_lock_badge_for('artikel_olahraga.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/cedera_olahraga.php"><i class="bi bi-bandaid text-danger"></i> Cedera Olahraga &amp; Penanganan<?= nav_lock_badge_for('cedera_olahraga.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/lacak_faskes.php"><i class="bi bi-hospital-fill text-danger"></i> Lacak Puskesmas / RS Terdekat<?= nav_lock_badge_for('lacak_faskes.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/survival.php"><i class="bi bi-tree-fill text-success"></i> Survival Mode<?= nav_lock_badge_for('survival.php') ?></a>
         </div>
+
+        <?php /* Revisi: Menu Paket Bugar Kalistenik dipindah ke atas Paket Anak */ ?>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/kalistenik.php">
+          <span><i class="bi bi-person-arms-up text-success"></i> Paket Bugar Kalistenik</span><?= nav_lock_badge_for('kalistenik.php') ?>
+        </a>
 
         <?php /* Revisi R23 (27 Juni 2026) — Grup Paket Anak & Paket Lansia (di atas menu Tempat) */ ?>
         <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#grpPaketAnak" role="button" aria-expanded="false">

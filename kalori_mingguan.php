@@ -498,6 +498,79 @@ for ($i=0; $i<=8; $i++){
     $e = date('Y-m-d', strtotime('sunday this week -'.$i.' week'));
     $weekChoices[-$i] = ($i===0?'Minggu Ini':($i===1?'Minggu Lalu':$i.' minggu lalu')).' ('.date('d M', strtotime($s)).' – '.date('d M', strtotime($e)).')';
 }
+/* =========================================================================
+ * Revisi: Meal Recommendation (pagi / siang / malam).
+ * Sumber data:
+ *   - Statistik lari: tabel upload_harian (7 hari terakhir, jenis mengandung
+ *     jog/lari/run) — total menit & kalori terbakar mingguan.
+ *   - Profil BMI: users.berat_kg & users.tinggi_cm (juga dipakai di
+ *     profile.php / kesehatan.php).
+ * Rekomendasi bersifat heuristik sederhana, bukan resep medis.
+ * ========================================================================= */
+$mrProfile = db_one("SELECT berat_kg, tinggi_cm FROM users WHERE id=$1", [$uid]) ?: [];
+$mrBerat = (float)($mrProfile['berat_kg'] ?? 0);
+$mrTinggi = (float)($mrProfile['tinggi_cm'] ?? 0);
+$mrBmi = ($mrBerat > 0 && $mrTinggi > 0) ? round($mrBerat / pow($mrTinggi/100, 2), 1) : null;
+$mrBmiCat = null;
+if ($mrBmi !== null) {
+    if      ($mrBmi < 18.5) $mrBmiCat = 'Kurus';
+    elseif  ($mrBmi < 25)   $mrBmiCat = 'Normal';
+    elseif  ($mrBmi < 30)   $mrBmiCat = 'Berlebih';
+    else                    $mrBmiCat = 'Obesitas';
+}
+$mrRun = db_one(
+    "SELECT COALESCE(SUM(kalori),0)::int AS kal,
+            COALESCE(SUM(durasi_menit),0)::int AS menit,
+            COUNT(*)::int AS sesi
+       FROM upload_harian
+      WHERE user_id=$1
+        AND tanggal >= (CURRENT_DATE - INTERVAL '6 days')
+        AND (jenis ILIKE '%jog%' OR jenis ILIKE '%lari%' OR jenis ILIKE '%run%')",
+    [$uid]
+) ?: ['kal'=>0,'menit'=>0,'sesi'=>0];
+$mrRunKal   = (int)$mrRun['kal'];
+$mrRunMenit = (int)$mrRun['menit'];
+$mrRunSesi  = (int)$mrRun['sesi'];
+$mrAktif    = $mrRunMenit >= 90; // >=90 menit lari / minggu -> aktif
+
+/* Bangun menu pagi/siang/malam berdasarkan kategori BMI + level aktivitas. */
+$mrMenus = [
+  'Kurus' => [
+    'pagi'  => ['Nasi merah 1 centong + telur dadar 2 butir + alpukat 1/2', 'Susu full-cream 1 gelas', 'Pisang 1 buah'],
+    'siang' => ['Nasi putih 1,5 centong + ayam bakar dada+paha', 'Tumis sayur + tempe goreng 2 potong', 'Buah pepaya + air putih'],
+    'malam' => ['Nasi 1 centong + ikan salmon/tongkol panggang', 'Sup ayam kentang wortel', 'Yogurt + madu 1 sdm'],
+    'catatan' => 'Fokus surplus 300–500 kkal/hari untuk menaikkan berat sehat. Sertakan protein 1.6–2 g/kg BB.',
+  ],
+  'Normal' => [
+    'pagi'  => ['Oat 40 g + susu + pisang + kacang almond', 'Telur rebus 2 butir', 'Teh hijau tanpa gula'],
+    'siang' => ['Nasi merah 1 centong + ayam panggang (tanpa kulit)', 'Sayur bening bayam / capcay', 'Buah jeruk / apel'],
+    'malam' => ['Nasi 3/4 centong + ikan bakar', 'Tumis brokoli + tahu', 'Buah potong + air putih'],
+    'catatan' => 'Jaga defisit/isokalori sesuai target. Protein ±1.2 g/kg BB, minum 2 L/hari.',
+  ],
+  'Berlebih' => [
+    'pagi'  => ['Oat 30 g + putih telur 3 butir + buah beri', 'Kopi hitam tanpa gula', 'Air lemon hangat'],
+    'siang' => ['Nasi merah 1/2 centong + dada ayam kukus/pepes', 'Sayur rebus (bayam/kangkung) + tempe kukus', 'Buah apel / pir'],
+    'malam' => ['Ikan panggang + salad sayur + minyak zaitun 1 sdt', 'Sup miso / bening', 'Air putih 2 gelas'],
+    'catatan' => 'Target defisit ±500 kkal/hari. Hindari gula tambahan, gorengan, minuman manis, mie instan.',
+  ],
+  'Obesitas' => [
+    'pagi'  => ['Putih telur 3 + sayur tumis minyak minimal', 'Kopi/teh tanpa gula', 'Air putih 2 gelas'],
+    'siang' => ['Ayam/ikan panggang 100 g + sayur rebus banyak', 'Karbohidrat kompleks kecil (kentang rebus 1 kepal)', 'Buah rendah kalori (semangka/melon)'],
+    'malam' => ['Sup ayam + sayuran (tanpa nasi)', 'Tahu kukus + tempe kukus', 'Air putih + teh hijau'],
+    'catatan' => 'Konsultasikan ke ahli gizi. Target defisit 500–750 kkal/hari + jalan/lari 150 menit/minggu.',
+  ],
+];
+$mrCat = $mrBmiCat ?: 'Normal';
+$mrPlan = $mrMenus[$mrCat];
+if ($mrAktif) {
+    // pelari aktif butuh tambahan karbohidrat pemulihan
+    array_unshift($mrPlan['pagi'],  'Tambahan: roti gandum + selai kacang (recovery karbohidrat pelari aktif)');
+    array_unshift($mrPlan['malam'], 'Tambahan: kentang rebus / ubi 1 kepal (glikogen recovery)');
+    $mrPlan['catatan'] .= ' Anda tercatat berlari '.$mrRunMenit.' menit ('.$mrRunKal.' kkal) minggu ini — pertahankan asupan karbohidrat kompleks pasca-lari.';
+} else {
+    $mrPlan['catatan'] .= ' Aktivitas lari mingguan Anda '.$mrRunMenit.' menit — targetkan minimal 90 menit/minggu.';
+}
+
 include __DIR__.'/includes/header.php';
 ?>
 <nav aria-label="breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
@@ -508,6 +581,56 @@ include __DIR__.'/includes/header.php';
 <h2 class="mb-1"><i class="bi bi-egg-fried text-warning"></i> Pencatatan Kalori Mingguan</h2>
 <p class="text-muted small mb-2">Minggu <?= htmlspecialchars($weekStart) ?> – <?= htmlspecialchars($weekEnd) ?>. Target harian: <strong><?= $target ?></strong> kkal.
 <?= $aiEnabled ? '<span class="badge bg-success ms-2">AI Foto Aktif</span>' : '<span class="badge bg-secondary ms-2">AI Foto Nonaktif</span>' ?></p>
+
+<!-- Revisi: Meal Recommendation (pagi / siang / malam) — berdasarkan BMI & statistik lari mingguan. -->
+<div class="card shadow-sm mb-3 border-success" id="mealReco">
+  <div class="card-header bg-success-subtle text-success-emphasis d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-egg-fried"></i> <strong>Meal Recommendation</strong> (Pagi / Siang / Malam)</span>
+    <small class="text-muted">
+      BMI:
+      <?php if($mrBmi!==null): ?>
+        <strong><?= $mrBmi ?></strong>
+        <span class="badge bg-<?= $mrBmiCat==='Normal'?'success':($mrBmiCat==='Kurus'?'warning':'danger') ?>"><?= htmlspecialchars($mrBmiCat) ?></span>
+      <?php else: ?>
+        <em>belum diisi</em> — lengkapi di <a href="/profile.php">Profil</a>
+      <?php endif; ?>
+      &middot; Lari 7 hari: <strong><?= $mrRunMenit ?></strong> menit / <strong><?= $mrRunKal ?></strong> kkal
+      (<?= $mrRunSesi ?> sesi, sumber: <a href="/riwayat.php">Riwayat</a>)
+    </small>
+  </div>
+  <div class="card-body">
+    <?php if ($mrBmi === null): ?>
+      <div class="alert alert-warning small mb-3">
+        <i class="bi bi-info-circle"></i> Data BMI belum tersedia. Rekomendasi di bawah memakai profil <em>Normal</em> sebagai default.
+        Isi berat &amp; tinggi badan di <a href="/profile.php">Profil</a> untuk hasil yang lebih akurat.
+      </div>
+    <?php endif; ?>
+    <div class="row g-2">
+      <?php
+        $mrIcons = ['pagi'=>'bi-sunrise text-warning','siang'=>'bi-sun-fill text-danger','malam'=>'bi-moon-stars-fill text-primary'];
+        $mrJudul = ['pagi'=>'Sarapan (Pagi)','siang'=>'Makan Siang','malam'=>'Makan Malam'];
+      ?>
+      <?php foreach (['pagi','siang','malam'] as $slot): ?>
+        <div class="col-12 col-md-4">
+          <div class="border rounded p-3 h-100">
+            <div class="fw-semibold mb-2"><i class="bi <?= $mrIcons[$slot] ?>"></i> <?= $mrJudul[$slot] ?></div>
+            <ul class="small mb-0 ps-3">
+              <?php foreach ($mrPlan[$slot] as $item): ?>
+                <li><?= htmlspecialchars($item) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <div class="alert alert-info small mt-3 mb-0">
+      <i class="bi bi-lightbulb"></i>
+      <strong>Catatan (kategori <?= htmlspecialchars($mrCat) ?><?= $mrAktif?' &middot; Pelari aktif':'' ?>):</strong>
+      <?= $mrPlan['catatan'] ?>
+    </div>
+  </div>
+</div>
+
 
 <!-- Revisi 15 Juni 2026 — Navigasi minggu (riwayat minggu lalu, dsb) -->
 <form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
