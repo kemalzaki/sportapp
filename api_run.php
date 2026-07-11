@@ -30,6 +30,29 @@ if ($_SERVER['REQUEST_METHOD']==='GET' && ($_GET['export'] ?? '') !== '') {
         echo "</Document></kml>";
         exit;
     }
+    // Revisi R33 — Export GeoJSON
+    if ($fmt === 'geojson' || $fmt === 'json') {
+        header('Content-Type: application/geo+json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="'.$name.'.geojson"');
+        $coords = [];
+        foreach ($pts as $p) { $coords[] = [ (float)$p['lng'], (float)$p['lat'] ]; }
+        echo json_encode([
+            'type' => 'FeatureCollection',
+            'features' => [[
+                'type' => 'Feature',
+                'properties' => [
+                    'name' => $name,
+                    'jarak_km' => round(((float)$own['jarak_m'])/1000, 3),
+                    'durasi_dtk' => (int)$own['durasi_dtk'],
+                    'kalori' => (int)$own['kalori'],
+                    'mulai_at' => $own['mulai_at'] ?? null,
+                    'selesai_at' => $own['selesai_at'] ?? null,
+                ],
+                'geometry' => [ 'type' => 'LineString', 'coordinates' => $coords ]
+            ]]
+        ], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     // Default: GPX
     header('Content-Type: application/gpx+xml; charset=utf-8');
     header('Content-Disposition: attachment; filename="'.$name.'.gpx"');
