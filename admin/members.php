@@ -414,7 +414,7 @@ include __DIR__.'/../includes/header.php'; ?>
   <div class="table-responsive"><table class="table table-hover mb-0 align-middle" id="memberTable" data-paginate="10">
   <thead><tr><th>#</th><th>Nama</th><th>Username</th><th>Email</th><th>WA</th><th>JK</th><th>Komunitas</th><th>Paket</th><th>Expire</th><th>PIC Admin</th><th>Role</th><th>Aktif</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>
   <?php foreach($users as $i=>$u): $on = is_online($u['last_seen'] ?? null);
-    $waDigits = preg_replace('/\D+/', '', $u['wa'] ?? '');
+    $waDigits = preg_replace('/\D+/', '', ($u['wa'] ?: ($u['nomor_wa'] ?? '')));
     if ($waDigits && str_starts_with($waDigits, '0')) $waDigits = '62'.substr($waDigits,1);
     // parse komunitas_ids postgres array literal like "{1,2}"
     $curKomIds = [];
@@ -439,7 +439,7 @@ include __DIR__.'/../includes/header.php'; ?>
       <td class="fw-semibold"><?= user_name_with_avatar($u['foto_url'] ?? null, $u['nama'], $on, 32) ?></td>
       <td class="small"><?= $u['username'] ? '<span class="badge bg-light text-dark border">@'.htmlspecialchars($u['username']).'</span>' : '<span class="text-muted">—</span>' ?></td>
       <td class="text-muted small"><?= htmlspecialchars($u['email']) ?></td>
-      <td><?= $u['wa'] ? '<span class="small">'.htmlspecialchars($u['wa']).'</span>' : '<span class="text-muted small">—</span>' ?></td>
+      <td><?php $__wa = $u['wa'] ?: ($u['nomor_wa'] ?? ''); echo $__wa ? '<span class="small">'.htmlspecialchars($__wa).'</span>' : '<span class="text-muted small">—</span>'; ?></td>
       <td><?php $jk=$u['jenis_kelamin']??null; echo $jk==='L'?'<span class="pill">L</span>':($jk==='P'?'<span class="pill">P</span>':'<span class="text-muted small">—</span>'); ?></td>
       <td class="small" style="max-width:200px">
         <?php if(!empty($u['komunitas_nama'])): foreach(explode(', ', $u['komunitas_nama']) as $knm): ?>

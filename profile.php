@@ -101,14 +101,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $bio = substr(trim($_POST['bio'] ?? ''), 0, 300);
         db_exec("UPDATE users SET bio=$1 WHERE id=$2", [$bio, (int)$u['id']]);
     } elseif ($a==='update_wa') {
-        $bio = substr(trim($_POST['bio'] ?? ''), 0, 300);
-        db_exec("UPDATE users SET bio=$1 WHERE id=$2", [$bio, (int)$u['id']]);
-    } elseif ($a==='update_wa') {
+        // Revisi Juli 2026 — FIX: sebelumnya blok ini terduplikasi & keliru menimpa bio,
+        // sehingga CRUD nomor WhatsApp di profile tidak pernah berjalan.
         $wa = preg_replace('/[^0-9+]/','', trim($_POST['nomor_wa'] ?? ''));
         $jk = $_POST['jenis_kelamin'] ?? '';
         if (!in_array($jk, ['L','P',''], true)) $jk = '';
         if ($wa === '' || (strlen($wa) >= 8 && strlen($wa) <= 20)) {
-            db_exec("UPDATE users SET nomor_wa=$1, jenis_kelamin=NULLIF($2,'') WHERE id=$3",
+            // Sinkron ke kedua kolom (nomor_wa & wa) agar konsisten dgn admin/members.php.
+            db_exec("UPDATE users SET nomor_wa=$1, wa=$1, jenis_kelamin=NULLIF($2,'') WHERE id=$3",
                 [$wa ?: null, $jk, (int)$u['id']]);
         }
     } elseif ($a==='update_tema') {
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
         header('Location: /profile.php?tema_ok=1#temaWarna'); exit;
     } elseif ($a==='delete_wa') {
-        db_exec("UPDATE users SET nomor_wa=NULL WHERE id=$1", [(int)$u['id']]);
+        db_exec("UPDATE users SET nomor_wa=NULL, wa=NULL WHERE id=$1", [(int)$u['id']]);
     } elseif ($a==='update_strava') {
         // Revisi 19 Juni 2026 Part Q — CRUD akun/ID Strava
         $sv = trim(substr($_POST['strava_account'] ?? '', 0, 120));

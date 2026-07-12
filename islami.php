@@ -20,7 +20,8 @@ $u = current_user();
 $IS_PRO = paket_is_pro($u);
 $USER_PAKET = paket_user($u);
 // R15 #5: Hub Islami HANYA untuk paket Komunitas. Pro/Gratis tidak bisa akses.
-$IS_KOMUNITAS = ($USER_PAKET === 'komunitas');
+// Revisi Juli 2026 — paket PRO juga membuka Hub Islami (tidak terkunci).
+$IS_KOMUNITAS = in_array($USER_PAKET, ['komunitas','pro'], true);
 
 // Revisi 17 Juni 2026 Part I — tabel penyimpanan Tanya Jawab Islami (idempotent)
 try {

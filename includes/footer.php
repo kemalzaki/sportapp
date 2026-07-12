@@ -422,19 +422,46 @@ document.addEventListener('DOMContentLoaded', function() {
 .emoji-picker-pop button:hover{background:#f1f5f9;}
 </style>
 <script>
-/* ===== Global lightbox ===== */
+/* ===== Global lightbox (Revisi Juli 2026 — FIX zoom foto Social Feed) =====
+ * Tidak lagi bergantung pada bootstrap.Modal (yg kadang belum siap saat listener
+ * berjalan / gagal karena element ter-nested di carousel). Pakai overlay JS murni.
+ */
 (function(){
-  let m=null;
+  var OV_ID = 'kkImgLightbox';
+  function ensureOverlay(){
+    var ov = document.getElementById(OV_ID);
+    if (ov) return ov;
+    ov = document.createElement('div');
+    ov.id = OV_ID;
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:20000;cursor:zoom-out;padding:16px;';
+    ov.innerHTML = '<button type="button" aria-label="Tutup" style="position:absolute;top:12px;right:14px;background:transparent;border:0;color:#fff;font-size:32px;line-height:1;cursor:pointer">&times;</button>'
+      + '<img alt="zoom" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);background:#111">';
+    document.body.appendChild(ov);
+    var close = function(){ ov.style.display='none'; var im=ov.querySelector('img'); if(im) im.src=''; };
+    ov.addEventListener('click', function(ev){
+      // klik di area luar gambar / tombol X → tutup
+      if (ev.target === ov || ev.target.tagName === 'BUTTON') close();
+    });
+    document.addEventListener('keydown', function(ev){
+      if (ov.style.display==='flex' && (ev.key==='Escape'||ev.key==='Esc')) close();
+    });
+    return ov;
+  }
+  function openImg(src){
+    var ov = ensureOverlay();
+    var im = ov.querySelector('img');
+    im.src = src;
+    ov.style.display = 'flex';
+  }
   document.addEventListener('click', function(ev){
-    const t = ev.target.closest('img.zoomable,[data-zoom] img,img[data-zoom]');
+    var t = ev.target.closest('img.zoomable,[data-zoom] img,img[data-zoom]');
     if(!t) return;
-    const src = t.getAttribute('data-full') || t.src;
+    var src = t.getAttribute('data-full') || t.getAttribute('src');
     if(!src) return;
     ev.preventDefault();
-    if(!m) m = new bootstrap.Modal(document.getElementById('imgLightbox'));
-    document.getElementById('imgLightboxImg').src = src;
-    m.show();
-  });
+    ev.stopPropagation();
+    openImg(src);
+  }, true); // capture=true → menang atas handler carousel/link di dalam feed
 })();
 
 /* ===== Auto image compression for inputs[data-compress] =====
