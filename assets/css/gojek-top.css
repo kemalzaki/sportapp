@@ -22,7 +22,13 @@
 
 /* Revisi: gunakan tampilan mobile di semua ukuran layar (desktop = mobile) */
 nav.navbar.sticky-top{ display: none !important; }
-body{ padding-top: calc(var(--gt-h) + 56px) !important; }
+body{
+    padding-top: calc(
+        var(--gt-h)
+        + env(safe-area-inset-top)
+        + 56px
+    ) !important;
+}
 
 .gt-top{
   display: none;
@@ -30,7 +36,10 @@ body{ padding-top: calc(var(--gt-h) + 56px) !important; }
   z-index: 1051;
   background: linear-gradient(135deg, var(--gt-dark) 0%, var(--gt-dark-2) 60%, #243049 100%);
   color: #fff;
-  padding: 8px 12px calc(8px + env(safe-area-inset-top, 0px));
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-right: 12px;
+  padding-bottom: 8px;
+  padding-left: 12px;
   box-shadow: 0 4px 14px -6px rgba(15,23,42,.55);
   border-bottom: 1px solid rgba(255,255,255,.06);
 }

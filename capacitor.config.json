@@ -1,5 +1,9 @@
 {
   "appId": "com.yukmari.kawankeringatappsport",
   "appName": "KawanKeringat AppSport",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "url": "https://hapfam.alwaysdata.net/",
+    "cleartext": true
+  }
 }
