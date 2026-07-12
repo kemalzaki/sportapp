@@ -90,6 +90,8 @@ include __DIR__.'/includes/header.php';
     box-shadow:0 4px 14px rgba(0,0,0,.18);display:none;
     align-items:center;gap:.35rem;}
   .recenter-btn.show{display:inline-flex;}
+  /* Smooth Strava-like marker interpolation between GPS fixes */
+  .leaflet-marker-icon.kk-runner-icon{transition:transform .9s linear;}
   .split-item{display:flex;justify-content:space-between;align-items:center;
     padding:.55rem .8rem;border-bottom:1px solid #f1f5f9;font-size:.9rem;}
   .split-item:last-child{border-bottom:0;}
@@ -722,6 +724,12 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
       seg.poly.addLatLng([p.lat,p.lng]); seg.pts.push([p.lat,p.lng]);
       _placeMarker(p);
       lastAcceptedAt = nowT;
+      state.lastMoveAt = nowT; // jangan langsung auto-pause tepat setelah reconnect
+      // Auto-resume kalau sempat auto-paused saat GPS hilang
+      if (state.autoPaused){
+        state.pausedTotalMs += (nowT - state.pauseAt);
+        state.autoPaused = false; state.paused = false; state.pauseAt = null;
+      }
       afterPoint(p, /*sendDist*/false);
       return;
     }
@@ -734,8 +742,8 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
     if (d < 3){
       // Diam / drift — jangan tambah jarak, tetap update marker
       if (marker) marker.setLatLng([p.lat,p.lng]);
-      // Auto-pause detect
-      if (!state.autoPaused && !state.paused && state.lastMoveAt && (nowT - state.lastMoveAt) > 10000){
+      // Auto-pause detect (Strava-like: >6 dtk tanpa gerakan berarti)
+      if (!state.autoPaused && !state.paused && state.lastMoveAt && (nowT - state.lastMoveAt) > 6000){
         state.autoPaused = true; state.paused = true; state.pauseAt = nowT;
         document.getElementById('runStatus').textContent = '⏸ Auto-pause — mulai bergerak untuk melanjutkan';
       }
@@ -777,8 +785,12 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
     if (!marker){ marker = L.marker([p.lat,p.lng], { icon: makeRunnerIcon() }).addTo(map); }
     else marker.setLatLng([p.lat,p.lng]);
     if (state.followUser){
-      var z = Math.max(map.getZoom(), firstFix?16:16);
-      map.setView([p.lat,p.lng], z, { animate:true });
+      if (firstFix){
+        map.setView([p.lat,p.lng], Math.max(map.getZoom(), 16), { animate:true });
+      } else {
+        // Halus & tidak reset zoom (Strava behavior)
+        map.panTo([p.lat,p.lng], { animate:true, duration:0.9, easeLinearity:0.5 });
+      }
     }
   }
   function afterPoint(p, sendDist){

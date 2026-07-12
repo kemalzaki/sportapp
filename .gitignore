@@ -1,23 +1,60 @@
+# =========================
 # PHP
+# =========================
 composer.phar
+vendor/
 
-# Uploads directory (allow only tracking .gitkeep files)
+# =========================
+# Node.js
+# =========================
+node_modules/
+
+# =========================
+# Uploads (keep .gitkeep)
+# =========================
 /uploads/*
 !/uploads/.gitkeep
 
-# System & OS
+# =========================
+# Capacitor
+# =========================
+www/
+
+# =========================
+# Android Build
+# =========================
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/app/release/
+
+# Android Studio
+.idea/
+*.iml
+
+# APK Output
+*.apk
+*.aab
+
+# Release Signing
+*.jks
+*.keystore
+
+# System
 .DS_Store
 Thumbs.db
 *.log
 *.tmp
 
-# Environment files
+# Environment
 config/env.local.php
 config/*.local.php
 .env
 .env.local
+.env.*
 *.key
 
-# IDEs and editors
+# VSCode
 .vscode/
-.idea/

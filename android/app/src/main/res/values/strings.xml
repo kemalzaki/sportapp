@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KawanKeringat AppSport</string>
+    <string name="title_activity_main">KawanKeringat AppSport</string>
+    <string name="package_name">com.yukmari.kawankeringatappsport</string>
+    <string name="custom_url_scheme">com.yukmari.kawankeringatappsport</string>
+</resources>

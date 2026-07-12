@@ -229,6 +229,7 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
   </div>
 </div>
 
+<script src="/assets/js/kk-geo.js"></script>
 <script>
 const API = '/api_live_tracking.php';
 const map = L.map('liveMap').setView([-6.2, 106.8], 12);
@@ -263,7 +264,7 @@ document.addEventListener('visibilitychange', async ()=>{
   if (document.visibilityState === 'visible' && state.token && state.watchId !== null) {
     await acquireWakeLock();
     // Restart watch supaya stream GPS yang ter-throttle di background kembali fresh.
-    if (state.watchId != null) { navigator.geolocation.clearWatch(state.watchId); state.watchId = null; }
+    stopGeo();
     startGeo();
     flushBuffer();
   }
@@ -312,14 +313,30 @@ document.getElementById('btnStop').onclick = async ()=>{
   document.getElementById('liveStat').textContent = 'Sesi dihentikan.';
 };
 
+// Revisi 11 Juli 2026 — memakai KKGeo (Capacitor BackgroundGeolocation di APK,
+// navigator.geolocation di browser). API pushPoint tetap sama.
 function startGeo(){
-  if(!('geolocation' in navigator)){ alert('Browser tidak mendukung GPS.'); return; }
-  state.watchId = navigator.geolocation.watchPosition(pushPoint, err=>{
-    document.getElementById('liveStat').textContent = 'GPS error: '+err.message;
-  }, {enableHighAccuracy:true, maximumAge:2000, timeout:15000});
+  if (!window.KKGeo){
+    if(!('geolocation' in navigator)){ alert('Browser tidak mendukung GPS.'); return; }
+    state.watchId = navigator.geolocation.watchPosition(pushPoint, err=>{
+      document.getElementById('liveStat').textContent = 'GPS error: '+err.message;
+    }, {enableHighAccuracy:true, maximumAge:2000, timeout:15000});
+    return;
+  }
+  KKGeo.start(pushPoint, function(err){
+    document.getElementById('liveStat').textContent = 'GPS error: '+(err && err.message || err);
+  }, {
+    backgroundTitle:   '🛰️ Live Tracking aktif',
+    backgroundMessage: 'Berbagi lokasi ke kontak darurat…',
+    distanceFilter: 3
+  }).then(function(ok){
+    state.watchId = ok ? 'kkgeo' : null;
+    if (ok && KKGeo.isNative) KKGeo.notify('Live Tracking aktif', 'GPS berjalan di background.');
+  });
 }
 function stopGeo(){
-  if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);
+  if (window.KKGeo){ KKGeo.stop(); state.watchId = null; return; }
+  if(state.watchId!=null && typeof state.watchId==='number') navigator.geolocation.clearWatch(state.watchId);
   state.watchId = null;
 }
 let lastSend = 0;
