@@ -1,25 +1,20 @@
 /* ============================================================
- * KK Run · ui.js  — Dashboard Mode + Focus Mode (R35)
+ * KK Run · ui.js  (R40 — Refactor Bersih)
  * ------------------------------------------------------------
- * TIDAK mengubah gps.js / tracking.js / map.js / save.js /
- * background.js / voice.js. Semua ID DOM & nama fungsi lama
- * dipertahankan agar back-compat dengan tracking.js R34.
+ * Hanya bertugas:
+ *   - render metric (dashboard + floating focus stats)
+ *   - render split
+ *   - GPS chip / mode chip / auto-pause chip
+ *   - toggle Focus / Dashboard mode (CSS class saja)
+ *   - wire floating map controls (Follow / Compass / Fullscreen / Settings)
+ *   - countdown 3-2-1
+ *   - KKFinish (finish screen)
  *
- * API publik:
- *   KKUI.renderMetrics(m)
- *   KKUI.setGps(acc, err)
- *   KKUI.setAutoPaused(v)
- *   KKUI.setModeChip(text)
- *   KKUI.countdown(cb)
- *   KKUI.enterFullscreen()  // back-compat -> loadSavedViewMode()
- *   KKUI.exitFullscreen()   // back-compat -> exit focus, kembali dashboard
- *   KKUI.lock()
- *   KKUI.showSwipeFinish(onFinish)
- *   KKUI.installDimHandlers()
- *   KKUI.enterFocusMode() / exitFocusMode() / toggleFocusMode()
- *   KKUI.currentMode() / initDashboardMode()
- *   KKUI.saveViewMode(mode) / loadSavedViewMode()
- * KKFinish.open(snap) / KKFinish.close()
+ * TIDAK memiliki:
+ *   - override function existing
+ *   - swipe-to-finish (Stop cukup confirm() — SATU alur)
+ *   - hidden button / dispatchEvent / safeClickHidden
+ *   - lock screen / auto-dim (hilangkan hack yang tidak dipakai)
  * ============================================================ */
 (function(){
   'use strict';
@@ -41,7 +36,7 @@
   }
   function setText(id, txt){ var el=document.getElementById(id); if (el) el.textContent = txt; }
 
-  /* ---------- Metrics ---------- */
+  /* ---------- Render metric (dashboard + focus stats) ---------- */
   function renderMetrics(m){
     var dist = (m.km||0).toFixed(2);
     var t    = fmtTime(m.tSec);
@@ -51,16 +46,7 @@
     var elev = (m.elev==null) ? '–' : Math.round(m.elev)+' m';
     var apc  = fmtPace(m.paceAvg);
 
-    // Focus overlay
-    setText('m-dist', dist);
-    setText('m-time', t);
-    setText('m-pace', pace);
-    setText('m-speed', speed);
-    setText('m-cal', cal);
-    setText('m-elev', elev);
-    setText('m-avgpace', apc);
-
-    // Dashboard mirror
+    // Dashboard cells
     setText('d-dist', dist);
     setText('d-time', t);
     setText('d-pace', pace);
@@ -69,10 +55,13 @@
     setText('d-elev', elev);
     setText('d-avgpace', apc);
 
-    // Lock screen mini
-    setText('lk-metrics', dist+' km · '+t);
+    // Focus floating stats (compact)
+    setText('f-dist-live', dist);
+    setText('f-time-live', t);
+    setText('f-pace-live', pace);
+    setText('f-speed-live', speed);
+    setText('f-cal-live', cal);
 
-    // Splits (dashboard)
     renderSplits();
   }
 
@@ -111,11 +100,14 @@
     c.style.display = v ? '' : 'none';
   }
   function setModeChip(text){
-    var c = document.getElementById('kk-mode-chip'); if (!c) return;
-    c.textContent = text; c.style.display = '';
-    // Show dashboard REC pill
-    var d = document.getElementById('d-mode-chip');
-    if (d){ d.textContent = text; d.style.display = ''; }
+    var c = document.getElementById('kk-mode-chip'); if (c){ c.textContent = text; c.style.display = ''; }
+    var d = document.getElementById('d-mode-chip'); if (d){ d.textContent = text; d.style.display = ''; }
+    setText('f-mode-live', text);
+  }
+  function clearModeChip(){
+    var c = document.getElementById('kk-mode-chip'); if (c) c.style.display = 'none';
+    var d = document.getElementById('d-mode-chip'); if (d) d.style.display = 'none';
+    setText('f-mode-live', '');
   }
 
   /* ---------- Countdown ---------- */
@@ -132,13 +124,12 @@
         cb && cb();
       } else {
         el.textContent = n;
-        // retrigger animation
         el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
       }
     }, 900);
   }
 
-  /* ---------- Mode: Dashboard <-> Focus ---------- */
+  /* ---------- Mode: Dashboard <-> Focus (CSS toggle saja) ---------- */
   function saveViewMode(m){ try{ localStorage.setItem(MODE_KEY, m); }catch(e){} }
   function loadSavedViewMode(){
     try{ return localStorage.getItem(MODE_KEY) || 'dashboard'; }catch(e){ return 'dashboard'; }
@@ -149,17 +140,16 @@
     mode = (m==='focus') ? 'focus' : 'dashboard';
     document.body.classList.toggle('kk-focus-mode', mode==='focus');
     document.body.classList.toggle('kk-dashboard-mode', mode==='dashboard');
-    // Legacy class untuk kompatibilitas selector R34
-    document.body.classList.toggle('kk-tracking-fullscreen', mode==='focus');
 
-    // Update tombol fab fullscreen icon state
     var fab = document.getElementById('kk-fab-fullscreen');
     if (fab){
       fab.classList.toggle('active', mode==='focus');
       fab.setAttribute('title', mode==='focus' ? 'Exit Fullscreen' : 'Fullscreen');
+      var icon = fab.querySelector('i');
+      if (icon) icon.className = (mode==='focus') ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen';
     }
     saveViewMode(mode);
-    // Let Leaflet re-measure setelah transisi CSS
+    // Beri waktu CSS transition selesai lalu minta Leaflet re-measure
     if (window.KKMap && KKMap.invalidate) KKMap.invalidate();
     setTimeout(function(){ if (window.KKMap && KKMap.invalidate) KKMap.invalidate(); }, 320);
   }
@@ -168,123 +158,22 @@
   function toggleFocusMode(){ applyMode(mode==='focus' ? 'dashboard' : 'focus'); }
   function initDashboardMode(){ applyMode(loadSavedViewMode()); }
 
-  // Back-compat aliases: R34 tracking.js memanggil enterFullscreen saat Start.
-  // Sekarang: hormati preferensi user (Dashboard by default).
-  function enterFullscreen(){ applyMode(loadSavedViewMode()); }
-  function exitFullscreen(){ applyMode('dashboard'); }
-
-  /* ---------- Lock screen ---------- */
-  function lock(){
-    var el = document.getElementById('kk-lock'); if (!el) return;
-    el.classList.add('show');
-    var slide = document.getElementById('kk-lock-slide'); if (!slide) return;
-    var thumb = slide.querySelector('.lk-thumb');
-    var fill  = slide.querySelector('.lk-fill');
-    var W = slide.clientWidth - (thumb?thumb.clientWidth:56) - 8;
-    var startX = 0, curX = 0, dragging=false;
-    function onDown(e){ dragging=true; startX = (e.touches?e.touches[0].clientX:e.clientX); if(thumb)thumb.classList.add('dragging'); }
-    function onMove(e){
-      if(!dragging) return;
-      var x=(e.touches?e.touches[0].clientX:e.clientX);
-      curX = Math.max(0, Math.min(W, x-startX));
-      if(thumb) thumb.style.transform = 'translateX('+curX+'px)';
-      if(fill)  fill.style.width = (curX+((thumb?thumb.clientWidth:56)/2))+'px';
-    }
-    function onUp(){
-      if(!dragging) return; dragging=false;
-      if(thumb) thumb.classList.remove('dragging');
-      if (curX >= W*0.85){ el.classList.remove('show'); }
-      else { if(thumb)thumb.style.transform='translateX(0)'; if(fill)fill.style.width='0'; }
-      curX = 0;
-      slide.removeEventListener('mousemove', onMove);
-      slide.removeEventListener('mouseup', onUp);
-    }
-    slide.onmousedown = onDown; slide.ontouchstart = onDown;
-    slide.onmousemove = onMove; slide.ontouchmove = onMove;
-    slide.onmouseup   = onUp;   slide.ontouchend  = onUp;
-  }
-
-  /* ---------- Stop confirmation ----------
-   * Fix bug R34: di Dashboard Mode swipe UI ada di .kk-ctrl yang display:none,
-   * jadi user tak pernah bisa memicu stop. Sekarang:
-   *  - Focus Mode → swipe-to-finish (anti salah pencet)
-   *  - Dashboard Mode → confirm() biasa
-   */
-  function showSwipeFinish(onFinish){
-    if (mode !== 'focus'){
-      if (confirm('Selesaikan sesi tracking sekarang? Data akan disimpan.')){
-        try { onFinish && onFinish(); } catch(e){ console.error(e); }
-      }
-      return;
-    }
-    var sw = document.getElementById('kk-swipe'); if (!sw){ onFinish && onFinish(); return; }
-    sw.classList.add('show');
-    var thumb = sw.querySelector('.sw-thumb');
-    var fill  = sw.querySelector('.sw-fill');
-    var W = sw.clientWidth - (thumb?thumb.clientWidth:50) - 8;
-    var startX=0, curX=0, dragging=false, done=false;
-    function down(e){ dragging=true; startX=(e.touches?e.touches[0].clientX:e.clientX); if(thumb)thumb.classList.add('dragging'); }
-    function move(e){
-      if(!dragging||done) return;
-      var x=(e.touches?e.touches[0].clientX:e.clientX);
-      curX = Math.max(0, Math.min(W, x-startX));
-      if(thumb) thumb.style.transform='translateX('+curX+'px)';
-      if(fill)  fill.style.width = (curX+((thumb?thumb.clientWidth:50)/2))+'px';
-    }
-    function up(){
-      if(!dragging) return; dragging=false;
-      if(thumb) thumb.classList.remove('dragging');
-      if (curX >= W*0.85 && !done){
-        done = true; sw.classList.remove('show');
-        try { onFinish && onFinish(); } catch(e){ console.error(e); }
-      } else {
-        if(thumb) thumb.style.transform='translateX(0)';
-        if(fill)  fill.style.width='0';
-      }
-      curX=0;
-    }
-    sw.onmousedown=down; sw.ontouchstart=down;
-    sw.onmousemove=move; sw.ontouchmove=move;
-    sw.onmouseup=up;     sw.ontouchend=up;
-    // Auto hide setelah 8s tanpa interaksi
-    setTimeout(function(){ if(!done) sw.classList.remove('show'); }, 8000);
-  }
-
-  /* ---------- Auto-dim (focus only) ---------- */
-  var dimTimer = null;
-  function installDimHandlers(){
-    var dim = document.getElementById('kk-dim'); if (!dim) return;
-    function reset(){
-      dim.classList.remove('on');
-      clearTimeout(dimTimer);
-      dimTimer = setTimeout(function(){
-        if (mode === 'focus') dim.classList.add('on');
-      }, 45000);
-    }
-    ['touchstart','mousedown','keydown','scroll','pointerdown'].forEach(function(ev){
-      document.addEventListener(ev, reset, { passive:true });
-    });
-    dim.addEventListener('click', function(){ dim.classList.remove('on'); reset(); });
-    reset();
-  }
-
-  /* ---------- Wire floating map controls & mode buttons ---------- */
+  /* ---------- Wire floating map controls ---------- */
   function wireControls(){
     var fabFs = document.getElementById('kk-fab-fullscreen');
-    if (fabFs) fabFs.addEventListener('click', toggleFocusMode);
-
-    var exit = document.getElementById('kk-exit-focus');
-    if (exit) exit.addEventListener('click', exitFocusMode);
+    if (fabFs) fabFs.addEventListener('click', function(e){ e.preventDefault(); toggleFocusMode(); });
 
     var fabLoc = document.getElementById('kk-fab-location');
-    if (fabLoc) fabLoc.addEventListener('click', function(){
+    if (fabLoc) fabLoc.addEventListener('click', function(e){
+      e.preventDefault();
       var st = window.KKTracking && window.KKTracking.state;
       var p = st && (st.points[st.points.length-1] || st.lastFix);
       if (window.KKMap && KKMap.recenter) KKMap.recenter(p);
     });
 
     var fabComp = document.getElementById('kk-fab-compass');
-    if (fabComp) fabComp.addEventListener('click', function(){
+    if (fabComp) fabComp.addEventListener('click', function(e){
+      e.preventDefault();
       var sel = document.getElementById('rotSel');
       if (!sel) return;
       sel.value = (sel.value === 'heading') ? 'north' : 'heading';
@@ -297,26 +186,33 @@
     var popover = document.getElementById('kk-settings-pop');
     if (fabSet && popover){
       fabSet.addEventListener('click', function(e){
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         popover.classList.toggle('show');
       });
       document.addEventListener('click', function(e){
-        if (!popover.contains(e.target) && e.target !== fabSet)
+        if (!popover.contains(e.target) && e.target !== fabSet && !fabSet.contains(e.target))
           popover.classList.remove('show');
       });
     }
 
-    // Ripple sederhana
-    document.querySelectorAll('.kk-mapfab').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        btn.classList.add('kk-ripple');
-        setTimeout(function(){ btn.classList.remove('kk-ripple'); }, 320);
-      });
+    var rc = document.getElementById('kk-recenter');
+    if (rc) rc.addEventListener('click', function(e){
+      e.preventDefault();
+      var st = window.KKTracking && window.KKTracking.state;
+      var p = st && (st.points[st.points.length-1] || st.lastFix);
+      if (window.KKMap && KKMap.recenter) KKMap.recenter(p);
     });
 
-    // Sinkronkan icon compass dengan rotSel awal
+    // Sinkronkan icon compass dgn rotSel awal
     var rotSel = document.getElementById('rotSel');
     if (rotSel && fabComp) fabComp.classList.toggle('active', rotSel.value==='heading');
+  }
+
+  /* ---------- Konfirmasi Stop ---------- */
+  function confirmStop(onFinish){
+    if (confirm('Selesaikan sesi tracking sekarang? Data akan disimpan.')){
+      try { onFinish && onFinish(); } catch(e){ console.error(e); }
+    }
   }
 
   /* ---------- KKUI export ---------- */
@@ -325,19 +221,15 @@
     setGps: setGps,
     setAutoPaused: setAutoPaused,
     setModeChip: setModeChip,
+    clearModeChip: clearModeChip,
     countdown: countdown,
-    enterFullscreen: enterFullscreen,
-    exitFullscreen: exitFullscreen,
-    lock: lock,
-    showSwipeFinish: showSwipeFinish,
-    installDimHandlers: installDimHandlers,
     enterFocusMode: enterFocusMode,
     exitFocusMode: exitFocusMode,
     toggleFocusMode: toggleFocusMode,
     currentMode: currentMode,
     initDashboardMode: initDashboardMode,
-    saveViewMode: saveViewMode,
-    loadSavedViewMode: loadSavedViewMode
+    confirmStop: confirmStop,
+    wireControls: wireControls
   };
 
   /* ============================================================
@@ -355,7 +247,6 @@
         var speed = snap.durationSec>0 ? ((snap.totalM/1000)/(snap.durationSec/3600)) : 0;
         setText('f-speed', speed.toFixed(1));
         setText('f-cal', Math.max(0, Math.round(snap.calories||0)));
-        // Elev gain
         var gain = 0, prev=null;
         (snap.points||[]).forEach(function(p){
           if (p.elev!=null){
@@ -366,7 +257,6 @@
         setText('f-elev', Math.round(gain));
         var when = document.getElementById('kk-finish-when');
         if (when) when.textContent = new Date(snap.startedAt||Date.now()).toLocaleString('id-ID');
-        // Splits
         var host = document.getElementById('f-splits');
         if (host){
           if (!snap.kmSplits || !snap.kmSplits.length){
@@ -383,15 +273,11 @@
             host.innerHTML = html;
           }
         }
-        // Grafik sederhana pada canvas
         drawSimpleChart('f-chart-pace',  (snap.kmSplits||[]).map(function(s){return s.sec/60;}), '#1E90FF');
-        var speeds = []; if ((snap.kmSplits||[]).length){
-          snap.kmSplits.forEach(function(s){ speeds.push(3600/s.sec); });
-        }
+        var speeds = []; (snap.kmSplits||[]).forEach(function(s){ speeds.push(3600/s.sec); });
         drawSimpleChart('f-chart-speed', speeds, '#22c55e');
         var elevs = (snap.points||[]).filter(function(p){return p.elev!=null;}).map(function(p){return p.elev;});
         drawSimpleChart('f-chart-elev',  elevs, '#f59e0b');
-        // Mini finish map
         renderFinishMap(snap);
       } catch(e){ console.error(e); }
     },
@@ -420,7 +306,6 @@
       if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     });
     ctx.stroke();
-    // fill
     ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
     ctx.fillStyle = color+'22'; ctx.fill();
   }
@@ -445,20 +330,6 @@
   document.addEventListener('DOMContentLoaded', function(){
     initDashboardMode();
     wireControls();
-
-    // Tombol dashboard: Mulai / Pause / Resume / Stop delegasi ke tombol Focus asli
-    // sehingga logika di tracking.js tidak berubah.
-    function forward(dashId, targetId){
-      var d = document.getElementById(dashId); if (!d) return;
-      d.addEventListener('click', function(){
-        var t = document.getElementById(targetId);
-        if (t) t.click();
-      });
-    }
-    forward('kk-dash-btn-start',  'kk-btn-start');
-    forward('kk-dash-btn-pause',  'kk-btn-pause');
-    forward('kk-dash-btn-resume', 'kk-btn-resume');
-    forward('kk-dash-btn-stop',   'kk-btn-stop');
   });
 
 })();

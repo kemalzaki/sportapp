@@ -1,5 +1,17 @@
 /* ============================================================
- * KK Run · map.js  — Leaflet + rotasi map + auto-follow
+ * KK Run · map.js  (R40 — Refactor Bersih)
+ * ------------------------------------------------------------
+ * Leaflet + rotasi + auto-follow.
+ * Fix akar masalah "tombol map tidak bisa diklik":
+ *   - Floating fabs berada di LUAR #kk-map (di dalam .kk-mapwrap
+ *     sebagai sibling), sehingga event Leaflet tidak menangkap.
+ *   - Setelah init, L.DomEvent.disableClickPropagation/scrollPropagation
+ *     dipasang ke .kk-mapfabs / .kk-chips / .kk-settings-pop /
+ *     .kk-recenter sebagai safety net (untuk kasus browser tertentu
+ *     yang men-bubble touchstart ke .leaflet-container).
+ *   - Zoom control default Leaflet disembunyikan lewat CSS
+ *     (bukan lewat JS remove), tapi map.tap TIDAK dimatikan agar
+ *     pinch/pan tetap normal.
  * ============================================================ */
 (function(){
   'use strict';
@@ -20,7 +32,8 @@
 
   function newSegment(){
     var poly = L.polyline([], {
-      color:'#fc5200', weight:6, opacity:.95,
+      color: (window.KK_RUN && window.KK_RUN.polylineColor) || '#1E90FF',
+      weight:6, opacity:.95,
       lineCap:'round', lineJoin:'round'
     }).addTo(map);
     var s = { poly: poly, pts: [] };
@@ -30,7 +43,7 @@
   function ensureAccCircle(lat,lng,r){
     if (!accCircle){
       accCircle = L.circle([lat,lng], {
-        radius: r || 10, color:'#fc5200',
+        radius: r || 10, color:'#1E90FF',
         weight:1, opacity:.5, fillOpacity:.1
       }).addTo(map);
     } else {
@@ -59,10 +72,8 @@
       if (mapRotWrap) mapRotWrap.style.transform = 'rotate(0deg)';
       return;
     }
-    // rotate opposite so heading points to top
     currentHeading = headingDeg;
     if (mapRotWrap) mapRotWrap.style.transform = 'rotate(' + (-headingDeg) + 'deg)';
-    // Counter-rotate marker so runner icon stays upright
     if (marker){
       var el = marker.getElement && marker.getElement();
       if (el){
@@ -70,6 +81,22 @@
         if (inner) inner.style.transform = 'rotate(' + headingDeg + 'deg)';
       }
     }
+  }
+
+  /* Pasang stopPropagation Leaflet pada elemen floating di luar #kk-map.
+     Ini adalah SAFETY NET, bukan andalan utama — tombol sudah di luar
+     .leaflet-container. */
+  function armFloatingControls(){
+    if (!window.L) return;
+    var sels = ['.kk-mapfabs','.kk-chips','.kk-settings-pop','.kk-recenter'];
+    sels.forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(el){
+        try {
+          L.DomEvent.disableClickPropagation(el);
+          L.DomEvent.disableScrollPropagation(el);
+        } catch(e){}
+      });
+    });
   }
 
   window.KKMap = {
@@ -82,7 +109,7 @@
         maxZoom: 19, attribution: window.KK_RUN.mapboxAttr
       }).addTo(map);
 
-      // Wrap Leaflet map/tile pane so we can rotate the whole thing
+      // Wrap pane utk rotasi
       var container = map.getContainer();
       mapRotWrap = container.querySelector('.leaflet-map-pane');
       if (mapRotWrap) mapRotWrap.classList.add('kk-map-rot');
@@ -94,6 +121,8 @@
         var rc = document.getElementById('kk-recenter');
         if (rc) rc.classList.add('show');
       });
+
+      armFloatingControls();
       return map;
     },
 
@@ -129,6 +158,7 @@
     setHeading: setRotation,
 
     reset: function(){
+      // Bersihkan polyline / marker LAMA tanpa destroy peta.
       segments.forEach(function(s){ try{ map.removeLayer(s.poly); }catch(e){} });
       segments = []; curSeg = null;
       if (marker){ try{ map.removeLayer(marker); }catch(e){} marker = null; }

@@ -1,6 +1,12 @@
 /* ============================================================
- * KK Run · tracking.js — Orchestrator
- * Menggabungkan KKMap / KKGps / KKUI / KKSave / KKVoice / KKBackground
+ * KK Run · tracking.js  (R40 — Refactor Bersih)
+ * ------------------------------------------------------------
+ * SATU set tombol (#kk-btn-start / -pause / -resume / -stop /
+ * -mylocation). Tidak ada hidden button, tidak ada dispatchEvent,
+ * tidak ada safeClickHidden.
+ *
+ * Perpindahan Dashboard <-> Focus TIDAK memengaruhi tracking:
+ * KKUI hanya toggle CSS class, Leaflet tidak di-destroy.
  * ============================================================ */
 (function(){
   'use strict';
@@ -39,9 +45,11 @@
     return t/(state.totalM/1000);
   }
   function computeCalories(){
-    var sport = document.getElementById('sportSel').value;
+    var sportEl = document.getElementById('sportSel');
+    var wEl     = document.getElementById('weightInp');
+    var sport = sportEl ? sportEl.value : 'run';
     var mets = METS[sport] || 7;
-    var w = +document.getElementById('weightInp').value || 65;
+    var w = (wEl && +wEl.value) || 65;
     var kmh = state.curSpeed*3.6;
     if (kmh > 0){
       if (kmh < 4) mets = Math.max(2.5, mets*0.5);
@@ -83,11 +91,11 @@
     KKUI.renderMetrics(m);
     KKGps.setSpeedRef(state.curSpeed);
     if (KKVoice.isEnabled()) KKVoice.onDistance(state.totalM, m.paceAvg, state.voiceInterval);
-    // Update notification (native)
     KKBackground.updateNotification({ totalM: state.totalM, elapsedSec: m.tSec });
   }
 
   /* ---- Handle GPS position ---- */
+  var _lastAcceptedAt = 0;
   function handlePosition(pos, err){
     if (err){ KKUI.setGps(null, true); return; }
     if (state.paused && !state.autoPaused) return;
@@ -106,30 +114,27 @@
       if (acc && acc > 100) return;
       _acceptFirst(p); return;
     }
-    if (acc != null && acc > 30){ return; }
+    if (acc != null && acc > 30) return;
     var last = state.points[state.points.length-1];
     var d = KKGps.haversine(last, p);
     var dt = Math.max(0.001, (nowT-last.t)/1000);
     var speed = d/dt;
 
     if (nowT - _lastAcceptedAt < KKGps.adaptiveMinInterval() && d < 30){
-      KKMap.updateMarkerOnly(p);
-      return;
+      KKMap.updateMarkerOnly(p); return;
     }
     if (d > 150 || dt > 25){
       KKMap.breakSegment(p);
       state.points.push(p);
-      _lastAcceptedAt = nowT;
-      state.lastMoveAt = nowT;
+      _lastAcceptedAt = nowT; state.lastMoveAt = nowT;
       if (state.autoPaused){
         state.pausedTotalMs += (nowT - state.pauseAt);
         state.autoPaused = false; state.paused = false; state.pauseAt = null;
         KKUI.setAutoPaused(false);
       }
-      afterPoint(p, false);
-      return;
+      afterPoint(p, false); return;
     }
-    if (speed > 12){ return; }
+    if (speed > 12) return;
     if (d < 3){
       KKMap.updateMarkerOnly(p);
       if (!state.autoPaused && !state.paused && state.lastMoveAt && (nowT - state.lastMoveAt) > 20000){
@@ -145,14 +150,12 @@
       KKUI.setAutoPaused(false);
       KKVoice.say('Aktivitas dilanjutkan.');
     }
-    // Heading dari GPS jika ada
     if (p.hd != null && !isNaN(p.hd) && state.curSpeed*3.6 > 3){
       KKMap.setHeading(p.hd);
-    } else if (state.points.length > 0) {
+    } else {
       var br = KKGps.bearing(last, p);
       if (state.curSpeed*3.6 > 3) KKMap.setHeading(br);
     }
-
     state.curSpeed = state.curSpeed*0.7 + (pos.coords.speed && pos.coords.speed>=0 ? pos.coords.speed : speed)*0.3;
     if (p.elev != null){ state.curElev = state.curElev==null?p.elev:(state.curElev*0.7 + p.elev*0.3); }
     state.lastMoveAt = nowT;
@@ -162,7 +165,6 @@
     _lastAcceptedAt = nowT;
     afterPoint(p, true);
   }
-  var _lastAcceptedAt = 0;
   function _acceptFirst(p){
     state.points.push(p);
     KKMap.handleFix(p, true);
@@ -172,42 +174,54 @@
     _lastAcceptedAt = p.t;
     afterPoint(p, true);
   }
-  function afterPoint(p, sendDist){
+  function afterPoint(p){
     checkSplit();
     if (state.sessionId){
       KKSave.queuePoint({ lat:p.lat, lng:p.lng, acc:p.acc, spd:p.spd, total_m:state.totalM });
     }
     updateUI();
-    state.sport = document.getElementById('sportSel').value;
-    state.weight = +document.getElementById('weightInp').value || 65;
+    var sportEl=document.getElementById('sportSel'), wEl=document.getElementById('weightInp');
+    state.sport  = sportEl ? sportEl.value : 'run';
+    state.weight = (wEl && +wEl.value) || 65;
     KKSave.save(state);
+  }
+
+  /* ---- Tombol tampilan Start/Pause/Resume/Stop ---- */
+  function refreshButtons(){
+    var start  = document.getElementById('kk-btn-start');
+    var pause  = document.getElementById('kk-btn-pause');
+    var resume = document.getElementById('kk-btn-resume');
+    var stop   = document.getElementById('kk-btn-stop');
+    var running = !!state.sessionId;
+    if (start)  start.style.display  = running ? 'none' : '';
+    if (stop)   stop.style.display   = running ? '' : 'none';
+    if (pause)  pause.style.display  = (running && !state.paused) ? '' : 'none';
+    if (resume) resume.style.display = (running &&  state.paused) ? '' : 'none';
   }
 
   /* ---- Start / Pause / Resume / Stop ---- */
   async function startSession(){
-    // Cek permission GPS
     if (!navigator.geolocation){ alert('Browser/perangkat tidak mendukung GPS'); return; }
-    KKUI.enterFullscreen();
     KKUI.countdown(async function(){
       try { state.sessionId = await KKSave.startSession(); }
-      catch(e){ alert(e.message); KKUI.exitFullscreen(); return; }
+      catch(e){ alert(e.message); return; }
       state.startedAt = Date.now();
       state.totalM = 0; state.points = []; state.kmSplits = [];
       state.pausedTotalMs = 0; state.paused = false; state.autoPaused = false;
       state.curSpeed = 0; state.curElev = null; state.lastMoveAt = 0;
-      state.voiceInterval = +document.getElementById('voiceSel').value || 0;
+      var vSel = document.getElementById('voiceSel');
+      state.voiceInterval = vSel ? (+vSel.value || 0) : 1000;
       KKVoice.reset();
       KKMap.reset();
-      KKMap.setRotationEnabled(document.getElementById('rotSel').value === 'heading');
+      var rSel = document.getElementById('rotSel');
+      KKMap.setRotationEnabled(rSel ? (rSel.value === 'heading') : true);
       KKUI.setModeChip('● REC');
-      document.getElementById('kk-btn-pause').style.display='';
-      document.getElementById('kk-btn-resume').style.display='none';
+      refreshButtons();
 
       state.timerInt = setInterval(function(){ updateUI(); checkSplit(); }, 1000);
       var bgOk = await KKBackground.startBackgroundGeoloc(handlePosition);
       if (!bgOk) KKGps.start(handlePosition);
       KKGps.startCompass(function(hd){
-        // Compass hanya dipakai saat kecepatan sangat rendah (berjalan/berhenti)
         if (state.curSpeed*3.6 < 3) KKMap.setHeading(hd);
       });
       KKBackground.acquireWakeLock();
@@ -219,8 +233,7 @@
   function pauseSession(){
     if (!state.sessionId || state.paused) return;
     state.paused = true; state.pauseAt = Date.now();
-    document.getElementById('kk-btn-pause').style.display='none';
-    document.getElementById('kk-btn-resume').style.display='';
+    refreshButtons();
     KKUI.setModeChip('⏸ JEDA');
     KKVoice.say('Dijeda.');
     KKSave.save(state);
@@ -229,8 +242,7 @@
     if (!state.sessionId || !state.paused) return;
     state.pausedTotalMs += (Date.now() - state.pauseAt);
     state.paused = false; state.pauseAt = null; state.autoPaused = false;
-    document.getElementById('kk-btn-pause').style.display='';
-    document.getElementById('kk-btn-resume').style.display='none';
+    refreshButtons();
     KKUI.setModeChip('● REC');
     KKUI.setAutoPaused(false);
     KKVoice.say('Lanjut.');
@@ -250,67 +262,93 @@
     KKVoice.say('Tracking selesai. Kerja bagus.');
     var snap = {
       totalM: state.totalM, durationSec: dur, calories: state.calories,
-      points: state.points, kmSplits: state.kmSplits, startedAt: state.startedAt
+      points: state.points.slice(), kmSplits: state.kmSplits.slice(),
+      startedAt: state.startedAt
     };
-    KKUI.exitFullscreen();
+    // Reset session state agar tombol Start muncul lagi
+    var oldMode = KKUI.currentMode();
+    state.sessionId = null; state.startedAt = null;
+    state.paused = false; state.autoPaused = false;
+    KKUI.clearModeChip();
+    refreshButtons();
+    if (oldMode === 'focus') KKUI.exitFocusMode();
     KKFinish.open(snap);
   }
 
-  /* ---- Wire buttons ---- */
-  function wire(){
-    document.getElementById('kk-btn-start').addEventListener('click', startSession);
-    document.getElementById('kk-btn-pause').addEventListener('click', pauseSession);
-    document.getElementById('kk-btn-resume').addEventListener('click', resumeSession);
-    document.getElementById('kk-btn-stop').addEventListener('click', function(){
-      // Swipe-to-finish untuk anti salah pencet
-      KKUI.showSwipeFinish(stopSession);
+  /* ---- Tombol Lokasi Saya Sekarang ---- */
+  var _myLocMarker=null, _myLocCircle=null;
+  function showMyLocationOnMap(p){
+    var m = (window.KKMap && KKMap.getMap) ? KKMap.getMap() : null;
+    if (!m || !window.L) return;
+    var icon = L.divIcon({
+      className: 'kk-mylocation-icon',
+      html: '<div class="kk-mylocation-dot"></div><div class="kk-mylocation-pulse"></div>',
+      iconSize: [22,22], iconAnchor: [11,11]
     });
-    // Hold 2 detik sebagai alternatif
-    var holdT = null;
-    var stopBtn = document.getElementById('kk-btn-stop');
-    stopBtn.addEventListener('touchstart', function(){
-      holdT = setTimeout(stopSession, 2000);
-    });
-    stopBtn.addEventListener('touchend', function(){ if(holdT) clearTimeout(holdT); });
-    stopBtn.addEventListener('touchcancel', function(){ if(holdT) clearTimeout(holdT); });
+    if (_myLocMarker) { try { m.removeLayer(_myLocMarker); } catch(e){} }
+    if (_myLocCircle) { try { m.removeLayer(_myLocCircle); } catch(e){} }
+    _myLocMarker = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(m);
+    _myLocMarker.bindPopup('Lokasi Saya<br><small>Akurasi ±'+Math.round(p.acc||0)+' m</small>').openPopup();
+    if (p.acc && p.acc > 0){
+      _myLocCircle = L.circle([p.lat, p.lng], {
+        radius: p.acc, color:'#1E90FF', weight:1, opacity:.6,
+        fillColor:'#1E90FF', fillOpacity:.12
+      }).addTo(m);
+    }
+    m.setView([p.lat, p.lng], Math.max(m.getZoom(), 17), { animate:true });
+  }
+  function getMyLocation(){
+    if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
+    var btn = document.getElementById('kk-btn-mylocation');
+    var orig = btn ? btn.innerHTML : null;
+    if (btn){ btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Mencari lokasi…'; }
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var p = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+      state.lastFix = p;
+      try { showMyLocationOnMap(p); } catch(e){ console.error(e); }
+      if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+    }, function(err){
+      if (btn){ btn.disabled = false; btn.innerHTML = orig; }
+      alert('Gagal mendapatkan lokasi: ' + (err && err.message ? err.message : 'unknown'));
+    }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+  }
 
-    document.getElementById('kk-btn-lock').addEventListener('click', function(){ KKUI.lock(); });
-    document.getElementById('kk-btn-mute').addEventListener('click', function(){
-      var en = !KKVoice.isEnabled(); KKVoice.setEnabled(en);
-      this.innerHTML = en ? '<i class="bi bi-volume-up-fill"></i>' : '<i class="bi bi-volume-mute-fill"></i>';
-    });
-    document.getElementById('kk-recenter').addEventListener('click', function(){
-      var p = state.points[state.points.length-1] || state.lastFix;
-      KKMap.recenter(p);
-    });
-    document.getElementById('kk-finish-back').addEventListener('click', function(){
-      KKFinish.close();
-      location.reload();
-    });
-    document.getElementById('f-btn-discard').addEventListener('click', function(){
+  /* ---- Wire tombol (SATU set) ---- */
+  function wire(){
+    var start=document.getElementById('kk-btn-start');
+    var pause=document.getElementById('kk-btn-pause');
+    var resume=document.getElementById('kk-btn-resume');
+    var stop=document.getElementById('kk-btn-stop');
+    var loc=document.getElementById('kk-btn-mylocation');
+
+    if (start)  start.addEventListener('click',  function(e){ e.preventDefault(); startSession(); });
+    if (pause)  pause.addEventListener('click',  function(e){ e.preventDefault(); pauseSession(); });
+    if (resume) resume.addEventListener('click', function(e){ e.preventDefault(); resumeSession(); });
+    if (stop)   stop.addEventListener('click',   function(e){ e.preventDefault(); KKUI.confirmStop(stopSession); });
+    if (loc)    loc.addEventListener('click',    function(e){ e.preventDefault(); getMyLocation(); });
+
+    // Setting perubahan realtime
+    var rotSel  = document.getElementById('rotSel');
+    if (rotSel) rotSel.addEventListener('change', function(){ KKMap.setRotationEnabled(this.value === 'heading'); });
+    var voiceSel= document.getElementById('voiceSel');
+    if (voiceSel) voiceSel.addEventListener('change', function(){ state.voiceInterval = +this.value || 0; });
+
+    // Finish screen buttons
+    var fBack = document.getElementById('kk-finish-back');
+    if (fBack) fBack.addEventListener('click', function(){ KKFinish.close(); location.reload(); });
+    var fDis  = document.getElementById('f-btn-discard');
+    if (fDis)  fDis.addEventListener('click', function(){
       if (confirm('Buang catatan aktivitas ini?')){ KKFinish.close(); location.reload(); }
     });
 
-    // Rotasi map ganti
-    document.getElementById('rotSel').addEventListener('change', function(){
-      KKMap.setRotationEnabled(this.value === 'heading');
-    });
-    // Voice interval ganti
-    document.getElementById('voiceSel').addEventListener('change', function(){
-      state.voiceInterval = +this.value || 0;
-    });
-
-    // Visibility change → back to foreground, refresh GPS
+    // Visibility change → refresh GPS saat kembali ke foreground
     document.addEventListener('visibilitychange', async function(){
       if (document.visibilityState === 'visible' && state.sessionId){
         await KKBackground.hideBubble();
-        if (!KKBackground.isNative){
-          KKGps.stop(); KKGps.start(handlePosition);
-        }
+        if (!KKBackground.isNative){ KKGps.stop(); KKGps.start(handlePosition); }
         KKBackground.acquireWakeLock();
         KKMap.invalidate();
       } else if (document.visibilityState === 'hidden' && state.sessionId){
-        // Coba tampilkan bubble (native only, silent no-op di web)
         KKBackground.showBubble({ totalM: state.totalM });
       }
     });
@@ -327,15 +365,16 @@
       state.pausedTotalMs = +st.pausedTotalMs || 0;
       state.paused = !!st.paused;
       state.kmSplits = Array.isArray(st.kmSplits) ? st.kmSplits : [];
-      if (st.sport) document.getElementById('sportSel').value = st.sport;
-      if (st.weight) document.getElementById('weightInp').value = st.weight;
-      // Restore polyline
+      var sportEl=document.getElementById('sportSel');
+      var wEl=document.getElementById('weightInp');
+      if (st.sport && sportEl) sportEl.value = st.sport;
+      if (st.weight && wEl)    wEl.value = st.weight;
       state.points.forEach(function(p, i){ KKMap.handleFix(p, i===0); });
     } else {
       state.startedAt = Date.now();
     }
-    KKUI.enterFullscreen();
-    KKUI.setModeChip('● REC');
+    KKUI.setModeChip(state.paused ? '⏸ JEDA' : '● REC');
+    refreshButtons();
     state.timerInt = setInterval(function(){ updateUI(); checkSplit(); }, 1000);
     KKBackground.startBackgroundGeoloc(handlePosition).then(function(ok){
       if (!ok) KKGps.start(handlePosition);
@@ -344,7 +383,6 @@
     updateUI();
   }
 
-  /* ---- Detect non-native → tampilkan warning ---- */
   function detectNative(){
     if (!KKBackground.isNative){
       var w = document.getElementById('kk-bg-warn');
@@ -355,8 +393,8 @@
   /* ---- Init ---- */
   document.addEventListener('DOMContentLoaded', function(){
     KKMap.init();
-    KKUI.installDimHandlers();
     wire();
+    refreshButtons();
     detectNative();
     autoResume();
     if ('serviceWorker' in navigator){
@@ -364,6 +402,5 @@
     }
   });
 
-  // Expose untuk debug + save.js
-  window.KKTracking = { state: state };
+  window.KKTracking = { state: state, refreshButtons: refreshButtons };
 })();
