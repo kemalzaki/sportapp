@@ -455,10 +455,8 @@ body.kk-finish-open #kk-finish{display:block;}
       <div class="kk-settings-pop" id="kk-settings-pop">
         <label>Jenis Olahraga</label>
         <select id="sportSel">
-          <option value="run">Lari</option>
-          <option value="jog">Jogging</option>
-          <option value="walk">Jalan</option>
-          <option value="bike">Sepeda</option>
+          <!-- Revisi R43 Juli 2026 — hanya Jogging (business logic tracking tetap: value="jog"). -->
+          <option value="jog" selected>Jogging</option>
         </select>
         <label>Voice Feedback</label>
         <select id="voiceSel">

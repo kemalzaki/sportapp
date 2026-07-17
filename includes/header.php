@@ -186,6 +186,8 @@ if (empty($pageSkeleton)) {
 <link rel="stylesheet" href="/assets/css/gojek-top.css?v=4jun2026">
 <!-- Revisi Nov 2026 — Global Theme Engine & UI modernization overlay -->
 <link rel="stylesheet" href="/assets/css/redesign-2026.css?v=nov2026">
+<!-- Revisi R43 Juli 2026 — Safe Area global (Android status bar / iOS notch) -->
+<link rel="stylesheet" href="/assets/css/safe-area.css?v=r43">
 <!-- Revisi 4 Jun 2026: SFX klik di semua halaman -->
 <script defer src="/assets/js/sfx.js?v=4jun2026"></script>
 <style>

@@ -312,6 +312,7 @@ $publicActs = db_all("
   SELECT uh.id,uh.tanggal,uh.jenis,uh.durasi_menit,uh.jarak_km,uh.kalori,uh.file_path,uh.deskripsi,
          uh.pace, uh.pace_detik,
          COALESCE(uh.gear_sepatu,'') AS gear_sepatu,
+         COALESCE(uh.gpx_session_id, 0) AS gpx_session_id,
          COALESCE(uh.created_at, uh.tanggal::timestamp) AS uploaded_at,
          u.id AS uid,u.nama,u.foto_url,
          k.nama AS kom_nama,
@@ -323,6 +324,44 @@ $publicActs = db_all("
   LEFT JOIN komunitas k ON k.id = u.komunitas_id
   WHERE u.id = ANY($1::int[])
   ORDER BY uh.tanggal DESC, uh.id DESC LIMIT 30", [$__vids]);
+
+/* Revisi R43 Juli 2026 — Mini map preview rute untuk setiap aktivitas publik.
+   Data GPS diambil dari run_points (ditulis oleh Tracking Jalur → run.php),
+   dihubungkan lewat upload_harian.gpx_session_id yang di-insert otomatis di
+   api_run.php saat sesi selesai. Tidak ada perubahan schema. */
+$__routePoints = [];
+$__sessIds = [];
+foreach ($publicActs as $__a) {
+    $__sid = (int)($__a['gpx_session_id'] ?? 0);
+    if ($__sid > 0) $__sessIds[] = $__sid;
+}
+$__sessIds = array_values(array_unique($__sessIds));
+if ($__sessIds) {
+    try {
+        $__rowsPts = db_all(
+            "SELECT session_id, lat, lng FROM run_points
+             WHERE session_id = ANY(\$1::bigint[]) ORDER BY session_id, id",
+            [$__sessIds]
+        );
+        foreach ($__rowsPts as $__p) {
+            $__sid = (int)$__p['session_id'];
+            $__routePoints[$__sid][] = [(float)$__p['lat'], (float)$__p['lng']];
+        }
+        // Simplifikasi: maksimum ~120 titik per sesi supaya payload kecil.
+        foreach ($__routePoints as $__sid => $__arr) {
+            $__n = count($__arr);
+            if ($__n > 120) {
+                $__step = (int)ceil($__n / 120);
+                $__thin = [];
+                for ($__i=0; $__i < $__n; $__i += $__step) $__thin[] = $__arr[$__i];
+                // pastikan titik terakhir termasuk (finish marker akurat)
+                if (end($__thin) !== $__arr[$__n-1]) $__thin[] = $__arr[$__n-1];
+                $__routePoints[$__sid] = $__thin;
+            }
+        }
+    } catch (Throwable $e) { /* run_points belum ada / kolom belum ada — abaikan */ }
+}
+
 
 
 
@@ -406,7 +445,16 @@ if (!empty($_GET['ajax_lb'])) {
 
 include __DIR__.'/includes/header.php';
 ?>
+<!-- Revisi R43 Juli 2026 — Leaflet + mini-map preview rute Strava-like -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="/assets/js/kk-mini-map.js?v=r43"></script>
+<style>
+.kk-mini-map{ touch-action: pan-y; }
+.kk-mini-map .leaflet-control-attribution{ display:none; }
+</style>
 <h2 class="mb-3"><i class="bi bi-clock-history text-primary"></i> Riwayat & Leaderboard</h2>
+
 
 <div class="card shadow-sm mb-3"><div class="card-body">
   <!-- Revisi 22 Juni 2026 R12 — Filter kategori & periode pakai AJAX (tidak reload halaman) -->
@@ -667,6 +715,30 @@ include __DIR__.'/includes/header.php';
             </div>
 
             <?php if(!empty($a['deskripsi'])): ?><div class="small mt-2"><?= nl2br(htmlspecialchars($a['deskripsi'])) ?></div><?php endif; ?>
+
+            <?php
+              /* Revisi R43 Juli 2026 — Mini map preview rute (read-only, Strava-like).
+                 Hanya tampil bila aktivitas ini punya gpx_session_id + titik GPS. */
+              $__aSid = (int)($a['gpx_session_id'] ?? 0);
+              $__aPts = $__aSid > 0 ? ($__routePoints[$__aSid] ?? []) : [];
+              if (count($__aPts) >= 2):
+                $__ptsJson = htmlspecialchars(json_encode($__aPts, JSON_UNESCAPED_UNICODE), ENT_QUOTES);
+            ?>
+            <div class="kk-route-preview mt-2">
+              <div class="kk-mini-map"
+                   data-sid="<?= $__aSid ?>"
+                   data-points="<?= $__ptsJson ?>"
+                   style="height:200px;width:100%;border-radius:12px;border:1px solid #e5e7eb;background:#f1f5f9;overflow:hidden;"
+                   role="img" aria-label="Preview rute aktivitas"></div>
+              <div class="text-end mt-1">
+                <a href="/track_view.php?sid=<?= $__aSid ?>" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-map"></i> Lihat Rute
+                </a>
+              </div>
+            </div>
+            <?php endif; ?>
+
+
 
 
             <div class="mt-2 d-flex gap-3 align-items-center small">
