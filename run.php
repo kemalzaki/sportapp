@@ -388,6 +388,40 @@ body.kk-finish-open #kk-finish{display:block;}
    metric di Focus Mode. Naikkan z-index dan sesuaikan posisi. */
 body.kk-focus-mode .kk-mapfabs{z-index:10003;}
 body.kk-focus-mode .kk-chips{z-index:10003;}
+
+/* R37: Leaflet zoom control & attribution default z-index = 1000.
+   Tombol map custom (chips, fabs, recenter, settings popover) harus di atasnya
+   supaya TIDAK tertimpa peta / kontrol Leaflet saat sesi tracking dimulai. */
+.kk-chips{z-index:1200 !important;}
+.kk-mapfabs{z-index:1201 !important;}
+.kk-settings-pop{z-index:1202 !important;}
+.kk-recenter{z-index:1200 !important;}
+/* Sembunyikan zoom control Leaflet supaya tidak menabrak FAB kanan atas */
+#kk-map .leaflet-control-zoom{display:none !important;}
+#kk-map .leaflet-top.leaflet-right{display:none !important;}
+
+/* R37: Error overlay (jaringan / halaman tidak tersedia) */
+.kk-err-overlay{
+  position:fixed;inset:0;z-index:20000;background:rgba(15,23,42,.72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.kk-err-overlay.show{display:flex;animation:kkFadeIn .25s ease;}
+.kk-err-card{
+  background:#fff;border-radius:20px;max-width:420px;width:100%;
+  padding:22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;
+}
+.kk-err-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg,#ef4444,#f59e0b);
+  color:#fff;font-size:2rem;display:inline-flex;align-items:center;justify-content:center;
+  margin-bottom:12px;box-shadow:0 6px 20px rgba(239,68,68,.35);
+}
+.kk-err-card h5{font-weight:800;color:#0f172a;margin-bottom:6px;}
+.kk-err-card p{color:#475569;font-size:.9rem;margin-bottom:14px;}
+.kk-err-card code{background:#f1f5f9;padding:2px 6px;border-radius:6px;font-size:.78rem;color:#0f172a;}
+.kk-err-cta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px;}
+.kk-err-cta .btn{border-radius:12px;padding:10px 16px;font-weight:700;}
 </style>
 
 <body class="kk-run-page kk-dashboard-mode"></body>
@@ -486,7 +520,7 @@ body.kk-focus-mode .kk-chips{z-index:10003;}
       <button class="kk-dash-btn start" id="kk-dash-btn-start"><i class="bi bi-play-fill"></i> Mulai</button>
       <button class="kk-dash-btn pause" id="kk-dash-btn-pause" style="display:none"><i class="bi bi-pause-fill"></i> Jeda</button>
       <button class="kk-dash-btn resume" id="kk-dash-btn-resume" style="display:none"><i class="bi bi-play-fill"></i> Lanjut</button>
-      <button class="kk-dash-btn stop" id="kk-dash-btn-stop"><i class="bi bi-stop-fill"></i> Selesai</button>
+      <button class="kk-dash-btn stop" id="kk-dash-btn-stop" style="display:none"><i class="bi bi-stop-fill"></i> Selesai</button>
       <button class="kk-dash-btn" id="kk-dash-btn-mylocation" style="background:#0ea5e9;"><i class="bi bi-geo-alt-fill"></i> Lokasi Saya Sekarang</button>
     </div>
     <div class="text-center text-muted small mt-2">
@@ -602,6 +636,21 @@ body.kk-focus-mode .kk-chips{z-index:10003;}
 
 <!-- Countdown -->
 <div class="kk-countdown" id="kk-countdown">3</div>
+
+<!-- ================================================================
+     R37: Error overlay (offline / halaman gagal dimuat)
+     ================================================================ -->
+<div class="kk-err-overlay" id="kk-err-overlay" role="alertdialog" aria-modal="true" aria-labelledby="kk-err-title">
+  <div class="kk-err-card">
+    <div class="kk-err-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <h5 id="kk-err-title">Halaman tidak tersedia</h5>
+    <p id="kk-err-msg">Terjadi kesalahan saat memuat halaman. Periksa koneksi internet Anda lalu coba lagi.</p>
+    <div class="kk-err-cta">
+      <button type="button" class="btn btn-outline-secondary" id="kk-err-close">Tutup</button>
+      <button type="button" class="btn btn-primary" id="kk-err-retry"><i class="bi bi-arrow-clockwise"></i> Coba Lagi</button>
+    </div>
+  </div>
+</div>
 
 <!-- ================================================================
      FINISH SCREEN
@@ -776,10 +825,101 @@ document.addEventListener('DOMContentLoaded', function(){
     if (dashStart)  dashStart.style.display  = running ? 'none' : '';
     if (dashPause)  dashPause.style.display  = (running && !isPaused) ? '' : 'none';
     if (dashResume) dashResume.style.display = (running && isPaused) ? '' : 'none';
+    /* R37 (fix 1): Tombol "Selesai" HANYA muncul saat sesi tracking sudah berjalan. */
+    if (dashStop)   dashStop.style.display   = running ? '' : 'none';
   }
   setInterval(sync, 500);
   sync();
 });
+
+/* ================================================================
+   R37 (fix 3): Global error overlay
+   Tampilkan modal ramah bila:
+   - Browser offline
+   - Fetch/AJAX error jaringan
+   - Link internal (upload/finish) gagal diakses (ERR_CACHE_MISS, dsb.)
+   ================================================================ */
+(function(){
+  var overlay = document.getElementById('kk-err-overlay');
+  if (!overlay) return;
+  var msgEl   = document.getElementById('kk-err-msg');
+  var retryBtn= document.getElementById('kk-err-retry');
+  var closeBtn= document.getElementById('kk-err-close');
+  var lastRetry = null;
+
+  function showErr(message, onRetry){
+    if (msgEl) msgEl.textContent = message || 'Terjadi kesalahan saat memuat halaman. Periksa koneksi internet Anda lalu coba lagi.';
+    lastRetry = (typeof onRetry === 'function') ? onRetry : null;
+    if (retryBtn) retryBtn.style.display = lastRetry ? '' : 'none';
+    overlay.classList.add('show');
+  }
+  function hideErr(){ overlay.classList.remove('show'); }
+
+  if (closeBtn) closeBtn.addEventListener('click', hideErr);
+  if (retryBtn) retryBtn.addEventListener('click', function(){
+    var fn = lastRetry; hideErr();
+    try { fn && fn(); } catch(e){ console.error(e); }
+  });
+
+  // Expose global
+  window.KKError = { show: showErr, hide: hideErr };
+
+  // Offline / online
+  window.addEventListener('offline', function(){
+    showErr('Perangkat sedang offline. Sambungkan kembali ke internet lalu coba lagi.', function(){
+      if (navigator.onLine) hideErr();
+    });
+  });
+
+  // Wrap fetch untuk deteksi network error
+  var _origFetch = window.fetch ? window.fetch.bind(window) : null;
+  if (window.fetch){
+    window.fetch = function(input, init){
+      return _origFetch(input, init).then(function(res){
+        if (!res.ok && (res.status === 0 || res.status >= 500)){
+          showErr('Server tidak dapat dihubungi (kode ' + res.status + '). Silakan coba lagi.', function(){
+            window.fetch(input, init);
+          });
+        }
+        return res;
+      }).catch(function(err){
+        showErr('Gagal terhubung ke server. Periksa koneksi internet Anda.', function(){
+          window.fetch(input, init);
+        });
+        throw err;
+      });
+    };
+  }
+
+  // Preflight link internal (Review & Upload, Buang) — cegah tampilan error mentah browser
+  document.addEventListener('click', function(ev){
+    var a = ev.target.closest('a');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    // Hanya intercept link internal (path relatif atau same-origin) yang bukan #anchor / mailto / tel / javascript
+    if (!href || href.charAt(0) === '#' || /^(mailto:|tel:|javascript:)/i.test(href)) return;
+    var url;
+    try { url = new URL(href, window.location.href); } catch(e){ return; }
+    if (url.origin !== window.location.origin) return;
+    // Hanya untuk link "penting" — tandai dengan class atau target ke upload/riwayat
+    if (!/upload\.php|riwayat\.php|api_run\.php/i.test(url.pathname)) return;
+
+    ev.preventDefault();
+    var go = function(){ window.location.href = url.href; };
+    if (!navigator.onLine){
+      showErr('Perangkat sedang offline. Sambungkan kembali ke internet lalu buka '+url.pathname+' lagi.', go);
+      return;
+    }
+    // HEAD dulu untuk cek reachable (pakai fetch asli agar tidak trigger overlay dua kali)
+    var probe = _origFetch ? _origFetch(url.href, { method:'HEAD', cache:'no-store' }) : Promise.resolve({ok:true});
+    probe.then(function(r){
+      if (r && r.ok) go();
+      else showErr('Halaman '+url.pathname+' tidak dapat dimuat (kode '+(r&&r.status||'?')+').', go);
+    }).catch(function(){
+      showErr('Halaman '+url.pathname+' tidak dapat dimuat. Periksa koneksi internet Anda.', go);
+    });
+  });
+})();
 
 /* ---- Hapus riwayat ---- */
 document.addEventListener('click', function(ev){
