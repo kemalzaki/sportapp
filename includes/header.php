@@ -27,6 +27,8 @@ if (!function_exists('nav_feature_paket_map')) {
             // 'riwayat.php'             => ['komunitas'],
             // Revisi Juli 2026 — Tracking Jalur (run.php) dipindah ke KOMUNITAS
             'run.php'                 => ['komunitas'],
+            // Halaman Eksplorasi Rute & Peta Canggih (dipisah dari run.php)
+            'explore.php'             => ['komunitas'],
             // Tempat → Komunitas
             'tempat.php'              => ['komunitas'],
             'tempat_list.php'         => ['komunitas'],
@@ -144,7 +146,7 @@ if (empty($pageSkeleton)) {
         'tempat.php'=>'grid', 'tempat_list.php'=>'grid', 'tempat_detail.php'=>'grid',
         'buku.php'=>'grid', 'jajanan.php'=>'grid', 'beasiswa.php'=>'grid',
         'kajian.php'=>'grid', 'iptv.php'=>'grid',
-        'run.php'=>'grid', 'riwayat.php'=>'table', 'upload.php'=>'grid',
+        'run.php'=>'grid', 'explore.php'=>'grid', 'riwayat.php'=>'table', 'upload.php'=>'grid',
         'challenge.php'=>'forum', 'doa_antar_member.php'=>'forum',
         'bookmark.php'=>'list', 'search.php'=>'list', 'hashtag.php'=>'feed',
         'monitoring.php'=>'table', 'export.php'=>'table',
@@ -691,7 +693,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D<?= nav_lock_badge_for('flyover.php') ?></a>
           <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih
                Label paket disamakan dengan Monitoring (nav_lock_badge_for). -->
-          <a class="list-group-item list-group-item-action ps-4" href="/run.php#eksplorasi"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih<?= nav_lock_badge_for('run.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/explore.php"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih<?= nav_lock_badge_for('explore.php') ?></a>
         </div>
 
         <?php /* Grup: Perhitungan Kalori Olahraga */ ?>

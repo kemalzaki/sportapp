@@ -7,6 +7,8 @@ require_login();
 $msg=''; $err='';
 $u = current_user();
 try { db_exec("ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gear_sepatu VARCHAR(120)"); } catch (Throwable $e) {}
+try { db_exec("ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gpx_session_id BIGINT"); } catch (Throwable $e) {}
+try { db_exec("CREATE INDEX IF NOT EXISTS upload_harian_gpx_idx ON upload_harian(gpx_session_id)"); } catch (Throwable $e) {}
 
 // ---- Handle Delete ----
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='delete') {
@@ -244,6 +246,11 @@ include __DIR__.'/includes/header.php'; ?>
                   onclick="showBukti('<?= htmlspecialchars($m['file_path']) ?>','<?= htmlspecialchars($m['tanggal']) ?>')">
                   <i class="bi bi-image"></i> Lihat
                 </button>
+              <?php elseif(!empty($m['gpx_session_id'])): ?>
+                <button type="button" class="btn btn-sm btn-outline-success"
+                  onclick="showGpx(<?= (int)$m['gpx_session_id'] ?>,'<?= htmlspecialchars($m['tanggal']) ?>')">
+                  <i class="bi bi-map"></i> GPX
+                </button>
               <?php else: ?>-<?php endif; ?>
             </td>
             <td class="text-end">
@@ -329,6 +336,78 @@ function showBukti(src, date){
   img.src = src; op.href = src;
   buktiModal.show();
 }
+</script>
+
+<!-- Revisi Juli 2026 R14 — Modal GPX Mapbox untuk baris hasil Tracking Jalur -->
+<div class="modal fade" id="gpxModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h5 class="modal-title"><i class="bi bi-map text-success"></i> Peta GPX <small id="gpxDate" class="text-muted ms-2"></small></h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-2">
+        <div id="gpxMap" style="height:60vh;border-radius:8px;background:#f1f5f9"></div>
+        <div id="gpxInfo" class="small text-muted mt-2"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <a id="gpxDownload" href="#" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> Unduh GPX</a>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  var MB_TOKEN = 'pk.eyJ1IjoiYWRhbXNhc21pdGE1MzQiLCJhIjoiY21xZnRsbWxjMXZldDJ0cHlhN2Jycnd1dCJ9.2E00ey-sgX9jUmf5kIRoEA';
+  var MB_TILE  = 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}@2x?access_token=' + MB_TOKEN;
+  var MB_ATTR  = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  var gpxModal=null, gMap=null, gLine=null;
+  window.showGpx = function(sid, date){
+    var el = document.getElementById('gpxModal'); if (!el) return;
+    document.getElementById('gpxDate').textContent = date || '';
+    document.getElementById('gpxInfo').textContent = 'Memuat titik GPS…';
+    document.getElementById('gpxDownload').href = '/api_run.php?export='+sid+'&fmt=gpx';
+    if (!gpxModal) gpxModal = new bootstrap.Modal(el);
+    gpxModal.show();
+    el.addEventListener('shown.bs.modal', function once(){
+      el.removeEventListener('shown.bs.modal', once);
+      if (!gMap){
+        gMap = L.map('gpxMap');
+        L.tileLayer(MB_TILE, {maxZoom:19, attribution:MB_ATTR}).addTo(gMap);
+      } else if (gLine){ gMap.removeLayer(gLine); gLine=null; }
+      gMap.invalidateSize();
+      fetch('/api_run.php?export='+sid+'&fmt=geojson', {credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(g){
+          var coords = [];
+          if (g && g.type === 'FeatureCollection' && g.features && g.features[0] && g.features[0].geometry) {
+            coords = g.features[0].geometry.coordinates || [];
+          } else if (g && g.geometry && g.geometry.coordinates) {
+            coords = g.geometry.coordinates;
+          } else if (Array.isArray(g && g.points)) {
+            coords = g.points.map(function(p){ return [p.lng, p.lat]; });
+          }
+          if (!coords.length){
+            document.getElementById('gpxInfo').innerHTML = '<span class="text-danger">Tidak ada titik GPS tersimpan.</span>';
+            gMap.setView([-6.2,106.8], 5);
+            return;
+          }
+          var latlngs = coords.map(function(c){ return [c[1], c[0]]; });
+          gLine = L.polyline(latlngs, {color:'#fc5200', weight:5}).addTo(gMap);
+          L.marker(latlngs[0]).addTo(gMap).bindTooltip('Mulai');
+          L.marker(latlngs[latlngs.length-1]).addTo(gMap).bindTooltip('Selesai');
+          gMap.fitBounds(gLine.getBounds(), {padding:[20,20]});
+          document.getElementById('gpxInfo').textContent = latlngs.length + ' titik GPS · Sesi #' + sid;
+        })
+        .catch(function(e){
+          document.getElementById('gpxInfo').innerHTML = '<span class="text-danger">Gagal memuat GPX: '+ (e.message||e) +'</span>';
+        });
+    }, {once:true});
+  };
+})();
 </script>
 
 <!-- Revisi Nov 2026 — Modal Panduan Upload Screenshot Strava -->

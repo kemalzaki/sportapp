@@ -21,12 +21,12 @@ require __DIR__.'/includes/helpers.php';
 require_once __DIR__.'/includes/ai_router.php';
 require_once __DIR__.'/includes/paket_helpers.php'; // Gate PRO seperti iptv.php
 send_security_headers(); require_login();
-$pageTitle = 'Opini Viral · Analisis Sentimen YouTube';
+$pageTitle = 'Opini Viral · Analisis Sentimen Masyarakat';
 $u = current_user();
 
 // Revisi — Opini Viral khusus paket PRO (paket gratis dikunci, seperti iptv.php)
 paket_require_or_lock('pro', $u, 'Opini Viral',
-    'Analisis Opini Viral berbasis komentar YouTube tersedia untuk paket PRO.');
+    'Analisis Opini Viral berbasis komentar masyarakat, tersedia untuk paket PRO.');
 
 /* ============================================================
  * MIGRASI TABEL (idempotent)
@@ -223,7 +223,7 @@ function ov_ringkasan_ai(int $total, int $pos, int $net, int $neg, array $topWor
     $topics = []; $summary = '';
     if (function_exists('ai_chat')) {
         $prompt = "Berdasarkan statistik berikut buat JSON: {\"summary\":\"...\",\"topics\":[\"...\",\"...\"]}.\n".
-                  "Total komentar YouTube: $total. Positif: $pos, Netral: $net, Negatif: $neg. Kata paling sering: ".implode(', ', array_slice(array_keys($topWords),0,20)).".\n".
+                  "Total komentar : $total. Positif: $pos, Netral: $net, Negatif: $neg. Kata paling sering: ".implode(', ', array_slice(array_keys($topWords),0,20)).".\n".
                   "Buat ringkasan 2-3 kalimat bahasa Indonesia natural, lalu 5 topik utama yang paling banyak dibahas.";
         try {
             $raw = ai_chat($prompt, ['json'=>true,'temperature'=>0.4,'max_tokens'=>400]);
@@ -237,7 +237,7 @@ function ov_ringkasan_ai(int $total, int $pos, int $net, int $neg, array $topWor
     if ($summary==='') {
         $pctPos = $total?round($pos*100/$total):0; $pctNet=$total?round($net*100/$total):0; $pctNeg=$total?round($neg*100/$total):0;
         $dom = $pctPos>=$pctNet && $pctPos>=$pctNeg ? "positif" : ($pctNeg>=$pctNet ? "negatif" : "netral");
-        $summary = "Dari $total komentar YouTube, mayoritas netizen memberikan sentimen $dom ($pctPos% positif, $pctNet% netral, $pctNeg% negatif).";
+        $summary = "Dari $total komentar masyarakat, mayoritas netizen memberikan sentimen $dom ($pctPos% positif, $pctNet% netral, $pctNeg% negatif).";
     }
     if (empty($topics)) $topics = array_slice(array_keys($topWords), 0, 5);
     return ['summary'=>$summary, 'topics'=>$topics];
@@ -449,8 +449,8 @@ $hasYT = ov_env('YOUTUBE_API_KEY') !== '';
 
 <div class="ov-wrap">
   <div class="ov-card">
-    <h1 class="ov-title">🎯 Opini Viral · Analisis Sentimen YouTube</h1>
-    <p class="ov-sub">Analisis komentar publik YouTube untuk memahami opini netizen Indonesia terhadap sebuah topik.</p>
+    <h1 class="ov-title">🎯 Opini Viral · Analisis Sentimen Masyarakat</h1>
+    <p class="ov-sub">Analisis komentar publik untuk memahami opini netizen Indonesia terhadap sebuah topik.</p>
     <?php if (!$hasYT): ?>
       <div class="ov-warn">⚠️ Env <code>YOUTUBE_API_KEY</code> belum diatur. Tambahkan pada <code>config/env.local.php</code>: <code>putenv('YOUTUBE_API_KEY=xxxx');</code> lalu reload halaman.</div>
     <?php endif; ?>
@@ -471,7 +471,7 @@ $hasYT = ov_env('YOUTUBE_API_KEY') !== '';
     </form>
   </div>
 
-  <div class="ov-loader" id="ovLoader">⏳ Mengambil video & komentar YouTube (maks 100 komentar), menganalisis sentimen dengan AI… (±10-20 detik)</div>
+  <div class="ov-loader" id="ovLoader">⏳ Mengambil video & komentar, menganalisis sentimen... (±10-20 detik)</div>
 
   <!-- Revisi R31: panel riwayat pencarian, memuat data dari DB tanpa memanggil YouTube lagi -->
   <div class="ov-card" id="ovHistoryCard">

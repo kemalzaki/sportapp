@@ -314,7 +314,43 @@ if ($a === 'stop') {
     $kal = (int)round(($jarak/1000) * 65);
     db_exec("UPDATE run_sessions SET selesai_at=now(), jarak_m=$1, durasi_dtk=$2, kalori=$3, status='selesai' WHERE id=$4 AND user_id=$5",
         [$jarak,$dur,$kal,$sid,$uid]);
-    echo json_encode(['ok'=>true]); exit;
+
+    /* ============================================================
+     * Revisi Juli 2026 R14 — Auto-isi Upload Harian dari hasil lari.
+     * Setelah sesi lari selesai, otomatis buat baris upload_harian
+     * dengan referensi ke run_sessions.id agar bisa ditampilkan
+     * sebagai peta GPX Mapbox pada tabel Aktivitas Saya di upload.php.
+     * ============================================================ */
+    $upload_id = 0;
+    try {
+        @db_exec("ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gpx_session_id BIGINT");
+        @db_exec("CREATE INDEX IF NOT EXISTS upload_harian_gpx_idx ON upload_harian(gpx_session_id)");
+        if ($sid > 0 && $jarak > 0 && $dur > 0) {
+            $km  = $jarak / 1000.0;
+            $mnt = (int)round($dur / 60.0);
+            $paceStr = '';
+            if ($km > 0.05) {
+                $paceSec = (int)round($dur / $km);
+                $pm = intdiv($paceSec, 60);
+                $ps = $paceSec % 60;
+                $paceStr = $pm."'".str_pad((string)$ps,2,'0',STR_PAD_LEFT).'"/km';
+            }
+            // Cegah duplikat untuk sesi yang sama
+            $exists = db_one("SELECT id FROM upload_harian WHERE user_id=$1 AND gpx_session_id=$2", [$uid, $sid]);
+            if (!$exists) {
+                $r = pg_query_params(db(),
+                  "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,pace,deskripsi,file_path,gdrive_url,gpx_session_id)
+                   VALUES($1,$2,'Jogging',$3,$4,$5,$6,$7,NULL,NULL,$8) RETURNING id",
+                   [$uid, date('Y-m-d'), $mnt, round($km,2), $kal, $paceStr,
+                    'Diisi otomatis dari Tracking Jalur (GPX #'.$sid.').', $sid]);
+                $upload_id = (int)(pg_fetch_row($r)[0] ?? 0);
+            } else {
+                $upload_id = (int)$exists['id'];
+            }
+        }
+    } catch (Throwable $e) { /* jangan blok stop */ }
+
+    echo json_encode(['ok'=>true, 'upload_id'=>$upload_id]); exit;
 }
 
 if ($a === 'delete') {
