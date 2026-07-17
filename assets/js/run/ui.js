@@ -317,103 +317,10 @@
     setTimeout(function(){ _finishMap.invalidateSize(); }, 80);
   }
 
-  /* ============================================================
-   *  Tombol "Buang" — batalkan sesi tanpa menyimpan
-   * ------------------------------------------------------------
-   *  Alur:
-   *    Klik Buang → confirm "Buang aktivitas ini?"
-   *      Batal → tetap di halaman finish (tidak melakukan apa-apa)
-   *      Buang → DELETE /api_run.php?action=delete
-   *              → hapus sesi + points di DB
-   *              → KKSave.clear() (jaga-jaga; sudah dipanggil stopSession)
-   *              → KKFinish.close(); location.replace('/run.php')
-   *                → kembali ke dashboard bersih
-   *
-   *  Karena tracking.js sudah memanggil KKSave.stopSession(sid,...) yang
-   *  menandai sesi 'selesai' di DB SEBELUM finish screen muncul, kita
-   *  perlu id sesi terakhir. ui.js membungkus KKSave.stopSession untuk
-   *  merekamnya ke window._kkLastSessionId (TIDAK mengubah save.js).
-   *
-   *  Listener dipasang di fase capture + stopImmediatePropagation supaya
-   *  handler default di tracking.js (yang hanya reload tanpa hapus)
-   *  tidak ikut jalan.
-   * ============================================================ */
-  function _wrapKKSave(){
-    if (!window.KKSave || KKSave.__kkWrapped) return;
-    var origStop = KKSave.stopSession;
-    if (typeof origStop === 'function'){
-      KKSave.stopSession = function(sid){
-        try { window._kkLastSessionId = sid; } catch(e){}
-        return origStop.apply(this, arguments);
-      };
-    }
-    KKSave.__kkWrapped = true;
-  }
-
-  function _postForm(url, data){
-    var body = new URLSearchParams();
-    Object.keys(data||{}).forEach(function(k){ body.append(k, data[k]); });
-    return fetch(url, {
-      method:'POST', credentials:'same-origin',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: body.toString()
-    });
-  }
-
-  function _resolveLastSessionId(){
-    if (window._kkLastSessionId) return window._kkLastSessionId;
-    // Fallback: coba baca dari state (biasanya sudah null saat finish)
-    try {
-      var st = window.KKTracking && window.KKTracking.state;
-      if (st && st.sessionId) return st.sessionId;
-    } catch(e){}
-    // Fallback terakhir: KK_RUN.sessionId (nilai awal load halaman)
-    try { return (window.KK_RUN && window.KK_RUN.sessionId) || null; } catch(e){ return null; }
-  }
-
-  async function _doDiscard(){
-    var sid = _resolveLastSessionId();
-    var csrf = (window.KK_RUN && window.KK_RUN.csrf) || '';
-    try {
-      if (sid){
-        await _postForm('/api_run.php?action=delete', {
-          session_id: sid, csrf_token: csrf, _token: csrf
-        });
-      }
-    } catch(e){ console.error('discard delete failed', e); }
-    try { window._kkLastSessionId = null; } catch(e){}
-    try { if (window.KKSave && KKSave.clear) KKSave.clear(); } catch(e){}
-    try { KKFinish.close(); } catch(e){}
-    // Kembali ke dashboard bersih (tanpa autoResume — sesi sudah dihapus)
-    location.replace('/run.php');
-  }
-
-  function wireDiscard(){
-    var btn = document.getElementById('f-btn-discard');
-    if (!btn || btn.__kkDiscardWired) return;
-    btn.addEventListener('click', function(e){
-      // Rebut event sebelum handler tracking.js sempat jalan
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      e.stopPropagation();
-      if (confirm('Buang aktivitas ini? Data tidak akan disimpan.')){
-        _doDiscard();
-      }
-      // Jika Batal → tidak melakukan apa-apa (tetap di halaman finish)
-    }, true); // <-- capture phase, dijalankan sebelum handler tracking.js
-    btn.__kkDiscardWired = true;
-  }
-
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function(){
     initDashboardMode();
     wireControls();
-    // Bungkus KKSave setelah semua modul JS di-load
-    setTimeout(_wrapKKSave, 0);
-    // Pasang discard listener lebih dulu daripada tracking.js (capture)
-    wireDiscard();
-    // Re-wire kalau tracking.js belakangan me-render ulang tombol
-    setTimeout(wireDiscard, 500);
   });
 
 })();
