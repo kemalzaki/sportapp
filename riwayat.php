@@ -731,9 +731,9 @@ include __DIR__.'/includes/header.php';
                    style="height:200px;width:100%;border-radius:12px;border:1px solid #e5e7eb;background:#f1f5f9;overflow:hidden;"
                    role="img" aria-label="Preview rute aktivitas"></div>
               <div class="text-end mt-1">
-                <button type="button" class="btn btn-sm btn-outline-primary kk-route-expand" data-sid="<?= $__aSid ?>">
+                <a class="btn btn-sm btn-outline-primary" href="/activity_detail.php?id=<?= (int)$a['id'] ?>">
                   <i class="bi bi-arrows-fullscreen"></i> Lihat Rute
-                </button>
+                </a>
               </div>
             </div>
             <?php endif; ?>

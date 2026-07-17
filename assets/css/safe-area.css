@@ -203,3 +203,33 @@ html.is-native body {
 .offcanvas.offcanvas-bottom{
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* =====================================================================
+ * REVISI R46 (Juli 2026) — Drawer Safe Area untuk Android WebView
+ * ---------------------------------------------------------------------
+ * Drawer kiri (gtDrawer) masih menabrak status bar pada Android WebView
+ * yang mengembalikan env(safe-area-inset-top) = 0. Terapkan fallback
+ * .is-native (di-set di header.php ketika Capacitor / Android WebView
+ * terdeteksi) — sama pola dengan header (.gt-top).
+ * Tidak mengubah ID, class utama, atau JS bisnis.
+ * ===================================================================== */
+html.is-native .offcanvas.offcanvas-start,
+html.is-native .offcanvas.offcanvas-end,
+html.is-native .offcanvas.offcanvas-top,
+html.is-native .gt-drawer{
+  padding-top: max(env(safe-area-inset-top, 0px), var(--sat-fallback, 28px));
+}
+html.is-native .offcanvas.offcanvas-start .offcanvas-header,
+html.is-native .offcanvas.offcanvas-end   .offcanvas-header,
+html.is-native .offcanvas.offcanvas-top   .offcanvas-header,
+html.is-native .gt-drawer .offcanvas-header{
+  padding-top: max(1rem, calc(.75rem + max(env(safe-area-inset-top, 0px), var(--sat-fallback, 28px))));
+}
+html.is-native .offcanvas.offcanvas-bottom{
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
+}
+/* Body offcanvas: menu item pertama tidak boleh mepet header */
+html.is-native .gt-drawer .offcanvas-body,
+html.is-native .offcanvas.offcanvas-start .offcanvas-body{
+  padding-top: .25rem;
+}

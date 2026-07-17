@@ -41,7 +41,7 @@ window.MAPBOX_ATTR = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox
 
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-compass text-primary"></i> Eksplorasi Rute &amp; Peta Canggih</h4>
-  <a href="/run.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-stopwatch"></i> Ke Tracking Jalur</a>
+  <a href="/run.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-stopwatch"></i> Ke Rekam Jogging</a>
 </div>
 
 <!-- ================================================================== -->

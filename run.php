@@ -29,13 +29,13 @@ require __DIR__.'/includes/security.php';
 require __DIR__.'/includes/helpers.php';
 send_security_headers(); require_login();
 $u = current_user(); $uid = (int)$u['id'];
-$pageTitle = 'Tracking Jalur / Rute';
+$pageTitle = 'Rekam Jogging';
 $pageSkeleton = 'grid';
 
 require_once __DIR__.'/includes/paket_helpers.php';
 if (!isset($u) || !$u) { require_login(); $u = current_user(); }
-paket_require_or_lock('komunitas', $u, 'Tracking Jalur / Rute',
-    'Tracking Jalur & Eksplorasi Rute tersedia untuk paket Komunitas.');
+paket_require_or_lock('komunitas', $u, 'Rekam Jogging',
+    'Rekam Jogging & Eksplorasi Rute tersedia untuk paket Komunitas.');
 
 $userRow = db_one("SELECT foto_url FROM users WHERE id=$1", [$uid]);
 $userPhoto = trim((string)($userRow['foto_url'] ?? ''));
@@ -398,7 +398,7 @@ body.kk-finish-open #kk-finish{display:block;}
      ================================================================ -->
 <div class="kk-dash-wrap">
   <div class="kk-dash-title kk-hide-in-focus">
-    <h4><i class="bi bi-stopwatch text-primary"></i> Tracking Jalur</h4>
+    <h4><i class="bi bi-stopwatch text-primary"></i> Rekam Jogging</h4>
   </div>
 
   <div id="kk-bg-warn" class="alert alert-warning small d-none kk-hide-in-focus">
