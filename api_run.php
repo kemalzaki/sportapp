@@ -356,11 +356,22 @@ if ($a === 'stop') {
 if ($a === 'delete') {
     $sid = (int)($_POST['session_id'] ?? 0);
     if ($sid > 0) {
-        db_exec("DELETE FROM run_points WHERE session_id=$1", [$sid]);
-        db_exec("DELETE FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid, $uid]);
+        // Pastikan sesi memang milik user ini sebelum kaskade hapus.
+        $own = db_one("SELECT id FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid, $uid]);
+        if ($own) {
+            db_exec("DELETE FROM run_points WHERE session_id=$1", [$sid]);
+            // Revisi Juli 2026 R42 — Tombol "Buang" pada halaman Finish
+            // harus benar-benar membuang aktivitas. Action=stop otomatis
+            // menyisipkan baris upload_harian (gpx_session_id=sid); baris
+            // itu wajib ikut dihapus supaya tidak muncul di upload.php
+            // maupun riwayat.php.
+            @db_exec("DELETE FROM upload_harian WHERE user_id=$1 AND gpx_session_id=$2", [$uid, $sid]);
+            db_exec("DELETE FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid, $uid]);
+        }
     }
     echo json_encode(['ok'=>true]); exit;
 }
+
 
 // ===== Revisi 15 Jun 2026: simpan rute hasil Route Builder =====
 if ($a === 'route_save') {

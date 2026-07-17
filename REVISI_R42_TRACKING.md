@@ -1,59 +1,72 @@
-# REVISI R42 — Focus Mode layering + tombol Buang
+# REVISI R42 — Focus Mode & Tombol Buang
 
-Perbaikan hanya menyentuh `run.php`, `assets/js/run/ui.js`, dan CSS di dalam `run.php`.
-File `gps.js`, `tracking.js`, `save.js`, `background.js`, `voice.js`, dan skema
-PostgreSQL TIDAK diubah.
+Cakupan revisi (kecil, tidak menyentuh business-logic GPS/tracking):
 
-## 1. Focus Mode — panel statistik tidak lagi menutupi floating controls
+## 1. Focus Mode — Layer & Ukuran Panel Statistik
+File: `run.php` (blok `<style>` bagian `body.kk-focus-mode #kk-stats-card`, `.kk-mapfabs`, `.kk-controls-card`).
 
-- Panel statistik `#kk-stats-card` diberi ruang di kanan (`right:66px`) supaya
-  tidak menabrak kolom tombol Lokasi / Compass / Fullscreen / Settings.
-- Tinggi panel dikecilkan ±35–40%:
-  - padding `6px 10px 8px`
-  - primary value `1.5rem` (dari `2rem`)
-  - stat cell padding `4px 2px`, value `0.78rem`
-  - grid gap `4px`
-- Urutan `z-index` (bawah → atas):
-  1. `#kk-map` / `.kk-mapwrap` — dasar
-  2. `#kk-stats-card` — `z-index:900`
-  3. `.kk-mapfabs`, `.kk-chips`, `.kk-recenter` — `z-index:1000`
-  4. `.kk-controls-card` (Pause / Selesai) — `z-index:1100`
-  5. `.kk-settings-pop` — `z-index:1200`
-- Chips GPS/REC dipindah ke kiri-bawah saat focus supaya tidak berebut ruang
-  dengan panel statistik.
+- Tinggi panel statistik dikecilkan ± 35–40% (padding 6/12 px, primary
+  value 1.4rem, cell font 0.78rem, gap 4px).
+- Panel di-inset dari kanan (`right:64px`) supaya tidak menutupi kolom
+  Floating Controls (Lokasi / Compass / Fullscreen / Settings).
+- Panel `pointer-events:none` → seandainya overlap, klik tetap tembus.
+- Urutan z-index Focus Mode:
+  - Map           : 900
+  - Stats card    : 1100
+  - Chips + Fabs  : 1300
+  - Settings pop  : 1450
+  - Pause/Selesai : 1400  (kk-controls-card, paling atas)
 
-Panel statistik tetap `#kk-stats-card` (id yang sama) sehingga `ui.js`
-meng-update dashboard & focus dari satu source of truth (`d-*`) tanpa
-mengubah tracking.js.
+## 2. Tombol "Buang" — Benar-benar Membuang
+Files: `assets/js/run/ui.js`, `api_run.php`.
 
-## 2. Tombol "Buang" benar-benar membatalkan sesi
+- `ui.js` memasang listener pada `#f-btn-discard` di fase **capture**
+  sehingga jalan lebih dulu dari `tracking.js` (yang cuma reload).
+  `stopImmediatePropagation()` mematikan handler bawaan.
+- Dialog konfirmasi: **"Buang aktivitas ini? Data tidak akan disimpan."**
+  - Batal → tetap di halaman Finish (tidak ada aksi).
+  - Buang → POST `/api_run.php` `_action=delete&session_id=<sid>` lalu
+    `location.replace('/run.php')` (Dashboard bersih, tidak bisa
+    kembali ke Finish via tombol Back).
+- `KKSave.stopSession` di-monkey-patch di `ui.js` untuk menangkap
+  `sessionId` terakhir (tracking.js meng-null-kan state sebelum
+  `KKFinish.open` dipanggil). **tracking.js & save.js tidak diubah.**
+- `api_run.php` `_action=delete` sekarang juga menghapus baris
+  `upload_harian` yang di-auto-insert oleh `_action=stop`
+  (kolom `gpx_session_id`). Kepemilikan sesi divalidasi ulang
+  sebelum kaskade hapus.
 
-Sebelumnya `f-btn-discard` di `tracking.js` hanya `location.reload()` tanpa
-menghapus data. Karena `tracking.js` tidak boleh diubah, `ui.js` sekarang:
+## 3. Alur setelah revisi
+```
+Mulai Tracking → Selesai → Halaman Ringkasan (Finish)
+                                 │
+              ┌──────────────────┴──────────────────┐
+              │                                     │
+           Buang                              Review & Upload
+   (DELETE run_sessions +                (upload_harian sudah
+    run_points +                          ter-insert saat stop;
+    upload_harian)                        halaman upload.php
+              │                            menampilkannya)
+        /run.php bersih
+```
 
-- Membungkus `KKSave.stopSession(sid, ...)` (via monkey-patch, tanpa menulis
-  ulang `save.js`) untuk merekam `sid` ke `window._kkLastSessionId`.
-- Mendaftarkan listener `click` pada `#f-btn-discard` di **fase capture**
-  dengan `stopImmediatePropagation()` sehingga handler default tracking.js
-  tidak lagi jalan.
-- Flow:
-  ```
-  Klik Buang → confirm("Buang aktivitas ini? Data tidak akan disimpan.")
-    Batal → tetap di halaman finish
-    Buang → POST /api_run.php?action=delete { session_id }
-          → KKSave.clear()  (bersihkan localStorage)
-          → KKFinish.close()
-          → location.replace('/run.php')  → dashboard bersih
-  ```
+## PostgreSQL — apakah butuh migrasi?
 
-Endpoint `api_run.php?action=delete` (sudah ada) menghapus `run_points` dan
-`run_sessions` untuk session_id milik user. Karena penghapusan terjadi
-sebelum reload, sesi tidak muncul di Riwayat Tracking maupun di
-`upload.php`.
+**Tidak perlu migrasi baru.** Kolom `upload_harian.gpx_session_id`
+sudah dibuat otomatis oleh `api_run.php` (baris
+`ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gpx_session_id BIGINT`
+pada `_action=stop`, R14). Skema `run_sessions` / `run_points` tidak
+berubah.
 
-Hanya tombol **Review & Upload** yang tetap membawa data ke `upload.php`.
+Catatan opsional (jika ingin lebih rapi):
+```sql
+-- opsional: index untuk pencarian upload_harian by session
+CREATE INDEX IF NOT EXISTS upload_harian_gpx_idx
+  ON upload_harian(gpx_session_id);
+```
 
-## PostgreSQL
+## Constraint terpenuhi
+File yang **TIDAK** diubah: `gps.js`, `tracking.js`, `save.js`,
+`background.js`, `voice.js`. Struktur modul tetap.
 
-Tidak ada perubahan schema. Tabel `run_sessions`, `run_points`, `run_routes`
-tetap. Data existing di `sportapp.sql` aman.
+File yang diubah: `run.php`, `assets/js/run/ui.js`, `api_run.php`.

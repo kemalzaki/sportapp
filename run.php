@@ -231,20 +231,27 @@ body.kk-focus-mode .kk-card:has(> #kk-mapwrap){
   margin:0 !important;border-radius:0 !important;z-index:900;
 }
 
-/* ---- Card Statistik Dashboard dipindahkan ke atas peta ---- */
+/* ---- Card Statistik Dashboard dipindahkan ke atas peta ----
+   Layer order (Focus Mode):
+     Map (900) < Stats card (1100) < Chips/Fabs/Settings (1300+)
+                                    < Controls card Pause/Selesai (1400)
+   Stats card di-inset dari kanan (right:64px) supaya tidak menutupi
+   kolom floating controls (fabs). pointer-events:none pada card,
+   sehingga bila terjadi overlap tetap tidak memblokir klik peta/fab. */
 body.kk-focus-mode #kk-stats-card{
   position:fixed !important;
-  top:calc(env(safe-area-inset-top,0px) + 12px);
-  left:5%;right:5%;width:90%;max-width:520px;margin:0 auto !important;
-  z-index:1100;height:auto;
-  padding:10px 14px !important;
-  background:rgba(11,18,32,.72) !important;
+  top:calc(env(safe-area-inset-top,0px) + 8px);
+  left:12px; right:64px; width:auto; max-width:480px; margin:0 !important;
+  z-index:1100; height:auto;
+  padding:6px 12px 8px !important;
+  background:rgba(11,18,32,.66) !important;
   color:#fff !important;
-  border:1px solid rgba(191,224,255,.18);
-  border-radius:18px !important;
-  box-shadow:0 8px 24px rgba(0,0,0,.35) !important;
-  backdrop-filter:blur(16px) saturate(140%);
-  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  border:1px solid rgba(191,224,255,.16);
+  border-radius:14px !important;
+  box-shadow:0 6px 18px rgba(0,0,0,.30) !important;
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  pointer-events:none;
 }
 body.kk-focus-mode #kk-stats-card .stat-label,
 body.kk-focus-mode #kk-stats-card .kk-primary-stat .unit,
@@ -252,23 +259,34 @@ body.kk-focus-mode #kk-stats-card .kk-primary-stat .lbl,
 body.kk-focus-mode #kk-stats-card .kk-stat-cell .lbl{
   color:var(--kk-light) !important;
 }
-body.kk-focus-mode #kk-stats-card .kk-primary-stat{padding:2px 0;}
+body.kk-focus-mode #kk-stats-card > .d-flex{margin-bottom:2px !important;}
+body.kk-focus-mode #kk-stats-card .stat-label{font-size:.58rem;letter-spacing:.08em;}
+body.kk-focus-mode #kk-stats-card .kk-primary-stat{padding:0;}
 body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{
-  font-size:2rem;color:#fff;
+  font-size:1.4rem;color:#fff;line-height:1;
+}
+body.kk-focus-mode #kk-stats-card .kk-primary-stat .unit{
+  font-size:.7rem;margin-left:3px;
+}
+body.kk-focus-mode #kk-stats-card .kk-primary-stat .lbl{
+  font-size:.55rem;letter-spacing:.1em;margin-top:1px;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-grid{
-  grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px;
+  grid-template-columns:repeat(6,1fr);gap:4px;margin-top:4px;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-cell{
-  background:rgba(255,255,255,.08);border-radius:10px;padding:6px 4px;
+  background:rgba(255,255,255,.07);border-radius:8px;padding:3px 2px;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-cell .val{
-  color:#fff;font-size:.9rem;
+  color:#fff;font-size:.78rem;line-height:1.05;
+}
+body.kk-focus-mode #kk-stats-card .kk-stat-cell .lbl{
+  font-size:.5rem;letter-spacing:.06em;margin-top:1px;
 }
 
-/* Kontrol tracking mengambang di bawah saat Focus */
+/* Kontrol tracking mengambang di bawah saat Focus (paling atas) */
 body.kk-focus-mode .kk-controls-card{
-  position:fixed;left:0;right:0;bottom:0;z-index:1200;
+  position:fixed;left:0;right:0;bottom:0;z-index:1400;
   background:linear-gradient(to top,rgba(11,18,32,.92) 30%,rgba(11,18,32,0));
   border-radius:0;box-shadow:none;
   padding:14px 16px calc(20px + env(safe-area-inset-bottom,0px));
@@ -277,11 +295,18 @@ body.kk-focus-mode .kk-controls-card{
 body.kk-focus-mode .kk-controls-card .kk-controls-hint{color:#cbd5e1;}
 body.kk-focus-mode .kk-controls-card .kk-btn.loc{display:none;} /* tombol lokasi hanya dashboard */
 
-/* z-index di atas overlay saat focus */
-body.kk-focus-mode .kk-mapfabs{z-index:1250;}
-body.kk-focus-mode .kk-chips{z-index:1250;}
-body.kk-focus-mode .kk-settings-pop{z-index:1350;}
-body.kk-focus-mode .kk-recenter{z-index:1250;bottom:120px;}
+/* Floating map controls SELALU di atas panel statistik saat focus */
+body.kk-focus-mode .kk-mapfabs{z-index:1300;}
+body.kk-focus-mode .kk-chips{z-index:1300;}
+body.kk-focus-mode .kk-settings-pop{z-index:1450;}
+body.kk-focus-mode .kk-recenter{z-index:1300;bottom:120px;}
+
+/* Small screens: statistik lebih ringkas lagi */
+@media (max-width:380px){
+  body.kk-focus-mode #kk-stats-card{padding:5px 10px 6px !important;}
+  body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{font-size:1.2rem;}
+  body.kk-focus-mode #kk-stats-card .kk-stat-cell .val{font-size:.72rem;}
+}
 
 /* Marker pelari (biru KK) */
 .kk-runner{width:26px;height:26px;border-radius:50%;background:#1E90FF;
@@ -349,7 +374,7 @@ body.kk-finish-open #kk-finish{display:block;}
 
 @media (max-width:400px){
   .kk-primary-stat .val{font-size:2.6rem;}
-  body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{font-size:1.6rem;}
+  body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{font-size:1.1rem;}
 }
 </style>
 

@@ -317,10 +317,91 @@
     setTimeout(function(){ _finishMap.invalidateSize(); }, 80);
   }
 
+  /* ============================================================
+   *  Discard flow (Tombol "Buang")
+   *  ------------------------------------------------------------
+   *  Constraint: TIDAK boleh mengubah tracking.js / save.js.
+   *  Strategi:
+   *   1. Monkey-patch KKSave.stopSession untuk menangkap sessionId
+   *      terakhir yang dihentikan (tracking.js meng-null-kan state
+   *      sebelum KKFinish.open dipanggil).
+   *   2. Pasang listener pada #f-btn-discard di fase CAPTURE lebih
+   *      dulu dari tracking.js. Panggil stopImmediatePropagation()
+   *      supaya handler bawaan tracking.js (yang cuma reload) tidak
+   *      jalan. Kirim _action=delete ke /api_run.php untuk menghapus
+   *      run_sessions + run_points + upload_harian (baris auto-insert
+   *      dari action=stop). Baru setelah itu tutup layar Finish dan
+   *      kembali ke Dashboard bersih via location.replace('/run.php').
+   *   3. Batal → tetap di halaman Finish (tidak ada aksi).
+   * ============================================================ */
+  var _lastStoppedSid = null;
+  function installDiscardFlow(){
+    // 1) Monkey-patch KKSave.stopSession
+    try{
+      if (window.KKSave && typeof KKSave.stopSession === 'function' && !KKSave.__kkPatchedStop){
+        var _orig = KKSave.stopSession.bind(KKSave);
+        KKSave.stopSession = function(sid, totalM, dur){
+          _lastStoppedSid = sid|0 || null;
+          return _orig(sid, totalM, dur);
+        };
+        KKSave.__kkPatchedStop = true;
+      }
+    }catch(e){ console.warn('[KKUI] KKSave patch failed', e); }
+
+    // 2) Discard button — capture phase (jalan sebelum tracking.js)
+    var dis = document.getElementById('f-btn-discard');
+    if (dis && !dis.__kkDiscardWired){
+      dis.__kkDiscardWired = true;
+      dis.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        if (!confirm('Buang aktivitas ini? Data tidak akan disimpan.')) {
+          return; // Batal → tetap di halaman Finish
+        }
+        var sid = _lastStoppedSid;
+        var origHtml = dis.innerHTML;
+        dis.disabled = true;
+        dis.innerHTML = '<i class="bi bi-hourglass-split"></i> Membuang…';
+
+        function done(){
+          try{
+            // bersihkan sisa cache lokal (route sementara, split, snapshot)
+            ['kk_run_state_v1','kk_run_snap_v1','kk_run_tmp_screenshot',
+             'kk_run_tmp_gpx','kk_run_tmp_kml','kk_run_tmp_geojson',
+             'kk_run_tmp_route','kk_run_splits_v1']
+              .forEach(function(k){ try{ localStorage.removeItem(k); }catch(_){} });
+          }catch(_){}
+          try{ if (window.KKFinish && KKFinish.close) KKFinish.close(); }catch(_){}
+          // Kembali ke dashboard bersih; replace() supaya tidak balik ke Finish via Back.
+          location.replace('/run.php');
+        }
+
+        if (!sid){
+          // tidak ada sid ter-capture — cukup tutup & reload bersih.
+          done();
+          return;
+        }
+        try{
+          var fd = new FormData();
+          fd.append('csrf', (window.KK_RUN && window.KK_RUN.csrf) || '');
+          fd.append('_action','delete');
+          fd.append('session_id', String(sid));
+          fetch('/api_run.php', { method:'POST', body:fd, credentials:'same-origin' })
+            .then(function(r){ return r.json().catch(function(){ return {ok:false}; }); })
+            .then(function(){ done(); })
+            .catch(function(){ done(); });
+        }catch(e){
+          console.error(e); done();
+        }
+      }, true); // capture=true
+    }
+  }
+
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function(){
     initDashboardMode();
     wireControls();
+    installDiscardFlow();
   });
 
 })();
