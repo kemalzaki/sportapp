@@ -107,26 +107,13 @@ include __DIR__.'/includes/header.php';
     display:none !important;
   }
 
-  /* Container tracking — INLINE by default, fullscreen via tombol */
-  #kk-track-root{position:relative;width:100%;height:70vh;min-height:460px;
-    background:#0f172a;display:none;border-radius:18px;overflow:hidden;
-    margin:0 0 16px;box-shadow:0 8px 24px rgba(15,23,42,.18);}
-  body.kk-tracking-active #kk-track-root{display:block;}
-  #kk-track-root.kk-fs{position:fixed;inset:0;z-index:9998;height:auto;
-    min-height:0;border-radius:0;margin:0;box-shadow:none;}
+  /* Container fullscreen */
+  #kk-track-root{position:fixed;inset:0;z-index:9998;background:#0f172a;display:none;}
+  body.kk-tracking-fullscreen #kk-track-root{display:block;}
 
-  /* Peta */
+  /* Peta fullscreen */
   #kk-map{position:absolute;inset:0;background:#0f172a;}
   #kk-map .leaflet-control-attribution{font-size:9px;opacity:.55;}
-
-  /* Tombol Fullscreen (mapfab) */
-  .kk-mapfab{position:absolute;right:12px;top:calc(env(safe-area-inset-top,0px) + 10px);
-    z-index:8;width:44px;height:44px;border-radius:14px;border:0;
-    background:rgba(15,23,42,.75);color:#fff;font-size:1.05rem;
-    display:inline-flex;align-items:center;justify-content:center;
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer;}
-  .kk-mapfab:hover{background:rgba(15,23,42,.9);}
 
   /* Rotasi map — kita putar #map-rot (parent Leaflet container hooked lewat JS) */
   .kk-map-rot{transition:transform .35s cubic-bezier(.25,.9,.3,1);
@@ -355,7 +342,7 @@ include __DIR__.'/includes/header.php';
       <i class="bi bi-play-fill"></i> MULAI TRACKING
     </button>
     <div class="text-muted small mt-2">
-      Peta inline · tekan tombol <i class="bi bi-arrows-fullscreen"></i> untuk mode layar penuh
+      Peta fullscreen, floating metrics, auto-follow &amp; rotasi arah
     </div>
   </div>
 
@@ -399,12 +386,6 @@ include __DIR__.'/includes/header.php';
      ================================================================ -->
 <div id="kk-track-root" aria-hidden="true">
   <div id="kk-map"></div>
-
-  <!-- Tombol Fullscreen (toggle) -->
-  <button type="button" class="kk-mapfab" id="kk-btn-fullscreen"
-          aria-label="Peta Layar Penuh" title="Peta Layar Penuh">
-    <i class="bi bi-arrows-fullscreen"></i>
-  </button>
 
   <!-- Chips atas -->
   <div class="kk-chips">
@@ -532,79 +513,6 @@ window.KK_RUN.mapboxTileUrl =
 <script src="/assets/js/run/background.js?v=r34"></script>
 <script src="/assets/js/run/ui.js?v=r34"></script>
 <script src="/assets/js/run/tracking.js?v=r34"></script>
-
-<script>
-/* ================================================================
-   FULLSCREEN JADI TOMBOL (bukan auto saat mulai rekaman)
-   Override KKUI.enterFullscreen / exitFullscreen tanpa mengubah
-   logika tracking / GPS / timer / save.
-   ================================================================ */
-(function(){
-  function resizeMap(){
-    try{
-      if (window.KKMap && typeof window.KKMap.invalidateSize === 'function'){
-        window.KKMap.invalidateSize(); return;
-      }
-    }catch(e){}
-    // Fallback: paksa Leaflet menghitung ulang bila objek map global tersedia
-    try{
-      var mapDiv = document.getElementById('kk-map');
-      if (mapDiv && mapDiv._leaflet_id && window.L){
-        // Trigger resize event
-        window.dispatchEvent(new Event('resize'));
-      }
-    }catch(e){}
-  }
-
-  function ready(fn){
-    if (document.readyState === 'loading')
-      document.addEventListener('DOMContentLoaded', fn);
-    else fn();
-  }
-
-  ready(function(){
-    // 1) Override enter/exit fullscreen agar TIDAK auto-fullscreen saat mulai
-    if (window.KKUI){
-      window.KKUI.enterFullscreen = function(){
-        document.body.classList.add('kk-tracking-active');
-        var root = document.getElementById('kk-track-root');
-        if (root) root.setAttribute('aria-hidden','false');
-        setTimeout(resizeMap, 250);
-      };
-      window.KKUI.exitFullscreen = function(){
-        document.body.classList.remove('kk-tracking-active','kk-tracking-fullscreen');
-        var root = document.getElementById('kk-track-root');
-        if (root){
-          root.classList.remove('kk-fs');
-          root.setAttribute('aria-hidden','true');
-        }
-        var btn = document.getElementById('kk-btn-fullscreen');
-        if (btn) btn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
-      };
-    }
-
-    // 2) Tombol Fullscreen toggle
-    var fsBtn = document.getElementById('kk-btn-fullscreen');
-    if (fsBtn){
-      fsBtn.addEventListener('click', function(){
-        var root = document.getElementById('kk-track-root');
-        if (!root) return;
-        var isFs = root.classList.toggle('kk-fs');
-        document.body.classList.toggle('kk-tracking-fullscreen', isFs);
-        this.innerHTML = isFs
-          ? '<i class="bi bi-fullscreen-exit"></i>'
-          : '<i class="bi bi-arrows-fullscreen"></i>';
-        setTimeout(resizeMap, 260);
-        if (isFs){
-          try{ root.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){}
-        }
-      });
-    }
-  });
-})();
-</script>
-
-
 
 <script>
 /* ---- Hapus riwayat (tetap dari halaman shell) ---- */
