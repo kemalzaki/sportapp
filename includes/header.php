@@ -187,7 +187,10 @@ if (empty($pageSkeleton)) {
 <!-- Revisi Nov 2026 — Global Theme Engine & UI modernization overlay -->
 <link rel="stylesheet" href="/assets/css/redesign-2026.css?v=nov2026">
 <!-- Revisi R43 Juli 2026 — Safe Area global (Android status bar / iOS notch) -->
-<link rel="stylesheet" href="/assets/css/safe-area.css?v=r43">
+<link rel="stylesheet" href="/assets/css/safe-area.css?v=r44">
+<!-- Revisi R44 Juli 2026: deteksi Capacitor / Android WebView untuk aktifkan fallback safe-area (status bar). -->
+<script>(function(){try{var ua=navigator.userAgent||'';var isCap=!!(window.Capacitor||window.cordova);var isWV=/\bwv\b/.test(ua)||/Version\/[\d.]+.*Chrome\/[.0-9]* (Mobile )?Safari\/[.0-9]*/.test(ua)&&/Android/.test(ua)&&!/Chrome\/[.0-9]* (Mobile )?Safari/.test(ua);if(isCap||isWV){document.documentElement.classList.add('is-native');}}catch(e){}})();</script>
+
 <!-- Revisi 4 Jun 2026: SFX klik di semua halaman -->
 <script defer src="/assets/js/sfx.js?v=4jun2026"></script>
 <style>

@@ -123,3 +123,58 @@ body.kk-focus-mode #kk-stats-card{
 .toast-container.position-fixed.bottom-0{
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
 }
+
+
+/* =====================================================================
+ * Revisi R44 (Juli 2026) — Fallback Safe Area untuk Android Capacitor
+ * ---------------------------------------------------------------------
+ * Sebagian Android WebView / Capacitor tidak mengembalikan nilai
+ * env(safe-area-inset-top) meskipun status bar overlay aktif → header
+ * (.gt-top) tetap menabrak status bar. Kelas .is-native ditambahkan
+ * oleh script inline di header.php saat window.Capacitor terdeteksi
+ * atau UA cocok pola WebView Android.
+ * Tidak mengubah ID, tidak mengubah kelas komponen, tidak mengubah JS
+ * bisnis (tracking/gps/save/upload/riwayat).
+ * ===================================================================== */
+html.is-native {
+  --sat-fallback: 28px;
+}
+html.is-native body {
+  padding-top: calc(var(--gt-h, 64px) + max(env(safe-area-inset-top, 0px), var(--sat-fallback)) + 56px) !important;
+}
+html.is-native header.gt-top,
+html.is-native .gt-top {
+  padding-top: calc(8px + max(env(safe-area-inset-top, 0px), var(--sat-fallback))) !important;
+}
+html.is-native nav.gt-chips,
+html.is-native .gt-chips {
+  top: calc(var(--gt-h, 64px) + max(env(safe-area-inset-top, 0px), var(--sat-fallback))) !important;
+}
+html.is-native nav.navbar.fixed-top,
+html.is-native nav.navbar.sticky-top {
+  padding-top: calc(.5rem + max(env(safe-area-inset-top, 0px), var(--sat-fallback)));
+}
+html.is-native body.kk-safe-page,
+html.is-native .kk-full-viewport,
+html.is-native .kk-focus-shell {
+  padding-top: max(env(safe-area-inset-top, 0px), var(--sat-fallback));
+}
+html.is-native .modal.show .modal-fullscreen,
+html.is-native .modal.show .modal-fullscreen-sm-down,
+html.is-native .modal.show .modal-fullscreen-md-down {
+  padding-top: max(env(safe-area-inset-top, 0px), var(--sat-fallback));
+}
+html.is-native body.kk-focus-mode .kk-chips,
+html.is-native body.kk-focus-mode .kk-mapfabs {
+  top: calc(10px + max(env(safe-area-inset-top, 0px), var(--sat-fallback))) !important;
+}
+
+/* Bottom nav — pastikan gesture bar Android tetap dihormati bahkan bila
+   env(safe-area-inset-bottom) juga 0 pada WebView tertentu. */
+html.is-native nav.gj-nav,
+html.is-native .gj-nav {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px) !important;
+}
+html.is-native body {
+  padding-bottom: calc(var(--gj-h, 64px) + max(env(safe-area-inset-bottom, 0px), 10px)) !important;
+}

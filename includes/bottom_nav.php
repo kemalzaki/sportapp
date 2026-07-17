@@ -21,18 +21,7 @@ if (!function_exists('_gj_active')) {
 }
 ?>
 <link rel="stylesheet" href="/assets/css/gojek-nav.css?v=r28-inline-fab">
-<style id="gj-nav-vt">
-/* Revisi Juli 2026 — bottom nav terasa persistent antar halaman via View Transitions API */
-@view-transition { navigation: auto; }
-.gj-nav { view-transition-name: gj-nav; }
-::view-transition-old(gj-nav), ::view-transition-new(gj-nav){
-  animation: none !important; mix-blend-mode: normal;
-}
-::view-transition-old(root){ animation: gjFadeOut .18s ease both; }
-::view-transition-new(root){ animation: gjFadeIn  .22s ease both; }
-@keyframes gjFadeOut { to { opacity: 0; } }
-@keyframes gjFadeIn  { from { opacity: 0; } }
-</style>
+<!-- Revisi R44 Juli 2026: blok @view-transition dihapus (menyebabkan bottom nav berkedip / hilang saat pindah halaman di sebagian browser). Bottom nav tetap persistent lewat position:fixed + include global via footer.php. -->
 
 <nav class="gj-nav" aria-label="Navigasi utama">
   <a href="/index.php" class="gj-item <?= _gj_active(['index.php',''], $_cur) ?>">

@@ -341,7 +341,7 @@ if ($__sessIds) {
         $__rowsPts = db_all(
             "SELECT session_id, lat, lng FROM run_points
              WHERE session_id = ANY(\$1::bigint[]) ORDER BY session_id, id",
-            [$__sessIds]
+            ['{'.implode(',', array_map('intval', $__sessIds)).'}']
         );
         foreach ($__rowsPts as $__p) {
             $__sid = (int)$__p['session_id'];
