@@ -128,7 +128,9 @@ include __DIR__.'/includes/header.php';
 .kk-chips .kk-chip.status-bad{background:rgba(239,68,68,.9);}
 
 /* Floating map controls (kanan atas) — z-index di atas leaflet controls (1000) */
-.kk-mapfabs{position:absolute;right:10px;top:10px;z-index:1200;
+/* Dashboard mode: z-index rendah agar tidak menembus header/chips fixed
+   di atas peta. Focus mode meng-override ke 1300 (lihat di bawah). */
+.kk-mapfabs{position:absolute;right:10px;top:10px;z-index:500;
   display:flex;flex-direction:column;gap:8px;pointer-events:auto;}
 .kk-mapfab{position:relative;width:44px;height:44px;border-radius:50%;
   background:#ffffff;color:var(--kk-ink);font-size:1.05rem;
@@ -213,6 +215,14 @@ body.kk-focus-mode .global-search,
 body.kk-focus-mode input[type=search],
 body.kk-focus-mode footer,
 body.kk-focus-mode .site-footer,
+/* Top-nav & bottom-nav proyek (gojek-top / gj-nav) — selector spesifik
+   dengan html body agar menang atas !important di includes/header.php. */
+body.kk-focus-mode .gt-top,
+body.kk-focus-mode .gt-chips,
+body.kk-focus-mode .gj-nav,
+html body.kk-focus-mode header.gt-top,
+html body.kk-focus-mode nav.gt-chips,
+html body.kk-focus-mode nav.gj-nav,
 body.kk-focus-mode .kk-hide-in-focus{
   display:none !important;
 }
@@ -240,14 +250,15 @@ body.kk-focus-mode .kk-card:has(> #kk-mapwrap){
    sehingga bila terjadi overlap tetap tidak memblokir klik peta/fab. */
 body.kk-focus-mode #kk-stats-card{
   position:fixed !important;
-  top:calc(env(safe-area-inset-top,0px) + 8px);
-  left:12px; right:64px; width:auto; max-width:480px; margin:0 !important;
+  top:auto !important;
+  bottom:calc(110px + env(safe-area-inset-bottom,0px));
+  left:10px; right:10px; width:auto; max-width:none; margin:0 !important;
   z-index:1100; height:auto;
-  padding:6px 12px 8px !important;
-  background:rgba(11,18,32,.66) !important;
+  padding:6px 10px 7px !important;
+  background:rgba(11,18,32,.72) !important;
   color:#fff !important;
   border:1px solid rgba(191,224,255,.16);
-  border-radius:14px !important;
+  border-radius:12px !important;
   box-shadow:0 6px 18px rgba(0,0,0,.30) !important;
   backdrop-filter:blur(14px) saturate(140%);
   -webkit-backdrop-filter:blur(14px) saturate(140%);
@@ -259,29 +270,29 @@ body.kk-focus-mode #kk-stats-card .kk-primary-stat .lbl,
 body.kk-focus-mode #kk-stats-card .kk-stat-cell .lbl{
   color:var(--kk-light) !important;
 }
-body.kk-focus-mode #kk-stats-card > .d-flex{margin-bottom:2px !important;}
-body.kk-focus-mode #kk-stats-card .stat-label{font-size:.58rem;letter-spacing:.08em;}
+body.kk-focus-mode #kk-stats-card > .d-flex{margin-bottom:1px !important;}
+body.kk-focus-mode #kk-stats-card .stat-label{display:none;}
 body.kk-focus-mode #kk-stats-card .kk-primary-stat{padding:0;}
 body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{
-  font-size:1.4rem;color:#fff;line-height:1;
+  font-size:1.15rem;color:#fff;line-height:1;
 }
 body.kk-focus-mode #kk-stats-card .kk-primary-stat .unit{
-  font-size:.7rem;margin-left:3px;
+  font-size:.62rem;margin-left:3px;
 }
 body.kk-focus-mode #kk-stats-card .kk-primary-stat .lbl{
-  font-size:.55rem;letter-spacing:.1em;margin-top:1px;
+  font-size:.5rem;letter-spacing:.1em;margin-top:0;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-grid{
-  grid-template-columns:repeat(6,1fr);gap:4px;margin-top:4px;
+  grid-template-columns:repeat(6,1fr);gap:3px;margin-top:3px;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-cell{
-  background:rgba(255,255,255,.07);border-radius:8px;padding:3px 2px;
+  background:rgba(255,255,255,.07);border-radius:6px;padding:2px 1px;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-cell .val{
-  color:#fff;font-size:.78rem;line-height:1.05;
+  color:#fff;font-size:.7rem;line-height:1.05;
 }
 body.kk-focus-mode #kk-stats-card .kk-stat-cell .lbl{
-  font-size:.5rem;letter-spacing:.06em;margin-top:1px;
+  font-size:.46rem;letter-spacing:.04em;margin-top:0;
 }
 
 /* Kontrol tracking mengambang di bawah saat Focus (paling atas) */
@@ -299,13 +310,13 @@ body.kk-focus-mode .kk-controls-card .kk-btn.loc{display:none;} /* tombol lokasi
 body.kk-focus-mode .kk-mapfabs{z-index:1300;}
 body.kk-focus-mode .kk-chips{z-index:1300;}
 body.kk-focus-mode .kk-settings-pop{z-index:1450;}
-body.kk-focus-mode .kk-recenter{z-index:1300;bottom:120px;}
+body.kk-focus-mode .kk-recenter{z-index:1300;bottom:190px;}
 
 /* Small screens: statistik lebih ringkas lagi */
 @media (max-width:380px){
-  body.kk-focus-mode #kk-stats-card{padding:5px 10px 6px !important;}
-  body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{font-size:1.2rem;}
-  body.kk-focus-mode #kk-stats-card .kk-stat-cell .val{font-size:.72rem;}
+  body.kk-focus-mode #kk-stats-card{padding:5px 8px 6px !important;}
+  body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{font-size:1rem;}
+  body.kk-focus-mode #kk-stats-card .kk-stat-cell .val{font-size:.64rem;}
 }
 
 /* Marker pelari (biru KK) */
