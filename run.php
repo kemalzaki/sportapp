@@ -370,6 +370,24 @@ body.kk-finish-open #kk-finish{display:block;}
   .kk-fab{width:56px;height:56px;font-size:1.4rem;}
   .kk-primary-stat .val{font-size:2.6rem;}
 }
+
+/* Marker "Lokasi Saya Sekarang" (R36) */
+.kk-mylocation-icon{background:transparent!important;border:0!important;}
+.kk-mylocation-dot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:16px;height:16px;border-radius:50%;background:#1E90FF;
+  border:3px solid #fff;box-shadow:0 0 0 2px rgba(30,144,255,.35),0 2px 8px rgba(0,0,0,.35);z-index:2;}
+.kk-mylocation-pulse{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:22px;height:22px;border-radius:50%;background:rgba(30,144,255,.35);
+  animation:kkMyLocPulse 1.8s ease-out infinite;z-index:1;}
+@keyframes kkMyLocPulse{
+  0%{transform:translate(-50%,-50%) scale(.6);opacity:.9;}
+  100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}
+}
+
+/* R36: pastikan tombol map (fullscreen, compass, dll) tidak tertimpa overlay
+   metric di Focus Mode. Naikkan z-index dan sesuaikan posisi. */
+body.kk-focus-mode .kk-mapfabs{z-index:10003;}
+body.kk-focus-mode .kk-chips{z-index:10003;}
 </style>
 
 <body class="kk-run-page kk-dashboard-mode"></body>
@@ -650,7 +668,16 @@ document.body.classList.add('kk-run-page');
 <script src="/assets/js/run/tracking.js?v=r35"></script>
 
 <script>
-/* ---- Sinkronkan tombol Pause/Resume Dashboard dengan tombol Focus asli ---- */
+/* ---- FIX REVISI R36 ----
+ * (1) Marker lokasi saya ditampilkan di peta saat klik "Lokasi Saya Sekarang"
+ * (2) Klik "Mulai" TIDAK lagi otomatis masuk Focus Mode (map fabs tetap terlihat)
+ * (3) "Selesai" selalu pakai confirm() sederhana (bukan swipe di kk-ctrl yang
+ *     bisa tersembunyi), jadi tombolnya bisa diklik dari Dashboard maupun Focus.
+ */
+
+/* Paksa mode Dashboard di setiap load supaya UI konsisten */
+try { localStorage.setItem('kk_run_mode_v1', 'dashboard'); } catch(e){}
+
 document.addEventListener('DOMContentLoaded', function(){
   var focusPause  = document.getElementById('kk-btn-pause');
   var focusResume = document.getElementById('kk-btn-resume');
@@ -660,12 +687,23 @@ document.addEventListener('DOMContentLoaded', function(){
   var dashStop    = document.getElementById('kk-dash-btn-stop');
   var dashLoc     = document.getElementById('kk-dash-btn-mylocation');
 
-  /* ---- FIX: Tombol Mulai tidak jalan ----
-   * Penyebab: `forward()` di ui.js meneruskan klik ke tombol tersembunyi
-   * `#kk-btn-start`. Pada beberapa kasus (event handler belum ter-attach saat
-   * DOMContentLoaded urut, atau tombol tersembunyi tidak menerima click
-   * sintetis di sebagian browser), rantai ini gagal diam-diam.
-   * Solusi: wiring langsung + fallback trigger tombol tersembunyi. */
+  /* (2) Nonaktifkan enterFullscreen back-compat call dari tracking.js
+   *     agar klik Mulai TIDAK lompat ke Focus Mode & menyembunyikan
+   *     tombol-tombol fullscreen/compass/settings di peta. */
+  if (window.KKUI){
+    window.KKUI.enterFullscreen = function(){ /* no-op: stay in current mode */ };
+  }
+
+  /* (3) Selalu gunakan confirm() sederhana untuk konfirmasi selesai. */
+  if (window.KKUI){
+    window.KKUI.showSwipeFinish = function(onFinish){
+      if (confirm('Selesaikan sesi tracking sekarang? Data akan disimpan.')){
+        try { onFinish && onFinish(); } catch(e){ console.error(e); }
+      }
+    };
+  }
+
+  /* ---- Wiring tombol dashboard ke tombol tersembunyi (jalur tracking.js) ---- */
   function safeClickHidden(id){
     var t = document.getElementById(id);
     if (!t) return false;
@@ -674,10 +712,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if (dashStart) {
     dashStart.addEventListener('click', function(ev){
       ev.preventDefault();
-      // 1) trigger tombol tersembunyi (jalur lama)
       safeClickHidden('kk-btn-start');
-      // 2) fallback: dispatch event bubbling agar handler yang terpasang
-      //    di listener document juga menerima
       var t = document.getElementById('kk-btn-start');
       if (t) t.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));
     });
@@ -686,8 +721,31 @@ document.addEventListener('DOMContentLoaded', function(){
   if (dashResume) dashResume.addEventListener('click', function(){ safeClickHidden('kk-btn-resume'); });
   if (dashStop)   dashStop.addEventListener('click',   function(){ safeClickHidden('kk-btn-stop'); });
 
-  /* ---- Tombol "Lokasi Saya Sekarang" ----
-   * Ambil GPS sekali & pusatkan peta. Bekerja meski sesi belum dimulai. */
+  /* ---- (1) Tombol "Lokasi Saya Sekarang" ----
+   * Ambil GPS sekali, pusatkan peta, DAN tampilkan marker di peta.
+   * Marker terpisah dari marker pelari (tracking) agar tidak conflict. */
+  var _myLocMarker = null, _myLocCircle = null;
+  function showMyLocationOnMap(p){
+    var m = (window.KKMap && KKMap.getMap) ? KKMap.getMap() : null;
+    if (!m || !window.L) return;
+    var icon = L.divIcon({
+      className: 'kk-mylocation-icon',
+      html: '<div class="kk-mylocation-dot"></div><div class="kk-mylocation-pulse"></div>',
+      iconSize: [22,22], iconAnchor: [11,11]
+    });
+    if (_myLocMarker) { try { m.removeLayer(_myLocMarker); } catch(e){} }
+    if (_myLocCircle) { try { m.removeLayer(_myLocCircle); } catch(e){} }
+    _myLocMarker = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(m);
+    _myLocMarker.bindPopup('Lokasi Saya<br><small>Akurasi ±'+Math.round(p.acc||0)+' m</small>').openPopup();
+    if (p.acc && p.acc > 0){
+      _myLocCircle = L.circle([p.lat, p.lng], {
+        radius: p.acc, color:'#1E90FF', weight:1, opacity:.6,
+        fillColor:'#1E90FF', fillOpacity:.12
+      }).addTo(m);
+    }
+    m.setView([p.lat, p.lng], Math.max(m.getZoom(), 17), { animate:true });
+  }
+
   if (dashLoc) {
     dashLoc.addEventListener('click', function(){
       if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
@@ -700,12 +758,8 @@ document.addEventListener('DOMContentLoaded', function(){
           if (window.KKTracking && window.KKTracking.state){
             window.KKTracking.state.lastFix = p;
           }
-          if (window.KKMap && typeof KKMap.recenter === 'function'){
-            KKMap.recenter(p);
-          } else if (window.KKMap && KKMap._map){
-            KKMap._map.setView([p.lat, p.lng], 16);
-          }
-        } catch(e){}
+          showMyLocationOnMap(p);
+        } catch(e){ console.error(e); }
         dashLoc.disabled = false;
         dashLoc.innerHTML = orig;
       }, function(err){
@@ -723,7 +777,6 @@ document.addEventListener('DOMContentLoaded', function(){
     if (dashPause)  dashPause.style.display  = (running && !isPaused) ? '' : 'none';
     if (dashResume) dashResume.style.display = (running && isPaused) ? '' : 'none';
   }
-  // Poll sederhana — kompatibel tanpa mengubah tracking.js
   setInterval(sync, 500);
   sync();
 });
