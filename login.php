@@ -277,9 +277,13 @@ body{
     </a>
 
     <!-- Revisi: Tombol Pintasan ke HP (PWA install) di halaman login -->
-    <button type="button" id="installBtn" class="btn-lg-outline mt-2" data-sfx="tap">
-      <i class="bi bi-download"></i> Download APK
-    </button>
+    <button
+    type="button"
+    class="btn-lg-outline mt-2"
+    data-sfx="tap"
+    onclick="window.location.href='https://yuk-mari.com/kawankeringat.apk';">
+    <i class="bi bi-download"></i> Download APK
+	</button>
 
     <div class="lg-footer-note mt-3">
       &copy; 2026 KawanKeringat · By Yuk-Mari CyberLab
