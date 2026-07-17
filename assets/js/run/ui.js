@@ -256,10 +256,20 @@
       });
     },
 
-    /* ----- Swipe to finish ----- */
+    /* ----- Swipe to finish (Focus Mode) / Confirm (Dashboard Mode) ----- */
     _swCleanup: null,
     showSwipeFinish: function(onDone){
-      var sw = $('kk-swipe'); sw.classList.add('show');
+      // Dashboard Mode: swipe UI berada di .kk-ctrl yang display:none,
+      // sehingga user tidak akan pernah melihatnya. Gunakan confirm() supaya
+      // Stop tetap berfungsi dan proses save/upload berjalan normal.
+      if (!document.body.classList.contains('kk-focus-mode')){
+        if (confirm('Selesaikan sesi tracking dan simpan aktivitas ini?')){
+          onDone();
+        }
+        return;
+      }
+      var sw = $('kk-swipe'); if (!sw){ onDone(); return; }
+      sw.classList.add('show');
       var thumb = sw.querySelector('.sw-thumb');
       var fill  = sw.querySelector('.sw-fill');
       if (this._swCleanup) this._swCleanup();
