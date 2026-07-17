@@ -205,31 +205,46 @@ html.is-native body {
 }
 
 /* =====================================================================
- * REVISI R46 (Juli 2026) — Drawer Safe Area untuk Android WebView
+ * Revisi R47 (Juli 2026) — Drawer safe-area diperkuat
  * ---------------------------------------------------------------------
- * Drawer kiri (gtDrawer) masih menabrak status bar pada Android WebView
- * yang mengembalikan env(safe-area-inset-top) = 0. Terapkan fallback
- * .is-native (di-set di header.php ketika Capacitor / Android WebView
- * terdeteksi) — sama pola dengan header (.gt-top).
- * Tidak mengubah ID, class utama, atau JS bisnis.
+ * Masalah: pada beberapa Android WebView (Capacitor, MIUI, ColorOS),
+ * item pertama drawer (grup "Jogging Progress") masih tertutup status
+ * bar meski R45 sudah menambah padding-top ke .gt-drawer. Penyebabnya
+ * env(safe-area-inset-top) bernilai 0px sehingga header offcanvas tetap
+ * menempel ke tepi atas layar.
+ *
+ * Solusi: pakai fallback minimum yang sama seperti R44 (28px) khusus
+ * .gt-drawer & offcanvas start/end/top. Tidak mengubah struktur/ID.
  * ===================================================================== */
+:root{
+  --kk-drawer-sat-fallback: 24px; /* aman untuk mayoritas status bar Android */
+}
+.gt-drawer,
+.offcanvas.offcanvas-start,
+.offcanvas.offcanvas-end,
+.offcanvas.offcanvas-top{
+  padding-top: max(env(safe-area-inset-top, 0px), var(--kk-drawer-sat-fallback)) !important;
+}
+.gt-drawer .offcanvas-header,
+.offcanvas.offcanvas-start .offcanvas-header,
+.offcanvas.offcanvas-end   .offcanvas-header,
+.offcanvas.offcanvas-top   .offcanvas-header{
+  padding-top: max(1rem, calc(.75rem + max(env(safe-area-inset-top, 0px), var(--kk-drawer-sat-fallback)) / 2)) !important;
+}
+/* Beri jarak ekstra ke item pertama dalam body drawer (list-group). */
+.gt-drawer .offcanvas-body > .list-group:first-child,
+.offcanvas.offcanvas-start .offcanvas-body > .list-group:first-child{
+  padding-top: 4px;
+}
+
+/* Fallback native WebView — perbesar sampai 32px agar aman untuk status
+   bar tinggi (mis. device dengan punch-hole camera). */
+html.is-native{
+  --kk-drawer-sat-fallback: 32px;
+}
+html.is-native .gt-drawer,
 html.is-native .offcanvas.offcanvas-start,
 html.is-native .offcanvas.offcanvas-end,
-html.is-native .offcanvas.offcanvas-top,
-html.is-native .gt-drawer{
-  padding-top: max(env(safe-area-inset-top, 0px), var(--sat-fallback, 28px));
-}
-html.is-native .offcanvas.offcanvas-start .offcanvas-header,
-html.is-native .offcanvas.offcanvas-end   .offcanvas-header,
-html.is-native .offcanvas.offcanvas-top   .offcanvas-header,
-html.is-native .gt-drawer .offcanvas-header{
-  padding-top: max(1rem, calc(.75rem + max(env(safe-area-inset-top, 0px), var(--sat-fallback, 28px))));
-}
-html.is-native .offcanvas.offcanvas-bottom{
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
-}
-/* Body offcanvas: menu item pertama tidak boleh mepet header */
-html.is-native .gt-drawer .offcanvas-body,
-html.is-native .offcanvas.offcanvas-start .offcanvas-body{
-  padding-top: .25rem;
+html.is-native .offcanvas.offcanvas-top{
+  padding-top: max(env(safe-area-inset-top, 0px), var(--kk-drawer-sat-fallback)) !important;
 }

@@ -452,6 +452,15 @@ include __DIR__.'/includes/header.php';
 <style>
 .kk-mini-map{ touch-action: pan-y; }
 .kk-mini-map .leaflet-control-attribution{ display:none; }
+/* Revisi R47 Juli 2026 — Preview peta di riwayat dibuat READ-ONLY total.
+   Menonaktifkan seluruh interaksi (klik/drag/zoom) supaya tidak ada
+   kemungkinan redirect ke live_tracking.php. Interaksi rute penuh
+   dilakukan lewat tombol "Lihat Rute" → activity_detail.php. */
+.kk-route-preview .kk-mini-map{
+  pointer-events: none !important;
+  cursor: default !important;
+}
+.kk-route-preview .kk-mini-map .leaflet-control-container{ display:none !important; }
 </style>
 <h2 class="mb-3"><i class="bi bi-clock-history text-primary"></i> Riwayat & Leaderboard</h2>
 
