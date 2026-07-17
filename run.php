@@ -381,9 +381,6 @@ body.kk-finish-open #kk-finish{display:block;}
 <div class="kk-dash-wrap kk-hide-in-focus">
   <div class="kk-dash-title">
     <h4><i class="bi bi-stopwatch text-primary"></i> Tracking Jalur</h4>
-    <a href="/explore.php" class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-compass"></i> Eksplorasi Rute
-    </a>
   </div>
 
   <div id="kk-bg-warn" class="alert alert-warning small d-none">
@@ -472,6 +469,7 @@ body.kk-finish-open #kk-finish{display:block;}
       <button class="kk-dash-btn pause" id="kk-dash-btn-pause" style="display:none"><i class="bi bi-pause-fill"></i> Jeda</button>
       <button class="kk-dash-btn resume" id="kk-dash-btn-resume" style="display:none"><i class="bi bi-play-fill"></i> Lanjut</button>
       <button class="kk-dash-btn stop" id="kk-dash-btn-stop"><i class="bi bi-stop-fill"></i> Selesai</button>
+      <button class="kk-dash-btn" id="kk-dash-btn-mylocation" style="background:#0ea5e9;"><i class="bi bi-geo-alt-fill"></i> Lokasi Saya Sekarang</button>
     </div>
     <div class="text-center text-muted small mt-2">
       Tekan <i class="bi bi-arrows-fullscreen"></i> pada peta untuk masuk mode Fullscreen kapan saja.
@@ -659,6 +657,64 @@ document.addEventListener('DOMContentLoaded', function(){
   var dashPause   = document.getElementById('kk-dash-btn-pause');
   var dashResume  = document.getElementById('kk-dash-btn-resume');
   var dashStart   = document.getElementById('kk-dash-btn-start');
+  var dashStop    = document.getElementById('kk-dash-btn-stop');
+  var dashLoc     = document.getElementById('kk-dash-btn-mylocation');
+
+  /* ---- FIX: Tombol Mulai tidak jalan ----
+   * Penyebab: `forward()` di ui.js meneruskan klik ke tombol tersembunyi
+   * `#kk-btn-start`. Pada beberapa kasus (event handler belum ter-attach saat
+   * DOMContentLoaded urut, atau tombol tersembunyi tidak menerima click
+   * sintetis di sebagian browser), rantai ini gagal diam-diam.
+   * Solusi: wiring langsung + fallback trigger tombol tersembunyi. */
+  function safeClickHidden(id){
+    var t = document.getElementById(id);
+    if (!t) return false;
+    try { t.click(); return true; } catch(e){ return false; }
+  }
+  if (dashStart) {
+    dashStart.addEventListener('click', function(ev){
+      ev.preventDefault();
+      // 1) trigger tombol tersembunyi (jalur lama)
+      safeClickHidden('kk-btn-start');
+      // 2) fallback: dispatch event bubbling agar handler yang terpasang
+      //    di listener document juga menerima
+      var t = document.getElementById('kk-btn-start');
+      if (t) t.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));
+    });
+  }
+  if (dashPause)  dashPause.addEventListener('click',  function(){ safeClickHidden('kk-btn-pause'); });
+  if (dashResume) dashResume.addEventListener('click', function(){ safeClickHidden('kk-btn-resume'); });
+  if (dashStop)   dashStop.addEventListener('click',   function(){ safeClickHidden('kk-btn-stop'); });
+
+  /* ---- Tombol "Lokasi Saya Sekarang" ----
+   * Ambil GPS sekali & pusatkan peta. Bekerja meski sesi belum dimulai. */
+  if (dashLoc) {
+    dashLoc.addEventListener('click', function(){
+      if (!navigator.geolocation){ alert('Browser tidak mendukung GPS'); return; }
+      var orig = dashLoc.innerHTML;
+      dashLoc.disabled = true;
+      dashLoc.innerHTML = '<i class="bi bi-hourglass-split"></i> Mencari lokasi…';
+      navigator.geolocation.getCurrentPosition(function(pos){
+        var p = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+        try {
+          if (window.KKTracking && window.KKTracking.state){
+            window.KKTracking.state.lastFix = p;
+          }
+          if (window.KKMap && typeof KKMap.recenter === 'function'){
+            KKMap.recenter(p);
+          } else if (window.KKMap && KKMap._map){
+            KKMap._map.setView([p.lat, p.lng], 16);
+          }
+        } catch(e){}
+        dashLoc.disabled = false;
+        dashLoc.innerHTML = orig;
+      }, function(err){
+        dashLoc.disabled = false;
+        dashLoc.innerHTML = orig;
+        alert('Gagal mendapatkan lokasi: ' + (err && err.message ? err.message : 'unknown'));
+      }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+    });
+  }
 
   function sync(){
     var isPaused = focusPause && focusPause.style.display === 'none' && focusResume && focusResume.style.display !== 'none';
