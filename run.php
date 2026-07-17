@@ -422,6 +422,124 @@ body.kk-focus-mode .kk-chips{z-index:10003;}
 .kk-err-card code{background:#f1f5f9;padding:2px 6px;border-radius:6px;font-size:.78rem;color:#0f172a;}
 .kk-err-cta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px;}
 .kk-err-cta .btn{border-radius:12px;padding:10px 16px;font-weight:700;}
+
+/* ================================================================
+   R38 FIX — Floating map buttons & Finish screen identity
+   ================================================================ */
+/* Map wrapper: keep round corners on the MAP itself, but let overlays
+   (settings popover, recenter pill) escape without being clipped */
+.kk-mapwrap{overflow:visible !important;}
+.kk-mapwrap #kk-map{position:absolute;inset:0;border-radius:20px;overflow:hidden;}
+
+/* Floating controls: solid background, high stacking, always clickable */
+.kk-chips,
+.kk-mapfabs,
+.kk-settings-pop,
+.kk-recenter{pointer-events:auto !important;}
+.kk-mapfabs{z-index:1500 !important;}
+.kk-chips  {z-index:1500 !important;}
+.kk-recenter{z-index:1500 !important;}
+.kk-settings-pop{z-index:1600 !important;}
+
+.kk-mapfab{
+  background:#ffffff !important;
+  color:#0f172a !important;
+  border:1px solid rgba(15,23,42,.08) !important;
+  box-shadow:0 6px 18px rgba(15,23,42,.28) !important;
+  opacity:1 !important;
+  pointer-events:auto !important;
+  position:relative;
+  z-index:1;
+}
+.kk-mapfab:hover{background:#f8fafc !important;}
+.kk-mapfab.active{background:#1E90FF !important;color:#ffffff !important;
+  box-shadow:0 8px 22px rgba(30,144,255,.45) !important;}
+
+/* Leaflet default controls & attribution never cover our FABs */
+.leaflet-top,.leaflet-bottom{z-index:400 !important;}
+#kk-map .leaflet-control-zoom{display:none !important;}
+#kk-map .leaflet-control-attribution{z-index:400 !important;}
+
+/* In Focus Mode, keep floating map controls above the glass overlay */
+body.kk-focus-mode .kk-mapfabs   {z-index:10050 !important;}
+body.kk-focus-mode .kk-chips     {z-index:10050 !important;}
+body.kk-focus-mode .kk-settings-pop{z-index:10060 !important;}
+body.kk-focus-mode .kk-recenter  {z-index:10050 !important;}
+
+/* ------- Finish screen (KawanKeringat identity) ------- */
+#kk-finish{
+  background:linear-gradient(160deg,#050a17 0%,#081223 45%,#0d2a5a 100%) !important;
+  color:#e2e8f0;
+}
+.kk-finish-hero{
+  height:44vh;min-height:280px;
+  background:linear-gradient(180deg,rgba(8,18,35,.15),rgba(8,18,35,.85)),
+             radial-gradient(ellipse at top,#1E90FF33,transparent 60%),#081223;
+  position:relative;overflow:hidden;
+}
+.kk-finish-hero::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:80px;
+  background:linear-gradient(to top,#081223,transparent);pointer-events:none;z-index:2;
+}
+.kk-finish-brand{
+  position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 14px);
+  z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:#fff;pointer-events:none;text-shadow:0 2px 10px rgba(0,0,0,.4);
+}
+.kk-finish-brand .kk-logo{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,#1E90FF,#4FB0FF);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:1.6rem;color:#fff;font-weight:900;
+  box-shadow:0 10px 30px rgba(30,144,255,.55),inset 0 0 0 2px rgba(255,255,255,.25);
+}
+.kk-finish-brand .kk-brand-name{font-weight:900;letter-spacing:.02em;font-size:1rem;}
+.kk-finish-brand .kk-brand-sub{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+  color:#BFE0FF;opacity:.95;}
+.kk-finish-back{
+  background:rgba(255,255,255,.12) !important;color:#fff !important;
+  border:1px solid rgba(191,224,255,.28) !important;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  z-index:6 !important;
+}
+.kk-finish-body{
+  padding:20px 16px 40px;max-width:760px;margin:0 auto;
+  color:#e2e8f0;
+}
+.kk-finish-body h4{color:#ffffff;letter-spacing:-.01em;}
+.kk-finish-body .text-muted{color:#94a3b8 !important;}
+.kk-summary{gap:12px;}
+.kk-summary .c{
+  background:linear-gradient(180deg,rgba(30,144,255,.10),rgba(255,255,255,.03)) !important;
+  border:1px solid rgba(191,224,255,.16) !important;
+  box-shadow:0 6px 22px rgba(0,0,0,.35) !important;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border-radius:18px !important;padding:16px 10px !important;
+}
+.kk-summary .c .v{color:#ffffff !important;font-size:1.7rem !important;
+  text-shadow:0 2px 12px rgba(30,144,255,.25);}
+.kk-summary .c .l{color:#BFE0FF !important;font-weight:800 !important;}
+.kk-chart-card{
+  background:linear-gradient(180deg,rgba(13,26,51,.85),rgba(8,18,35,.85)) !important;
+  border:1px solid rgba(191,224,255,.14) !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.35) !important;
+  color:#e2e8f0 !important;
+}
+.kk-chart-card h6{color:#ffffff !important;}
+.kk-chart-card .kk-split-row{border-bottom-color:rgba(191,224,255,.10) !important;}
+.kk-chart-card .kk-split-row .km{color:#BFE0FF !important;}
+.kk-chart-card .kk-split-row .pace{color:#ffffff !important;}
+.kk-chart-card .kk-split-row .bar{background:rgba(191,224,255,.14) !important;}
+.kk-chart-card .kk-split-row .bar > i{background:linear-gradient(90deg,#1E90FF,#4FB0FF) !important;}
+.kk-finish-cta .btn-primary{
+  background:linear-gradient(135deg,#1E90FF,#4FB0FF) !important;
+  border:0 !important;box-shadow:0 8px 22px rgba(30,144,255,.45) !important;
+}
+.kk-finish-cta .btn-outline-secondary{
+  background:rgba(255,255,255,.06) !important;color:#e2e8f0 !important;
+  border:1px solid rgba(191,224,255,.24) !important;
+}
+
 </style>
 
 <body class="kk-run-page kk-dashboard-mode"></body>
@@ -659,6 +777,11 @@ body.kk-focus-mode .kk-chips{z-index:10003;}
   <div class="kk-finish-hero">
     <div id="kk-finish-map"></div>
     <button class="kk-finish-back" id="kk-finish-back"><i class="bi bi-x-lg"></i> Tutup</button>
+    <div class="kk-finish-brand">
+      <div class="kk-logo"><i class="bi bi-lightning-charge-fill"></i></div>
+      <div class="kk-brand-name">KawanKeringat</div>
+      <div class="kk-brand-sub">Aktivitas Selesai</div>
+    </div>
   </div>
   <div class="kk-finish-body">
     <h4 class="fw-bold mb-1">Kerja bagus! 🎉</h4>
@@ -935,6 +1058,40 @@ document.addEventListener('click', function(ev){
     else { alert('Gagal menghapus.'); b.disabled = false; }
   }).catch(function(){ alert('Gagal menghapus.'); b.disabled = false; });
 });
+
+/* R38: pastikan Leaflet TIDAK menangkap klik/drag pada tombol floating
+   (fullscreen/compass/lokasi/settings/recenter/chips). Tidak mengubah
+   map.js — hanya menambahkan handler eksternal setelah Leaflet siap. */
+(function(){
+  function armLeafletBypass(){
+    if (!window.L) return;
+    ['.kk-mapfabs','.kk-chips','.kk-settings-pop','.kk-recenter']
+      .forEach(function(sel){
+        document.querySelectorAll(sel).forEach(function(el){
+          try{
+            L.DomEvent.disableClickPropagation(el);
+            L.DomEvent.disableScrollPropagation(el);
+          }catch(e){}
+        });
+      });
+    // Setiap tombol .kk-mapfab juga di-arm secara individual
+    document.querySelectorAll('.kk-mapfab').forEach(function(btn){
+      try{
+        L.DomEvent.disableClickPropagation(btn);
+        btn.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+        btn.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+      }catch(e){}
+    });
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(armLeafletBypass, 400); });
+  } else {
+    setTimeout(armLeafletBypass, 400);
+  }
+  // Re-arm setelah map dibuat (ui.js/map.js dijalankan asinkron)
+  setTimeout(armLeafletBypass, 1500);
+})();
 </script>
+
 
 <?php include __DIR__.'/includes/footer.php'; ?>
