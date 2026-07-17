@@ -640,7 +640,7 @@ if (empty($pageSkeleton)) {
 <nav class="gt-chips" aria-label="Pintasan">
   <a class="gt-chip <?= basename($_SERVER['SCRIPT_NAME'] ?? '')==='index.php'?'active':'' ?>" href="/index.php" data-sfx="tap"><i class="bi bi-house-door-fill"></i>Beranda</a>
   <?php if ($u): ?>
-    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill"></i>Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a>
+    <a class="gt-chip" href="/run.php" data-sfx="tap"><i class="bi bi-stopwatch-fill"></i>Rekam Jogging<?= nav_lock_badge_for('run.php') ?></a>
     <a class="gt-chip" href="/upload.php" data-sfx="tap"><i class="bi bi-cloud-upload-fill"></i>Upload<?= nav_lock_badge_for('upload.php') ?></a>
     <?php /* Menu Jajan & Kurir dihilangkan dari navigasi pengguna sesuai revisi. */ ?>
     <a class="gt-chip" href="/tempat_list.php" data-sfx="tap"><i class="bi bi-geo-alt-fill"></i>Tempat<?= nav_lock_badge_for('tempat_list.php') ?></a>
@@ -693,7 +693,7 @@ if (empty($pageSkeleton)) {
           <a class="list-group-item list-group-item-action ps-4" href="/monitoring.php"><i class="bi bi-graph-up-arrow"></i> Monitoring<?= nav_lock_badge_for('monitoring.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/upload.php"><i class="bi bi-cloud-upload"></i> Upload<?= nav_lock_badge_for('upload.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/riwayat.php"><i class="bi bi-clock-history"></i> Riwayat<?= nav_lock_badge_for('riwayat.php') ?></a>
-          <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a>
+          <a class="list-group-item list-group-item-action ps-4" href="/run.php"><i class="bi bi-stopwatch-fill"></i> Rekam Jogging<?= nav_lock_badge_for('run.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/live_tracking.php"><i class="bi bi-broadcast text-danger"></i> Live Tracking / Beacon<?= nav_lock_badge_for('live_tracking.php') ?></a>
           <a class="list-group-item list-group-item-action ps-4" href="/flyover.php"><i class="bi bi-camera-reels text-info"></i> Video Flyover 3D<?= nav_lock_badge_for('flyover.php') ?></a>
           <!-- Revisi 20 Juni 2026 R3 — Menu terpisah: Eksplorasi Rute & Peta Canggih
@@ -937,7 +937,7 @@ if (empty($pageSkeleton)) {
               <li><a class="dropdown-item" href="/gaya_hidup.php"><i class="bi bi-heart-pulse-fill text-danger"></i> Kalkulator Gaya Hidup<?= nav_lock_badge_for('gaya_hidup.php') ?></a></li>
             </ul>
           </li>
-          <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Tracking Jalur<?= nav_lock_badge_for('run.php') ?></a></li>
+          <li class="nav-item"><a class="nav-link" href="/run.php"><i class="bi bi-stopwatch text-danger"></i> Rekam Jogging<?= nav_lock_badge_for('run.php') ?></a></li>
           <?php /* Revisi 22 Juni 2026 R7 — nav-link Pesan (dm.php) dihapus dari navbar desktop. */ ?>
           <li class="nav-item"><a class="nav-link" href="/bookmark.php"><i class="bi bi-bookmark-star text-warning"></i> Bookmark<?= nav_lock_badge_for('bookmark.php') ?></a></li>
           <?php if (function_exists('scope_can_access_islami') && scope_can_access_islami()): ?><li class="nav-item"><a class="nav-link" href="/islami.php"><i class="bi bi-stars text-warning"></i> Islami<?= nav_lock_badge_for('islami.php') ?></a></li><?php endif; ?>

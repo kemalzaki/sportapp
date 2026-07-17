@@ -178,3 +178,28 @@ html.is-native .gj-nav {
 html.is-native body {
   padding-bottom: calc(var(--gj-h, 64px) + max(env(safe-area-inset-bottom, 0px), 10px)) !important;
 }
+
+/* ---------------- Drawer / Offcanvas (REVISI R45) ---------------- */
+/* Drawer kiri (gtDrawer) menabrak status bar di Android WebView bila
+   header offcanvas tidak menghormati safe-area-inset-top. Terapkan
+   padding-top global ke SEMUA offcanvas start (drawer kiri/kanan). */
+.offcanvas.offcanvas-start,
+.offcanvas.offcanvas-end,
+.offcanvas.offcanvas-top{
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.offcanvas.offcanvas-start .offcanvas-header,
+.offcanvas.offcanvas-end   .offcanvas-header,
+.offcanvas.offcanvas-top   .offcanvas-header{
+  padding-top: max(1rem, calc(.75rem + env(safe-area-inset-top, 0px)));
+}
+/* Khusus drawer utama KawanKeringat */
+.gt-drawer{
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.gt-drawer .offcanvas-header{
+  padding-top: max(1rem, calc(.75rem + env(safe-area-inset-top, 0px)));
+}
+.offcanvas.offcanvas-bottom{
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
