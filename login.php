@@ -278,7 +278,7 @@ body{
 
     <!-- Revisi: Tombol Pintasan ke HP (PWA install) di halaman login -->
     <button type="button" id="installBtn" class="btn-lg-outline mt-2" data-sfx="tap">
-      <i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu
+      <i class="bi bi-download"></i> Download APK
     </button>
 
     <div class="lg-footer-note mt-3">

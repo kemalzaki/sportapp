@@ -708,7 +708,7 @@ $__hideSuper = scope_is_superduper_kom_member();
       <p class="mb-1 text-white" style="line-height:1.45;font-weight:600;">AI Sport &amp; Healthy Lifestyle Super App untuk Indonesia.</p>
       <p class="mb-2 text-white-50" style="line-height:1.5;">Olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor — semua dalam satu aplikasi. Yuk kumpulkan keringat hari ini!</p>
       <div class="d-flex flex-wrap gap-2">
-        <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-phone"></i> Tambahkan Pintasan ke HP kamu</button>
+        <button id="installBtn" class="btn btn-sm btn-light fw-semibold"><i class="bi bi-download"></i> Download APK</button>
       </div>
     </div>
 </div>
