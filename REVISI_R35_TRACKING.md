@@ -1,122 +1,91 @@
-# Revisi R35 — Tracking Jalur: Dashboard Mode + Focus Mode (KawanKeringat)
+# Revisi R35 — Tracking Jalur: Dashboard Mode + Focus Mode
 
-Zip ini berisi **hanya file yang direvisi** (bukan seluruh project):
+Zip ini berisi **hanya file yang direvisi**, bukan seluruh project:
 
 ```
 run.php                       ← halaman Tracking Jalur (ditulis ulang)
-assets/js/run/ui.js           ← ditambah Dashboard/Focus mode + floating map controls
+assets/js/run/ui.js           ← modul UI baru (Dashboard + Focus + KKFinish)
 ```
 
-Modul JS lain (`gps.js`, `tracking.js`, `map.js`, `save.js`,
-`background.js`, `voice.js`) **TIDAK diubah**, sesuai konstrain.
-
 ## Cara pasang
+1. Ekstrak zip ini dan **timpa** ke root project KawanKeringat.
+2. Refresh cache browser / bump `?v=` di URL script kalau perlu (URL sudah `?v=r35`).
 
-1. Ekstrak zip ini dan **timpa** ke root project KawanKeringat (folder
-   tempat `run.php` lama berada).
-2. Refresh cache browser / bump ?v= di URL script kalau perlu
-   (URL sudah `?v=r35`).
+Modul lain (`gps.js`, `tracking.js`, `map.js`, `save.js`,
+`background.js`, `voice.js`) **TIDAK diubah**.
 
-## PostgreSQL — apakah perlu tambahan?
+## PostgreSQL — perlu tambahan?
+**Tidak.** Tabel `run_sessions` + `run_points` dan endpoint `api_run.php`
+tetap dipakai apa adanya. Tidak ada migrasi tambahan, tidak ada kolom baru.
+Data eksisting di `sportapp.sql` tidak disentuh.
 
-**Tidak.** Skema `run_sessions`, `run_points`, dan endpoint
-`api_run.php` (start / point / stop / delete) **tetap dipakai apa
-adanya**. Tidak ada migrasi SQL, tidak ada tabel baru, tidak ada
-kolom baru. Data eksisting di dump `sportapp.sql` tidak disentuh.
+Kalau nanti kamu mau menambah kolom (mis. `favorite_mode`), cukup:
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS favorite_view_mode TEXT DEFAULT 'dashboard';
+```
+Tapi untuk R35 ini **tidak perlu** — preferensi mode disimpan di
+`localStorage['kk_run_mode_v1']` pada sisi klien.
 
-## Apa yang berubah (ringkas)
+## Ringkasan Perubahan
 
 ### 1. Dashboard Mode (default)
-- Saat halaman `run.php` dibuka, langsung muncul mode Dashboard.
-- Panel yang tampil: Statistik, Mini Map (±38 vh), tombol
-  Mulai/Pause/Stop, Split per KM, Riwayat.
-- Header aplikasi & Bottom Navigation **tetap tampil**.
-- Bukan fullscreen.
-- Peta Leaflet memakai tile Mapbox Outdoors normal (tanpa overlay gelap).
+- Halaman `run.php` dibuka langsung di Dashboard Mode.
+- Panel yang tampil: **Statistik → Mini Map (~38 vh) → Tombol
+  Mulai/Pause/Stop → Split per KM → Riwayat**.
+- Header & Bottom Navigation **tetap tampil**.
+- Bukan fullscreen. Tidak ada auto-fullscreen saat Start.
 
-### 2. Focus Mode (fullscreen)
-- Tombol floating **⛶ Fullscreen** di kanan atas peta.
-- Saat aktif:
-  - Peta jadi fullscreen (`position:fixed; inset:0`).
-  - Header & Bottom Nav disembunyikan via CSS class `body.kk-focus-mode`.
-  - Statistik = floating glass overlay (glassmorphism, blur 18px).
-  - Tombol Pause/Stop/Lock/Voice jadi floating (bottom control bar).
-  - Ada tombol **Exit Fullscreen** di kiri bawah peta.
-- Perpindahan mode **hanya toggle CSS class** (`enterFocusMode()` /
-  `exitFocusMode()` di `ui.js`). **Leaflet tidak di-destroy / recreate**.
-  `KKMap.invalidate()` dipanggil supaya peta menyesuaikan ukuran.
-- Selama perpindahan mode:
-  - Timer tidak reset (semua state tetap di `tracking.js`).
-  - GPS tidak restart (watcher `gps.js` tetap jalan).
-  - Marker & polyline tetap.
-  - Background tracking & voice tetap.
-- Mode terakhir disimpan ke `localStorage['kk_run_mode_v1']`
-  (nilai `dashboard` | `focus`). Saat sesi tracking aktif dan halaman
-  dibuka ulang, mode terakhir dipulihkan otomatis.
+### 2. Focus Mode (fullscreen, opsional)
+- Aktif hanya lewat tombol floating **⛶** di kanan atas peta
+  (atau dipulihkan otomatis kalau mode terakhir = focus).
+- Peta jadi `position:fixed; inset:0` (100% viewport).
+- Header, bottom nav, sidebar, search, footer disembunyikan via CSS
+  `body.kk-focus-mode`.
+- Statistik = glass overlay floating (blur 18px + saturate 140%).
+- Tombol Pause / Stop / Lock / Voice jadi floating bottom bar.
+- Tombol **Exit Fullscreen** (kiri kanan atas) untuk kembali ke Dashboard.
 
-### 3. Floating Map Controls
-Empat tombol bulat di kanan atas peta, hadir di dua mode:
-- 📍 Follow My Location — memanggil `KKMap.recenter()`.
-- 🧭 Compass — toggle rotasi (`heading` ↔ `north`), memakai
-  `KKMap.setRotationEnabled()`.
-- ⛶ Fullscreen — toggle Focus Mode.
-- ⚙️ Settings — popover untuk Jenis Olahraga, Voice Feedback,
-  Rotasi Map.
+### 3. Perpindahan Mode
+- **Hanya toggle CSS class**. Fungsi di `ui.js`:
+  `enterFocusMode()`, `exitFocusMode()`, `toggleFocusMode()`.
+- Leaflet TIDAK di-destroy / recreate. `KKMap.invalidate()` dipanggil
+  agar peta menyesuaikan ukuran.
+- Timer, GPS watcher, background service, voice, marker, polyline
+  semua tetap jalan. Tidak ada reload.
 
-Efek visual: hover lift, ripple JS, dan glow biru saat aktif
-(`--kk-glow-blue`).
+### 4. Floating Map Controls
+Empat tombol bulat di kanan atas peta (hadir di dua mode):
 
-### 4. Identitas Visual KawanKeringat
-Token warna baru di `run.php`:
+| Ikon | Fungsi                               |
+|------|--------------------------------------|
+| 📍   | Follow My Location (`KKMap.recenter`) |
+| 🧭   | Toggle Compass (rotasi peta)          |
+| ⛶    | Toggle Fullscreen (Focus Mode)        |
+| ⚙️   | Settings (sport, voice, rotasi, berat)|
 
-| Token             | Nilai      | Pakai untuk                 |
-|-------------------|------------|-----------------------------|
-| `--kk-navy`       | `#081223`  | Background Focus Mode       |
-| `--kk-navy-2`     | `#0d1a33`  | Gradasi                     |
-| `--kk-blue`       | `#1E90FF`  | Aksen, polyline GPS, glow   |
-| `--kk-blue-2`     | `#4FB0FF`  | Gradasi tombol              |
-| `--kk-light`      | `#BFE0FF`  | Aksen label glass           |
-| `--kk-white`      | `#ffffff`  | Panel Dashboard             |
+Style: 44px bulat, shadow ringan, hover lift, ripple, glow biru saat aktif.
 
-- Dashboard: `body.kk-run-page` memakai
-  `linear-gradient(160deg, #081223 → #0d2547 → #1E90FF → #BFE0FF)`
-  fixed. Panel Dashboard putih dengan blur ringan.
-- **Tile Leaflet tetap normal** (tidak diberi overlay gelap) supaya
-  peta mudah dibaca.
-- Focus Mode: body background `--kk-navy`. Metric card = glass
-  (blur 18px + saturate 140% + border light-blue).
-- Polyline GPS = Electric Blue via `KK_RUN.polylineColor` + CSS
-  fallback `.leaflet-overlay-pane path.leaflet-interactive`.
-- Marker pelari = bulatan Electric Blue dengan halo.
-- Status GPS: hijau (ok), kuning (sedang), merah (buruk).
-- REC: chip merah dengan `@keyframes kkRecBlink` (halus, 1.4s).
-- Tombol aktif: `.kk-btn-start`, `.kk-btn-resume`, `.kk-mapfab.active`
-  memakai `--kk-glow-blue`.
-- Border radius 20–24 px, shadow biru lembut, transisi 300 ms.
+### 5. Preferensi Pengguna
+- Mode disimpan ke `localStorage['kk_run_mode_v1']` (`dashboard` |
+  `focus`).
+- Saat halaman dibuka lagi, mode terakhir dipulihkan otomatis.
 
-### 5. Konsistensi UI
-Finish screen (`#kk-finish`) memakai palet & radius KK yang sama
-(kartu putih, canvas grafik dengan warna Electric Blue), sehingga
-transisi dari tracking ke halaman hasil terasa mulus dan konsisten
-dengan halaman Activity Summary.
+### 6. Fix Bug Stop (dari CATATAN_REVISI)
+Tombol Selesai di Dashboard tidak jalan di versi R34 karena swipe
+UI berada di `.kk-ctrl` yang `display:none` di Dashboard. Di R35,
+`KKUI.showSwipeFinish` mendeteksi mode:
+- **Focus Mode** → swipe-to-finish (anti salah pencet).
+- **Dashboard Mode** → `confirm()` → langsung `stopSession()` →
+  `KKSave.flush` + `stopSession` → summary + tombol Review & Upload.
 
-### 6. Konstrain yang dipatuhi
-- `gps.js`, `tracking.js`, `map.js`, `save.js`, `background.js`,
-  `voice.js` **tidak diubah** — semua fungsi tracking, GPS, Leaflet,
-  penyimpanan berjalan seperti sebelumnya.
-- Fungsi baru **hanya di `ui.js`**:
-  `enterFocusMode()`, `exitFocusMode()`, `toggleFocusMode()`,
-  `currentMode()`, `initDashboardMode()`.
-- `enterFullscreen()` / `exitFullscreen()` yang dipanggil
-  `tracking.js` R34 tetap ada (back-compat), tetapi kini merutekan
-  ke mode tersimpan (default Dashboard).
+### 7. Identitas Visual
+Palet KK dipakai: navy `#081223`, electric blue `#1E90FF`, light blue
+`#BFE0FF`. Polyline & marker pelari berwarna Electric Blue.
+Border radius 20–24 px, shadow biru lembut, transisi 300 ms.
 
-## Cara verifikasi cepat
-1. Buka `/run.php` → seharusnya melihat Dashboard (stat + mini map +
-   tombol Mulai + riwayat) dengan background gradasi navy → biru.
-2. Klik ⛶ pada peta → seluruh viewport jadi peta, statistik jadi
-   overlay glass. Timer/GPS tidak reset.
-3. Klik Exit Fullscreen (kiri bawah) atau ⛶ lagi → kembali ke
-   Dashboard. Peta tetap menampilkan posisi & polyline yang sama.
-4. Refresh halaman saat mode Focus tersimpan → mode Focus otomatis
-   dipulihkan (bila ada sesi aktif).
+## Verifikasi Cepat
+1. Buka `/run.php` → Dashboard (stat + mini map + tombol Mulai + riwayat).
+2. Klik ⛶ → seluruh viewport jadi peta, statistik jadi overlay glass.
+3. Klik Exit Fullscreen → balik ke Dashboard. Timer/GPS/polyline
+   tetap seperti sebelumnya.
+4. Reload halaman saat mode terakhir Focus → otomatis Focus lagi.
