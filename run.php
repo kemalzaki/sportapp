@@ -105,53 +105,64 @@ include __DIR__.'/includes/header.php';
 @keyframes kkRecBlink{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* Mini map card di Dashboard Mode */
-.kk-mapwrap{position:relative;border-radius:20px;overflow:hidden;
+.kk-mapwrap{position:relative;border-radius:20px;
   height:38vh;min-height:260px;background:#0f172a;
-  box-shadow:0 6px 22px rgba(15,23,42,.08);transition:all .3s ease;}
-#kk-map{position:absolute;inset:0;}
+  box-shadow:0 6px 22px rgba(15,23,42,.08);transition:all .3s ease;
+  overflow:visible;} /* R39: overflow visible supaya popover settings tidak dipotong */
+#kk-map{position:absolute;inset:0;border-radius:20px;overflow:hidden;z-index:0;}
 .kk-map-rot{transition:transform .35s cubic-bezier(.25,.9,.3,1);
   transform-origin:50% 50%;will-change:transform;}
 
-/* Chips atas peta */
-.kk-chips{position:absolute;left:10px;top:10px;display:flex;gap:6px;z-index:6;}
+/* Chips atas peta — z-index final 1500 (di atas Leaflet controls 1000 & panes 400) */
+.kk-chips{position:absolute;left:10px;top:10px;display:flex;gap:6px;
+  z-index:1500;pointer-events:auto;}
 .kk-chips .kk-chip{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
   background:rgba(15,23,42,.75);}
 .kk-chips .kk-chip.status-ok{background:rgba(34,197,94,.9);}
 .kk-chips .kk-chip.status-warn{background:rgba(234,179,8,.95);color:#111;}
 .kk-chips .kk-chip.status-bad{background:rgba(239,68,68,.9);}
 
-/* Floating map controls (kanan atas) */
-.kk-mapfabs{position:absolute;right:10px;top:10px;z-index:7;
-  display:flex;flex-direction:column;gap:8px;}
-.kk-mapfab{width:44px;height:44px;border-radius:50%;border:0;
-  background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);color:#0f172a;font-size:1.05rem;
+/* Floating map controls (kanan atas) — z-index final 1500 */
+.kk-mapfabs{position:absolute;right:10px;top:10px;z-index:1500;
+  display:flex;flex-direction:column;gap:8px;pointer-events:auto;}
+.kk-mapfab{position:relative;width:44px;height:44px;border-radius:50%;border:0;
+  background:#ffffff;color:#0f172a;font-size:1.05rem;
+  border:1px solid rgba(15,23,42,.08);
   display:inline-flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 14px rgba(15,23,42,.18);cursor:pointer;
+  box-shadow:0 6px 18px rgba(15,23,42,.28);cursor:pointer;
+  pointer-events:auto;opacity:1;
   transition:transform .2s ease, box-shadow .25s ease, background .25s;}
-.kk-mapfab:hover{transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(15,23,42,.24);}
-.kk-mapfab.active{background:#1E90FF;color:#fff;box-shadow:0 6px 22px rgba(30,144,255,.45);}
+.kk-mapfab:hover{transform:translateY(-2px);background:#f8fafc;
+  box-shadow:0 10px 22px rgba(15,23,42,.32);}
+.kk-mapfab.active{background:#1E90FF;color:#fff;
+  box-shadow:0 8px 22px rgba(30,144,255,.45);}
 .kk-mapfab.kk-ripple{animation:kkRipple .32s ease;}
 @keyframes kkRipple{0%{transform:scale(1)}45%{transform:scale(.9)}100%{transform:scale(1)}}
 
-/* Settings popover */
-.kk-settings-pop{position:absolute;right:64px;top:60px;z-index:9;
+/* Settings popover — z-index final 1600 (di atas FAB) */
+.kk-settings-pop{position:absolute;right:64px;top:60px;z-index:1600;
   background:#fff;border-radius:14px;padding:12px;min-width:200px;
   box-shadow:0 12px 30px rgba(15,23,42,.18);
-  display:none;transform:translateY(-4px);opacity:0;transition:all .2s ease;}
+  display:none;transform:translateY(-4px);opacity:0;transition:all .2s ease;
+  pointer-events:auto;}
 .kk-settings-pop.show{display:block;transform:translateY(0);opacity:1;}
 .kk-settings-pop label{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
   color:#64748b;font-weight:700;margin-bottom:4px;display:block;}
 .kk-settings-pop select{width:100%;border:1px solid #e2e8f0;border-radius:10px;
   padding:6px 8px;font-size:.85rem;margin-bottom:8px;}
 
-/* Recenter pill (only muncul saat user pan map) */
-.kk-recenter{position:absolute;right:14px;bottom:14px;z-index:6;
+/* Recenter pill — z-index final 1500 */
+.kk-recenter{position:absolute;right:14px;bottom:14px;z-index:1500;
   background:#fff;color:#0f172a;border:0;border-radius:999px;
   padding:8px 12px;font-weight:700;font-size:.8rem;
-  box-shadow:0 6px 18px rgba(0,0,0,.25);display:none;align-items:center;gap:6px;}
+  box-shadow:0 6px 18px rgba(0,0,0,.25);display:none;align-items:center;gap:6px;
+  pointer-events:auto;}
 .kk-recenter.show{display:inline-flex;}
+
+/* Leaflet default controls: paksa berada DI BAWAH FAB. Zoom dihilangkan. */
+#kk-map .leaflet-control-zoom{display:none;}
+#kk-map .leaflet-top,#kk-map .leaflet-bottom{z-index:400;}
+#kk-map .leaflet-control-attribution{z-index:400;}
 
 /* Tombol utama Dashboard */
 .kk-dash-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
@@ -343,25 +354,60 @@ body.kk-focus-mode .kk-dim{display:block;}
 .leaflet-overlay-pane path.leaflet-interactive{stroke:#1E90FF;}
 
 /* Finish screen */
-#kk-finish{position:fixed;inset:0;z-index:10020;background:#f8fafc;display:none;overflow-y:auto;}
+/* ===== Finish screen — identity KawanKeringat (Dark Navy → Electric Blue) ===== */
+#kk-finish{position:fixed;inset:0;z-index:10020;display:none;overflow-y:auto;
+  background:linear-gradient(160deg,#050a17 0%,#081223 45%,#0d2a5a 100%);
+  color:#e2e8f0;}
 body.kk-finish-open{overflow:hidden;}
 body.kk-finish-open #kk-finish{display:block;}
-.kk-finish-hero{position:relative;height:40vh;min-height:260px;background:#081223;}
+.kk-finish-hero{position:relative;height:44vh;min-height:280px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(8,18,35,.15),rgba(8,18,35,.85)),
+             radial-gradient(ellipse at top,#1E90FF33,transparent 60%),#081223;}
+.kk-finish-hero::after{content:"";position:absolute;inset:auto 0 0 0;height:80px;
+  background:linear-gradient(to top,#081223,transparent);pointer-events:none;z-index:2;}
 #kk-finish-map{position:absolute;inset:0;}
-.kk-finish-back{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;z-index:5;
-  background:rgba(8,18,35,.75);color:#fff;border:0;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;}
-.kk-finish-body{padding:16px;max-width:720px;margin:0 auto;}
-.kk-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
-.kk-summary .c{background:#fff;border-radius:16px;padding:14px 10px;text-align:center;
-  box-shadow:0 4px 14px rgba(15,23,42,.06);}
-.kk-summary .c .v{font-size:1.6rem;font-weight:900;color:#0f172a;font-variant-numeric:tabular-nums;}
-.kk-summary .c .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#64748b;font-weight:700;}
-.kk-chart-card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;
-  box-shadow:0 4px 14px rgba(15,23,42,.06);}
-.kk-chart-card h6{margin:0 0 8px;font-weight:800;color:#0f172a;}
+.kk-finish-back{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;z-index:6;
+  background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(191,224,255,.28);
+  border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.kk-finish-brand{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 14px);
+  z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:#fff;pointer-events:none;text-shadow:0 2px 10px rgba(0,0,0,.4);}
+.kk-finish-brand .kk-logo{width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,#1E90FF,#4FB0FF);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:1.6rem;color:#fff;font-weight:900;
+  box-shadow:0 10px 30px rgba(30,144,255,.55),inset 0 0 0 2px rgba(255,255,255,.25);}
+.kk-finish-brand .kk-brand-name{font-weight:900;letter-spacing:.02em;font-size:1rem;}
+.kk-finish-brand .kk-brand-sub{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+  color:#BFE0FF;opacity:.95;}
+.kk-finish-body{padding:20px 16px 40px;max-width:760px;margin:0 auto;color:#e2e8f0;}
+.kk-finish-body h4{color:#ffffff;letter-spacing:-.01em;}
+.kk-finish-body .text-muted{color:#94a3b8 !important;}
+.kk-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.kk-summary .c{background:linear-gradient(180deg,rgba(30,144,255,.10),rgba(255,255,255,.03));
+  border:1px solid rgba(191,224,255,.16);border-radius:18px;padding:16px 10px;text-align:center;
+  box-shadow:0 6px 22px rgba(0,0,0,.35);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.kk-summary .c .v{font-size:1.7rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 12px rgba(30,144,255,.25);}
+.kk-summary .c .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#BFE0FF;font-weight:800;}
+.kk-chart-card{background:linear-gradient(180deg,rgba(13,26,51,.85),rgba(8,18,35,.85));
+  border:1px solid rgba(191,224,255,.14);border-radius:16px;padding:14px;margin-bottom:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);color:#e2e8f0;}
+.kk-chart-card h6{margin:0 0 8px;font-weight:800;color:#fff;}
 .kk-chart-card canvas{width:100%;height:120px;display:block;}
+.kk-chart-card .kk-split-row{border-bottom-color:rgba(191,224,255,.10);}
+.kk-chart-card .kk-split-row .km{color:#BFE0FF;}
+.kk-chart-card .kk-split-row .pace{color:#fff;}
+.kk-chart-card .kk-split-row .bar{background:rgba(191,224,255,.14);}
+.kk-chart-card .kk-split-row .bar > i{background:linear-gradient(90deg,#1E90FF,#4FB0FF);}
 .kk-finish-cta{display:flex;gap:10px;margin-top:14px;}
 .kk-finish-cta .btn{flex:1;border-radius:14px;padding:14px;font-weight:800;}
+.kk-finish-cta .btn-primary{background:linear-gradient(135deg,#1E90FF,#4FB0FF);border:0;
+  box-shadow:0 8px 22px rgba(30,144,255,.45);}
+.kk-finish-cta .btn-outline-secondary{background:rgba(255,255,255,.06);color:#e2e8f0;
+  border:1px solid rgba(191,224,255,.24);}
 
 @media (max-width:400px){
   .kk-metric-primary .m-val{font-size:2.6rem;}
@@ -384,21 +430,11 @@ body.kk-finish-open #kk-finish{display:block;}
   100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}
 }
 
-/* R36: pastikan tombol map (fullscreen, compass, dll) tidak tertimpa overlay
-   metric di Focus Mode. Naikkan z-index dan sesuaikan posisi. */
-body.kk-focus-mode .kk-mapfabs{z-index:10003;}
-body.kk-focus-mode .kk-chips{z-index:10003;}
-
-/* R37: Leaflet zoom control & attribution default z-index = 1000.
-   Tombol map custom (chips, fabs, recenter, settings popover) harus di atasnya
-   supaya TIDAK tertimpa peta / kontrol Leaflet saat sesi tracking dimulai. */
-.kk-chips{z-index:1200 !important;}
-.kk-mapfabs{z-index:1201 !important;}
-.kk-settings-pop{z-index:1202 !important;}
-.kk-recenter{z-index:1200 !important;}
-/* Sembunyikan zoom control Leaflet supaya tidak menabrak FAB kanan atas */
-#kk-map .leaflet-control-zoom{display:none !important;}
-#kk-map .leaflet-top.leaflet-right{display:none !important;}
+/* Focus Mode: naikkan FAB & chips di atas overlay glass metric */
+body.kk-focus-mode .kk-mapfabs   {z-index:10050;}
+body.kk-focus-mode .kk-chips     {z-index:10050;}
+body.kk-focus-mode .kk-settings-pop{z-index:10060;}
+body.kk-focus-mode .kk-recenter  {z-index:10050;}
 
 /* R37: Error overlay (jaringan / halaman tidak tersedia) */
 .kk-err-overlay{
@@ -422,124 +458,6 @@ body.kk-focus-mode .kk-chips{z-index:10003;}
 .kk-err-card code{background:#f1f5f9;padding:2px 6px;border-radius:6px;font-size:.78rem;color:#0f172a;}
 .kk-err-cta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px;}
 .kk-err-cta .btn{border-radius:12px;padding:10px 16px;font-weight:700;}
-
-/* ================================================================
-   R38 FIX — Floating map buttons & Finish screen identity
-   ================================================================ */
-/* Map wrapper: keep round corners on the MAP itself, but let overlays
-   (settings popover, recenter pill) escape without being clipped */
-.kk-mapwrap{overflow:visible !important;}
-.kk-mapwrap #kk-map{position:absolute;inset:0;border-radius:20px;overflow:hidden;}
-
-/* Floating controls: solid background, high stacking, always clickable */
-.kk-chips,
-.kk-mapfabs,
-.kk-settings-pop,
-.kk-recenter{pointer-events:auto !important;}
-.kk-mapfabs{z-index:1500 !important;}
-.kk-chips  {z-index:1500 !important;}
-.kk-recenter{z-index:1500 !important;}
-.kk-settings-pop{z-index:1600 !important;}
-
-.kk-mapfab{
-  background:#ffffff !important;
-  color:#0f172a !important;
-  border:1px solid rgba(15,23,42,.08) !important;
-  box-shadow:0 6px 18px rgba(15,23,42,.28) !important;
-  opacity:1 !important;
-  pointer-events:auto !important;
-  position:relative;
-  z-index:1;
-}
-.kk-mapfab:hover{background:#f8fafc !important;}
-.kk-mapfab.active{background:#1E90FF !important;color:#ffffff !important;
-  box-shadow:0 8px 22px rgba(30,144,255,.45) !important;}
-
-/* Leaflet default controls & attribution never cover our FABs */
-.leaflet-top,.leaflet-bottom{z-index:400 !important;}
-#kk-map .leaflet-control-zoom{display:none !important;}
-#kk-map .leaflet-control-attribution{z-index:400 !important;}
-
-/* In Focus Mode, keep floating map controls above the glass overlay */
-body.kk-focus-mode .kk-mapfabs   {z-index:10050 !important;}
-body.kk-focus-mode .kk-chips     {z-index:10050 !important;}
-body.kk-focus-mode .kk-settings-pop{z-index:10060 !important;}
-body.kk-focus-mode .kk-recenter  {z-index:10050 !important;}
-
-/* ------- Finish screen (KawanKeringat identity) ------- */
-#kk-finish{
-  background:linear-gradient(160deg,#050a17 0%,#081223 45%,#0d2a5a 100%) !important;
-  color:#e2e8f0;
-}
-.kk-finish-hero{
-  height:44vh;min-height:280px;
-  background:linear-gradient(180deg,rgba(8,18,35,.15),rgba(8,18,35,.85)),
-             radial-gradient(ellipse at top,#1E90FF33,transparent 60%),#081223;
-  position:relative;overflow:hidden;
-}
-.kk-finish-hero::after{
-  content:"";position:absolute;inset:auto 0 0 0;height:80px;
-  background:linear-gradient(to top,#081223,transparent);pointer-events:none;z-index:2;
-}
-.kk-finish-brand{
-  position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 14px);
-  z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
-  color:#fff;pointer-events:none;text-shadow:0 2px 10px rgba(0,0,0,.4);
-}
-.kk-finish-brand .kk-logo{
-  width:52px;height:52px;border-radius:14px;
-  background:linear-gradient(135deg,#1E90FF,#4FB0FF);
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:1.6rem;color:#fff;font-weight:900;
-  box-shadow:0 10px 30px rgba(30,144,255,.55),inset 0 0 0 2px rgba(255,255,255,.25);
-}
-.kk-finish-brand .kk-brand-name{font-weight:900;letter-spacing:.02em;font-size:1rem;}
-.kk-finish-brand .kk-brand-sub{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
-  color:#BFE0FF;opacity:.95;}
-.kk-finish-back{
-  background:rgba(255,255,255,.12) !important;color:#fff !important;
-  border:1px solid rgba(191,224,255,.28) !important;
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  z-index:6 !important;
-}
-.kk-finish-body{
-  padding:20px 16px 40px;max-width:760px;margin:0 auto;
-  color:#e2e8f0;
-}
-.kk-finish-body h4{color:#ffffff;letter-spacing:-.01em;}
-.kk-finish-body .text-muted{color:#94a3b8 !important;}
-.kk-summary{gap:12px;}
-.kk-summary .c{
-  background:linear-gradient(180deg,rgba(30,144,255,.10),rgba(255,255,255,.03)) !important;
-  border:1px solid rgba(191,224,255,.16) !important;
-  box-shadow:0 6px 22px rgba(0,0,0,.35) !important;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  border-radius:18px !important;padding:16px 10px !important;
-}
-.kk-summary .c .v{color:#ffffff !important;font-size:1.7rem !important;
-  text-shadow:0 2px 12px rgba(30,144,255,.25);}
-.kk-summary .c .l{color:#BFE0FF !important;font-weight:800 !important;}
-.kk-chart-card{
-  background:linear-gradient(180deg,rgba(13,26,51,.85),rgba(8,18,35,.85)) !important;
-  border:1px solid rgba(191,224,255,.14) !important;
-  box-shadow:0 8px 24px rgba(0,0,0,.35) !important;
-  color:#e2e8f0 !important;
-}
-.kk-chart-card h6{color:#ffffff !important;}
-.kk-chart-card .kk-split-row{border-bottom-color:rgba(191,224,255,.10) !important;}
-.kk-chart-card .kk-split-row .km{color:#BFE0FF !important;}
-.kk-chart-card .kk-split-row .pace{color:#ffffff !important;}
-.kk-chart-card .kk-split-row .bar{background:rgba(191,224,255,.14) !important;}
-.kk-chart-card .kk-split-row .bar > i{background:linear-gradient(90deg,#1E90FF,#4FB0FF) !important;}
-.kk-finish-cta .btn-primary{
-  background:linear-gradient(135deg,#1E90FF,#4FB0FF) !important;
-  border:0 !important;box-shadow:0 8px 22px rgba(30,144,255,.45) !important;
-}
-.kk-finish-cta .btn-outline-secondary{
-  background:rgba(255,255,255,.06) !important;color:#e2e8f0 !important;
-  border:1px solid rgba(191,224,255,.24) !important;
-}
-
 </style>
 
 <body class="kk-run-page kk-dashboard-mode"></body>
@@ -1059,37 +977,29 @@ document.addEventListener('click', function(ev){
   }).catch(function(){ alert('Gagal menghapus.'); b.disabled = false; });
 });
 
-/* R38: pastikan Leaflet TIDAK menangkap klik/drag pada tombol floating
-   (fullscreen/compass/lokasi/settings/recenter/chips). Tidak mengubah
-   map.js — hanya menambahkan handler eksternal setelah Leaflet siap. */
+/* R39: safety-net — cegah Leaflet menangkap klik pada tombol floating.
+   Secara arsitektur tombol berada di luar #kk-map jadi ini hanya jaring
+   pengaman untuk kasus device tertentu yang bubble ke .leaflet-container. */
 (function(){
-  function armLeafletBypass(){
+  function arm(){
     if (!window.L) return;
-    ['.kk-mapfabs','.kk-chips','.kk-settings-pop','.kk-recenter']
-      .forEach(function(sel){
-        document.querySelectorAll(sel).forEach(function(el){
-          try{
-            L.DomEvent.disableClickPropagation(el);
-            L.DomEvent.disableScrollPropagation(el);
-          }catch(e){}
-        });
+    var sels = ['.kk-mapfabs','.kk-chips','.kk-settings-pop','.kk-recenter'];
+    sels.forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(el){
+        try { L.DomEvent.disableClickPropagation(el);
+              L.DomEvent.disableScrollPropagation(el); } catch(e){}
       });
-    // Setiap tombol .kk-mapfab juga di-arm secara individual
+    });
     document.querySelectorAll('.kk-mapfab').forEach(function(btn){
-      try{
-        L.DomEvent.disableClickPropagation(btn);
-        btn.addEventListener('mousedown', function(e){ e.stopPropagation(); });
-        btn.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
-      }catch(e){}
+      try { L.DomEvent.disableClickPropagation(btn); } catch(e){}
+      btn.addEventListener('mousedown',  function(e){ e.stopPropagation(); });
+      btn.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
     });
   }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(armLeafletBypass, 400); });
-  } else {
-    setTimeout(armLeafletBypass, 400);
-  }
-  // Re-arm setelah map dibuat (ui.js/map.js dijalankan asinkron)
-  setTimeout(armLeafletBypass, 1500);
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(arm, 300); });
+  else setTimeout(arm, 300);
+  setTimeout(arm, 1200); // re-arm setelah map.js siap
 })();
 </script>
 
