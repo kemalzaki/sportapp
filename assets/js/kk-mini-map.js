@@ -46,26 +46,30 @@
     if (!pts || pts.length < 2){ el.style.display = 'none'; return; }
     el.dataset.kkInit = '1';
 
-    // Interaktif seperti Strava — drag/zoom OK, scrollWheelZoom
-    // dimatikan supaya scroll halaman tetap nyaman di desktop.
+    // Revisi Juli 2026 — Mini map di riwayat DIBUAT NON-INTERAKTIF
+    // (tidak bisa diklik / didrag / zoom), agar user tidak sengaja
+    // ter-redirect ke live_tracking.php atau halaman lain saat
+    // menyentuh area peta. Untuk melihat rute penuh, gunakan tombol
+    // "Lihat Rute" yang membuka modal Leaflet interaktif.
     var map = L.map(el, {
-      zoomControl: true,
+      zoomControl: false,
       attributionControl: false,
-      dragging: true,
-      touchZoom: true,
-      doubleClickZoom: true,
+      dragging: false,
+      touchZoom: false,
+      doubleClickZoom: false,
       scrollWheelZoom: false,
       boxZoom: false,
       keyboard: false,
-      tap: true
+      tap: false
     });
     _tileLayer().addTo(map);
 
     var latlngs = pts.map(function(p){ return [p[0], p[1]]; });
     _drawRoute(map, latlngs);
 
-    // Klik area peta TIDAK redirect lagi (hindari track_view.php error).
-    el.style.cursor = 'grab';
+    // Blokir seluruh event pointer/klik pada container peta.
+    el.style.cursor = 'default';
+    el.style.pointerEvents = 'none';
 
     setTimeout(function(){ try { map.invalidateSize(); } catch(_){} }, 80);
   }

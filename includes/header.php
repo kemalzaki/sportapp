@@ -664,6 +664,19 @@ if (empty($pageSkeleton)) {
 .gt-drawer .list-group-item i.bi,
 .gt-drawer .offcanvas-title i.bi{ color: var(--primary, #0ea5e9) !important; }
 .gt-drawer .list-group-item .badge i.bi{ color: inherit !important; }
+/* Revisi Juli 2026 — Safe area untuk drawer:
+   nama menu paling atas (Jogging Progress) sering tenggelam di balik
+   status bar Android/iOS ketika app berjalan di Capacitor / WebView.
+   Tambahkan padding-top berdasarkan safe-area-inset-top, dengan
+   minimum yang cukup agar judul & item pertama tidak tertutup. */
+.gt-drawer .offcanvas-header{
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+}
+.gt-drawer .offcanvas-body{
+  padding-top: 0 !important;
+  /* Aman terhadap gesture bar di bagian bawah layar */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+}
 </style>
 <div class="offcanvas offcanvas-start gt-drawer" tabindex="-1" id="gtDrawer" aria-labelledby="gtDrawerLabel">
   <div class="offcanvas-header">

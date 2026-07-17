@@ -448,7 +448,7 @@ include __DIR__.'/includes/header.php';
 <!-- Revisi R43 Juli 2026 — Leaflet + mini-map preview rute Strava-like -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script defer src="/assets/js/kk-mini-map.js?v=r43"></script>
+<script defer src="/assets/js/kk-mini-map.js?v=r48"></script>
 <style>
 .kk-mini-map{ touch-action: pan-y; }
 .kk-mini-map .leaflet-control-attribution{ display:none; }
