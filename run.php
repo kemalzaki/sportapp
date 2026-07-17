@@ -189,7 +189,10 @@ include __DIR__.'/includes/header.php';
 .history-kk .list-group-item{border:0;border-bottom:1px solid #f1f5f9;padding:.85rem 1rem;}
 
 /* ================================================================
-   FOCUS MODE — hanya toggle CSS class di <body>
+   FOCUS MODE — HANYA CSS. Tidak ada HTML duplikat. Elemen yang sama
+   dengan Dashboard (#kk-stats-card, #kk-map, tombol) dipindahkan
+   via position:fixed sehingga seluruh binding JavaScript tetap
+   berfungsi (tracking.js meng-update id d-dist/d-time/dst).
    ================================================================ */
 body.kk-focus-mode{overflow:hidden;}
 body.kk-focus-mode header,
@@ -213,48 +216,60 @@ body.kk-focus-mode .site-footer,
 body.kk-focus-mode .kk-hide-in-focus{
   display:none !important;
 }
+/* Sembunyikan judul + wrapper spacing dashboard tapi TIDAK card stats/map/controls */
+body.kk-focus-mode .kk-dash-wrap{max-width:none;padding:0;margin:0;}
 
-/* Peta jadi fullscreen — Leaflet TIDAK di destroy */
+/* Peta jadi fullscreen — Leaflet TIDAK di destroy, hanya CSS */
 body.kk-focus-mode .kk-mapwrap{
   position:fixed !important;inset:0 !important;
   height:100vh !important;width:100vw !important;
   border-radius:0 !important;z-index:900;box-shadow:none;
 }
-
-/* Floating statistik atas (Focus) — SEPERLUNYA saja, tidak fullscreen */
-.kk-focus-stats{display:none;}
-body.kk-focus-mode .kk-focus-stats{
-  display:block;position:fixed;
-  left:12px;right:12px;
-  top:calc(env(safe-area-inset-top,0px) + 12px);
-  z-index:1100;pointer-events:none;
-  max-width:520px;margin:0 auto;
+body.kk-focus-mode .kk-mapwrap.kk-card,
+body.kk-focus-mode .kk-card:has(> #kk-mapwrap){
+  position:fixed !important;inset:0 !important;padding:0 !important;
+  margin:0 !important;border-radius:0 !important;z-index:900;
 }
-.kk-focus-stats .card{
-  background:rgba(11,18,32,.62);
+
+/* ---- Card Statistik Dashboard dipindahkan ke atas peta ---- */
+body.kk-focus-mode #kk-stats-card{
+  position:fixed !important;
+  top:calc(env(safe-area-inset-top,0px) + 12px);
+  left:5%;right:5%;width:90%;max-width:520px;margin:0 auto !important;
+  z-index:1100;height:auto;
+  padding:10px 14px !important;
+  background:rgba(11,18,32,.72) !important;
+  color:#fff !important;
+  border:1px solid rgba(191,224,255,.18);
+  border-radius:18px !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.35) !important;
   backdrop-filter:blur(16px) saturate(140%);
   -webkit-backdrop-filter:blur(16px) saturate(140%);
-  border:1px solid rgba(191,224,255,.18);
-  border-radius:18px;color:#fff;padding:10px 14px;
-  box-shadow:0 8px 24px rgba(0,0,0,.3);
-  pointer-events:auto;
 }
-.kk-focus-stats .row-primary{display:flex;align-items:baseline;justify-content:center;gap:6px;}
-.kk-focus-stats .row-primary .v{font-size:2rem;font-weight:900;line-height:1;
-  font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
-.kk-focus-stats .row-primary .u{font-size:.85rem;color:var(--kk-light);font-weight:600;}
-.kk-focus-stats .row-primary .l{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--kk-light);font-weight:700;margin-left:8px;}
-.kk-focus-stats .row-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;}
-.kk-focus-stats .cell{text-align:center;background:rgba(255,255,255,.06);
-  border-radius:10px;padding:5px 4px;}
-.kk-focus-stats .cell .v{font-size:.9rem;font-weight:800;font-variant-numeric:tabular-nums;}
-.kk-focus-stats .cell .l{font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--kk-light);}
+body.kk-focus-mode #kk-stats-card .stat-label,
+body.kk-focus-mode #kk-stats-card .kk-primary-stat .unit,
+body.kk-focus-mode #kk-stats-card .kk-primary-stat .lbl,
+body.kk-focus-mode #kk-stats-card .kk-stat-cell .lbl{
+  color:var(--kk-light) !important;
+}
+body.kk-focus-mode #kk-stats-card .kk-primary-stat{padding:2px 0;}
+body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{
+  font-size:2rem;color:#fff;
+}
+body.kk-focus-mode #kk-stats-card .kk-stat-grid{
+  grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px;
+}
+body.kk-focus-mode #kk-stats-card .kk-stat-cell{
+  background:rgba(255,255,255,.08);border-radius:10px;padding:6px 4px;
+}
+body.kk-focus-mode #kk-stats-card .kk-stat-cell .val{
+  color:#fff;font-size:.9rem;
+}
 
 /* Kontrol tracking mengambang di bawah saat Focus */
 body.kk-focus-mode .kk-controls-card{
-  position:fixed;left:0;right:0;bottom:0;z-index:1100;
-  background:linear-gradient(to top,rgba(11,18,32,.9) 30%,rgba(11,18,32,0));
+  position:fixed;left:0;right:0;bottom:0;z-index:1200;
+  background:linear-gradient(to top,rgba(11,18,32,.92) 30%,rgba(11,18,32,0));
   border-radius:0;box-shadow:none;
   padding:14px 16px calc(20px + env(safe-area-inset-bottom,0px));
   margin:0;
@@ -262,11 +277,11 @@ body.kk-focus-mode .kk-controls-card{
 body.kk-focus-mode .kk-controls-card .kk-controls-hint{color:#cbd5e1;}
 body.kk-focus-mode .kk-controls-card .kk-btn.loc{display:none;} /* tombol lokasi hanya dashboard */
 
-/* Naikkan z-index fab & popover di atas overlay glass saat focus */
-body.kk-focus-mode .kk-mapfabs{z-index:1200;}
-body.kk-focus-mode .kk-chips{z-index:1200;}
-body.kk-focus-mode .kk-settings-pop{z-index:1300;}
-body.kk-focus-mode .kk-recenter{z-index:1200;}
+/* z-index di atas overlay saat focus */
+body.kk-focus-mode .kk-mapfabs{z-index:1250;}
+body.kk-focus-mode .kk-chips{z-index:1250;}
+body.kk-focus-mode .kk-settings-pop{z-index:1350;}
+body.kk-focus-mode .kk-recenter{z-index:1250;bottom:120px;}
 
 /* Marker pelari (biru KK) */
 .kk-runner{width:26px;height:26px;border-radius:50%;background:#1E90FF;
@@ -334,7 +349,7 @@ body.kk-finish-open #kk-finish{display:block;}
 
 @media (max-width:400px){
   .kk-primary-stat .val{font-size:2.6rem;}
-  .kk-focus-stats .row-primary .v{font-size:1.6rem;}
+  body.kk-focus-mode #kk-stats-card .kk-primary-stat .val{font-size:1.6rem;}
 }
 </style>
 
@@ -357,11 +372,14 @@ body.kk-finish-open #kk-finish{display:block;}
     <strong>APK KawanKeringat</strong>.
   </div>
 
-  <!-- Panel Statistik (dashboard) -->
-  <div class="kk-card kk-hide-in-focus">
+  <!-- Panel Statistik — SATU card, dipakai Dashboard & Focus Mode.
+       Di Focus Mode card ini dipindahkan via CSS position:fixed.
+       SEMUA id (d-*) tetap sama, sehingga tracking.js/ui.js
+       tidak perlu tahu mode apa yang sedang aktif. -->
+  <div class="kk-card" id="kk-stats-card">
     <div class="d-flex justify-content-between align-items-start mb-2">
       <span class="stat-label">Sesi Berjalan</span>
-      <span class="kk-chip" id="d-mode-chip" style="display:none">▶ Rekaman</span>
+      <span class="kk-chip" id="d-mode-chip" style="display:none">▶ REC</span>
     </div>
     <div class="kk-primary-stat">
       <div><span class="val" id="d-dist">0.00</span><span class="unit">km</span></div>
@@ -487,25 +505,9 @@ body.kk-finish-open #kk-finish{display:block;}
   </details>
 </div>
 
-<!-- ================================================================
-     FOCUS MODE — floating statistik ringkas (glass card)
-     Muncul hanya saat body.kk-focus-mode aktif.
-     Tidak menutupi tombol map, tidak menghalangi klik.
-     ================================================================ -->
-<div class="kk-focus-stats" aria-hidden="true">
-  <div class="card">
-    <div class="row-primary">
-      <span class="v" id="f-dist-live">0.00</span><span class="u">km</span>
-      <span class="l" id="f-mode-live">▶ REC</span>
-    </div>
-    <div class="row-grid">
-      <div class="cell"><div class="v" id="f-time-live">00:00</div><div class="l">Time</div></div>
-      <div class="cell"><div class="v" id="f-pace-live">--'--"</div><div class="l">Pace</div></div>
-      <div class="cell"><div class="v" id="f-speed-live">0.0</div><div class="l">km/h</div></div>
-      <div class="cell"><div class="v" id="f-cal-live">0</div><div class="l">Cal</div></div>
-    </div>
-  </div>
-</div>
+<!-- Catatan: TIDAK ada HTML floating stats terpisah untuk Focus Mode.
+     Card statistik #kk-stats-card di atas dipindahkan via CSS. -->
+
 
 <!-- Countdown -->
 <div class="kk-countdown" id="kk-countdown">3</div>

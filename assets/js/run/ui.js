@@ -36,7 +36,8 @@
   }
   function setText(id, txt){ var el=document.getElementById(id); if (el) el.textContent = txt; }
 
-  /* ---------- Render metric (dashboard + focus stats) ---------- */
+  /* ---------- Render metric (SATU set id, dipakai Dashboard & Focus).
+     Focus Mode hanya memindahkan #kk-stats-card via CSS — id tetap sama. */
   function renderMetrics(m){
     var dist = (m.km||0).toFixed(2);
     var t    = fmtTime(m.tSec);
@@ -46,7 +47,6 @@
     var elev = (m.elev==null) ? '–' : Math.round(m.elev)+' m';
     var apc  = fmtPace(m.paceAvg);
 
-    // Dashboard cells
     setText('d-dist', dist);
     setText('d-time', t);
     setText('d-pace', pace);
@@ -54,13 +54,6 @@
     setText('d-cal', cal);
     setText('d-elev', elev);
     setText('d-avgpace', apc);
-
-    // Focus floating stats (compact)
-    setText('f-dist-live', dist);
-    setText('f-time-live', t);
-    setText('f-pace-live', pace);
-    setText('f-speed-live', speed);
-    setText('f-cal-live', cal);
 
     renderSplits();
   }
@@ -102,12 +95,10 @@
   function setModeChip(text){
     var c = document.getElementById('kk-mode-chip'); if (c){ c.textContent = text; c.style.display = ''; }
     var d = document.getElementById('d-mode-chip'); if (d){ d.textContent = text; d.style.display = ''; }
-    setText('f-mode-live', text);
   }
   function clearModeChip(){
     var c = document.getElementById('kk-mode-chip'); if (c) c.style.display = 'none';
     var d = document.getElementById('d-mode-chip'); if (d) d.style.display = 'none';
-    setText('f-mode-live', '');
   }
 
   /* ---------- Countdown ---------- */
