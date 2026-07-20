@@ -607,7 +607,7 @@ window.KK_RUN.mapboxTileUrl =
 <script src="/assets/js/run/gps.js?v=r49"></script>
 <script src="/assets/js/run/background.js?v=r49"></script>
 <script src="/assets/js/run/ui.js?v=r49"></script>
-<script src="/assets/js/run/tracking.js?v=r49"></script>
+<script src="/assets/js/run/tracking.js?v=r50"></script>
 
 <!-- Hapus riwayat -->
 <script>

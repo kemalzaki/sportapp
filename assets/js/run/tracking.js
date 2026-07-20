@@ -114,15 +114,16 @@
       if (acc && acc > 100) return;
       _acceptFirst(p); return;
     }
-    if (acc != null && acc > 30) return;
+    // Filter titik jelas tidak valid saja (akurasi buruk)
+    if (acc != null && acc > 50) return;
     var last = state.points[state.points.length-1];
     var d = KKGps.haversine(last, p);
     var dt = Math.max(0.001, (nowT-last.t)/1000);
     var speed = d/dt;
+    // Buang glitch teleport kecepatan tidak masuk akal (>12 m/s ~ 43 km/h)
+    if (speed > 12) return;
 
-    if (nowT - _lastAcceptedAt < KKGps.adaptiveMinInterval() && d < 30){
-      KKMap.updateMarkerOnly(p); return;
-    }
+    // Segmen putus (jeda lama / lompatan besar): tetap simpan titik
     if (d > 150 || dt > 25){
       KKMap.breakSegment(p);
       state.points.push(p);
@@ -134,7 +135,13 @@
       }
       afterPoint(p, false); return;
     }
-    if (speed > 12) return;
+
+    // ===== LOCAL-FIRST: SEMUA titik GPS valid MASUK ke state.points =====
+    // (filter hanya dipakai untuk throttle render Leaflet, bukan histori)
+    state.points.push(p);
+    state.totalM += d;
+
+    // Titik nyaris diam -> hanya update marker + deteksi auto-pause
     if (d < 3){
       KKMap.updateMarkerOnly(p);
       if (!state.autoPaused && !state.paused && state.lastMoveAt && (nowT - state.lastMoveAt) > 20000){
@@ -142,14 +149,21 @@
         KKUI.setAutoPaused(true);
         KKVoice.say('Aktivitas dijeda otomatis.');
       }
+      afterPoint(p, false);
       return;
     }
+
     if (state.autoPaused){
       state.pausedTotalMs += (nowT - state.pauseAt);
       state.autoPaused = false; state.paused = false; state.pauseAt = null;
       KKUI.setAutoPaused(false);
       KKVoice.say('Aktivitas dilanjutkan.');
     }
+
+    // Throttle RENDER (bukan histori): kalau interval terlalu cepat & jarak kecil,
+    // update marker saja tanpa redraw polyline penuh.
+    var renderThrottled = (nowT - _lastAcceptedAt < KKGps.adaptiveMinInterval() && d < 30);
+
     if (p.hd != null && !isNaN(p.hd) && state.curSpeed*3.6 > 3){
       KKMap.setHeading(p.hd);
     } else {
@@ -159,12 +173,16 @@
     state.curSpeed = state.curSpeed*0.7 + (pos.coords.speed && pos.coords.speed>=0 ? pos.coords.speed : speed)*0.3;
     if (p.elev != null){ state.curElev = state.curElev==null?p.elev:(state.curElev*0.7 + p.elev*0.3); }
     state.lastMoveAt = nowT;
-    state.totalM += d;
-    state.points.push(p);
-    KKMap.handleFix(p, false);
-    _lastAcceptedAt = nowT;
+
+    if (renderThrottled){
+      KKMap.updateMarkerOnly(p);
+    } else {
+      KKMap.handleFix(p, false);
+      _lastAcceptedAt = nowT;
+    }
     afterPoint(p, true);
   }
+
   function _acceptFirst(p){
     state.points.push(p);
     KKMap.handleFix(p, true);
@@ -254,10 +272,12 @@
     clearInterval(state.timerInt); state.timerInt = null;
     KKBackground.releaseWakeLock();
     KKBackground.clearNotification();
+    try { console.log('[KK] Total state.points =', state.points.length, 'durasi(s)=', dur); } catch(e){}
     if (state.sessionId){
       await KKSave.flush(state.sessionId);
       await KKSave.stopSession(state.sessionId, state.totalM, dur, state);
     }
+
     KKSave.clear();
     KKVoice.say('Tracking selesai. Kerja bagus.');
     var snap = {
