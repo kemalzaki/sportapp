@@ -340,9 +340,13 @@
     try{
       if (window.KKSave && typeof KKSave.stopSession === 'function' && !KKSave.__kkPatchedStop){
         var _orig = KKSave.stopSession.bind(KKSave);
-        KKSave.stopSession = function(sid, totalM, dur){
-          _lastStoppedSid = sid|0 || null;
-          return _orig(sid, totalM, dur);
+        KKSave.stopSession = async function(){
+          // R49 (Local-First): sessionId lokal berupa Date.now(), bukan
+          // ID server. ID server sesungguhnya baru terbit setelah
+          // upload_activity berhasil — ambil dari nilai balik _orig().
+          var res = await _orig.apply(KKSave, arguments);
+          _lastStoppedSid = (res && res.serverSid) ? (res.serverSid|0) : null;
+          return res;
         };
         KKSave.__kkPatchedStop = true;
       }

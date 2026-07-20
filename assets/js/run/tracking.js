@@ -1,5 +1,5 @@
 /* ============================================================
- * KK Run · tracking.js  (R40 — Refactor Bersih)
+ * KK Run · tracking.js  (R49 — Local-First: satu upload di Stop)
  * ------------------------------------------------------------
  * SATU set tombol (#kk-btn-start / -pause / -resume / -stop /
  * -mylocation). Tidak ada hidden button, tidak ada dispatchEvent,
@@ -256,7 +256,7 @@
     KKBackground.clearNotification();
     if (state.sessionId){
       await KKSave.flush(state.sessionId);
-      await KKSave.stopSession(state.sessionId, state.totalM, dur);
+      await KKSave.stopSession(state.sessionId, state.totalM, dur, state);
     }
     KKSave.clear();
     KKVoice.say('Tracking selesai. Kerja bagus.');
@@ -354,25 +354,25 @@
     });
   }
 
-  /* ---- Auto-resume kalau ada sesi aktif ---- */
-  function autoResume(){
-    if (!state.sessionId) return;
-    var st = KKSave.load();
-    if (st && st.sessionId === state.sessionId){
-      state.startedAt = st.startedAt || Date.now();
-      state.totalM = +st.totalM || 0;
-      state.points = Array.isArray(st.points) ? st.points : [];
-      state.pausedTotalMs = +st.pausedTotalMs || 0;
-      state.paused = !!st.paused;
-      state.kmSplits = Array.isArray(st.kmSplits) ? st.kmSplits : [];
-      var sportEl=document.getElementById('sportSel');
-      var wEl=document.getElementById('weightInp');
-      if (st.sport && sportEl) sportEl.value = st.sport;
-      if (st.weight && wEl)    wEl.value = st.weight;
-      state.points.forEach(function(p, i){ KKMap.handleFix(p, i===0); });
-    } else {
-      state.startedAt = Date.now();
-    }
+  /* ---- Auto-resume (Local-First R49) ------------------------
+   * Sumber kebenaran resume adalah IndexedDB (KKSave.recover()).
+   * Tampilkan dialog konfirmasi bila ada aktivitas yang belum
+   * ter-upload; pengguna dapat melanjutkan atau membuangnya.
+   * ------------------------------------------------------------ */
+  function _applySnapshot(st){
+    state.sessionId    = st.sessionId || Date.now();
+    state.startedAt    = st.startedAt || Date.now();
+    state.totalM       = +st.totalM || 0;
+    state.points       = Array.isArray(st.points) ? st.points : [];
+    state.pausedTotalMs= +st.pausedTotalMs || 0;
+    state.paused       = !!st.paused;
+    state.kmSplits     = Array.isArray(st.kmSplits) ? st.kmSplits : [];
+    state.calories     = +st.calories || 0;
+    var sportEl=document.getElementById('sportSel');
+    var wEl=document.getElementById('weightInp');
+    if (st.sport && sportEl) sportEl.value = st.sport;
+    if (st.weight && wEl)    wEl.value = st.weight;
+    state.points.forEach(function(p, i){ KKMap.handleFix(p, i===0); });
     KKUI.setModeChip(state.paused ? '⏸ JEDA' : '● REC');
     refreshButtons();
     state.timerInt = setInterval(function(){ updateUI(); checkSplit(); }, 1000);
@@ -382,6 +382,24 @@
     KKBackground.acquireWakeLock();
     updateUI();
   }
+
+  function autoResume(){
+    if (!KKSave.recover) return;
+    KKSave.recover().then(function(st){
+      if (!st || !Array.isArray(st.points) || st.points.length === 0) return;
+      var km = ((+st.totalM||0)/1000).toFixed(2);
+      var when = st.startedAt ? new Date(st.startedAt).toLocaleString('id-ID') : '';
+      var msg = 'Aktivitas jogging sebelumnya belum selesai.\n'
+              + (when ? ('Dimulai: ' + when + '\n') : '')
+              + 'Jarak tercatat: ' + km + ' km\n\nApakah ingin melanjutkan?';
+      if (confirm(msg)){
+        _applySnapshot(st);
+      } else {
+        KKSave.clear();
+      }
+    });
+  }
+
 
   function detectNative(){
     if (!KKBackground.isNative){

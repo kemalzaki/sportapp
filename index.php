@@ -709,7 +709,6 @@ $__hideSuper = scope_is_superduper_kom_member();
       <p class="mb-2 text-white-50" style="line-height:1.5;">Olahraga, komunitas, AI, kesehatan, dan aktivitas outdoor — semua dalam satu aplikasi. Yuk kumpulkan keringat hari ini!</p>
       <div class="d-flex flex-wrap gap-2">
         <button
-    id="installBtn"
     class="btn btn-sm btn-light fw-semibold"
     onclick="window.location.href='https://yuk-mari.com/kawankeringat.apk';">
     <i class="bi bi-download"></i> Download APK

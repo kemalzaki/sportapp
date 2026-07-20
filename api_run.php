@@ -353,6 +353,125 @@ if ($a === 'stop') {
     echo json_encode(['ok'=>true, 'upload_id'=>$upload_id]); exit;
 }
 
+/* ============================================================
+ * Revisi R49 — Arsitektur Local-First (Juli 2026)
+ * ------------------------------------------------------------
+ * Aksi baru: upload_activity
+ * Menerima seluruh aktivitas dalam SATU request setelah user
+ * menekan tombol Stop. Payload:
+ *   - total_m    : (float) jarak total meter
+ *   - durasi     : (int)   durasi detik
+ *   - started_at : (int)   epoch ms waktu mulai
+ *   - points     : (json)  [{lat,lng,t,acc?,spd?}, ...]
+ * Server:
+ *   1. Menutup sesi lama yang masih 'aktif' milik user.
+ *   2. INSERT run_sessions status='selesai' langsung.
+ *   3. Bulk INSERT run_points (chunk 500).
+ *   4. Auto-insert baris upload_harian (kompat dengan action=stop).
+ *   5. Kembalikan { ok, session_id, upload_id }.
+ *
+ * Skema tabel TIDAK berubah — hanya kolom yang sudah ada
+ * (run_sessions, run_points, upload_harian.gpx_session_id).
+ * Aksi lama (start/point/stop) TETAP dipertahankan untuk
+ * backward compatibility (mis. live_tracking.php, klien lama).
+ * ============================================================ */
+if ($a === 'upload_activity') {
+    @set_time_limit(60);
+    rate_limit_or_die('run_upload:'.$uid, 30, 600);
+
+    $totalM   = (float)($_POST['total_m'] ?? 0);
+    $durSec   = (int)($_POST['durasi'] ?? 0);
+    $startMs  = (float)($_POST['started_at'] ?? 0);
+    $ptsRaw   = $_POST['points'] ?? '[]';
+    $pts = json_decode($ptsRaw, true);
+    if (!is_array($pts)) $pts = [];
+
+    // Sanity: minimal butuh durasi > 0 (boleh 0 titik untuk aktivitas indoor)
+    if ($durSec <= 0 && $totalM <= 0 && !$pts) {
+        echo json_encode(['ok'=>false,'err'=>'empty']); exit;
+    }
+
+    // Waktu mulai
+    if ($startMs > 0) {
+        $mulaiAt = date('Y-m-d H:i:s', (int)floor($startMs/1000));
+    } else {
+        $endEpoch = time();
+        $mulaiAt  = date('Y-m-d H:i:s', $endEpoch - max(0,$durSec));
+    }
+
+    // Tutup sesi 'aktif' yang mungkin tertinggal dari klien lama
+    db_exec("UPDATE run_sessions SET status='dibatalkan', selesai_at=now() WHERE user_id=$1 AND status='aktif'", [$uid]);
+
+    // Estimasi kalori sederhana (sama dengan action=stop)
+    $kal = (int)round(($totalM/1000) * 65);
+
+    // Insert sesi (langsung selesai)
+    $r = pg_query_params(db(),
+        "INSERT INTO run_sessions(user_id, mulai_at, selesai_at, jarak_m, durasi_dtk, kalori, status)
+         VALUES($1, $2, now(), $3, $4, $5, 'selesai') RETURNING id",
+        [$uid, $mulaiAt, $totalM, $durSec, $kal]);
+    $sid = (int)(pg_fetch_row($r)[0] ?? 0);
+    if ($sid <= 0) { echo json_encode(['ok'=>false,'err'=>'insert_session']); exit; }
+
+    // Bulk insert points (chunk 500 baris per query)
+    if ($pts) {
+        $chunkSize = 500;
+        for ($off = 0; $off < count($pts); $off += $chunkSize) {
+            $slice = array_slice($pts, $off, $chunkSize);
+            $vals = []; $params = []; $p = 1;
+            foreach ($slice as $pt) {
+                if (!is_array($pt)) continue;
+                $lat = isset($pt['lat']) ? (float)$pt['lat'] : 0;
+                $lng = isset($pt['lng']) ? (float)$pt['lng'] : 0;
+                if ($lat === 0.0 && $lng === 0.0) continue;
+                $acc = (isset($pt['acc']) && $pt['acc'] !== null && $pt['acc'] !== '') ? (float)$pt['acc'] : null;
+                $spd = (isset($pt['spd']) && $pt['spd'] !== null && $pt['spd'] !== '') ? (float)$pt['spd'] : null;
+                $tMs = isset($pt['t']) ? (float)$pt['t'] : 0;
+                $ts  = ($tMs > 0) ? date('Y-m-d H:i:s', (int)floor($tMs/1000)) : $mulaiAt;
+                $vals[] = "(\$".$p++.",\$".$p++.",\$".$p++.",\$".$p++.",\$".$p++.",\$".$p++.")";
+                $params[] = $sid; $params[] = $lat; $params[] = $lng;
+                $params[] = $acc; $params[] = $spd; $params[] = $ts;
+            }
+            if ($vals) {
+                db_exec("INSERT INTO run_points(session_id,lat,lng,accuracy_m,speed_mps,ts) VALUES ".implode(',', $vals), $params);
+            }
+        }
+    }
+
+    // Auto-isi upload_harian (mirror dari blok pada action=stop)
+    $upload_id = 0;
+    try {
+        @db_exec("ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gpx_session_id BIGINT");
+        @db_exec("CREATE INDEX IF NOT EXISTS upload_harian_gpx_idx ON upload_harian(gpx_session_id)");
+        if ($sid > 0 && $totalM > 0 && $durSec > 0) {
+            $km  = $totalM / 1000.0;
+            $mnt = (int)round($durSec / 60.0);
+            $paceStr = '';
+            if ($km > 0.05) {
+                $paceSec = (int)round($durSec / $km);
+                $pm = intdiv($paceSec, 60);
+                $ps = $paceSec % 60;
+                $paceStr = $pm."'".str_pad((string)$ps,2,'0',STR_PAD_LEFT).'"/km';
+            }
+            $exists = db_one("SELECT id FROM upload_harian WHERE user_id=$1 AND gpx_session_id=$2", [$uid, $sid]);
+            if (!$exists) {
+                $r2 = pg_query_params(db(),
+                    "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,pace,deskripsi,file_path,gdrive_url,gpx_session_id)
+                     VALUES($1,$2,'Jogging',$3,$4,$5,$6,$7,NULL,NULL,$8) RETURNING id",
+                    [$uid, date('Y-m-d'), $mnt, round($km,2), $kal, $paceStr,
+                     'Diisi otomatis dari Tracking Jalur (GPX #'.$sid.').', $sid]);
+                $upload_id = (int)(pg_fetch_row($r2)[0] ?? 0);
+            } else {
+                $upload_id = (int)$exists['id'];
+            }
+        }
+    } catch (Throwable $e) { /* jangan blok respon */ }
+
+    echo json_encode(['ok'=>true, 'session_id'=>$sid, 'upload_id'=>$upload_id]);
+    exit;
+}
+
+
 if ($a === 'delete') {
     $sid = (int)($_POST['session_id'] ?? 0);
     if ($sid > 0) {
