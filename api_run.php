@@ -375,8 +375,159 @@ if ($a === 'stop') {
  * Aksi lama (start/point/stop) TETAP dipertahankan untuk
  * backward compatibility (mis. live_tracking.php, klien lama).
  * ============================================================ */
+
+/* ============================================================
+ * Revisi R52 (Nov 2026) — Chunked Upload + Pending Queue.
+ * ------------------------------------------------------------
+ *  upload_init      → membuat run_sessions (status='mengupload'),
+ *                     kembalikan session_id.
+ *  upload_chunk     → bulk INSERT run_points 300 titik / request.
+ *  upload_finalize  → update jarak_m/durasi/kalori/status='selesai'
+ *                     + upload_harian.
+ *
+ *  Alasan: aktivitas panjang (5 km / 40 mnt / 800+ titik) sering
+ *  gagal dalam SATU request besar akibat post_max_size /
+ *  max_execution_time / memory_limit / koneksi terputus. Dengan
+ *  request kecil (~50-100 KB), reliability meningkat drastis.
+ *
+ *  Aksi lama (upload_activity, start/point/stop) TETAP ada untuk
+ *  klien versi lama.
+ * ============================================================ */
+function _kk_run_log($tag, $data){
+    if (getenv('KK_RUN_LOG') === '0') return;
+    $line = '[api_run] '.$tag.' '.(is_string($data)?$data:json_encode($data));
+    @error_log($line);
+}
+
+if ($a === 'upload_init') {
+    @set_time_limit(30);
+    rate_limit_or_die('run_upload:'.$uid, 60, 600);
+    $totalM  = (float)($_POST['total_m'] ?? 0);
+    $durSec  = (int)($_POST['durasi'] ?? 0);
+    $startMs = (float)($_POST['started_at'] ?? 0);
+    $nTotal  = (int)($_POST['total_points'] ?? 0);
+
+    $mulaiAt = $startMs > 0
+        ? date('Y-m-d H:i:s', (int)floor($startMs/1000))
+        : date('Y-m-d H:i:s', time() - max(0,$durSec));
+
+    // Tutup sesi 'aktif' yatim
+    db_exec("UPDATE run_sessions SET status='dibatalkan', selesai_at=now() WHERE user_id=$1 AND status='aktif'", [$uid]);
+
+    $r = pg_query_params(db(),
+        "INSERT INTO run_sessions(user_id, mulai_at, jarak_m, durasi_dtk, status)
+         VALUES($1, $2, $3, $4, 'aktif') RETURNING id",
+        [$uid, $mulaiAt, $totalM, $durSec]);
+    $sid = (int)(pg_fetch_row($r)[0] ?? 0);
+    _kk_run_log('upload_init', ['uid'=>$uid,'sid'=>$sid,'expect_pts'=>$nTotal,'total_m'=>$totalM,'dur'=>$durSec]);
+    if ($sid <= 0){ echo json_encode(['ok'=>false,'err'=>'insert_session']); exit; }
+    echo json_encode(['ok'=>true,'session_id'=>$sid]); exit;
+}
+
+if ($a === 'upload_chunk') {
+    @set_time_limit(45);
+    @ini_set('memory_limit','256M');
+    $sid = (int)($_POST['session_id'] ?? 0);
+    $seq = (int)($_POST['seq'] ?? 0);
+    $totalSeq = (int)($_POST['total_seq'] ?? 0);
+    $offset   = (int)($_POST['offset'] ?? 0);
+    if ($sid <= 0){ echo json_encode(['ok'=>false,'err'=>'no_sid']); exit; }
+    $own = db_one("SELECT id FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid,$uid]);
+    if (!$own){ echo json_encode(['ok'=>false,'err'=>'forbidden']); exit; }
+
+    $ptsRaw = $_POST['points'] ?? '[]';
+    $pts = json_decode($ptsRaw, true);
+    if (!is_array($pts)) $pts = [];
+
+    $t0 = microtime(true);
+    $inserted = 0;
+    if ($pts){
+        $vals = []; $params = []; $p = 1;
+        foreach ($pts as $pt){
+            if (!is_array($pt)) continue;
+            $lat = isset($pt['lat']) ? (float)$pt['lat'] : 0;
+            $lng = isset($pt['lng']) ? (float)$pt['lng'] : 0;
+            if ($lat === 0.0 && $lng === 0.0) continue;
+            $acc = (isset($pt['acc']) && $pt['acc'] !== null && $pt['acc'] !== '') ? (float)$pt['acc'] : null;
+            $spd = (isset($pt['spd']) && $pt['spd'] !== null && $pt['spd'] !== '') ? (float)$pt['spd'] : null;
+            $tMs = isset($pt['t']) ? (float)$pt['t'] : 0;
+            $ts  = ($tMs > 0) ? date('Y-m-d H:i:s', (int)floor($tMs/1000)) : null;
+            $vals[] = "(\$".$p++.",\$".$p++.",\$".$p++.",\$".$p++.",\$".$p++.",COALESCE(\$".$p++."::timestamp, now()))";
+            $params[] = $sid; $params[] = $lat; $params[] = $lng;
+            $params[] = $acc; $params[] = $spd; $params[] = $ts;
+            $inserted++;
+        }
+        if ($vals){
+            try {
+                db_exec("INSERT INTO run_points(session_id,lat,lng,accuracy_m,speed_mps,ts) VALUES ".implode(',', $vals), $params);
+            } catch (Throwable $e){
+                _kk_run_log('upload_chunk EXC', ['sid'=>$sid,'seq'=>$seq,'err'=>$e->getMessage()]);
+                echo json_encode(['ok'=>false,'err'=>'insert_failed:'.$e->getMessage()]); exit;
+            }
+        }
+    }
+    $ms = (int)round((microtime(true)-$t0)*1000);
+    _kk_run_log('upload_chunk', ['sid'=>$sid,'seq'=>$seq.'/'.$totalSeq,'off'=>$offset,'ins'=>$inserted,'ms'=>$ms,'mem'=>memory_get_usage(true)]);
+    echo json_encode(['ok'=>true,'inserted'=>$inserted,'ms'=>$ms]); exit;
+}
+
+if ($a === 'upload_finalize') {
+    @set_time_limit(30);
+    $sid    = (int)($_POST['session_id'] ?? 0);
+    $totalM = (float)($_POST['total_m'] ?? 0);
+    $durSec = (int)($_POST['durasi'] ?? 0);
+    $nTotal = (int)($_POST['total_points'] ?? 0);
+    if ($sid <= 0){ echo json_encode(['ok'=>false,'err'=>'no_sid']); exit; }
+    $own = db_one("SELECT id FROM run_sessions WHERE id=$1 AND user_id=$2", [$sid,$uid]);
+    if (!$own){ echo json_encode(['ok'=>false,'err'=>'forbidden']); exit; }
+
+    $kal = (int)round(($totalM/1000) * 65);
+    db_exec("UPDATE run_sessions SET jarak_m=$1, durasi_dtk=$2, kalori=$3, status='selesai', selesai_at=now() WHERE id=$4 AND user_id=$5",
+        [$totalM,$durSec,$kal,$sid,$uid]);
+
+    $upload_id = 0;
+    try {
+        @db_exec("ALTER TABLE upload_harian ADD COLUMN IF NOT EXISTS gpx_session_id BIGINT");
+        @db_exec("CREATE INDEX IF NOT EXISTS upload_harian_gpx_idx ON upload_harian(gpx_session_id)");
+        if ($totalM > 0 && $durSec > 0) {
+            $km  = $totalM / 1000.0;
+            $mnt = (int)round($durSec / 60.0);
+            $paceStr = '';
+            if ($km > 0.05) {
+                $paceSec = (int)round($durSec / $km);
+                $pm = intdiv($paceSec, 60);
+                $ps = $paceSec % 60;
+                $paceStr = $pm."'".str_pad((string)$ps,2,'0',STR_PAD_LEFT).'"/km';
+            }
+            $exists = db_one("SELECT id FROM upload_harian WHERE user_id=$1 AND gpx_session_id=$2", [$uid, $sid]);
+            if (!$exists) {
+                $r2 = pg_query_params(db(),
+                    "INSERT INTO upload_harian(user_id,tanggal,jenis,durasi_menit,jarak_km,kalori,pace,deskripsi,file_path,gdrive_url,gpx_session_id)
+                     VALUES($1,$2,'Jogging',$3,$4,$5,$6,$7,NULL,NULL,$8) RETURNING id",
+                    [$uid, date('Y-m-d'), $mnt, round($km,2), $kal, $paceStr,
+                     'Diisi otomatis dari Tracking Jalur (GPX #'.$sid.').', $sid]);
+                $upload_id = (int)(pg_fetch_row($r2)[0] ?? 0);
+            } else {
+                $upload_id = (int)$exists['id'];
+            }
+        }
+    } catch (Throwable $e){ _kk_run_log('finalize upload_harian EXC', $e->getMessage()); }
+
+    // Verifikasi: berapa titik benar-benar tersimpan?
+    $cnt = 0;
+    try {
+        $rc = db_one("SELECT COUNT(*)::int AS n FROM run_points WHERE session_id=$1", [$sid]);
+        $cnt = (int)($rc['n'] ?? 0);
+    } catch (Throwable $e){}
+    _kk_run_log('upload_finalize', ['sid'=>$sid,'expected'=>$nTotal,'stored'=>$cnt,'m'=>$totalM,'dur'=>$durSec]);
+
+    echo json_encode(['ok'=>true,'session_id'=>$sid,'upload_id'=>$upload_id,'points_stored'=>$cnt]);
+    exit;
+}
+
 if ($a === 'upload_activity') {
-    @set_time_limit(60);
+    @set_time_limit(120);
+    @ini_set('memory_limit','256M');
     rate_limit_or_die('run_upload:'.$uid, 30, 600);
 
     $totalM   = (float)($_POST['total_m'] ?? 0);

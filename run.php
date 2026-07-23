@@ -601,12 +601,12 @@ window.KK_RUN.mapboxTileUrl =
 </script>
 
 <!-- Urutan modul: save → voice → map → gps → background → ui → tracking -->
-<script src="/assets/js/run/save.js?v=r49"></script>
+<script src="/assets/js/run/save.js?v=r52"></script>
 <script src="/assets/js/run/voice.js?v=r49"></script>
 <script src="/assets/js/run/map.js?v=r49"></script>
 <script src="/assets/js/run/gps.js?v=r49"></script>
 <script src="/assets/js/run/background.js?v=r49"></script>
-<script src="/assets/js/run/ui.js?v=r49"></script>
+<script src="/assets/js/run/ui.js?v=r52"></script>
 <script src="/assets/js/run/tracking.js?v=r50"></script>
 
 <!-- Hapus riwayat -->

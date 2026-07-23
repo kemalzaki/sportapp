@@ -335,22 +335,99 @@
    *   3. Batal → tetap di halaman Finish (tidak ada aksi).
    * ============================================================ */
   var _lastStoppedSid = null;
+  var _lastStopResult = null;
+
+  /* ---- Progress overlay saat Save/Upload ---- */
+  function ensureSaveOverlay(){
+    if (document.getElementById('kk-save-overlay')) return;
+    var css = '#kk-save-overlay{position:fixed;inset:0;z-index:3000;background:rgba(6,12,24,.82);'
+      + 'display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}'
+      + '#kk-save-overlay.on{display:flex;}'
+      + '.kk-save-card{width:min(360px,88vw);background:#0f1a2e;color:#e6edf7;border-radius:18px;'
+      + 'padding:22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center;font-family:inherit;}'
+      + '.kk-save-card h5{margin:0 0 6px;color:#fff;font-weight:800;}'
+      + '.kk-save-card .kk-save-msg{color:#94a3b8;font-size:13.5px;min-height:18px;margin-bottom:12px;}'
+      + '.kk-save-bar{height:10px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;}'
+      + '.kk-save-bar>span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1E90FF,#4FB0FF);'
+      + 'transition:width .25s ease;}'
+      + '.kk-save-pct{font-size:12px;color:#7aa7ff;margin-top:8px;letter-spacing:.5px;}'
+      + '.kk-save-actions{margin-top:14px;display:flex;gap:8px;justify-content:center;}'
+      + '.kk-save-actions .btn{border-radius:12px;padding:10px 14px;font-weight:700;}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    var el = document.createElement('div');
+    el.id = 'kk-save-overlay';
+    el.innerHTML =
+      '<div class="kk-save-card">'
+      + '<h5 id="kk-save-title">Menyimpan aktivitas…</h5>'
+      + '<div class="kk-save-msg" id="kk-save-msg">Menyiapkan data…</div>'
+      + '<div class="kk-save-bar"><span id="kk-save-fill"></span></div>'
+      + '<div class="kk-save-pct" id="kk-save-pct">0%</div>'
+      + '<div class="kk-save-actions" id="kk-save-actions" style="display:none;"></div>'
+      + '</div>';
+    document.body.appendChild(el);
+  }
+  function showSaveOverlay(){
+    ensureSaveOverlay();
+    document.getElementById('kk-save-overlay').classList.add('on');
+    setSaveProgress(0, 'Menyiapkan data…');
+    var act = document.getElementById('kk-save-actions'); if (act){ act.style.display='none'; act.innerHTML=''; }
+    var t = document.getElementById('kk-save-title'); if (t) t.textContent = 'Menyimpan aktivitas…';
+  }
+  function hideSaveOverlay(){
+    var el = document.getElementById('kk-save-overlay'); if (el) el.classList.remove('on');
+  }
+  function setSaveProgress(pct, msg){
+    ensureSaveOverlay();
+    pct = Math.max(0, Math.min(100, pct|0));
+    var f = document.getElementById('kk-save-fill');   if (f) f.style.width = pct+'%';
+    var p = document.getElementById('kk-save-pct');    if (p) p.textContent = pct+'%';
+    if (msg != null){ var m = document.getElementById('kk-save-msg'); if (m) m.textContent = msg; }
+  }
+  function showSaveFailure(res){
+    ensureSaveOverlay();
+    var t = document.getElementById('kk-save-title'); if (t) t.textContent = 'Belum tersinkron';
+    setSaveProgress(100, 'Aktivitas berhasil direkam, tetapi gagal disinkronkan ke server. Data tetap aman di perangkat dan dapat diunggah kembali.');
+    var act = document.getElementById('kk-save-actions');
+    if (act){
+      act.style.display = 'flex';
+      act.innerHTML =
+        '<button type="button" class="btn btn-outline-secondary" id="kk-save-close">Tutup</button>'
+      + '<a class="btn btn-primary" href="/aktivitas_pending.php"><i class="bi bi-cloud-arrow-up"></i> Upload Ulang</a>';
+      var c = document.getElementById('kk-save-close');
+      if (c) c.onclick = function(){ hideSaveOverlay(); };
+    }
+  }
+
   function installDiscardFlow(){
-    // 1) Monkey-patch KKSave.stopSession
+    // 1) Monkey-patch KKSave.stopSession — capture sid + progress + failure UI
     try{
       if (window.KKSave && typeof KKSave.stopSession === 'function' && !KKSave.__kkPatchedStop){
+        // Hook progress → overlay
+        KKSave.onProgress = function(pct, msg){
+          try { setSaveProgress(pct, msg); } catch(e){}
+        };
         var _orig = KKSave.stopSession.bind(KKSave);
         KKSave.stopSession = async function(){
-          // R49 (Local-First): sessionId lokal berupa Date.now(), bukan
-          // ID server. ID server sesungguhnya baru terbit setelah
-          // upload_activity berhasil — ambil dari nilai balik _orig().
-          var res = await _orig.apply(KKSave, arguments);
+          try { showSaveOverlay(); } catch(e){}
+          var res = null;
+          try {
+            res = await _orig.apply(KKSave, arguments);
+          } catch(e){
+            res = { ok:false, serverSid:null, uploadId:null, error:(e && e.message)||'unknown' };
+          }
+          _lastStopResult = res;
           _lastStoppedSid = (res && res.serverSid) ? (res.serverSid|0) : null;
+          if (res && res.ok){
+            setTimeout(hideSaveOverlay, 400);
+          } else {
+            try { showSaveFailure(res); } catch(e){}
+          }
           return res;
         };
         KKSave.__kkPatchedStop = true;
       }
     }catch(e){ console.warn('[KKUI] KKSave patch failed', e); }
+
 
     // 2) Discard button — capture phase (jalan sebelum tracking.js)
     var dis = document.getElementById('f-btn-discard');
