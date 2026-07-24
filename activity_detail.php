@@ -740,17 +740,16 @@ include __DIR__.'/includes/header.php';
       });
     }
 
-    // ===== Share Card (Strava-style) — REVISI: peta tile OSM + Native Share =====
-    // Kartu aktivitas dibuat via Canvas 2D. Peta menggunakan tile OSM
-    // (crossOrigin=anonymous) sehingga jalur GPX tampil di atas peta asli.
-    // Setelah PNG jadi -> Web Share API (files) atau Capacitor Share (Android).
-    // TIDAK pernah membagikan URL halaman.
-    var APP_SHARE_URL = (location.origin || '') + '/';
+    // ===== Share Card (KawanKeringat v2) — Redesign TOTAL, kualitas Strava =====
+    // Kartu dibuat via Canvas 2D 1080x1920 (Instagram Story). Peta tile OSM
+    // + jalur GPX; statistik lengkap; grafik opsional (split, pace, elevasi,
+    // kecepatan, insight). Setelah PNG jadi -> Native Share (Capacitor) /
+    // Web Share API. TIDAK menampilkan URL / domain apa pun.
     function fmtDateID(s){
       try{
         var d = s ? new Date(s) : new Date();
         if (isNaN(d.getTime())) d = new Date();
-        var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        var bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
         return d.getDate()+' '+bln[d.getMonth()]+' '+d.getFullYear();
       }catch(e){ return ''; }
     }
@@ -778,15 +777,13 @@ include __DIR__.'/includes/header.php';
       });
     }
     async function drawTileMap(ctx, mx, my, mw, mh, pts){
-      // Bounding box
       var minLat=1e9,maxLat=-1e9,minLng=1e9,maxLng=-1e9;
       for (var i=0;i<pts.length;i++){
         if (pts[i].lat<minLat)minLat=pts[i].lat; if (pts[i].lat>maxLat)maxLat=pts[i].lat;
         if (pts[i].lng<minLng)minLng=pts[i].lng; if (pts[i].lng>maxLng)maxLng=pts[i].lng;
       }
-      // Padding bbox ~8%
-      var padLat=(maxLat-minLat)*0.08 || 0.0005;
-      var padLng=(maxLng-minLng)*0.08 || 0.0005;
+      var padLat=(maxLat-minLat)*0.10 || 0.0005;
+      var padLng=(maxLng-minLng)*0.10 || 0.0005;
       minLat-=padLat; maxLat+=padLat; minLng-=padLng; maxLng+=padLng;
       var z=pickZoom(minLat,maxLat,minLng,maxLng,mw,mh);
       var xMinF=lon2tile(minLng,z), xMaxF=lon2tile(maxLng,z);
@@ -795,14 +792,11 @@ include __DIR__.'/includes/header.php';
       var yMin=Math.floor(yMinF), yMaxT=Math.floor(yMaxF);
       var tilesW=(xMax-xMin+1), tilesH=(yMaxT-yMin+1);
       var pxW=tilesW*256, pxH=tilesH*256;
-      // scale untuk fit bbox ke area kartu
       var bboxPxW=(xMaxF-xMinF)*256, bboxPxH=(yMaxF-yMinF)*256;
       var scale=Math.min(mw/bboxPxW, mh/bboxPxH);
-      var drawW=pxW*scale, drawH=pxH*scale;
       var ox=mx + (mw-bboxPxW*scale)/2 - (xMinF-xMin)*256*scale;
       var oy=my + (mh-bboxPxH*scale)/2 - (yMinF-yMin)*256*scale;
 
-      // clip ke rounded rect kartu peta sudah dilakukan pemanggil (opsional)
       var subdomains=['a','b','c'];
       var promises=[];
       for (var tx=xMin; tx<=xMax; tx++){
@@ -814,14 +808,13 @@ include __DIR__.'/includes/header.php';
               if (!im) return;
               var dx=ox+(tx-xMin)*256*scale;
               var dy=oy+(ty-yMin)*256*scale;
-              ctx.drawImage(im, dx, dy, 256*scale, 256*scale);
+              ctx.drawImage(im, dx, dy, 256*scale+0.5, 256*scale+0.5);
             }));
           })(tx,ty);
         }
       }
       await Promise.all(promises);
 
-      // Proyeksi titik GPX -> pixel
       function proj(p){
         return {
           x: ox + (lon2tile(p.lng,z)-xMin)*256*scale,
@@ -829,152 +822,124 @@ include __DIR__.'/includes/header.php';
         };
       }
       ctx.lineJoin='round'; ctx.lineCap='round';
-      // outline gelap
-      ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=12;
+      // outline gelap tebal
+      ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=16;
       ctx.beginPath();
       var s0=proj(pts[0]); ctx.moveTo(s0.x, s0.y);
-      for (var j=1;j<pts.length;j++){ var q=proj(pts[j]); ctx.lineTo(q.x,q.y); }
+      for (var j2=1;j2<pts.length;j2++){ var q=proj(pts[j2]); ctx.lineTo(q.x,q.y); }
       ctx.stroke();
-      // jalur utama (kuning KK)
-      ctx.strokeStyle='#ffcc33'; ctx.lineWidth=8;
+      // jalur utama tebal (kuning KK)
+      ctx.strokeStyle='#ffcc33'; ctx.lineWidth=11;
       ctx.beginPath();
       var p0=proj(pts[0]); ctx.moveTo(p0.x,p0.y);
-      for (var k=1;k<pts.length;k++){ var pp=proj(pts[k]); ctx.lineTo(pp.x,pp.y); }
+      for (var k2=1;k2<pts.length;k2++){ var pp=proj(pts[k2]); ctx.lineTo(pp.x,pp.y); }
       ctx.stroke();
-      // start
+      // Start marker
       var ps=proj(pts[0]);
-      ctx.fillStyle='#22c55e'; ctx.strokeStyle='#ffffff'; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.arc(ps.x,ps.y,16,0,Math.PI*2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle='#ffffff'; ctx.font='bold 18px system-ui,Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.strokeStyle='#ffffff'; ctx.lineWidth=5;
+      ctx.fillStyle='#22c55e';
+      ctx.beginPath(); ctx.arc(ps.x,ps.y,22,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#ffffff'; ctx.font='bold 22px system-ui,Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('S', ps.x, ps.y+1);
-      // finish
+      // Finish marker
       var pf=proj(pts[pts.length-1]);
       ctx.fillStyle='#ef4444'; ctx.strokeStyle='#ffffff';
-      ctx.beginPath(); ctx.arc(pf.x,pf.y,16,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(pf.x,pf.y,22,0,Math.PI*2); ctx.fill(); ctx.stroke();
       ctx.fillStyle='#ffffff';
       ctx.fillText('F', pf.x, pf.y+1);
       ctx.textAlign='left'; ctx.textBaseline='alphabetic';
     }
-    async function buildShareCard(){
-      var W = 1080, H = 1350;
-      var cv = document.createElement('canvas');
-      cv.width = W; cv.height = H;
-      var ctx = cv.getContext('2d');
 
-      // Background gradasi KawanKeringat (biru)
-      var g = ctx.createLinearGradient(0,0,0,H);
-      g.addColorStop(0, '#0a1a3f');
-      g.addColorStop(0.55,'#123a86');
-      g.addColorStop(1, '#1e63d6');
-      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-
-      // Aksen lingkaran samar
-      ctx.globalAlpha = 0.10;
-      ctx.fillStyle = '#7fb2ff';
-      ctx.beginPath(); ctx.arc(W-80, 120, 220, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(-40, H-260, 260, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
-
-      // Header: logo mark + brand
-      ctx.fillStyle = '#ffcc33';
-      ctx.beginPath(); ctx.arc(70, 80, 26, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#0a1a3f';
-      ctx.font = 'bold 28px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('KK', 70, 82);
-      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 34px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.fillText('KawanKeringat', 110, 78);
-      ctx.fillStyle = 'rgba(255,255,255,.75)';
-      ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.fillText('Rekam. Konsisten. Sehat.', 110, 104);
-
-      // Judul aktivitas + user
-      var jenis = (ACT.jenis||'Aktivitas'); jenis = jenis.charAt(0).toUpperCase()+jenis.slice(1);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 56px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.fillText(jenis, 60, 200);
-      ctx.fillStyle = 'rgba(255,255,255,.8)';
-      ctx.font = '24px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      var subtitle = (ACT.nama? ACT.nama+' · ':'') + fmtDateID(ACT.tanggal);
-      ctx.fillText(subtitle, 60, 236);
-
-      // Kartu peta (tile OSM + jalur GPX)
-      var mx = 60, my = 270, mw = W-120, mh = 560;
-      var r = 28;
-      ctx.fillStyle = 'rgba(255,255,255,0.10)';
-      roundRect(ctx, mx, my, mw, mh, r); ctx.fill();
-
-      var pts = (window.__AD_POINTS||[]).filter(function(p){ return isFinite(p.lat)&&isFinite(p.lng); });
-      if (pts.length >= 2){
-        // Clip ke rounded rect agar tile tidak keluar
-        ctx.save();
-        roundRect(ctx, mx, my, mw, mh, r); ctx.clip();
-        try { await drawTileMap(ctx, mx, my, mw, mh, pts); }
-        catch(_){ /* jika tile gagal, biarkan latar polos */ }
-        ctx.restore();
-      } else {
-        ctx.fillStyle='rgba(255,255,255,0.7)';
-        ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-        ctx.textAlign='center';
-        ctx.fillText('Tidak ada jejak GPS', mx+mw/2, my+mh/2);
-        ctx.textAlign='left';
+    // ---- Chart helpers ----
+    function drawMiniLine(ctx, x, y, w, h, data, opts){
+      opts = opts||{};
+      if (!data || data.length<2) return;
+      var min=Infinity, max=-Infinity, i;
+      for (i=0;i<data.length;i++){ var v=data[i]; if(!isFinite(v))continue; if(v<min)min=v; if(v>max)max=v; }
+      if (!isFinite(min)||!isFinite(max)) return;
+      if (min===max){ min-=1; max+=1; }
+      // grid
+      ctx.strokeStyle='rgba(15,23,42,.06)'; ctx.lineWidth=1;
+      for (var g=1; g<4; g++){
+        var gy = y + (h/4)*g;
+        ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x+w, gy); ctx.stroke();
       }
-      // Border kartu peta di atas tile
-      ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=2;
-      roundRect(ctx, mx, my, mw, mh, r); ctx.stroke();
+      // axis label min/max
+      ctx.fillStyle='#94a3b8'; ctx.font='16px system-ui,Arial';
+      ctx.textAlign='right'; ctx.textBaseline='top';
+      ctx.fillText((opts.fmt?opts.fmt(max):max.toFixed(1)), x+w-2, y+2);
+      ctx.textBaseline='bottom';
+      ctx.fillText((opts.fmt?opts.fmt(min):min.toFixed(1)), x+w-2, y+h-2);
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
 
-      // Kartu statistik (2x2)
-      var sx=60, sy=my+mh+30, sw=W-120, sh=280;
-      ctx.fillStyle='rgba(255,255,255,0.10)';
-      roundRect(ctx, sx, sy, sw, sh, 24); ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=2;
-      roundRect(ctx, sx, sy, sw, sh, 24); ctx.stroke();
-
-      var paceSec = ACT.pace_sec|0;
-      var paceStr = paceSec>0 ? (Math.floor(paceSec/60)+':'+(paceSec%60<10?'0':'')+(paceSec%60)) : '-';
-      var durMenit = ACT.dur_menit|0;
-      var durStr;
-      if (durMenit>=60){ var jam=Math.floor(durMenit/60), sisa=durMenit%60; durStr = jam+'j '+(sisa<10?'0':'')+sisa+'m'; }
-      else durStr = durMenit+' m';
-
-      var stats = [
-        { label:'Jarak',   value:(Number(ACT.jarak_km||0)).toFixed(2).replace('.',','), unit:'km' },
-        { label:'Durasi',  value:durStr, unit:'' },
-        { label:'Pace',    value:paceStr, unit:'/km' },
-        { label:'Kalori',  value:String(ACT.kalori|0), unit:'kcal' }
-      ];
-      for (var s=0;s<4;s++){
-        var col=s%2, row=Math.floor(s/2);
-        var cx = sx + 40 + col*(sw/2 - 20);
-        var cy = sy + 60 + row*130;
-        ctx.fillStyle='rgba(255,255,255,0.75)';
-        ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-        ctx.fillText(stats[s].label, cx, cy);
-        ctx.fillStyle='#ffffff';
-        ctx.font='bold 54px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-        ctx.fillText(stats[s].value, cx, cy+58);
-        if (stats[s].unit){
-          var w = ctx.measureText(stats[s].value).width;
-          ctx.fillStyle='rgba(255,255,255,0.75)';
-          ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-          ctx.fillText(' '+stats[s].unit, cx+w+6, cy+58);
-        }
+      var color = opts.color || '#1e63d6';
+      // area fill
+      ctx.beginPath();
+      for (i=0;i<data.length;i++){
+        var xx = x + (i/(data.length-1))*w;
+        var yy = y + h - ((data[i]-min)/(max-min))*h;
+        if (i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
       }
-
-      // Footer: branding + URL aplikasi
-      ctx.fillStyle='rgba(255,255,255,0.9)';
-      ctx.font='bold 22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.textAlign='center';
-      ctx.fillText('Direkam dengan KawanKeringat', W/2, H-70);
-      ctx.fillStyle='rgba(255,255,255,0.7)';
-      ctx.font='18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.fillText(APP_SHARE_URL, W/2, H-40);
-      ctx.textAlign='left';
-
-      return cv;
+      ctx.lineTo(x+w, y+h); ctx.lineTo(x, y+h); ctx.closePath();
+      ctx.globalAlpha=0.18; ctx.fillStyle=color; ctx.fill(); ctx.globalAlpha=1;
+      // line
+      ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.beginPath();
+      for (i=0;i<data.length;i++){
+        var xx2 = x + (i/(data.length-1))*w;
+        var yy2 = y + h - ((data[i]-min)/(max-min))*h;
+        if (i===0) ctx.moveTo(xx2,yy2); else ctx.lineTo(xx2,yy2);
+      }
+      ctx.stroke();
     }
+
+    function drawSplitBars(ctx, x, y, w, splitsArr){
+      // returns total height used
+      var rowH = 44, gap = 8;
+      var minP=Infinity, maxP=0, ii;
+      for (ii=0; ii<splitsArr.length; ii++){
+        var sp=splitsArr[ii]; if (sp.partial) continue;
+        if (sp.paceSec<minP) minP=sp.paceSec;
+        if (sp.paceSec>maxP) maxP=sp.paceSec;
+      }
+      if (!isFinite(minP)) minP=0;
+      var range = Math.max(1, maxP-minP);
+      var used = 0;
+      for (ii=0; ii<splitsArr.length; ii++){
+        var s = splitsArr[ii];
+        var ry = y + ii*(rowH+gap);
+        // km label
+        ctx.fillStyle='#0f172a'; ctx.font='bold 20px system-ui,Arial';
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(s.partial ? ('~'+s.partial.toFixed(2)+' km') : ('KM '+s.km), x, ry+rowH/2);
+        // pace label
+        var paceTxt = fmtPace(s.paceSec);
+        ctx.fillStyle='#0f172a'; ctx.font='600 20px system-ui,Arial';
+        ctx.textAlign='left';
+        ctx.fillText(paceTxt+' /km', x+130, ry+rowH/2);
+        // bar
+        var barX = x+300, barW = w - 300;
+        ctx.fillStyle='rgba(15,23,42,.06)';
+        ctx.fillRect(barX, ry+14, barW, 16);
+        var frac = s.partial ? 0.35 : (1 - ((s.paceSec-minP)/range)*0.65);
+        var isBest = !s.partial && s.paceSec===minP && (maxP!==minP || splitsArr.length===1);
+        ctx.fillStyle = isBest ? '#22c55e' : '#1e63d6';
+        var fw = Math.max(20, Math.round(barW*frac));
+        // rounded bar
+        var br=8;
+        ctx.beginPath();
+        ctx.moveTo(barX+br, ry+14);
+        ctx.arcTo(barX+fw, ry+14, barX+fw, ry+30, br);
+        ctx.arcTo(barX+fw, ry+30, barX, ry+30, br);
+        ctx.arcTo(barX, ry+30, barX, ry+14, br);
+        ctx.arcTo(barX, ry+14, barX+fw, ry+14, br);
+        ctx.closePath(); ctx.fill();
+        used = (ii+1)*(rowH+gap);
+      }
+      ctx.textBaseline='alphabetic';
+      return used;
+    }
+
     function roundRect(ctx,x,y,w,h,r){
       ctx.beginPath();
       ctx.moveTo(x+r,y);
@@ -984,6 +949,264 @@ include __DIR__.'/includes/header.php';
       ctx.arcTo(x,y,x+w,y,r);
       ctx.closePath();
     }
+
+    async function buildShareCard(){
+      var W = 1080, H = 1920;
+      // === Siapkan data ===
+      var pts = (window.__AD_POINTS||[]).filter(function(p){ return isFinite(p.lat)&&isFinite(p.lng); });
+
+      var paceSecCalc = (typeof avgPaceSec!=='undefined' && avgPaceSec>0) ? avgPaceSec : (ACT.pace_sec||0);
+      var bestPaceSec = 0;
+      if (typeof splits!=='undefined' && splits && splits.length){
+        var b = splits.filter(function(s){return !s.partial;}).reduce(function(a,b){ return (a==null||b.paceSec<a.paceSec)?b:a; }, null);
+        if (b) bestPaceSec = b.paceSec;
+      }
+      var totS   = (typeof totalTimeS!=='undefined')  ? totalTimeS  : (ACT.dur_menit*60);
+      var movS   = (typeof movingTimeS!=='undefined') ? movingTimeS : totS;
+      var avgSp  = (typeof avgSpd!=='undefined')      ? avgSpd      : 0;
+      var maxSp  = (typeof maxSpd!=='undefined')      ? maxSpd      : 0;
+      var dTotM  = (typeof totalDistM!=='undefined')  ? totalDistM  : (Number(ACT.jarak_km||0)*1000);
+
+      var hasAlt = (typeof hasAltData!=='undefined') && hasAltData;
+      var eUp    = hasAlt ? elUp  : 0;
+      var eDn    = hasAlt ? elDn  : 0;
+      var eMax   = hasAlt ? elMax : 0;
+      var gpsN   = pts.length;
+
+      // Series untuk grafik (subsample supaya cepat)
+      function sub(arr, n){
+        if (!arr || arr.length<=n) return arr||[];
+        var step = arr.length/n, out=[];
+        for (var i=0;i<n;i++) out.push(arr[Math.floor(i*step)]);
+        return out;
+      }
+      var paceSeries = [];
+      if (typeof spdArr!=='undefined' && spdArr && spdArr.length){
+        paceSeries = spdArr.map(function(s){ return s>0.5 ? Math.min(900, 1000/s) : null; })
+                           .filter(function(v){ return v!=null && isFinite(v); });
+      }
+      var speedSeries = (typeof spdArr!=='undefined' && spdArr) ? spdArr.map(function(s){return (s||0)*3.6;}).filter(function(v){return isFinite(v);}) : [];
+      var elevSeries  = (hasAlt && typeof altSeries!=='undefined') ? altSeries.slice() : [];
+
+      paceSeries  = sub(paceSeries, 180);
+      speedSeries = sub(speedSeries, 180);
+      elevSeries  = sub(elevSeries, 180);
+
+      var hasSplits = (typeof splits!=='undefined') && splits && splits.length>0;
+      var hasPace   = paceSeries.length>=2;
+      var hasSpeed  = speedSeries.length>=2;
+      var hasElev   = elevSeries.length>=2;
+
+      // === Canvas ===
+      var cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      var ctx = cv.getContext('2d');
+
+      // Background gradasi KawanKeringat
+      var g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,    '#0a1a3f');
+      g.addColorStop(0.55, '#123a86');
+      g.addColorStop(1,    '#1e63d6');
+      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+      // Aksen samar
+      ctx.globalAlpha = 0.10; ctx.fillStyle = '#7fb2ff';
+      ctx.beginPath(); ctx.arc(W-60, 140, 240, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-40, H-260, 300, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // === White card ===
+      var CX = 40, CY = 60, CW = W-80;
+      // shadow
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 40; ctx.shadowOffsetY = 10;
+      ctx.fillStyle = '#ffffff';
+      // Precompute card height (we render then trim by drawing a big card)
+      // For simplicity gunakan tinggi tetap = H - 2*CY = 1800
+      var CH = H - 2*CY;
+      roundRect(ctx, CX, CY, CW, CH, 28); ctx.fill();
+      ctx.restore();
+
+      // Content padding
+      var PX = CX + 40;
+      var PW = CW - 80;
+      var y  = CY + 40;
+
+      // === Header: logo + brand ===
+      var logo = await loadImg('assets/icon.png');
+      var logoSize = 72;
+      if (logo){
+        ctx.save();
+        // draw logo with rounded clip
+        roundRect(ctx, PX, y, logoSize, logoSize, 14); ctx.clip();
+        ctx.drawImage(logo, PX, y, logoSize, logoSize);
+        ctx.restore();
+      }
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 34px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.fillText('KawanKeringat', PX + logoSize + 18, y + 32);
+      ctx.fillStyle = '#64748b';
+      ctx.font = '18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText('Rekam. Konsisten. Sehat.', PX + logoSize + 18, y + 58);
+      y += logoSize + 24;
+
+      // Divider
+      ctx.strokeStyle = 'rgba(15,23,42,0.08)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(PX, y); ctx.lineTo(PX+PW, y); ctx.stroke();
+      y += 24;
+
+      // === Judul aktivitas + tanggal ===
+      var jenis = (ACT.jenis||'Aktivitas'); jenis = jenis.charAt(0).toUpperCase()+jenis.slice(1);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 54px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText(jenis, PX, y+40);
+      y += 60;
+      ctx.fillStyle = '#475569';
+      ctx.font = '22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      var subtitle = (ACT.nama ? ACT.nama + ' · ' : '') + fmtDateID(ACT.tanggal);
+      ctx.fillText(subtitle, PX, y+22);
+      y += 40;
+
+      // === Peta 16:9 penuh lebar konten ===
+      var mw = PW;
+      var mh = Math.round(mw * 9/16);
+      var mx = PX, my = y;
+      ctx.fillStyle = '#e2e8f0';
+      roundRect(ctx, mx, my, mw, mh, 20); ctx.fill();
+      if (pts.length >= 2){
+        ctx.save();
+        roundRect(ctx, mx, my, mw, mh, 20); ctx.clip();
+        try { await drawTileMap(ctx, mx, my, mw, mh, pts); } catch(_){}
+        ctx.restore();
+      }
+      ctx.strokeStyle = 'rgba(15,23,42,0.10)'; ctx.lineWidth=1;
+      roundRect(ctx, mx, my, mw, mh, 20); ctx.stroke();
+      y = my + mh + 28;
+
+      // === Statistik lengkap (3 kolom) ===
+      function paceStr(sec){ sec = Math.round(sec||0); if (!sec) return '-'; var m=Math.floor(sec/60), s=sec%60; return m+':'+(s<10?'0':'')+s; }
+      function durStr(sec){ sec=Math.max(0,Math.round(sec||0)); var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; return (h>0? h+':'+(m<10?'0':'')+m : m)+':'+(s<10?'0':'')+s; }
+      var kmVal = (dTotM/1000);
+
+      var statList = [
+        { label:'Jarak',           value: kmVal.toFixed(2).replace('.',','),        unit:'km'   },
+        { label:'Durasi Total',    value: durStr(totS),                             unit:''     },
+        { label:'Durasi Bergerak', value: durStr(movS),                             unit:''     },
+        { label:'Pace Rata-rata',  value: paceStr(paceSecCalc),                     unit:'/km'  },
+        { label:'Kecepatan Avg',   value: (avgSp*3.6).toFixed(2).replace('.',','),  unit:'km/j' },
+        { label:'Kecepatan Maks',  value: (maxSp*3.6).toFixed(2).replace('.',','),  unit:'km/j' },
+        { label:'Kalori',          value: String(ACT.kalori|0),                     unit:'kcal' },
+        { label:'Titik GPS',       value: String(gpsN),                             unit:''     }
+      ];
+      if (bestPaceSec>0) statList.splice(4, 0, { label:'Pace Terbaik', value: paceStr(bestPaceSec), unit:'/km' });
+      if (hasAlt){
+        statList.push({ label:'Elevasi Naik',  value: String(Math.round(eUp)),  unit:'m' });
+        statList.push({ label:'Elevasi Turun', value: String(Math.round(eDn)),  unit:'m' });
+        statList.push({ label:'Elevasi Maks',  value: String(Math.round(eMax)), unit:'m' });
+      }
+
+      var cols = 3;
+      var cellW = PW / cols;
+      var cellH = 110;
+      for (var si=0; si<statList.length; si++){
+        var cc = si % cols, rr = Math.floor(si/cols);
+        var cx = PX + cc*cellW;
+        var cy = y + rr*cellH;
+        ctx.fillStyle = '#64748b';
+        ctx.font = '18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.fillText(statList[si].label, cx, cy+22);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 34px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.fillText(statList[si].value, cx, cy+62);
+        if (statList[si].unit){
+          var vw = ctx.measureText(statList[si].value).width;
+          ctx.fillStyle = '#64748b';
+          ctx.font = '18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+          ctx.fillText(' '+statList[si].unit, cx+vw+6, cy+62);
+        }
+      }
+      var rows = Math.ceil(statList.length / cols);
+      y += rows*cellH + 10;
+
+      // === Sections: split, pace, elevasi, kecepatan, insight (opsional) ===
+      function sectionTitle(t){
+        ctx.fillStyle='#0f172a';
+        ctx.font='bold 24px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.fillText(t, PX, y+22);
+        y += 36;
+      }
+
+      // Batas maksimum konten sebelum footer
+      var footerReserve = 90;
+      var contentLimit = CY + CH - footerReserve;
+
+      if (hasSplits && (y + 60) < contentLimit){
+        sectionTitle('Split per KM');
+        var maxRows = Math.max(1, Math.floor((contentLimit - y - 20) / 52));
+        var showSplits = splits.slice(0, maxRows);
+        var used = drawSplitBars(ctx, PX, y, PW, showSplits);
+        y += used + 12;
+      }
+
+      if (hasPace && (y + 200) < contentLimit){
+        sectionTitle('Grafik Pace');
+        drawMiniLine(ctx, PX, y, PW, 150, paceSeries, {
+          color:'#1e63d6',
+          fmt: function(v){ return paceStr(v)+' /km'; }
+        });
+        y += 170;
+      }
+
+      if (hasElev && (y + 200) < contentLimit){
+        sectionTitle('Grafik Elevasi');
+        drawMiniLine(ctx, PX, y, PW, 150, elevSeries, {
+          color:'#f97316',
+          fmt: function(v){ return Math.round(v)+' m'; }
+        });
+        y += 170;
+      }
+
+      if (hasSpeed && (y + 200) < contentLimit){
+        sectionTitle('Grafik Kecepatan');
+        drawMiniLine(ctx, PX, y, PW, 150, speedSeries, {
+          color:'#10b981',
+          fmt: function(v){ return v.toFixed(1)+' km/j'; }
+        });
+        y += 170;
+      }
+
+      // Insight otomatis
+      if ((y + 80) < contentLimit){
+        var insight = 'Menempuh '+kmVal.toFixed(2).replace('.',',')+' km dalam '+durStr(totS)
+                    + (paceSecCalc>0 ? (' pada pace '+paceStr(paceSecCalc)+' /km') : '')
+                    + (bestPaceSec>0 ? (' — split tercepat '+paceStr(bestPaceSec)+' /km') : '')
+                    + '.';
+        sectionTitle('Insight');
+        ctx.fillStyle='#334155';
+        ctx.font='20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        // wrap simple
+        var words = insight.split(' '), line='', ly=y+8, lh=28;
+        for (var w2=0; w2<words.length; w2++){
+          var test = line ? (line+' '+words[w2]) : words[w2];
+          if (ctx.measureText(test).width > PW && line){
+            ctx.fillText(line, PX, ly); ly += lh; line = words[w2];
+          } else line = test;
+        }
+        if (line){ ctx.fillText(line, PX, ly); ly+=lh; }
+        y = ly + 6;
+      }
+
+      // === Footer (TANPA URL/domain) ===
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Direkam dengan KawanKeringat', W/2, CY + CH - 36);
+      ctx.textAlign='left';
+
+      return cv;
+    }
+
     // Simpan referensi points untuk share
     window.__AD_POINTS = RAW;
 
