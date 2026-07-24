@@ -380,7 +380,8 @@ include __DIR__.'/includes/header.php';
       kalori:    <?= (int)($act['kalori'] ?? 0) ?>,
       pace_sec:  <?= (int)($act['pace_detik'] ?? 0) ?>,
       jenis:     <?= json_encode((string)($act['jenis'] ?? 'Aktivitas')) ?>,
-      tanggal:   <?= json_encode((string)($act['tanggal'] ?? '')) ?>
+      tanggal:   <?= json_encode((string)($act['tanggal'] ?? '')) ?>,
+      nama:      <?= json_encode((string)($act['nama'] ?? '')) ?>
     };
 
     // ==== util ====
@@ -739,10 +740,12 @@ include __DIR__.'/includes/header.php';
       });
     }
 
-    // ===== Share Card (Strava-style) =====
-    // Menggambar poster PNG via Canvas 2D dari data GPX + statistik.
-    // Tidak menggunakan tile peta (menghindari CORS) — jalur digambar
-    // pada latar gradasi khas KawanKeringat.
+    // ===== Share Card (Strava-style) — REVISI: peta tile OSM + Native Share =====
+    // Kartu aktivitas dibuat via Canvas 2D. Peta menggunakan tile OSM
+    // (crossOrigin=anonymous) sehingga jalur GPX tampil di atas peta asli.
+    // Setelah PNG jadi -> Web Share API (files) atau Capacitor Share (Android).
+    // TIDAK pernah membagikan URL halaman.
+    var APP_SHARE_URL = (location.origin || '') + '/';
     function fmtDateID(s){
       try{
         var d = s ? new Date(s) : new Date();
@@ -751,7 +754,108 @@ include __DIR__.'/includes/header.php';
         return d.getDate()+' '+bln[d.getMonth()]+' '+d.getFullYear();
       }catch(e){ return ''; }
     }
-    function buildShareCard(){
+    // ---- OSM tile helpers ----
+    function lon2tile(lon,z){ return (lon+180)/360*Math.pow(2,z); }
+    function lat2tile(lat,z){
+      var r=lat*Math.PI/180;
+      return (1 - Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z);
+    }
+    function pickZoom(minLat,maxLat,minLng,maxLng,w,h){
+      for (var z=17; z>=2; z--){
+        var x1=lon2tile(minLng,z), x2=lon2tile(maxLng,z);
+        var y1=lat2tile(maxLat,z), y2=lat2tile(minLat,z);
+        var pw=(x2-x1)*256, ph=(y2-y1)*256;
+        if (pw<=w-20 && ph<=h-20) return z;
+      }
+      return 2;
+    }
+    function loadImg(url){
+      return new Promise(function(res){
+        var im=new Image(); im.crossOrigin='anonymous';
+        im.onload=function(){ res(im); };
+        im.onerror=function(){ res(null); };
+        im.src=url;
+      });
+    }
+    async function drawTileMap(ctx, mx, my, mw, mh, pts){
+      // Bounding box
+      var minLat=1e9,maxLat=-1e9,minLng=1e9,maxLng=-1e9;
+      for (var i=0;i<pts.length;i++){
+        if (pts[i].lat<minLat)minLat=pts[i].lat; if (pts[i].lat>maxLat)maxLat=pts[i].lat;
+        if (pts[i].lng<minLng)minLng=pts[i].lng; if (pts[i].lng>maxLng)maxLng=pts[i].lng;
+      }
+      // Padding bbox ~8%
+      var padLat=(maxLat-minLat)*0.08 || 0.0005;
+      var padLng=(maxLng-minLng)*0.08 || 0.0005;
+      minLat-=padLat; maxLat+=padLat; minLng-=padLng; maxLng+=padLng;
+      var z=pickZoom(minLat,maxLat,minLng,maxLng,mw,mh);
+      var xMinF=lon2tile(minLng,z), xMaxF=lon2tile(maxLng,z);
+      var yMinF=lat2tile(maxLat,z), yMaxF=lat2tile(minLat,z);
+      var xMin=Math.floor(xMinF), xMax=Math.floor(xMaxF);
+      var yMin=Math.floor(yMinF), yMaxT=Math.floor(yMaxF);
+      var tilesW=(xMax-xMin+1), tilesH=(yMaxT-yMin+1);
+      var pxW=tilesW*256, pxH=tilesH*256;
+      // scale untuk fit bbox ke area kartu
+      var bboxPxW=(xMaxF-xMinF)*256, bboxPxH=(yMaxF-yMinF)*256;
+      var scale=Math.min(mw/bboxPxW, mh/bboxPxH);
+      var drawW=pxW*scale, drawH=pxH*scale;
+      var ox=mx + (mw-bboxPxW*scale)/2 - (xMinF-xMin)*256*scale;
+      var oy=my + (mh-bboxPxH*scale)/2 - (yMinF-yMin)*256*scale;
+
+      // clip ke rounded rect kartu peta sudah dilakukan pemanggil (opsional)
+      var subdomains=['a','b','c'];
+      var promises=[];
+      for (var tx=xMin; tx<=xMax; tx++){
+        for (var ty=yMin; ty<=yMaxT; ty++){
+          (function(tx,ty){
+            var s=subdomains[(tx+ty)%3];
+            var url='https://'+s+'.tile.openstreetmap.org/'+z+'/'+tx+'/'+ty+'.png';
+            promises.push(loadImg(url).then(function(im){
+              if (!im) return;
+              var dx=ox+(tx-xMin)*256*scale;
+              var dy=oy+(ty-yMin)*256*scale;
+              ctx.drawImage(im, dx, dy, 256*scale, 256*scale);
+            }));
+          })(tx,ty);
+        }
+      }
+      await Promise.all(promises);
+
+      // Proyeksi titik GPX -> pixel
+      function proj(p){
+        return {
+          x: ox + (lon2tile(p.lng,z)-xMin)*256*scale,
+          y: oy + (lat2tile(p.lat,z)-yMin)*256*scale
+        };
+      }
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      // outline gelap
+      ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=12;
+      ctx.beginPath();
+      var s0=proj(pts[0]); ctx.moveTo(s0.x, s0.y);
+      for (var j=1;j<pts.length;j++){ var q=proj(pts[j]); ctx.lineTo(q.x,q.y); }
+      ctx.stroke();
+      // jalur utama (kuning KK)
+      ctx.strokeStyle='#ffcc33'; ctx.lineWidth=8;
+      ctx.beginPath();
+      var p0=proj(pts[0]); ctx.moveTo(p0.x,p0.y);
+      for (var k=1;k<pts.length;k++){ var pp=proj(pts[k]); ctx.lineTo(pp.x,pp.y); }
+      ctx.stroke();
+      // start
+      var ps=proj(pts[0]);
+      ctx.fillStyle='#22c55e'; ctx.strokeStyle='#ffffff'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.arc(ps.x,ps.y,16,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#ffffff'; ctx.font='bold 18px system-ui,Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('S', ps.x, ps.y+1);
+      // finish
+      var pf=proj(pts[pts.length-1]);
+      ctx.fillStyle='#ef4444'; ctx.strokeStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(pf.x,pf.y,16,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#ffffff';
+      ctx.fillText('F', pf.x, pf.y+1);
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    }
+    async function buildShareCard(){
       var W = 1080, H = 1350;
       var cv = document.createElement('canvas');
       cv.width = W; cv.height = H;
@@ -786,67 +890,30 @@ include __DIR__.'/includes/header.php';
       ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
       ctx.fillText('Rekam. Konsisten. Sehat.', 110, 104);
 
-      // Judul aktivitas
+      // Judul aktivitas + user
       var jenis = (ACT.jenis||'Aktivitas'); jenis = jenis.charAt(0).toUpperCase()+jenis.slice(1);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 56px system-ui, -apple-system, Segoe UI, Roboto, Arial';
       ctx.fillText(jenis, 60, 200);
       ctx.fillStyle = 'rgba(255,255,255,.8)';
       ctx.font = '24px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.fillText(fmtDateID(ACT.tanggal), 60, 236);
+      var subtitle = (ACT.nama? ACT.nama+' · ':'') + fmtDateID(ACT.tanggal);
+      ctx.fillText(subtitle, 60, 236);
 
-      // Kartu peta (tanpa tile, hanya jalur)
+      // Kartu peta (tile OSM + jalur GPX)
       var mx = 60, my = 270, mw = W-120, mh = 560;
       var r = 28;
       ctx.fillStyle = 'rgba(255,255,255,0.10)';
       roundRect(ctx, mx, my, mw, mh, r); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2;
-      roundRect(ctx, mx, my, mw, mh, r); ctx.stroke();
 
-      // Gambar polyline
       var pts = (window.__AD_POINTS||[]).filter(function(p){ return isFinite(p.lat)&&isFinite(p.lng); });
       if (pts.length >= 2){
-        var minLat=1e9,maxLat=-1e9,minLng=1e9,maxLng=-1e9;
-        for (var i=0;i<pts.length;i++){
-          if (pts[i].lat<minLat)minLat=pts[i].lat; if (pts[i].lat>maxLat)maxLat=pts[i].lat;
-          if (pts[i].lng<minLng)minLng=pts[i].lng; if (pts[i].lng>maxLng)maxLng=pts[i].lng;
-        }
-        var pad = 40;
-        var iw = mw-pad*2, ih = mh-pad*2;
-        var dLat = Math.max(1e-6, maxLat-minLat), dLng = Math.max(1e-6, maxLng-minLng);
-        // koreksi rasio lintang (mercator sederhana)
-        var latMid = (minLat+maxLat)/2;
-        var kx = Math.cos(latMid*Math.PI/180);
-        var scale = Math.min(iw/(dLng*kx), ih/dLat);
-        var ox = mx + pad + (iw - dLng*kx*scale)/2;
-        var oy = my + pad + (ih - dLat*scale)/2;
-        function proj(p){
-          return {
-            x: ox + (p.lng-minLng)*kx*scale,
-            y: oy + (maxLat-p.lat)*scale
-          };
-        }
-        // shadow
-        ctx.lineJoin='round'; ctx.lineCap='round';
-        ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth = 12;
-        ctx.beginPath();
-        var s0=proj(pts[0]); ctx.moveTo(s0.x+2, s0.y+3);
-        for (var j=1;j<pts.length;j++){ var q=proj(pts[j]); ctx.lineTo(q.x+2,q.y+3); }
-        ctx.stroke();
-        // jalur
-        ctx.strokeStyle='#ffcc33'; ctx.lineWidth = 8;
-        ctx.beginPath();
-        var p0=proj(pts[0]); ctx.moveTo(p0.x,p0.y);
-        for (var k=1;k<pts.length;k++){ var pp=proj(pts[k]); ctx.lineTo(pp.x,pp.y); }
-        ctx.stroke();
-        // start marker
-        var ps=proj(pts[0]);
-        ctx.fillStyle='#22c55e'; ctx.strokeStyle='#ffffff'; ctx.lineWidth=4;
-        ctx.beginPath(); ctx.arc(ps.x,ps.y,14,0,Math.PI*2); ctx.fill(); ctx.stroke();
-        // finish marker
-        var pf=proj(pts[pts.length-1]);
-        ctx.fillStyle='#ef4444';
-        ctx.beginPath(); ctx.arc(pf.x,pf.y,14,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        // Clip ke rounded rect agar tile tidak keluar
+        ctx.save();
+        roundRect(ctx, mx, my, mw, mh, r); ctx.clip();
+        try { await drawTileMap(ctx, mx, my, mw, mh, pts); }
+        catch(_){ /* jika tile gagal, biarkan latar polos */ }
+        ctx.restore();
       } else {
         ctx.fillStyle='rgba(255,255,255,0.7)';
         ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
@@ -854,6 +921,9 @@ include __DIR__.'/includes/header.php';
         ctx.fillText('Tidak ada jejak GPS', mx+mw/2, my+mh/2);
         ctx.textAlign='left';
       }
+      // Border kartu peta di atas tile
+      ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=2;
+      roundRect(ctx, mx, my, mw, mh, r); ctx.stroke();
 
       // Kartu statistik (2x2)
       var sx=60, sy=my+mh+30, sw=W-120, sh=280;
@@ -893,11 +963,14 @@ include __DIR__.'/includes/header.php';
         }
       }
 
-      // Footer
-      ctx.fillStyle='rgba(255,255,255,0.85)';
-      ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      // Footer: branding + URL aplikasi
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.font='bold 22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
       ctx.textAlign='center';
-      ctx.fillText('Direkam dengan KawanKeringat', W/2, H-50);
+      ctx.fillText('Direkam dengan KawanKeringat', W/2, H-70);
+      ctx.fillStyle='rgba(255,255,255,0.7)';
+      ctx.font='18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText(APP_SHARE_URL, W/2, H-40);
       ctx.textAlign='left';
 
       return cv;
@@ -926,32 +999,77 @@ include __DIR__.'/includes/header.php';
         }
       });
     }
+    function blobToBase64(blob){
+      return new Promise(function(res,rej){
+        var fr=new FileReader();
+        fr.onload=function(){ res((fr.result+'').split(',')[1]); };
+        fr.onerror=rej;
+        fr.readAsDataURL(blob);
+      });
+    }
+    async function shareViaCapacitor(blob, fname, text){
+      try{
+        var C = window.Capacitor;
+        if (!C || !C.Plugins || !C.Plugins.Share || !C.Plugins.Filesystem) return false;
+        var b64 = await blobToBase64(blob);
+        var Filesystem = C.Plugins.Filesystem;
+        var Share = C.Plugins.Share;
+        var dir = (Filesystem.Directory && Filesystem.Directory.Cache) || 'CACHE';
+        var writeRes = await Filesystem.writeFile({
+          path: fname, data: b64, directory: dir, recursive: true
+        });
+        var uri = (writeRes && writeRes.uri) ? writeRes.uri : null;
+        if (!uri){
+          var got = await Filesystem.getUri({ path: fname, directory: dir });
+          uri = got && got.uri;
+        }
+        if (!uri) return false;
+        await Share.share({
+          title: 'KawanKeringat',
+          text: text,
+          files: [uri],
+          dialogTitle: 'Bagikan Aktivitas'
+        });
+        return true;
+      }catch(e){ console.warn('Capacitor share gagal', e); return false; }
+    }
     async function shareAct(){
       try{
         var btns=[document.getElementById('adShareBtn'), document.getElementById('adShareBtn2')];
         btns.forEach(function(b){ if(b){ b.disabled=true; b.dataset._t=b.innerHTML; b.innerHTML='<i class="bi bi-hourglass-split"></i> Menyiapkan…'; }});
-        var cv = buildShareCard();
+        var cv = await buildShareCard();
         var blob = await canvasToBlob(cv);
         var fname = 'kawankeringat-'+(ACT.jenis||'aktivitas')+'-'+Date.now()+'.png';
         var file = new File([blob], fname, { type:'image/png' });
         var text = 'Aktivitas '+(ACT.jenis||'')+' — '+(ACT.jarak_km||0)+' km · '+(ACT.dur_menit||0)+' menit\nDirekam dengan KawanKeringat';
+        // 1) Prioritas: Native Android Share Sheet via Capacitor (APK)
+        var isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (isCap){
+          var ok = await shareViaCapacitor(blob, fname, text);
+          if (ok) return;
+        }
+        // 2) Web Share API dengan file (Chrome Android, Samsung Internet)
         if (navigator.canShare && navigator.canShare({ files:[file] }) && navigator.share){
-          try {
-            await navigator.share({ files:[file], title:'KawanKeringat', text:text });
-          } catch(e){ /* user cancel */ }
-        } else {
-          // Fallback: unduh gambar + coba share teks
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url; a.download = fname;
-          document.body.appendChild(a); a.click();
-          setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
-          if (navigator.share){
-            try{ await navigator.share({ title:'KawanKeringat', text:text, url:location.href }); }catch(_){}
-          } else {
-            alert('Gambar aktivitas telah diunduh. Silakan bagikan manual ke WhatsApp / Instagram.');
+          try { await navigator.share({ files:[file], title:'KawanKeringat', text:text }); return; }
+          catch(e){
+            if (e && (e.name==='AbortError' || /aborted|cancel/i.test(e.message||''))) return;
           }
         }
+        // 3) Fallback web (bukan APK): unduh gambar / copy image.
+        //    TIDAK membagikan URL halaman sesuai permintaan.
+        try{
+          if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+            await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+            alert('Gambar aktivitas disalin ke clipboard. Tempel di WhatsApp/Instagram/Telegram.');
+            return;
+          }
+        }catch(_){}
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
+        alert('Gambar aktivitas telah diunduh. Silakan bagikan manual ke WhatsApp / Instagram.');
       } catch(err){
         console.error('shareAct error', err);
         alert('Gagal membuat gambar bagikan. Coba lagi.');
