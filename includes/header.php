@@ -1272,7 +1272,7 @@ body[data-hf-loading="1"] main{visibility:hidden;}
 </script>
 <?php endif; ?>
 
-<main class="container py-3">
+<main id="app-content" class="container py-3">
 
 <?php if (!empty($u)): ?>
 <script>

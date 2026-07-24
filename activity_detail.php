@@ -1008,30 +1008,57 @@ include __DIR__.'/includes/header.php';
       });
     }
     async function shareViaCapacitor(blob, fname, text){
+      var C = window.Capacitor;
+      if (!C || !C.isNativePlatform || !C.isNativePlatform()) {
+        return { ok:false, reason:'not_native' };
+      }
+      if (!C.Plugins || !C.Plugins.Share || !C.Plugins.Filesystem) {
+        return { ok:false, reason:'plugin_missing' };
+      }
+
+      var Filesystem = C.Plugins.Filesystem;
+      var Share = C.Plugins.Share;
+      var dir = (Filesystem.Directory && (Filesystem.Directory.Cache || Filesystem.Directory.ExternalCache)) || 'CACHE';
+      var tmpPath = fname;
+
       try{
-        var C = window.Capacitor;
-        if (!C || !C.Plugins || !C.Plugins.Share || !C.Plugins.Filesystem) return false;
         var b64 = await blobToBase64(blob);
-        var Filesystem = C.Plugins.Filesystem;
-        var Share = C.Plugins.Share;
-        var dir = (Filesystem.Directory && Filesystem.Directory.Cache) || 'CACHE';
-        var writeRes = await Filesystem.writeFile({
-          path: fname, data: b64, directory: dir, recursive: true
+        await Filesystem.writeFile({
+          path: tmpPath,
+          data: b64,
+          directory: dir,
+          recursive: true
         });
-        var uri = (writeRes && writeRes.uri) ? writeRes.uri : null;
-        if (!uri){
-          var got = await Filesystem.getUri({ path: fname, directory: dir });
+
+        var uri = null;
+        if (Filesystem.getUri){
+          var got = await Filesystem.getUri({ path: tmpPath, directory: dir });
           uri = got && got.uri;
         }
-        if (!uri) return false;
+        if (!uri){
+          return { ok:false, reason:'no_uri' };
+        }
+
         await Share.share({
           title: 'KawanKeringat',
           text: text,
           files: [uri],
           dialogTitle: 'Bagikan Aktivitas'
         });
-        return true;
-      }catch(e){ console.warn('Capacitor share gagal', e); return false; }
+        return { ok:true };
+      } catch(e){
+        if (e && (e.name==='AbortError' || /aborted|cancel/i.test(e.message||''))) {
+          return { ok:true, cancelled:true };
+        }
+        console.warn('Capacitor share gagal', e);
+        return { ok:false, reason:'share_failed' };
+      } finally {
+        try {
+          if (Filesystem.deleteFile) {
+            await Filesystem.deleteFile({ path: tmpPath, directory: dir });
+          }
+        } catch(_){ }
+      }
     }
     async function shareAct(){
       try{
@@ -1042,11 +1069,13 @@ include __DIR__.'/includes/header.php';
         var fname = 'kawankeringat-'+(ACT.jenis||'aktivitas')+'-'+Date.now()+'.png';
         var file = new File([blob], fname, { type:'image/png' });
         var text = 'Aktivitas '+(ACT.jenis||'')+' — '+(ACT.jarak_km||0)+' km · '+(ACT.dur_menit||0)+' menit\nDirekam dengan KawanKeringat';
-        // 1) Prioritas: Native Android Share Sheet via Capacitor (APK)
+        // 1) Prioritas WAJIB: Native Android Share Sheet via Capacitor (APK)
         var isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         if (isCap){
-          var ok = await shareViaCapacitor(blob, fname, text);
-          if (ok) return;
+          var nativeRes = await shareViaCapacitor(blob, fname, text);
+          if (nativeRes && nativeRes.ok) return;
+          // Di APK Android: tidak fallback ke download / popup.
+          return;
         }
         // 2) Web Share API dengan file (Chrome Android, Samsung Internet)
         if (navigator.canShare && navigator.canShare({ files:[file] }) && navigator.share){
@@ -1055,24 +1084,16 @@ include __DIR__.'/includes/header.php';
             if (e && (e.name==='AbortError' || /aborted|cancel/i.test(e.message||''))) return;
           }
         }
-        // 3) Fallback web (bukan APK): unduh gambar / copy image.
-        //    TIDAK membagikan URL halaman sesuai permintaan.
+        // 3) Fallback web desktop (bukan APK): clipboard image, tanpa popup/download.
         try{
           if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
             await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
-            alert('Gambar aktivitas disalin ke clipboard. Tempel di WhatsApp/Instagram/Telegram.');
             return;
           }
         }catch(_){}
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url; a.download = fname;
-        document.body.appendChild(a); a.click();
-        setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
-        alert('Gambar aktivitas telah diunduh. Silakan bagikan manual ke WhatsApp / Instagram.');
       } catch(err){
         console.error('shareAct error', err);
-        alert('Gagal membuat gambar bagikan. Coba lagi.');
+        if (err && (err.name==='AbortError' || /aborted|cancel/i.test(err.message||''))) return;
       } finally {
         var btns2=[document.getElementById('adShareBtn'), document.getElementById('adShareBtn2')];
         btns2.forEach(function(b){ if(b){ b.disabled=false; if(b.dataset._t) b.innerHTML=b.dataset._t; }});

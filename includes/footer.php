@@ -912,4 +912,7 @@ document.addEventListener('submit', async function(ev){
   }, true);
 })();
 </script>
+
+<!-- Revisi Juli 2026 R53 — SPA Router (progressive enhancement). Aman untuk halaman lama: jika URL masuk SKIP list atau server tidak mengembalikan #app-content, otomatis fallback full navigation. -->
+<script src="/assets/js/router.js?v=r53" defer></script>
 </body></html>
