@@ -461,6 +461,35 @@ include __DIR__.'/includes/header.php';
   cursor: default !important;
 }
 .kk-route-preview .kk-mini-map .leaflet-control-container{ display:none !important; }
+
+/* Revisi R53 — Popup "Bukti Aktivitas" tidak tertutup Bottom Navigation.
+   Berlaku juga untuk modal-lg lain di halaman ini (Sesi & Detail Hari).
+   Aman untuk Android Chrome, Capacitor APK, Samsung/Xiaomi/Oppo/Vivo. */
+#buktiModal .modal-dialog,
+#sesiModal .modal-dialog,
+#dayModal  .modal-dialog{
+  margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+#buktiModal .modal-content,
+#sesiModal .modal-content,
+#dayModal  .modal-content{
+  max-height: calc(100vh - 120px - env(safe-area-inset-bottom, 0px));
+}
+#buktiModal .modal-body,
+#sesiModal .modal-body,
+#dayModal  .modal-body{
+  max-height: calc(100vh - 260px - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 576px){
+  #buktiModal .modal-dialog,
+  #sesiModal .modal-dialog,
+  #dayModal  .modal-dialog{
+    margin-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+}
 </style>
 <h2 class="mb-3"><i class="bi bi-clock-history text-primary"></i> Riwayat & Leaderboard</h2>
 

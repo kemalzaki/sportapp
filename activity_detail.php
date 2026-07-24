@@ -265,11 +265,6 @@ include __DIR__.'/includes/header.php';
     <div class="ad-topbar">
       <a href="/riwayat.php" class="ad-btn"><i class="bi bi-arrow-left"></i> Kembali</a>
       <div style="display:flex; gap:8px;">
-        <?php if ($act && $sId>0): ?>
-          <a class="ad-btn" href="/api_run.php?action=export_gpx&session_id=<?= (int)$sId ?>" title="Download GPX">
-            <i class="bi bi-download"></i> GPX
-          </a>
-        <?php endif; ?>
         <button type="button" class="ad-btn" id="adShareBtn"><i class="bi bi-share"></i> Bagikan</button>
       </div>
     </div>
@@ -304,9 +299,6 @@ include __DIR__.'/includes/header.php';
     <div id="adMap" class="ad-map" role="img" aria-label="Peta rute aktivitas"></div>
     <div class="ad-map-actions">
       <button type="button" class="ad-btn" id="adFullscreenBtn"><i class="bi bi-arrows-fullscreen"></i> Fullscreen</button>
-      <?php if ($sId>0): ?>
-        <a class="ad-btn" href="/api_run.php?action=export_gpx&session_id=<?= (int)$sId ?>"><i class="bi bi-filetype-gpx"></i> Download GPX</a>
-      <?php endif; ?>
       <button type="button" class="ad-btn primary" id="adShareBtn2"><i class="bi bi-share-fill"></i> Bagikan Aktivitas</button>
     </div>
     <?php if (count($points) < 2): ?>
@@ -374,12 +366,8 @@ include __DIR__.'/includes/header.php';
     <div class="insight-list" id="adInsights"><div class="na">Menganalisis…</div></div>
   </div>
 
-  <?php if (!empty($act['deskripsi'])): ?>
-    <div class="glass">
-      <h3><i class="bi bi-journal-text"></i> Catatan</h3>
-      <div style="white-space:pre-wrap; color:#dbe6ff;"><?= htmlspecialchars((string)$act['deskripsi']) ?></div>
-    </div>
-  <?php endif; ?>
+
+
 
   <script>
   (function(){
@@ -751,13 +739,226 @@ include __DIR__.'/includes/header.php';
       });
     }
 
-    // Share
-    function shareAct(){
-      var url = location.href;
-      var text = 'Aktivitas '+ACT.jenis+' — '+ (ACT.jarak_km||0)+' km · '+ (ACT.dur_menit||0)+' menit';
-      if (navigator.share){ navigator.share({ title:'KawanKeringat', text:text, url:url }).catch(function(){}); }
-      else if (navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ alert('Link disalin: '+url); }); }
-      else { prompt('Salin link:', url); }
+    // ===== Share Card (Strava-style) =====
+    // Menggambar poster PNG via Canvas 2D dari data GPX + statistik.
+    // Tidak menggunakan tile peta (menghindari CORS) — jalur digambar
+    // pada latar gradasi khas KawanKeringat.
+    function fmtDateID(s){
+      try{
+        var d = s ? new Date(s) : new Date();
+        if (isNaN(d.getTime())) d = new Date();
+        var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        return d.getDate()+' '+bln[d.getMonth()]+' '+d.getFullYear();
+      }catch(e){ return ''; }
+    }
+    function buildShareCard(){
+      var W = 1080, H = 1350;
+      var cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      var ctx = cv.getContext('2d');
+
+      // Background gradasi KawanKeringat (biru)
+      var g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0, '#0a1a3f');
+      g.addColorStop(0.55,'#123a86');
+      g.addColorStop(1, '#1e63d6');
+      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+      // Aksen lingkaran samar
+      ctx.globalAlpha = 0.10;
+      ctx.fillStyle = '#7fb2ff';
+      ctx.beginPath(); ctx.arc(W-80, 120, 220, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-40, H-260, 260, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Header: logo mark + brand
+      ctx.fillStyle = '#ffcc33';
+      ctx.beginPath(); ctx.arc(70, 80, 26, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#0a1a3f';
+      ctx.font = 'bold 28px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('KK', 70, 82);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 34px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText('KawanKeringat', 110, 78);
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText('Rekam. Konsisten. Sehat.', 110, 104);
+
+      // Judul aktivitas
+      var jenis = (ACT.jenis||'Aktivitas'); jenis = jenis.charAt(0).toUpperCase()+jenis.slice(1);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText(jenis, 60, 200);
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.font = '24px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.fillText(fmtDateID(ACT.tanggal), 60, 236);
+
+      // Kartu peta (tanpa tile, hanya jalur)
+      var mx = 60, my = 270, mw = W-120, mh = 560;
+      var r = 28;
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      roundRect(ctx, mx, my, mw, mh, r); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2;
+      roundRect(ctx, mx, my, mw, mh, r); ctx.stroke();
+
+      // Gambar polyline
+      var pts = (window.__AD_POINTS||[]).filter(function(p){ return isFinite(p.lat)&&isFinite(p.lng); });
+      if (pts.length >= 2){
+        var minLat=1e9,maxLat=-1e9,minLng=1e9,maxLng=-1e9;
+        for (var i=0;i<pts.length;i++){
+          if (pts[i].lat<minLat)minLat=pts[i].lat; if (pts[i].lat>maxLat)maxLat=pts[i].lat;
+          if (pts[i].lng<minLng)minLng=pts[i].lng; if (pts[i].lng>maxLng)maxLng=pts[i].lng;
+        }
+        var pad = 40;
+        var iw = mw-pad*2, ih = mh-pad*2;
+        var dLat = Math.max(1e-6, maxLat-minLat), dLng = Math.max(1e-6, maxLng-minLng);
+        // koreksi rasio lintang (mercator sederhana)
+        var latMid = (minLat+maxLat)/2;
+        var kx = Math.cos(latMid*Math.PI/180);
+        var scale = Math.min(iw/(dLng*kx), ih/dLat);
+        var ox = mx + pad + (iw - dLng*kx*scale)/2;
+        var oy = my + pad + (ih - dLat*scale)/2;
+        function proj(p){
+          return {
+            x: ox + (p.lng-minLng)*kx*scale,
+            y: oy + (maxLat-p.lat)*scale
+          };
+        }
+        // shadow
+        ctx.lineJoin='round'; ctx.lineCap='round';
+        ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth = 12;
+        ctx.beginPath();
+        var s0=proj(pts[0]); ctx.moveTo(s0.x+2, s0.y+3);
+        for (var j=1;j<pts.length;j++){ var q=proj(pts[j]); ctx.lineTo(q.x+2,q.y+3); }
+        ctx.stroke();
+        // jalur
+        ctx.strokeStyle='#ffcc33'; ctx.lineWidth = 8;
+        ctx.beginPath();
+        var p0=proj(pts[0]); ctx.moveTo(p0.x,p0.y);
+        for (var k=1;k<pts.length;k++){ var pp=proj(pts[k]); ctx.lineTo(pp.x,pp.y); }
+        ctx.stroke();
+        // start marker
+        var ps=proj(pts[0]);
+        ctx.fillStyle='#22c55e'; ctx.strokeStyle='#ffffff'; ctx.lineWidth=4;
+        ctx.beginPath(); ctx.arc(ps.x,ps.y,14,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        // finish marker
+        var pf=proj(pts[pts.length-1]);
+        ctx.fillStyle='#ef4444';
+        ctx.beginPath(); ctx.arc(pf.x,pf.y,14,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.7)';
+        ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.textAlign='center';
+        ctx.fillText('Tidak ada jejak GPS', mx+mw/2, my+mh/2);
+        ctx.textAlign='left';
+      }
+
+      // Kartu statistik (2x2)
+      var sx=60, sy=my+mh+30, sw=W-120, sh=280;
+      ctx.fillStyle='rgba(255,255,255,0.10)';
+      roundRect(ctx, sx, sy, sw, sh, 24); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=2;
+      roundRect(ctx, sx, sy, sw, sh, 24); ctx.stroke();
+
+      var paceSec = ACT.pace_sec|0;
+      var paceStr = paceSec>0 ? (Math.floor(paceSec/60)+':'+(paceSec%60<10?'0':'')+(paceSec%60)) : '-';
+      var durMenit = ACT.dur_menit|0;
+      var durStr;
+      if (durMenit>=60){ var jam=Math.floor(durMenit/60), sisa=durMenit%60; durStr = jam+'j '+(sisa<10?'0':'')+sisa+'m'; }
+      else durStr = durMenit+' m';
+
+      var stats = [
+        { label:'Jarak',   value:(Number(ACT.jarak_km||0)).toFixed(2).replace('.',','), unit:'km' },
+        { label:'Durasi',  value:durStr, unit:'' },
+        { label:'Pace',    value:paceStr, unit:'/km' },
+        { label:'Kalori',  value:String(ACT.kalori|0), unit:'kcal' }
+      ];
+      for (var s=0;s<4;s++){
+        var col=s%2, row=Math.floor(s/2);
+        var cx = sx + 40 + col*(sw/2 - 20);
+        var cy = sy + 60 + row*130;
+        ctx.fillStyle='rgba(255,255,255,0.75)';
+        ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.fillText(stats[s].label, cx, cy);
+        ctx.fillStyle='#ffffff';
+        ctx.font='bold 54px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.fillText(stats[s].value, cx, cy+58);
+        if (stats[s].unit){
+          var w = ctx.measureText(stats[s].value).width;
+          ctx.fillStyle='rgba(255,255,255,0.75)';
+          ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+          ctx.fillText(' '+stats[s].unit, cx+w+6, cy+58);
+        }
+      }
+
+      // Footer
+      ctx.fillStyle='rgba(255,255,255,0.85)';
+      ctx.font='22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.textAlign='center';
+      ctx.fillText('Direkam dengan KawanKeringat', W/2, H-50);
+      ctx.textAlign='left';
+
+      return cv;
+    }
+    function roundRect(ctx,x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      ctx.closePath();
+    }
+    // Simpan referensi points untuk share
+    window.__AD_POINTS = RAW;
+
+    function canvasToBlob(cv){
+      return new Promise(function(resolve){
+        if (cv.toBlob) cv.toBlob(function(b){ resolve(b); }, 'image/png', 0.95);
+        else {
+          var dataUrl = cv.toDataURL('image/png');
+          var bin = atob(dataUrl.split(',')[1]);
+          var arr = new Uint8Array(bin.length);
+          for (var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+          resolve(new Blob([arr], {type:'image/png'}));
+        }
+      });
+    }
+    async function shareAct(){
+      try{
+        var btns=[document.getElementById('adShareBtn'), document.getElementById('adShareBtn2')];
+        btns.forEach(function(b){ if(b){ b.disabled=true; b.dataset._t=b.innerHTML; b.innerHTML='<i class="bi bi-hourglass-split"></i> Menyiapkan…'; }});
+        var cv = buildShareCard();
+        var blob = await canvasToBlob(cv);
+        var fname = 'kawankeringat-'+(ACT.jenis||'aktivitas')+'-'+Date.now()+'.png';
+        var file = new File([blob], fname, { type:'image/png' });
+        var text = 'Aktivitas '+(ACT.jenis||'')+' — '+(ACT.jarak_km||0)+' km · '+(ACT.dur_menit||0)+' menit\nDirekam dengan KawanKeringat';
+        if (navigator.canShare && navigator.canShare({ files:[file] }) && navigator.share){
+          try {
+            await navigator.share({ files:[file], title:'KawanKeringat', text:text });
+          } catch(e){ /* user cancel */ }
+        } else {
+          // Fallback: unduh gambar + coba share teks
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = fname;
+          document.body.appendChild(a); a.click();
+          setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
+          if (navigator.share){
+            try{ await navigator.share({ title:'KawanKeringat', text:text, url:location.href }); }catch(_){}
+          } else {
+            alert('Gambar aktivitas telah diunduh. Silakan bagikan manual ke WhatsApp / Instagram.');
+          }
+        }
+      } catch(err){
+        console.error('shareAct error', err);
+        alert('Gagal membuat gambar bagikan. Coba lagi.');
+      } finally {
+        var btns2=[document.getElementById('adShareBtn'), document.getElementById('adShareBtn2')];
+        btns2.forEach(function(b){ if(b){ b.disabled=false; if(b.dataset._t) b.innerHTML=b.dataset._t; }});
+      }
     }
     var s1=document.getElementById('adShareBtn'), s2=document.getElementById('adShareBtn2');
     if (s1) s1.addEventListener('click', shareAct);
