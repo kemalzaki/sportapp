@@ -1,17 +1,15 @@
 /*!
- * KawanKeringat Navigation (R54 — Hybrid Shell)
+ * KawanKeringat Navigation (R55 — Hybrid Shell)
  * ---------------------------------------------
- * Menjaga status aktif bottom navigation (.gj-nav .gj-item) setelah swap
- * konten oleh router. TIDAK mengubah struktur/ID/class navigasi.
+ * Sinkron status aktif .gj-nav .gj-item setelah swap. Tidak mengubah
+ * struktur/ID/class navigasi.
  *
  * API: window.KKNav = { syncActive(url) }
  */
 (function () {
   'use strict';
-  if (window.KKNav) return;
+  if (window.KKNav && window.KKNav.__r55) return;
 
-  // Peta path -> daftar item bottom nav yang harus dianggap aktif.
-  // Sinkron dengan _gj_active() di includes/bottom_nav.php.
   var MAP = [
     { match: /(^|\/)(index\.php|)$/i,                   href: '/index.php' },
     { match: /(^|\/)(riwayat|statistik_islami)\.php/i,  href: '/riwayat.php' },
@@ -40,5 +38,5 @@
     } catch (_) {}
   }
 
-  window.KKNav = { syncActive: syncActive };
+  window.KKNav = { __r55: true, syncActive: syncActive };
 })();
