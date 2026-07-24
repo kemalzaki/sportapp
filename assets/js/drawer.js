@@ -1,14 +1,15 @@
 /*!
- * KawanKeringat Drawer helper (R55 — Hybrid Shell)
- * ------------------------------------------------
- * Menutup offcanvas drawer (#gtDrawer) setelah navigasi SPA berhasil.
- * Tidak mengubah markup drawer atau event bootstrap.
+ * KawanKeringat Drawer (R56 — App Shell)
+ * --------------------------------------
+ * Drawer offcanvas (#gtDrawer) HIDUP TERUS di shell. Router hanya
+ * memintanya untuk menutup ketika navigasi berhasil. Tidak pernah
+ * di-recreate/destroy.
  *
  * API: window.KKDrawer = { close() }
  */
 (function () {
   'use strict';
-  if (window.KKDrawer && window.KKDrawer.__r55) return;
+  if (window.KKDrawer && window.KKDrawer.__r56) return;
 
   function close() {
     try {
@@ -28,5 +29,5 @@
     } catch (_) {}
   }
 
-  window.KKDrawer = { __r55: true, close: close };
+  window.KKDrawer = { __r56: true, close: close };
 })();

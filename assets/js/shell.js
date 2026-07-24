@@ -1,52 +1,44 @@
 /*!
- * KawanKeringat Shell (R55 — Hybrid Shell)
- * ----------------------------------------
- * Swap HANYA innerHTML #app-content. Header, drawer, bottom nav, floating
- * button, dan seluruh <script> global di footer.php TETAP HIDUP.
+ * KawanKeringat Shell (R56 — App Shell + Fragment)
+ * ================================================
+ * Bertugas SATU: menempel body fragment (yang berisi HANYA isi <main>)
+ * ke innerHTML #app-content, tanpa mem-parse <html>/<head>/header/footer.
  *
  * Prinsip:
- *   - Kalau HTML respons tidak mengandung #app-content → return false
- *     (router akan fallback ke window.location.href).
- *   - AbortController per swap: sebelum ganti innerHTML, semua event lama
- *     yang ter-attach ke elemen di dalam #app-content pergi bersamanya
- *     (browser garbage-collect listener yang terikat pada node yang dilepas).
- *     Untuk listener yang ter-attach ke document/window oleh inline script
- *     halaman sebelumnya, kami menyediakan window.__kkPageAbort:
- *     inline script boleh pakai `window.__kkPageAbort.signal` sebagai
- *     signal AbortController, dan otomatis di-abort saat halaman berganti.
- *   - Dedup <script src> lintas halaman berdasarkan URL TANPA query string,
- *     supaya Leaflet/Chart.js/Mapbox tidak pernah di-reinit kalau halaman
- *     baru tidak memerlukannya.
+ *   - Tidak pernah membaca DOMParser lagi (fragment sudah dijamin bersih
+ *     oleh header.php + footer.php dalam mode fragment).
+ *   - Sebelum swap, batalkan AbortController halaman sebelumnya
+ *     (window.__kkPageAbort) supaya listener global dari halaman lama
+ *     otomatis mati. Inline script halaman boleh pakai:
+ *        var sig = (window.__kkPageAbort && window.__kkPageAbort.signal);
+ *     agar fetch/interval-nya ikut dibatalkan.
+ *   - Dedup <script src> lintas fragment berdasarkan URL tanpa query,
+ *     supaya Leaflet, Chart.js, Mapbox, dsb. tidak pernah di-reinit
+ *     kalau sudah pernah dimuat.
+ *   - Update <title> dan atribut data-skeleton dari response header,
+ *     bukan dari HTML.
  *
- * API: window.KKShell = { swap(html, url, hooks), runInlineScripts(root) }
+ * API: window.KKShell = {
+ *   applyFragment(body, opts), runInlineScripts(root), abortPage()
+ * }
+ * opts = { title?: string, skeleton?: string, url?: string, onSwap?: fn }
  */
 (function () {
   'use strict';
-  if (window.KKShell && window.KKShell.__r55) return;
+  if (window.KKShell && window.KKShell.__r56) return;
 
   var CONTENT_ID = 'app-content';
 
   function normalizeSrc(src) {
     try {
       var u = new URL(src, location.href);
-      return u.origin + u.pathname; // buang query & hash
+      return u.origin + u.pathname;
     } catch (_) { return src; }
-  }
-
-  function extract(html) {
-    try {
-      var doc = new DOMParser().parseFromString(html, 'text/html');
-      var next = doc.getElementById(CONTENT_ID);
-      if (!next) return null;
-      var title = (doc.querySelector('title') || {}).textContent || document.title;
-      return { node: next, title: title, doc: doc };
-    } catch (_) { return null; }
   }
 
   function runInlineScripts(root) {
     if (!root) return;
     var loaded = window.__kkLoadedScripts || (window.__kkLoadedScripts = {});
-    // Seed dari <script src> yang sudah ada di dokumen (footer.php dsb).
     if (!loaded.__seeded) {
       var all = document.querySelectorAll('script[src]');
       for (var i = 0; i < all.length; i++) {
@@ -76,8 +68,7 @@
     });
   }
 
-  function abortPreviousPage() {
-    // Abort AbortController sebelumnya, lalu bikin baru untuk halaman berikutnya.
+  function abortPage() {
     try {
       if (window.__kkPageAbort && window.__kkPageAbort.abort) {
         window.__kkPageAbort.abort();
@@ -88,47 +79,37 @@
     } catch (_) { window.__kkPageAbort = null; }
   }
 
-  function swap(html, url, hooks) {
-    hooks = hooks || {};
-    var got = extract(html);
-    if (!got) return false;
+  function applyFragment(body, opts) {
+    opts = opts || {};
     var current = document.getElementById(CONTENT_ID);
     if (!current) return false;
+    if (typeof body !== 'string') return false;
 
-    abortPreviousPage();
+    abortPage();
 
     try {
-      // Ganti innerHTML — jangan replace node, agar listener global yang
-      // di-attach ke #app-content tetap hidup.
-      current.innerHTML = got.node.innerHTML;
+      current.innerHTML = body;
 
-      if (got.node.dataset) {
-        Object.keys(got.node.dataset).forEach(function (k) {
-          try { current.dataset[k] = got.node.dataset[k]; } catch (_) {}
-        });
-      }
-      if (got.title) document.title = got.title;
-
-      var bodySkel = got.doc.body && got.doc.body.getAttribute('data-skeleton');
-      if (bodySkel != null) document.body.setAttribute('data-skeleton', bodySkel);
+      if (opts.title) { try { document.title = opts.title; } catch (_) {} }
+      if (opts.skeleton) document.body.setAttribute('data-skeleton', opts.skeleton);
       else document.body.removeAttribute('data-skeleton');
 
-      try { hooks.onReplaceDom && hooks.onReplaceDom(); } catch (_) {}
+      try { opts.onSwap && opts.onSwap(); } catch (_) {}
 
       runInlineScripts(current);
-      try { hooks.onRunInlineScripts && hooks.onRunInlineScripts(); } catch (_) {}
 
       try { window.scrollTo(0, 0); } catch (_) {}
       return true;
     } catch (e) {
-      console.warn('[KKShell] swap failed', e);
+      console.warn('[KKShell] applyFragment failed', e);
       return false;
     }
   }
 
   window.KKShell = {
-    __r55: true,
-    swap: swap,
-    runInlineScripts: runInlineScripts
+    __r56: true,
+    applyFragment: applyFragment,
+    runInlineScripts: runInlineScripts,
+    abortPage: abortPage
   };
 })();

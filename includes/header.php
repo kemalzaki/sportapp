@@ -160,6 +160,37 @@ if (empty($pageSkeleton)) {
     if (isset($_skelMap[$_base])) $pageSkeleton = $_skelMap[$_base];
     else $pageSkeleton = 'list'; // default umum
 }
+
+/* ============================================================
+ * R56 — App Shell + Fragment Mode (REFAKTOR TOTAL)
+ * ------------------------------------------------------------
+ * Bila request datang dengan ?fragment=1 (atau header
+ * X-KK-Fragment: 1), header.php TIDAK mengeluarkan HTML apa pun.
+ * Seluruh require_once, auth, migrasi, dan variabel global ($u,
+ * $navFoto, $nUnread, $darkMode, $pageSkeleton) TETAP dijalankan
+ * di atas sehingga halaman fragment tetap punya konteks lengkap.
+ *
+ * Router client-side (assets/js/router.js R56) akan menempel
+ * hasil respons ini langsung ke innerHTML #app-content pada shell
+ * yang sudah hidup — tidak ada re-render <html>, <head>,
+ * header, footer, bottom nav, drawer, bootstrap, firebase,
+ * notifikasi polling, atau service worker.
+ *
+ * Judul tab dan skeleton dikirim via response header supaya
+ * router bisa update tanpa mem-parse HTML.
+ * ============================================================ */
+if (!empty($_GET['fragment']) || (($_SERVER['HTTP_X_KK_FRAGMENT'] ?? '') === '1')) {
+    if (!headers_sent()) {
+        header('X-KK-Fragment: 1');
+        header('Cache-Control: no-store, must-revalidate');
+        $__ftitle = ($pageTitle ?? 'KawanKeringat') . ' · KawanKeringat';
+        header('X-KK-Title: ' . rawurlencode($__ftitle));
+        if (!empty($pageSkeleton)) {
+            header('X-KK-Skeleton: ' . preg_replace('/[^a-z0-9_-]/i', '', (string)$pageSkeleton));
+        }
+    }
+    return; // stop di sini — jangan render layout global.
+}
 ?>
 <!doctype html>
 <html lang="id" data-bs-theme="light">

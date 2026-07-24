@@ -1,34 +1,36 @@
 /*!
- * KawanKeringat Loader (R55 — Hybrid Shell)
- * -----------------------------------------
- * Skeleton bar tipis 3px di atas layar dengan HARD CAP 500ms.
- * Kalau show() dipanggil ulang saat loader lama masih tampil, timer lama
- * dibatalkan dan diganti — hanya boleh ada SATU skeleton aktif.
+ * KawanKeringat Loader (R56 — App Shell)
+ * --------------------------------------
+ * Progress bar tipis 3px yang HANYA berada di atas #app-content, bukan
+ * overlay seluruh aplikasi. Header, bottom nav, dan drawer tidak
+ * pernah tertutup loader ini.
  *
  * API: window.KKLoader = { show(), hide(), flash(ms) }
  */
 (function () {
   'use strict';
-  if (window.KKLoader && window.KKLoader.__r55) return;
+  if (window.KKLoader && window.KKLoader.__r56) return;
 
-  var MAX_MS = 500;
+  var MAX_MS = 800;
   var el = null;
   var timer = null;
   var hideDelay = null;
 
+  function host() {
+    return document.getElementById('app-content') || document.body;
+  }
+
   function ensure() {
     if (el && document.body.contains(el)) return el;
     el = document.getElementById('kkLoaderOverlay');
-    if (el) return el;
+    if (el && el.parentNode) el.parentNode.removeChild(el);
     el = document.createElement('div');
     el.id = 'kkLoaderOverlay';
     el.setAttribute('aria-hidden', 'true');
     el.style.cssText = [
-      'position:fixed', 'left:0', 'right:0', 'top:0',
-      'height:3px',
-      'pointer-events:none',
-      'z-index:2147483000',
-      'opacity:0',
+      'position:absolute','left:0','right:0','top:0',
+      'height:3px','pointer-events:none',
+      'z-index:50','opacity:0',
       'transition:opacity .12s linear',
       'display:none',
       'background:linear-gradient(90deg,transparent,#0ea5e9,transparent)',
@@ -43,7 +45,11 @@
         '#kkLoaderOverlay.kk-on{animation:kkbar 1s linear infinite}';
       document.head.appendChild(st);
     }
-    (document.body || document.documentElement).appendChild(el);
+    var h = host();
+    // Pastikan host punya position relative supaya bar menempel di atasnya.
+    var cs = getComputedStyle(h);
+    if (cs.position === 'static') h.style.position = 'relative';
+    h.appendChild(el);
     return el;
   }
 
@@ -56,7 +62,6 @@
     var n = ensure();
     clearAll();
     n.style.display = 'block';
-    // paksa reflow
     void n.offsetHeight;
     n.classList.add('kk-on');
     n.style.opacity = '1';
@@ -80,5 +85,5 @@
     timer = setTimeout(hide, Math.min(MAX_MS, ms || 200));
   }
 
-  window.KKLoader = { __r55: true, show: show, hide: hide, flash: flash };
+  window.KKLoader = { __r56: true, show: show, hide: hide, flash: flash };
 })();
