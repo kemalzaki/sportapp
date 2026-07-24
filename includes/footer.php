@@ -1,14 +1,3 @@
-<?php
-/* R56 — App Shell + Fragment Mode.
- * Fragment tidak boleh menutup <main> (karena header.php juga tidak
- * membukanya), dan tidak boleh mengeluarkan script global apa pun.
- * Semua bootstrap, firebase, notif polling, service worker, dan
- * router HANYA dijalankan di full-page load pertama.
- */
-if (!empty($_GET['fragment']) || (($_SERVER['HTTP_X_KK_FRAGMENT'] ?? '') === '1')) {
-    return;
-}
-?>
 </main>
 <!-- ===== Revisi 1 Jun 2026 #3 — Skeleton loading global =====
      Pakai di halaman manapun:
@@ -923,10 +912,4 @@ document.addEventListener('submit', async function(ev){
   }, true);
 })();
 </script>
-
-<!-- Revisi Juli 2026 R56 — App Shell + Fragment Router.
-     Router memanggil endpoint fragment (?fragment=1); header.php,
-     footer.php, bottom nav, drawer, firebase, service worker, dan
-     notif polling hanya dijalankan SATU KALI pada full-load pertama. -->
-<script src="/assets/js/router.js?v=r56" defer></script>
 </body></html>
